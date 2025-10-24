@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import settings from '../settings.json';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -17,8 +18,11 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
+            <div className="flex-shrink-0 flex items-center gap-3">
               <h1 className="text-xl font-bold text-gray-900">Admin Zero Azul</h1>
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                {settings.proyecto.version}
+              </span>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               {navItems.map((item) => {
