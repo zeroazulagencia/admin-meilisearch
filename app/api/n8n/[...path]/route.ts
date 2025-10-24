@@ -31,6 +31,7 @@ export async function GET(
 
     return NextResponse.json(response.data);
   } catch (error: any) {
+    const path = params.path.join('/');
     console.error('Error en n8n API:', error.message);
     console.error('URL:', `${N8N_CONFIG.url}api/v1/${path}`);
     console.error('Error completo:', error);
