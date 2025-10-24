@@ -212,23 +212,18 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
             </div>
           </div>
           
-          <form onSubmit={handleSearch} className="space-y-3">
+          <div className="space-y-3">
             <div className="flex gap-2">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSearch(e);
-                  }
-                }}
                 placeholder="Buscar documentos..."
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <button
-                type="submit"
+                type="button"
+                onClick={handleSearch}
                 disabled={loading}
                 className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
@@ -289,7 +284,7 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
                 )}
               </div>
             )}
-          </form>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -331,8 +326,24 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
                       />
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-md truncate">
-                        {JSON.stringify(doc)}
+                      <div className="text-sm text-gray-900 space-y-1">
+                        {Object.entries(doc).slice(0, 3).map(([key, value]) => (
+                          <div key={key} className="line-clamp-2">
+                            <span className="font-medium text-gray-700">{key}:</span>{' '}
+                            <span className="text-gray-600">
+                              {typeof value === 'string' && value.length > 50 
+                                ? `${value.substring(0, 50)}...` 
+                                : typeof value === 'object' 
+                                  ? JSON.stringify(value).substring(0, 50) + '...'
+                                  : String(value)}
+                            </span>
+                          </div>
+                        ))}
+                        {Object.keys(doc).length > 3 && (
+                          <div className="text-xs text-gray-400 italic">
+                            +{Object.keys(doc).length - 3} campos más
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
