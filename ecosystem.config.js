@@ -1,15 +1,15 @@
 module.exports = {
   apps: [{
     name: 'admin-meilisearch',
-    script: 'npm',
-    args: 'run dev',
-    cwd: '/Users/admin/Desktop/dev/admin-florida',
+    script: 'node_modules/.bin/next',
+    args: 'start',
+    cwd: process.cwd(),
     instances: 1,
     autorestart: true,
     watch: false,
     max_memory_restart: '1G',
     env: {
-      NODE_ENV: 'development',
+      NODE_ENV: 'production',
       PORT: 8989
     }
   }]
