@@ -61,7 +61,7 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
         setDocuments(data.results || []);
         setTotal(data.total || 0);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading documents:', err);
       console.error('Error details:', {
         message: err.message,
