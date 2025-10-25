@@ -122,9 +122,12 @@ La aplicación se configura para iniciar automáticamente después de un reinici
 
 ## Versión
 
-v16.6
+v16.7
 
 ### Cambios recientes:
+- ✨ Búsqueda manual: Solo el botón "Buscar" ejecuta búsquedas, sin disparos automáticos (v16.7)
+- ✨ Spinner mejorado con texto "Buscando..." durante la búsqueda (v16.7)
+- ✨ Soporte para búsqueda con tecla Enter (v16.7)
 - 🔧 Corrección de búsqueda con IA que causaba errores al marcar checkbox (v16.6)
 - 🔧 Corrección definitiva del contador de búsqueda usando parámetros correctos de Meilisearch (v16.5)
 - 🔧 Corrección del contador de búsqueda que mostraba "NaN" (v16.4)

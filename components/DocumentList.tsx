@@ -34,35 +34,51 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
     }
   }, [indexUid, offset]);
 
-  useEffect(() => {
-    if (indexUid && searchQuery.trim()) {
-      loadDocuments();
-    }
-  }, [useAI, searchParams]);
-
   const loadDocuments = async () => {
     try {
       setLoading(true);
-      if (searchQuery.trim()) {
-        setIsSearching(true);
-        // Usar searchDocuments siempre cuando hay búsqueda
-        const params = useAI ? {
-          hybrid: { embedder: 'openai' }
-        } : undefined;
-        
-        const data = await meilisearchAPI.searchDocuments(indexUid, searchQuery, limit, offset, params);
-        console.log('Search API response:', data);
-        setDocuments(data.hits || []);
-        setTotal(data.totalHits || data.total || 0);
-      } else {
-        setIsSearching(false);
-        const data = await meilisearchAPI.getDocuments(indexUid, limit, offset);
-        console.log('Get documents API response:', data);
-        setDocuments(data.results || []);
-        setTotal(data.total || 0);
-      }
+      setIsSearching(false);
+      const data = await meilisearchAPI.getDocuments(indexUid, limit, offset);
+      console.log('Get documents API response:', data);
+      setDocuments(data.results || []);
+      setTotal(data.total || 0);
     } catch (err: any) {
       console.error('Error loading documents:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        config: err.config
+      });
+      setDocuments([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      // Si no hay query, cargar documentos normales
+      await loadDocuments();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setIsSearching(true);
+      
+      // Usar searchDocuments cuando hay búsqueda
+      const params = useAI ? {
+        hybrid: { embedder: 'openai' }
+      } : undefined;
+      
+      const data = await meilisearchAPI.searchDocuments(indexUid, searchQuery, limit, offset, params);
+      console.log('Search API response:', data);
+      setDocuments(data.hits || []);
+      setTotal(data.totalHits || data.total || 0);
+    } catch (err: any) {
+      console.error('Error searching documents:', err);
       console.error('Error details:', {
         message: err.message,
         response: err.response?.data,
@@ -232,6 +248,11 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch();
+                  }
+                }}
                 placeholder="Buscar documentos..."
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -239,10 +260,10 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
                 type="button"
                 onClick={handleSearch}
                 disabled={loading}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
               >
                 {loading && <span className="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>}
-                Buscar
+                {loading ? 'Buscando...' : 'Buscar'}
               </button>
               {searchQuery && (
                 <button
@@ -250,9 +271,9 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
                   onClick={() => {
                     setSearchQuery('');
                     setOffset(0);
-                    setTimeout(() => loadDocuments(), 0);
+                    handleSearch(); // Usar la función de búsqueda que maneja ambos casos
                   }}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                 >
                   Limpiar
                 </button>
