@@ -122,9 +122,10 @@ La aplicación se configura para iniciar automáticamente después de un reinici
 
 ## Versión
 
-v16.1
+v16.4
 
 ### Cambios recientes:
+- 🔧 Corrección del contador de búsqueda que mostraba "NaN" (v16.4)
 - ✨ Configuración de embeddings de IA desde la interfaz
 - ✨ Búsqueda híbrida con IA (semántica + texto)
 - ✨ Integración con n8n para visualizar ejecuciones
