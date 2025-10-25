@@ -122,9 +122,10 @@ La aplicación se configura para iniciar automáticamente después de un reinici
 
 ## Versión
 
-v16.4
+v16.5
 
 ### Cambios recientes:
+- 🔧 Corrección definitiva del contador de búsqueda usando parámetros correctos de Meilisearch (v16.5)
 - 🔧 Corrección del contador de búsqueda que mostraba "NaN" (v16.4)
 - ✨ Configuración de embeddings de IA desde la interfaz
 - ✨ Búsqueda híbrida con IA (semántica + texto)

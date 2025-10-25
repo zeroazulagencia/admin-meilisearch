@@ -47,11 +47,13 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
         } : undefined;
         
         const data = await meilisearchAPI.searchDocuments(indexUid, searchQuery, limit, offset, params);
+        console.log('Search API response:', data);
         setDocuments(data.hits || []);
-        setTotal(data.total || 0);
+        setTotal(data.totalHits || data.total || 0);
       } else {
         setIsSearching(false);
         const data = await meilisearchAPI.getDocuments(indexUid, limit, offset);
+        console.log('Get documents API response:', data);
         setDocuments(data.results || []);
         setTotal(data.total || 0);
       }
@@ -373,7 +375,11 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
         <div className="p-6 border-t border-gray-200 flex justify-between items-center">
           <div className="text-sm text-gray-600">
             {isSearching && <span className="mr-2">🔍 Buscando:</span>}
-            Mostrando {offset + 1} - {Math.min(offset + limit, total || 0)} de {total || 0}
+            {total > 0 ? (
+              <>Mostrando {offset + 1} - {Math.min(offset + documents.length, total)} de {total}</>
+            ) : (
+              <>No hay resultados</>
+            )}
           </div>
           <div className="space-x-2">
             <button

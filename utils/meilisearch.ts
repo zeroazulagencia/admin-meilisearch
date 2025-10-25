@@ -82,8 +82,9 @@ export const meilisearchAPI = {
   },
 
   // Buscar documentos en un índice
-  async searchDocuments(uid: string, query: string, limit: number = 20, offset: number = 0, params?: any): Promise<{ hits: Document[], total: number }> {
-    const searchParams: any = { q: query, limit, offset };
+  async searchDocuments(uid: string, query: string, limit: number = 20, offset: number = 0, params?: any): Promise<{ hits: Document[], totalHits: number, total: number }> {
+    const page = Math.floor(offset / limit) + 1;
+    const searchParams: any = { q: query, hitsPerPage: limit, page };
     
     if (params) {
       if (params.matchingStrategy) searchParams.matchingStrategy = params.matchingStrategy;
@@ -94,7 +95,14 @@ export const meilisearchAPI = {
     const response = await api.get(`/indexes/${uid}/search`, {
       params: searchParams
     });
-    return response.data;
+    
+    // Meilisearch devuelve totalHits, pero mantenemos compatibilidad con total
+    const data = response.data;
+    return {
+      hits: data.hits || [],
+      totalHits: data.totalHits || 0,
+      total: data.totalHits || 0 // Para compatibilidad
+    };
   },
 
   // Obtener un documento específico
