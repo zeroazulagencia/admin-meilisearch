@@ -93,6 +93,7 @@ export const meilisearchAPI = {
     }
     
     console.log('Meilisearch search params:', searchParams);
+    console.log('Full search params object:', JSON.stringify(searchParams, null, 2));
     
     const response = await api.get(`/indexes/${uid}/search`, {
       params: searchParams

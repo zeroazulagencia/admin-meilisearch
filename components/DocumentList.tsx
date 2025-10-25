@@ -74,7 +74,9 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
         hybrid: { 
           embedder: 'openai',
           semanticRatio: searchParams.semanticRatio
-        }
+        },
+        matchingStrategy: searchParams.matchingStrategy,
+        rankingScoreThreshold: searchParams.rankingScoreThreshold
       } : undefined;
       
       const data = await meilisearchAPI.searchDocuments(indexUid, searchQuery, limit, offset, params);
@@ -89,6 +91,8 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
         status: err.response?.status,
         config: err.config
       });
+      console.error('Full error response:', err.response);
+      console.error('Request config:', err.config);
       setDocuments([]);
       setTotal(0);
     } finally {

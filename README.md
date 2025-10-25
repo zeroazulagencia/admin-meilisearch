@@ -122,9 +122,11 @@ La aplicación se configura para iniciar automáticamente después de un reinici
 
 ## Versión
 
-v16.8
+v16.9
 
 ### Cambios recientes:
+- 🔍 Debug mejorado para búsqueda híbrida con IA - logs detallados de errores (v16.9)
+- 🔧 Inclusión de parámetros adicionales en búsqueda híbrida (matchingStrategy, rankingScoreThreshold) (v16.9)
 - 🔧 Corrección de búsqueda híbrida con IA - agregado semanticRatio requerido (v16.8)
 - ✨ Control de Semantic Ratio para ajustar búsqueda semántica vs texto (v16.8)
 - ✨ Búsqueda manual: Solo el botón "Buscar" ejecuta búsquedas, sin disparos automáticos (v16.7)
