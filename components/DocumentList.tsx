@@ -93,6 +93,7 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
       });
       console.error('Full error response:', err.response);
       console.error('Error response data:', err.response?.data);
+      console.error('Error details from API:', err.response?.data?.details);
       console.error('Request config:', err.config);
       setDocuments([]);
       setTotal(0);

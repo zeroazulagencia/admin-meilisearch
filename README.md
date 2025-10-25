@@ -122,9 +122,10 @@ La aplicación se configura para iniciar automáticamente después de un reinici
 
 ## Versión
 
-v17.0
+v17.1
 
 ### Cambios recientes:
+- 🔍 Mejora en manejo de errores de API - ahora muestra detalles completos de errores de Meilisearch (v17.1)
 - 🔐 Sistema de login implementado con usuario zeroazul y clave 43r1tnd*.*V1nc3nt+ (v17.0)
 - 🔐 Mantenimiento de sesión en navegador con expiración de 24 horas (v17.0)
 - 🔍 Debug mejorado para búsqueda híbrida con IA - logs detallados de errores (v16.9)

@@ -20,8 +20,22 @@ export async function GET(
 
     return NextResponse.json(response.data);
   } catch (error: any) {
+    console.error('Meilisearch API Error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+      params: error.config?.params
+    });
+    
     return NextResponse.json(
-      { error: error.message },
+      { 
+        error: error.message,
+        details: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url
+      },
       { status: error.response?.status || 500 }
     );
   }
