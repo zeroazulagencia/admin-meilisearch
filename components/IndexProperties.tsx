@@ -13,6 +13,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
   const [settings, setSettings] = useState<IndexSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [showEmbeddingModal, setShowEmbeddingModal] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true); // Cerrado por defecto
   const [lastDocument, setLastDocument] = useState<any>(null);
   const [newEmbedder, setNewEmbedder] = useState({
     name: 'openai',
@@ -158,17 +159,48 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
 
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-800">Propiedades del Índice</h2>
+      <div 
+        className="p-6 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-800">Propiedades del Índice</h2>
+          <div className="flex items-center space-x-2">
+            {index && stats && (
+              <div className="text-sm text-gray-500">
+                {stats.numberOfDocuments} docs • {stats.isIndexing ? 'Indexando' : 'Listo'}
+              </div>
+            )}
+            <svg 
+              className={`w-5 h-5 text-gray-500 transition-transform ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
       </div>
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+      {!isCollapsed && (
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-gray-600">UID</p>
             <p className="text-lg font-medium text-gray-900">{index.uid}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Clave Primaria</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-gray-600">Clave Primaria</p>
+              <div className="group relative">
+                <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                  Campo único que identifica cada documento
+                </div>
+              </div>
+            </div>
             <p className="text-lg font-medium text-gray-900">{index.primaryKey || 'No definida'}</p>
           </div>
           <div>
@@ -186,30 +218,40 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
         {settings && (
           <>
             {settings.embedders && Object.keys(settings.embedders).length > 0 ? (
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="text-sm font-semibold text-purple-900 mb-3">🤖 Embedding de IA Habilitado</p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-sm font-semibold text-gray-700">Embedding de IA Habilitado</p>
+                  <div className="group relative">
+                    <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      Configuración de embeddings para búsqueda semántica
+                    </div>
+                  </div>
+                </div>
                 {Object.entries(settings.embedders).map(([name, config]) => (
-                  <div key={name} className="mb-3 last:mb-0 p-3 bg-white rounded border border-purple-100">
-                    <p className="text-xs font-semibold text-purple-800 mb-2">Configuración: {name}</p>
+                  <div key={name} className="mb-3 last:mb-0 p-3 bg-white rounded border border-gray-200">
+                    <p className="text-xs font-semibold text-gray-800 mb-2">Configuración: {name}</p>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-purple-600">Fuente:</span>
-                        <span className="ml-2 text-purple-900 font-medium">{config.source || 'N/A'}</span>
+                        <span className="text-gray-600">Fuente:</span>
+                        <span className="ml-2 text-gray-900 font-medium">{config.source || 'N/A'}</span>
                       </div>
                       <div>
-                        <span className="text-purple-600">Modelo:</span>
-                        <span className="ml-2 text-purple-900 font-medium">{config.model || 'N/A'}</span>
+                        <span className="text-gray-600">Modelo:</span>
+                        <span className="ml-2 text-gray-900 font-medium">{config.model || 'N/A'}</span>
                       </div>
                       {config.documentTemplate && (
                         <div className="col-span-2">
-                          <span className="text-purple-600">Template:</span>
-                          <span className="ml-2 text-purple-900 font-medium text-xs break-words">{config.documentTemplate}</span>
+                          <span className="text-gray-600">Template:</span>
+                          <span className="ml-2 text-gray-900 font-medium text-xs break-words">{config.documentTemplate}</span>
                         </div>
                       )}
                       {config.documentTemplateMaxBytes && (
                         <div>
-                          <span className="text-purple-600">Max Bytes:</span>
-                          <span className="ml-2 text-purple-900 font-medium">{config.documentTemplateMaxBytes}</span>
+                          <span className="text-gray-600">Max Bytes:</span>
+                          <span className="ml-2 text-gray-900 font-medium">{config.documentTemplateMaxBytes}</span>
                         </div>
                       )}
                     </div>
@@ -218,11 +260,21 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
               </div>
             ) : (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <p className="text-sm font-semibold text-gray-700">🤖 Embedding de IA: No configurado</p>
-                <p className="text-xs text-gray-500 mt-1 mb-3">Este índice no tiene embeddings de IA configurados</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-sm font-semibold text-gray-700">Embedding de IA: No configurado</p>
+                  <div className="group relative">
+                    <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      Los embeddings permiten búsqueda semántica con IA
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">Este índice no tiene embeddings de IA configurados</p>
                 <button
                   onClick={handleOpenEmbeddingModal}
-                  className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm"
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
                 >
                   Configurar Embedding
                 </button>
@@ -231,10 +283,10 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
 
             {settings.filterableAttributes && settings.filterableAttributes.length > 0 && (
               <div>
-                <p className="text-sm font-semibold text-gray-700 mb-3">🔍 Campos Filtrables</p>
+                <p className="text-sm font-semibold text-gray-700 mb-3">Campos Filtrables</p>
                 <div className="flex flex-wrap gap-2">
                   {settings.filterableAttributes.map((attr) => (
-                    <span key={attr} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                    <span key={attr} className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
                       {attr}
                     </span>
                   ))}
@@ -244,10 +296,10 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
 
             {settings.searchableAttributes && settings.searchableAttributes.length > 0 && (
               <div>
-                <p className="text-sm font-semibold text-gray-700 mb-3">🔎 Campos Buscables</p>
+                <p className="text-sm font-semibold text-gray-700 mb-3">Campos Buscables</p>
                 <div className="flex flex-wrap gap-2">
                   {settings.searchableAttributes.map((attr) => (
-                    <span key={attr} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                    <span key={attr} className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
                       {attr}
                     </span>
                   ))}
@@ -260,7 +312,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
                 <p className="text-sm font-semibold text-gray-700 mb-3">Campos Ordenables</p>
                 <div className="flex flex-wrap gap-2">
                   {settings.sortableAttributes.map((attr) => (
-                    <span key={attr} className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+                    <span key={attr} className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
                       {attr}
                     </span>
                   ))}
@@ -286,6 +338,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
           </div>
         )}
       </div>
+      )}
 
       {showEmbeddingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -307,7 +360,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
                   value={newEmbedder.apiKey}
                   onChange={(e) => setNewEmbedder({ ...newEmbedder, apiKey: e.target.value })}
                   placeholder="sk-..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-xs"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-mono text-xs"
                 />
                 <p className="text-xs text-gray-500 mt-1">Necesaria para generar embeddings</p>
               </div>
@@ -333,7 +386,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
                   onChange={(e) => setNewEmbedder({ ...newEmbedder, documentTemplate: e.target.value })}
                   placeholder="Template para procesar documentos"
                   rows={5}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-xs"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-mono text-xs"
                 />
                 <p className="text-xs text-gray-500 mt-1">Generado automáticamente desde el último documento del índice</p>
               </div>
@@ -355,7 +408,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
               </button>
               <button
                 onClick={handleUpdateEmbedders}
-                className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
                 Guardar
               </button>

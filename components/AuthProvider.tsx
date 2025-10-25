@@ -14,6 +14,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     // Verificar sesión al cargar
     const checkAuth = () => {
+      // Verificar que estamos en el cliente
+      if (typeof window === 'undefined') {
+        setIsLoading(false);
+        return;
+      }
+
       const authenticated = localStorage.getItem('admin-authenticated');
       const loginTime = localStorage.getItem('admin-login-time');
       
@@ -44,9 +50,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('admin-authenticated');
-    localStorage.removeItem('admin-user');
-    localStorage.removeItem('admin-login-time');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('admin-authenticated');
+      localStorage.removeItem('admin-user');
+      localStorage.removeItem('admin-login-time');
+    }
     setIsAuthenticated(false);
   };
 

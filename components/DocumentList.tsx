@@ -22,18 +22,34 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [useAI, setUseAI] = useState(false);
+  const [detectedEmbedderName, setDetectedEmbedderName] = useState<string>('openai');
   const [searchParams, setSearchParams] = useState({
     matchingStrategy: 'all',
-    rankingScoreThreshold: 0.0,
+    rankingScoreThreshold: 0.1, // Threshold más bajo para mostrar más resultados
     semanticRatio: 0.5,
-    hybrid: null as any
+    hybrid: null as any,
+    embedderName: 'openai' // Nombre del embedder, se detectará automáticamente
   });
 
   useEffect(() => {
     if (indexUid) {
       loadDocuments();
+      detectEmbedderName();
     }
   }, [indexUid, offset]);
+
+  const detectEmbedderName = async () => {
+    try {
+      const settings = await meilisearchAPI.getIndexSettings(indexUid);
+      if (settings.embedders && Object.keys(settings.embedders).length > 0) {
+        const embedderName = Object.keys(settings.embedders)[0];
+        setDetectedEmbedderName(embedderName);
+        console.log('🔍 Embedder detectado:', embedderName);
+      }
+    } catch (err) {
+      console.error('Error detectando embedder:', err);
+    }
+  };
 
   const loadDocuments = async () => {
     try {
@@ -69,12 +85,13 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
       setLoading(true);
       setIsSearching(true);
       
+      // Iniciar timer para spinner mínimo de 3 segundos
+      const startTime = Date.now();
+      
       // Usar searchDocuments cuando hay búsqueda
       const params = useAI ? {
-        hybrid: { 
-          embedder: 'openai',
-          semanticRatio: searchParams.semanticRatio
-        },
+        hybridEmbedder: detectedEmbedderName,
+        hybridSemanticRatio: searchParams.semanticRatio,
         matchingStrategy: searchParams.matchingStrategy,
         rankingScoreThreshold: searchParams.rankingScoreThreshold
       } : undefined;
@@ -83,6 +100,14 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
       console.log('Search API response:', data);
       setDocuments(data.hits || []);
       setTotal(data.totalHits || data.total || 0);
+      
+      // Calcular tiempo restante para completar 1.5 segundos
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, 1500 - elapsedTime);
+      
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+      }
     } catch (err: any) {
       console.error('Error searching documents:', err);
       console.error('Error details:', {
@@ -214,7 +239,10 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <p className="text-gray-600">Cargando documentos...</p>
+        <div className="flex items-center justify-center">
+          <div className="inline-block animate-spin h-6 w-6 border-2 border-gray-600 border-t-transparent rounded-full mr-3"></div>
+          <span className="text-gray-600">Cargando...</span>
+        </div>
       </div>
     );
   }
@@ -291,24 +319,43 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
                     type="checkbox"
                     checked={useAI}
                     onChange={(e) => setUseAI(e.target.checked)}
-                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    className="rounded border-gray-300 text-gray-600 focus:ring-gray-500"
                   />
                   <span className="text-gray-700">Buscar con IA</span>
                 </label>
                 
                 {useAI && (
                   <>
-                    <select
-                      value={searchParams.matchingStrategy}
-                      onChange={(e) => setSearchParams({ ...searchParams, matchingStrategy: e.target.value })}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="all">Matching: All</option>
-                      <option value="last">Matching: Last</option>
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <label className="text-gray-700">Matching:</label>
+                      <div className="group relative">
+                        <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                        </svg>
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                          Estrategia de coincidencia: All (todas) o Last (última)
+                        </div>
+                      </div>
+                      <select
+                        value={searchParams.matchingStrategy}
+                        onChange={(e) => setSearchParams({ ...searchParams, matchingStrategy: e.target.value })}
+                        className="px-3 py-1 border border-gray-300 rounded text-sm"
+                      >
+                        <option value="all">Matching: All</option>
+                        <option value="last">Matching: Last</option>
+                      </select>
+                    </div>
                     
                     <div className="flex items-center gap-2">
                       <label className="text-gray-700">Semantic Ratio:</label>
+                      <div className="group relative">
+                        <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                        </svg>
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                          Balance entre búsqueda semántica (0.5) y texto tradicional (0.5)
+                        </div>
+                      </div>
                       <input
                         type="number"
                         step="0.1"
@@ -322,6 +369,14 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
                     
                     <div className="flex items-center gap-2">
                       <label className="text-gray-700">Threshold:</label>
+                      <div className="group relative">
+                        <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                        </svg>
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                          Umbral mínimo de relevancia (0.1) para mostrar más resultados
+                        </div>
+                      </div>
                       <input
                         type="number"
                         step="0.1"
@@ -431,15 +486,31 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
           </div>
           <div className="space-x-2">
             <button
-              onClick={() => setOffset(Math.max(0, offset - limit))}
+              onClick={async () => {
+                const newOffset = Math.max(0, offset - limit);
+                setOffset(newOffset);
+                if (isSearching) {
+                  await handleSearch();
+                } else {
+                  await loadDocuments();
+                }
+              }}
               disabled={offset === 0}
               className="px-4 py-2 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               Anterior
             </button>
             <button
-              onClick={() => setOffset(offset + limit)}
-              disabled={offset + limit >= total}
+              onClick={async () => {
+                const newOffset = offset + limit;
+                setOffset(newOffset);
+                if (isSearching) {
+                  await handleSearch();
+                } else {
+                  await loadDocuments();
+                }
+              }}
+              disabled={isSearching ? (documents.length < limit) : (offset + limit >= total)}
               className="px-4 py-2 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               Siguiente
