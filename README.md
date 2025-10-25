@@ -122,9 +122,11 @@ La aplicación se configura para iniciar automáticamente después de un reinici
 
 ## Versión
 
-v16.9
+v17.0
 
 ### Cambios recientes:
+- 🔐 Sistema de login implementado con usuario zeroazul y clave 43r1tnd*.*V1nc3nt+ (v17.0)
+- 🔐 Mantenimiento de sesión en navegador con expiración de 24 horas (v17.0)
 - 🔍 Debug mejorado para búsqueda híbrida con IA - logs detallados de errores (v16.9)
 - 🔧 Inclusión de parámetros adicionales en búsqueda híbrida (matchingStrategy, rankingScoreThreshold) (v16.9)
 - 🔧 Corrección de búsqueda híbrida con IA - agregado semanticRatio requerido (v16.8)
