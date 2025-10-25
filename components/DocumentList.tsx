@@ -97,12 +97,6 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
     await loadDocuments();
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setOffset(0);
-    setTimeout(() => loadDocuments(), 0);
-  };
-
   const handleEdit = (doc: Document) => {
     setEditingDoc(doc);
     setShowEditor(true);
