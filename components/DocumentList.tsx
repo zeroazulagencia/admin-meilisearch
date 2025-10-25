@@ -25,6 +25,7 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
   const [searchParams, setSearchParams] = useState({
     matchingStrategy: 'all',
     rankingScoreThreshold: 0.0,
+    semanticRatio: 0.5,
     hybrid: null as any
   });
 
@@ -70,7 +71,10 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
       
       // Usar searchDocuments cuando hay búsqueda
       const params = useAI ? {
-        hybrid: { embedder: 'openai' }
+        hybrid: { 
+          embedder: 'openai',
+          semanticRatio: searchParams.semanticRatio
+        }
       } : undefined;
       
       const data = await meilisearchAPI.searchDocuments(indexUid, searchQuery, limit, offset, params);
@@ -296,6 +300,19 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
                       <option value="all">Matching: All</option>
                       <option value="last">Matching: Last</option>
                     </select>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="text-gray-700">Semantic Ratio:</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="1"
+                        value={searchParams.semanticRatio}
+                        onChange={(e) => setSearchParams({ ...searchParams, semanticRatio: parseFloat(e.target.value) })}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
                     
                     <div className="flex items-center gap-2">
                       <label className="text-gray-700">Threshold:</label>

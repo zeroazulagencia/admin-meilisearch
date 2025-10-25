@@ -122,9 +122,11 @@ La aplicación se configura para iniciar automáticamente después de un reinici
 
 ## Versión
 
-v16.7
+v16.8
 
 ### Cambios recientes:
+- 🔧 Corrección de búsqueda híbrida con IA - agregado semanticRatio requerido (v16.8)
+- ✨ Control de Semantic Ratio para ajustar búsqueda semántica vs texto (v16.8)
 - ✨ Búsqueda manual: Solo el botón "Buscar" ejecuta búsquedas, sin disparos automáticos (v16.7)
 - ✨ Spinner mejorado con texto "Buscando..." durante la búsqueda (v16.7)
 - ✨ Soporte para búsqueda con tecla Enter (v16.7)
