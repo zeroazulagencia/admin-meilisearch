@@ -32,7 +32,13 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
     if (indexUid) {
       loadDocuments();
     }
-  }, [indexUid, offset, useAI, searchParams]);
+  }, [indexUid, offset]);
+
+  useEffect(() => {
+    if (indexUid && searchQuery.trim()) {
+      loadDocuments();
+    }
+  }, [useAI, searchParams]);
 
   const loadDocuments = async () => {
     try {
@@ -41,8 +47,6 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
         setIsSearching(true);
         // Usar searchDocuments siempre cuando hay búsqueda
         const params = useAI ? {
-          matchingStrategy: searchParams.matchingStrategy,
-          rankingScoreThreshold: searchParams.rankingScoreThreshold,
           hybrid: { embedder: 'openai' }
         } : undefined;
         
@@ -59,6 +63,12 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
       }
     } catch (err) {
       console.error('Error loading documents:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        config: err.config
+      });
       setDocuments([]);
       setTotal(0);
     } finally {

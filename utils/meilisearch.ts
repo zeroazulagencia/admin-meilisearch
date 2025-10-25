@@ -92,12 +92,15 @@ export const meilisearchAPI = {
       if (params.hybrid) searchParams.hybrid = params.hybrid;
     }
     
+    console.log('Meilisearch search params:', searchParams);
+    
     const response = await api.get(`/indexes/${uid}/search`, {
       params: searchParams
     });
     
     // Meilisearch devuelve totalHits, pero mantenemos compatibilidad con total
     const data = response.data;
+    console.log('Meilisearch raw response:', data);
     return {
       hits: data.hits || [],
       totalHits: data.totalHits || 0,
