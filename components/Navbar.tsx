@@ -11,6 +11,8 @@ export default function Navbar() {
     { href: '/', label: 'Dashboard' },
     { href: '/admin-conocimiento', label: 'Admin Conocimiento' },
     { href: '/ejecuciones', label: 'Ejecuciones' },
+    { href: '/conversaciones', label: 'Conversaciones' },
+    { href: '/consumo-api', label: 'Consumo API' },
   ];
 
   return (
