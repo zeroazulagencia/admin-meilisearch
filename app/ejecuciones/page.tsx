@@ -3,14 +3,31 @@
 import { useState, useEffect, useRef } from 'react';
 import { n8nAPI, Workflow, Execution } from '@/utils/n8n';
 import { useAgents } from '@/utils/useAgents';
+import { getPermissions, getUserId } from '@/utils/permissions';
 
 type FilterStatus = 'all' | 'success' | 'error' | 'running';
 
 export default function Ejecuciones() {
-  const { agents, initialized: agentsInitialized } = useAgents();
+  const { agents: allAgents, initialized: agentsInitialized } = useAgents();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [allWorkflows, setAllWorkflows] = useState<Workflow[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<any>(null);
+
+  // Filtrar agentes según permisos
+  const agents = (() => {
+    const permissions = getPermissions();
+    const userId = getUserId();
+    
+    if (!permissions || !userId) return allAgents;
+    if (permissions.type === 'admin') return allAgents;
+    
+    // Si no tiene permiso viewAll, filtrar solo sus agentes
+    if (!permissions.ejecuciones?.viewAll) {
+      return allAgents.filter(a => a.client_id === parseInt(userId));
+    }
+    
+    return allAgents;
+  })();
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [loading, setLoading] = useState(true);
