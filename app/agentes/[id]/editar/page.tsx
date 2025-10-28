@@ -57,11 +57,14 @@ export default function EditarAgente() {
   }, []);
 
   useEffect(() => {
+    console.log('[EDIT-AGENTE] agentsInitialized:', agentsInitialized, 'agents count:', agents.length);
     if (agentsInitialized) {
       const agentId = parseInt(params.id as string);
+      console.log('[EDIT-AGENTE] Looking for agent ID:', agentId);
       const agent = agents.find(a => a.id === agentId);
+      console.log('[EDIT-AGENTE] Found agent:', agent);
       
-      if (agent) {
+      if (agent مطالب) {
         setCurrentAgent(agent);
         setFormData({
           name: agent.name,
@@ -73,10 +76,11 @@ export default function EditarAgente() {
       setSelectedWorkflows(agent.workflows?.workflowIds || []);
       setSelectedConversationAgent(agent.conversation_agent_name || '');
     } else {
+      console.log('[EDIT-AGENTE] Agent not found in agents list, redirecting');
       router.push('/agentes');
     }
   }
-}, [params.id, router]);
+}, [agentsInitialized, agents, params.id, router]);
 
   useEffect(() => {
     loadIndexes();
