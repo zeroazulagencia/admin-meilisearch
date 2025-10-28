@@ -2,12 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClients, Client } from '@/utils/useClients';
 import { useAgents } from '@/utils/useAgents';
+
+interface Client {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  clave?: string;
+  permissions?: any;
+}
 
 export default function EditarCliente({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const { clients, initialized: clientsInitialized, updateClient } = useClients();
   const { agents, initialized: agentsInitialized } = useAgents();
   
   const [formData, setFormData] = useState({
@@ -23,47 +31,71 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    if (clientsInitialized && agentsInitialized) {
-      const clientId = parseInt(params.id);
-      const client = clients.find(c => c.id === clientId);
-      
-      if (client) {
-        setCurrentClient(client);
-        setFormData({
-          name: client.name,
-          email: client.email || '',
-          phone: client.phone || '',
-          company: client.company || '',
-          clave: client.clave || ''
-        });
-        setPermissions(client.permissions || {});
-        
-        // Buscar agentes asociados
-        const agentsForClient = agents.filter(a => a.client_id === clientId);
-        setAssociatedAgents(agentsForClient);
-      } else {
+    // Cargar cliente desde MySQL
+    const loadClient = async () => {
+      try {
+        const res = await fetch(`/api/clients/${params.id}`);
+        const data = await res.json();
+        if (data.ok && data.client) {
+          const client = data.client;
+          setCurrentClient(client);
+          setFormData({
+            name: client.name,
+            email: client.email || '',
+            phone: client.phone || '',
+            company: client.company || '',
+            clave: client.clave || ''
+          });
+          try {
+            setPermissions(typeof client.permissions === 'string' ? JSON.parse(client.permissions) : (client.permissions || {}));
+          } catch {
+            setPermissions({});
+          }
+          
+          // Buscar agentes asociados desde localStorage
+          if (agentsInitialized) {
+            const agentsForClient = agents.filter(a => a.client_id === parseInt(params.id));
+            setAssociatedAgents(agentsForClient);
+          }
+        } else {
+          router.push('/clientes');
+        }
+      } catch (err) {
+        console.error('Error cargando cliente:', err);
         router.push('/clientes');
       }
-    }
-  }, [clientsInitialized, agentsInitialized, clients, agents, params.id, router]);
+    };
+    
+    loadClient();
+  }, [params.id, router, agents, agentsInitialized]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!currentClient) return;
 
-    const updateData: Partial<Client> = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      company: formData.company,
-      permissions,
-      clave: formData.clave
-    };
-    
-    updateClient(currentClient.id, updateData);
-
-    router.push('/clientes');
+    try {
+      const res = await fetch(`/api/clients/${currentClient.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          company: formData.company,
+          clave: formData.clave,
+          permissions
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        router.push('/clientes');
+      } else {
+        alert('Error al actualizar: ' + (data.error || 'Desconocido'));
+      }
+    } catch (err) {
+      alert('Error al actualizar cliente');
+    }
   };
 
   const togglePermission = (section: string, action: string) => {
