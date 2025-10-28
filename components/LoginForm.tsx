@@ -35,10 +35,16 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       console.log('Clientes disponibles:', clients);
       console.log('Passwords de clientes:', clients.map(c => ({ email: c.email, clave: c.clave })));
       
-      // Validar contra clientes guardados
-      const matched: Client | undefined = clients.find(
-        (c) => (c.email || '').trim().toLowerCase() === username.trim().toLowerCase() && c.clave === password
-      );
+      // Normalizar entrada
+      const inputId = username.trim().toLowerCase();
+
+      // Validar contra clientes guardados (email o usuario) y contraseña (clave o password)
+      const matched: Client | undefined = clients.find((c: any) => {
+        const byEmail = ((c.email || '') as string).trim().toLowerCase() === inputId;
+        const byUsuario = ((c.usuario || '') as string).trim().toLowerCase() === inputId;
+        const passMatch = (c.clave === password) || (c.password === password);
+        return (byEmail || byUsuario) && passMatch;
+      });
 
       console.log('Cliente encontrado:', matched);
 
@@ -58,7 +64,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
       // Guardar sesión
       localStorage.setItem('admin-authenticated', 'true');
-      localStorage.setItem('admin-user', matched.email || '');
+      localStorage.setItem('admin-user', matched.email || matched.usuario || '');
       localStorage.setItem('admin-login-time', new Date().toISOString());
       localStorage.setItem('admin-user-id', String(matched.id));
 
