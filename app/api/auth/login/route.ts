@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
     
     // Usuario temporal
     const tempUsers: any = {
-      'zeroazul': { id: 1, name: 'Zero Azul', email: 'zeroazul', password: '43r1tnd*.*V1nc3nt+' },
-      'admin@zeroazul.com': { id: 2, name: 'Admin Zero Azul', email: 'admin@zeroazul.com', password: 'admin123' }
+      'zeroazul': { id: 1, name: 'Zero Azul', email: 'zeroazul', password: '43r innovator*.*V1nc3nt+' },
+      'admin@zeroazul.com': { id: 2, name: 'Admin Zero Azul', email: 'admin@zeroazul.com', password: 'VLjcJz*OivJb' }
     };
     
     const user = tempUsers[email];
