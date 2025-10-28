@@ -30,10 +30,17 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     setError('');
 
     try {
+      // Debug: Log de clientes y credenciales
+      console.log('Cliente buscando con email:', username);
+      console.log('Clientes disponibles:', clients);
+      console.log('Passwords de clientes:', clients.map(c => ({ email: c.email, clave: c.clave })));
+      
       // Validar contra clientes guardados
       const matched: Client | undefined = clients.find(
         (c) => (c.email || '').trim().toLowerCase() === username.trim().toLowerCase() && c.clave === password
       );
+
+      console.log('Cliente encontrado:', matched);
 
       if (!matched) {
         setError('Credenciales incorrectas');
