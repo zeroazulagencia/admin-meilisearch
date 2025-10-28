@@ -102,21 +102,29 @@ export default function Conversaciones() {
       }
       
       console.log(`Total de documentos cargados: ${allDocuments.length}`);
-      console.log('Primera conversación:', allDocuments[0]);
+      console.log('Ejemplos de documentos:', allDocuments.slice(0, 3));
       
-      // Agrupar por user_id, filtrando los que no tienen user_id o son 'unknown'
+      // Agrupar por user_id, filtrando los que no tienen user_id, son null, vacío o 'unknown'
       const groups = new Map<string, Document[]>();
       
       allDocuments.forEach(doc => {
-        // Solo procesar si tiene user_id y no es 'unknown'
-        if (doc.user_id && doc.user_id !== 'unknown' && typeof doc.user_id === 'string') {
-          const userId = doc.user_id;
-          if (!groups.has(userId)) {
-            groups.set(userId, []);
+        // Procesar si tiene user_id válido (string o número, no null, undefined, vacío o 'unknown')
+        const userIdRaw = doc.user_id;
+        
+        if (userIdRaw !== null && userIdRaw !== undefined && userIdRaw !== '' && userIdRaw !== 'unknown') {
+          // Convertir a string para usar como key
+          const userId = String(userIdRaw);
+          
+          if (userId && userId.length > 0) {
+            if (!groups.has(userId)) {
+              groups.set(userId, []);
+            }
+            groups.get(userId)!.push(doc);
           }
-          groups.get(userId)!.push(doc);
         }
       });
+      
+      console.log(`Total de conversaciones agrupadas: ${groups.size}`);
       
       // Convertir a array y ordenar
       const conversationGroupsArray: ConversationGroup[] = Array.from(groups.entries()).map(([user_id, messages]) => {
