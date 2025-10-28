@@ -8,6 +8,7 @@ export interface Agent {
   photo: string;
   client_id: number;
   client_name?: string;
+  conversation_agent_name?: string; // Identificador del agente en conversaciones (ej: "amavu", "amistoso")
   knowledge?: {
     indexes: string[]; // Lista de IDs de índices de Meilisearch
   };
@@ -33,8 +34,8 @@ export function useAgents() {
     } else {
       // Datos iniciales
       const initialAgents: Agent[] = [
-        { id: 1, name: 'amavu', description: 'Agente principal', photo: '', client_id: 1, client_name: 'Zero Azul Agencia', knowledge: { indexes: ['bd_conversations_dworkers'] }, workflows: { workflowIds: [] } },
-        { id: 2, name: 'amistoso', description: 'Agente amistoso', photo: '', client_id: 1, client_name: 'Zero Azul Agencia', knowledge: { indexes: [] }, workflows: { workflowIds: [] } }
+        { id: 1, name: 'amavu', description: 'Agente principal', photo: '', client_id: 1, client_name: 'Zero Azul Agencia', conversation_agent_name: 'amavu', knowledge: { indexes: ['bd_conversations_dworkers'] }, workflows: { workflowIds: [] } },
+        { id: 2, name: 'amistoso', description: 'Agente amistoso', photo: '', client_id: 1, client_name: 'Zero Azul Agencia', conversation_agent_name: 'amistoso', knowledge: { indexes: [] }, workflows: { workflowIds: [] } }
       ];
       setAgents(initialAgents);
       localStorage.setItem('admin_agents', JSON.stringify(initialAgents));

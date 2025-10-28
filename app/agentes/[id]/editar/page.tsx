@@ -28,6 +28,9 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
   const [loadingWorkflows, setLoadingWorkflows] = useState(false);
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const [workflowSearchQuery, setWorkflowSearchQuery] = useState('');
+  const [availableConversationAgents, setAvailableConversationAgents] = useState<string[]>([]);
+  const [loadingConversationAgents, setLoadingConversationAgents] = useState(false);
+  const [selectedConversationAgent, setSelectedConversationAgent] = useState<string>('');
 
   useEffect(() => {
     if (agentsInitialized && clientsInitialized) {
@@ -44,6 +47,7 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
       });
       setSelectedIndexes(agent.knowledge?.indexes || []);
       setSelectedWorkflows(agent.workflows?.workflowIds || []);
+      setSelectedConversationAgent(agent.conversation_agent_name || '');
     } else {
       router.push('/agentes');
     }
@@ -53,7 +57,40 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
   useEffect(() => {
     loadIndexes();
     loadWorkflows();
+    loadConversationAgents();
   }, []);
+
+  const loadConversationAgents = async () => {
+    setLoadingConversationAgents(true);
+    try {
+      const INDEX_UID = 'bd_conversations_dworkers';
+      const uniqueAgents = new Set<string>();
+      let currentOffset = 0;
+      const batchLimit = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
+        data.results.forEach((doc: any) => {
+          if (doc.agent && typeof doc.agent === 'string') {
+            uniqueAgents.add(doc.agent);
+          }
+        });
+        if (data.results.length < batchLimit) {
+          hasMore = false;
+        } else {
+          currentOffset += batchLimit;
+        }
+      }
+      
+      const sortedAgents = Array.from(uniqueAgents).sort();
+      setAvailableConversationAgents(sortedAgents);
+    } catch (error) {
+      console.error('Error loading conversation agents:', error);
+    } finally {
+      setLoadingConversationAgents(false);
+    }
+  };
 
   const loadWorkflows = async () => {
     setLoadingWorkflows(true);
@@ -117,7 +154,8 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
       },
       workflows: {
         workflowIds: selectedWorkflows
-      }
+      },
+      conversation_agent_name: selectedConversationAgent || undefined
     });
 
     router.push('/agentes');
@@ -250,6 +288,41 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Identificador de Conversaciones */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Identificador de Conversaciones</h2>
+            
+            {loadingConversationAgents ? (
+              <div className="flex items-center gap-2 text-gray-600">
+                <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                <p>Cargando agentes de conversaciones...</p>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Agente para Conversaciones
+                </label>
+                <select
+                  value={selectedConversationAgent}
+                  onChange={(e) => setSelectedConversationAgent(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Seleccionar agente de conversaciones...</option>
+                  {availableConversationAgents.map((agent) => (
+                    <option key={agent} value={agent}>
+                      {agent}
+                    </option>
+                  ))}
+                </select>
+                {selectedConversationAgent && (
+                  <p className="mt-2 text-sm text-gray-500">
+                    Este agente se asociará con las conversaciones del agente "<strong>{selectedConversationAgent}</strong>" en la base de datos.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Configuración de Conocimiento */}
