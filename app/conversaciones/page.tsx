@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { useAgents } from '@/utils/useAgents';
+import { getPermissions, getUserId } from '@/utils/permissions';
 
 interface ConversationGroup {
   user_id: string;
