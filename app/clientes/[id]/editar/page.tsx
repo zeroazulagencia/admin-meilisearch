@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useAgents } from '@/utils/useAgents';
 
 interface Client {
@@ -14,8 +14,9 @@ interface Client {
   permissions?: any;
 }
 
-export default function EditarCliente({ params }: { params: Promise<{ id: string }> }) {
+export default function EditarCliente() {
   const router = useRouter();
+  const params = useParams();
   const { agents, initialized: agentsInitialized } = useAgents();
   
   const [formData, setFormData] = useState({
@@ -29,17 +30,11 @@ export default function EditarCliente({ params }: { params: Promise<{ id: string
   const [associatedAgents, setAssociatedAgents] = useState<any[]>([]);
   const [permissions, setPermissions] = useState<any>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [clientId, setClientId] = useState<string>('');
 
   useEffect(() => {
-    // Resolver params
-    params.then(p => {
-      setClientId(p.id);
-    });
-  }, [params]);
-
-  useEffect(() => {
-    if (!clientId) return;
+    if (!params?.id) return;
+    
+    const clientId = params.id as string;
     
     // Cargar cliente desde MySQL
     const loadClient = async () => {
@@ -77,7 +72,7 @@ export default function EditarCliente({ params }: { params: Promise<{ id: string
     };
     
     loadClient();
-  }, [clientId, router, agents, agentsInitialized]);
+  }, [params?.id, router, agents, agentsInitialized]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
