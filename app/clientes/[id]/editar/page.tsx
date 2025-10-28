@@ -57,12 +57,9 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
       email: formData.email,
       phone: formData.phone,
       company: formData.company,
-      permissions
+      permissions,
+      clave: formData.clave
     };
-    
-    if (formData.clave) {
-      updateData.clave = formData.clave;
-    }
     
     updateClient(currentClient.id, updateData);
 
