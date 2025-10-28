@@ -104,15 +104,18 @@ export default function Conversaciones() {
       console.log(`Total de documentos cargados: ${allDocuments.length}`);
       console.log('Primera conversación:', allDocuments[0]);
       
-      // Agrupar por user_id
+      // Agrupar por user_id, filtrando los que no tienen user_id o son 'unknown'
       const groups = new Map<string, Document[]>();
       
       allDocuments.forEach(doc => {
-        const userId = doc.user_id || 'unknown';
-        if (!groups.has(userId)) {
-          groups.set(userId, []);
+        // Solo procesar si tiene user_id y no es 'unknown'
+        if (doc.user_id && doc.user_id !== 'unknown' && typeof doc.user_id === 'string') {
+          const userId = doc.user_id;
+          if (!groups.has(userId)) {
+            groups.set(userId, []);
+          }
+          groups.get(userId)!.push(doc);
         }
-        groups.get(userId)!.push(doc);
       });
       
       // Convertir a array y ordenar
