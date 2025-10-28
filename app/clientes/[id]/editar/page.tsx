@@ -52,14 +52,19 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
     
     if (!currentClient) return;
 
-    updateClient(currentClient.id, {
+    const updateData: Partial<Client> = {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       company: formData.company,
-      clave: formData.clave,
       permissions
-    });
+    };
+    
+    if (formData.clave) {
+      updateData.clave = formData.clave;
+    }
+    
+    updateClient(currentClient.id, updateData);
 
     router.push('/clientes');
   };
