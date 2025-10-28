@@ -1,12 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useClients, Client } from '@/utils/useClients';
 
+interface ClientDB {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  clave?: string;
+  permissions?: any;
+}
+
 export default function Clientes() {
   const router = useRouter();
-  const { clients, initialized, addClient, updateClient, deleteClient } = useClients();
+  const { initialized } = useClients();
+  const [clients, setClients] = useState<ClientDB[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState({
@@ -18,25 +30,36 @@ export default function Clientes() {
     phone: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (editingClient) {
       // Actualizar
       updateClient(editingClient.id, formData);
     } else {
-      // Crear
-      const newClient: Client = {
-        id: Date.now(),
-        ...formData
-      };
-      addClient(newClient);
+      // Crear en MySQL
+      try {
+        const res = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+        const data = await res.json();
+        if (data.ok) {
+          // Recargar página para ver el nuevo cliente
+          window.location.reload();
+        } else {
+          alert('Error al crear cliente: ' + (data.error || 'Desconocido'));
+        }
+      } catch (err) {
+        alert('Error al crear cliente');
+      }
     }
     
     resetForm();
   };
 
-  const handleEdit = (client: Client) => {
+  const handleEdit = (client: ClientDB) => {
     router.push(`/clientes/${client.id}/editar`);
   };
 
