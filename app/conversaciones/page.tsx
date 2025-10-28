@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
+import { useAgents } from '@/utils/useAgents';
 
 interface ConversationGroup {
   user_id: string;
@@ -12,19 +13,31 @@ interface ConversationGroup {
 }
 
 export default function Conversaciones() {
+  const { agents: platformAgents, initialized: agentsInitialized } = useAgents();
   const [conversationGroups, setConversationGroups] = useState<ConversationGroup[]>([]);
-  const [loadingAgents, setLoadingAgents] = useState(true);
+  const [loadingAgents, setLoadingAgents] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [agents, setAgents] = useState<string[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
   const [selectedConversation, setSelectedConversation] = useState<ConversationGroup | null>(null);
   const [currentAgent, setCurrentAgent] = useState<string>('');
+  const [selectedPlatformAgent, setSelectedPlatformAgent] = useState<string>('all');
 
   const INDEX_UID = 'bd_conversations_dworkers';
 
   useEffect(() => {
-    loadAgents();
-  }, []);
+    if (selectedPlatformAgent !== 'all' && selectedPlatformAgent) {
+      // Obtener el conversation_agent_name del agente seleccionado
+      const agent = platformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
+      if (agent?.conversation_agent_name) {
+        setSelectedAgent(agent.conversation_agent_name);
+      }
+    } else {
+      setSelectedAgent('all');
+      setConversationGroups([]);
+      setSelectedConversation(null);
+    }
+  }, [selectedPlatformAgent, platformAgents]);
 
   useEffect(() => {
     if (selectedAgent !== 'all') {
@@ -174,11 +187,6 @@ export default function Conversaciones() {
     }
   };
 
-  const handleAgentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedAgent(e.target.value);
-    setSelectedConversation(null);
-    setConversationGroups([]);
-  };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -208,35 +216,65 @@ export default function Conversaciones() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Conversaciones</h1>
         
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <label className="text-sm font-medium text-gray-700">
-            Seleccionar Agente:
+        {/* Selector de Agente de la Plataforma */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Seleccionar Agente de la Plataforma
           </label>
-          <select
-            value={selectedAgent}
-            onChange={handleAgentChange}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm max-w-md"
-          >
-            <option value="all">Selecciona un agente...</option>
-            {agents.map((agent) => (
-              <option key={agent} value={agent}>
-                {agent}
-              </option>
-            ))}
-          </select>
+          {!agentsInitialized ? (
+            <div className="text-blue-600 text-sm flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+              Cargando agentes de la plataforma...
+            </div>
+          ) : (
+            <>
+              <select
+                value={selectedPlatformAgent}
+                onChange={(e) => setSelectedPlatformAgent(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">Todos los agentes</option>
+                {platformAgents.map((agent) => (
+                  <option key={agent.id} value={agent.id.toString()}>
+                    {agent.name} {agent.conversation_agent_name ? `(${agent.conversation_agent_name})` : '(sin identificar)'}
+                  </option>
+                ))}
+              </select>
+              {selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
+                <div className="mt-3">
+                  {(() => {
+                    const agent = platformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
+                    return agent ? (
+                      <div className="flex items-center gap-3">
+                        {agent.photo && (
+                          <img
+                            src={agent.photo}
+                            alt={agent.name}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                          />
+                        )}
+                        <div>
+                          <p className="font-medium text-gray-900">{agent.name}</p>
+                          {agent.description && (
+                            <p className="text-sm text-gray-500">{agent.description}</p>
+                          )}
+                          {agent.conversation_agent_name && (
+                            <p className="text-xs text-gray-400">ID: {agent.conversation_agent_name}</p>
+                          )}
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {loadingAgents ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <div className="inline-block animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-              <p className="mt-2 text-gray-600">Cargando agentes...</p>
-            </div>
-          </div>
-        ) : selectedAgent === 'all' ? (
+        {selectedAgent === 'all' || !selectedPlatformAgent || selectedPlatformAgent === 'all' ? (
           <div className="text-center py-12">
             <p className="text-gray-500">Selecciona un agente para ver sus conversaciones</p>
           </div>
