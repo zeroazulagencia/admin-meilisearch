@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Parsear permisos
-    let permissions = {};
+    let permissions: any = {};
     try {
       permissions = typeof foundUser.permissions === 'string' ? JSON.parse(foundUser.permissions) : (foundUser.permissions || {});
     } catch (parseError) {
