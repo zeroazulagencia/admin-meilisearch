@@ -13,36 +13,30 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     // Verificar sesión al cargar
-    const checkAuth = () => {
-      // Verificar que estamos en el cliente
-      if (typeof window === 'undefined') {
-        setIsLoading(false);
-        return;
-      }
+    if (typeof window === 'undefined') {
+      return;
+    }
 
-      const authenticated = localStorage.getItem('admin-authenticated');
-      const loginTime = localStorage.getItem('admin-login-time');
+    const authenticated = localStorage.getItem('admin-authenticated');
+    const loginTime = localStorage.getItem('admin-login-time');
+    
+    if (authenticated === 'true' && loginTime) {
+      // Verificar si la sesión no ha expirado (24 horas)
+      const loginDate = new Date(loginTime);
+      const now = new Date();
+      const hoursDiff = (now.getTime() - loginDate.getTime()) / (1000 * 60 * 60);
       
-      if (authenticated === 'true' && loginTime) {
-        // Verificar si la sesión no ha expirado (24 horas)
-        const loginDate = new Date(loginTime);
-        const now = new Date();
-        const hoursDiff = (now.getTime() - loginDate.getTime()) / (1000 * 60 * 60);
-        
-        if (hoursDiff < 24) {
-          setIsAuthenticated(true);
-        } else {
-          // Sesión expirada
-          localStorage.removeItem('admin-authenticated');
-          localStorage.removeItem('admin-user');
-          localStorage.removeItem('admin-login-time');
-        }
+      if (hoursDiff < 24) {
+        setIsAuthenticated(true);
+      } else {
+        // Sesión expirada
+        localStorage.removeItem('admin-authenticated');
+        localStorage.removeItem('admin-user');
+        localStorage.removeItem('admin-login-time');
       }
-      
-      setIsLoading(false);
-    };
-
-    checkAuth();
+    }
+    
+    setIsLoading(false);
   }, []);
 
   const handleLogin = (authenticated: boolean) => {
