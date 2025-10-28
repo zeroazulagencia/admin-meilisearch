@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useClients, Client } from '@/utils/useClients';
 
 export default function Clientes() {
