@@ -407,8 +407,7 @@ export default function Ejecuciones() {
               </p>
             </div>
           )}
-          </div>
-          </div>
+        </div>
         )}
 
         {!selectedAgent && (
