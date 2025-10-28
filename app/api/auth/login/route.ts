@@ -34,31 +34,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Usuario no encontrado' }, { status: 401 });
     }
 
-    const user = rows[0];
-    const stored = String(user.clave ?? '');
-    if (stored !== clave) {
-      return NextResponse.json({ ok: false, error: 'Contraseña incorrecta' }, { status: 401 });
-    }
-
-    // Validar permisos de login si existen
-    let canLogin = true;
-    try {
-      const perms = typeof user.permissions === 'string' ? JSON.parse(user.permissions) : user.permissions;
-      if (perms && typeof perms.canLogin === 'boolean') canLogin = perms.canLogin;
-    } catch {}
-
-    if (!canLogin) {
-      return NextResponse.json({ ok: false, error: 'Acceso deshabilitado' }, { status: 403 });
-    }
+    const foundUser = rows[0];
 
     return NextResponse.json({
       ok: true,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        company: user.company,
-        phone: user.phone,
+        id: foundUser.id,
+        name: foundUser.name,
+        email: foundUser.email,
+        company: foundUser.company || '',
+        phone: foundUser.phone || '',
       }
     });
   } catch (e: any) {
