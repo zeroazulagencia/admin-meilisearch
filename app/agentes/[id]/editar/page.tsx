@@ -1,16 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useAgents, Agent } from '@/utils/useAgents';
-import { useClients } from '@/utils/useClients';
 import { meilisearchAPI, Index } from '@/utils/meilisearch';
 import { n8nAPI, Workflow } from '@/utils/n8n';
 
-export default function EditarAgente({ params }: { params: { id: string } }) {
+interface Client {
+  id: number;
+  name: string;
+  email?: string;
+  company?: string;
+}
+
+export default function EditarAgente() {
   const router = useRouter();
+  const params = useParams();
   const { agents, initialized: agentsInitialized, updateAgent } = useAgents();
-  const { clients, initialized: clientsInitialized } = useClients();
+  const [clients, setClients] = useState<Client[]>([]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -33,8 +40,25 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
   const [selectedConversationAgent, setSelectedConversationAgent] = useState<string>('');
 
   useEffect(() => {
-    if (agentsInitialized && clientsInitialized) {
-      const agentId = parseInt(params.id);
+    // Cargar clientes desde MySQL
+    const loadClients = async () => {
+      try {
+        const res = await fetch('/api/clients');
+        const data = await res.json();
+        if (data.ok && data.clients) {
+          setClients(data.clients);
+        }
+      } catch (err) {
+        console.error('Error cargando clientes:', err);
+      }
+    };
+    
+    loadClients();
+  }, []);
+
+  useEffect(() => {
+    if (agentsInitialized) {
+      const agentId = parseInt(params.id as string);
       const agent = agents.find(a => a.id === agentId);
       
       if (agent) {
