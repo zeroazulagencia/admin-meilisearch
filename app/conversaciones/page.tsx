@@ -5,7 +5,7 @@ import { meilisearchAPI, Document } from '@/utils/meilisearch';
 
 interface ConversationGroup {
   user_id: string;
-  phone_id: string;
+  phone_number_id: string;
   lastMessage: string;
   lastDate: string;
   messages: Document[];
@@ -108,8 +108,8 @@ export default function Conversaciones() {
       const groups = new Map<string, Document[]>();
       
       allDocuments.forEach(doc => {
-        // Procesar si tiene user_id válido (string o número, no null, undefined, vacío o 'unknown')
-        const userIdRaw = doc.user_id;
+        // Procesar si tiene iduser válido (string o número, no null, undefined, vacío o 'unknown')
+        const userIdRaw = doc.iduser || doc.user_id; // Intentar ambos nombres de campo
         
         if (userIdRaw !== null && userIdRaw !== undefined && userIdRaw !== '' && userIdRaw !== 'unknown') {
           // Convertir a string para usar como key
@@ -127,7 +127,7 @@ export default function Conversaciones() {
       console.log(`Total de conversaciones agrupadas: ${groups.size}`);
       
       // Convertir a array y ordenar
-      const conversationGroupsArray: ConversationGroup[] = Array.from(groups.entries()).map(([user_id, messages]) => {
+      const conversationGroupsArray: ConversationGroup[] = Array.from(groups.entries()).map(([iduser, messages]) => {
         // Ordenar mensajes por datetime
         const sortedMessages = messages.sort((a, b) => {
           const dateA = a.datetime ? new Date(a.datetime).getTime() : 0;
@@ -136,7 +136,7 @@ export default function Conversaciones() {
         });
         
         const lastMessage = sortedMessages[sortedMessages.length - 1];
-        const phoneId = lastMessage.phone_id || '';
+        const phoneId = lastMessage.phone_number_id || lastMessage.phone_id || '';
         
         // Obtener último mensaje de texto (Human o AI)
         let lastMessageText = '';
@@ -147,8 +147,8 @@ export default function Conversaciones() {
         }
         
         return {
-          user_id,
-          phone_id: phoneId,
+          user_id: iduser,
+          phone_number_id: phoneId,
           lastMessage: lastMessageText,
           lastDate: lastMessage.datetime || '',
           messages: sortedMessages
@@ -273,7 +273,7 @@ export default function Conversaciones() {
                         <span className="font-semibold text-gray-900">{group.user_id}</span>
                         <span className="text-xs text-gray-500">{formatTime(group.lastDate)}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mb-1">{group.phone_id}</p>
+                      <p className="text-xs text-gray-500 mb-1">{group.phone_number_id}</p>
                       <p className="text-sm text-gray-600 truncate">{group.lastMessage}...</p>
                     </div>
                   ))}
@@ -286,7 +286,7 @@ export default function Conversaciones() {
                   <>
                     <div className="p-4 bg-gray-50 border-b border-gray-200">
                       <h3 className="font-semibold text-gray-900">{selectedConversation.user_id}</h3>
-                      <p className="text-xs text-gray-500">{selectedConversation.phone_id}</p>
+                      <p className="text-xs text-gray-500">{selectedConversation.phone_number_id}</p>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                       {selectedConversation.messages.map((message, index) => (
