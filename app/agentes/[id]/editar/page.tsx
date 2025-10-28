@@ -185,7 +185,7 @@ export default function EditarAgente() {
     router.push('/agentes');
   };
 
-  if (!agentsInitialized || !clientsInitialized || !currentAgent) {
+  if (!currentAgent) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
