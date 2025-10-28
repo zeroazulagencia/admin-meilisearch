@@ -45,19 +45,32 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     setLoading(true);
     setError('');
 
+    console.log('=== INICIO LOGIN ===');
+    console.log('Email:', username);
+    console.log('Password:', password);
+
     try {
+      console.log('Haciendo fetch a /api/auth/login...');
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: username, password })
       });
+      
+      console.log('Status:', res.status);
+      console.log('OK:', res.ok);
+      
       const data = await res.json();
+      console.log('Data recibida:', data);
+      
       if (!res.ok || !data.ok) {
+        console.log('Error en respuesta:', data);
         setError(data?.error || 'Credenciales incorrectas');
         setLoading(false);
         return;
       }
 
+      console.log('Login exitoso!');
       // Guardar sesión mínima en localStorage
       localStorage.setItem('admin-authenticated', 'true');
       localStorage.setItem('admin-user', data.user?.email || '');
@@ -67,7 +80,8 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       onLogin(true);
       router.push('/');
     } catch (err) {
-      setError('Error al iniciar sesión');
+      console.error('ERROR COMPLETO:', err);
+      setError(`Error al iniciar sesión: ${err}`);
     }
     
     setLoading(false);
