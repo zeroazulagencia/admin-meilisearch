@@ -1,20 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-
-interface Client {
-  id: number;
-  name: string;
-  usuario: string;
-  clave: string;
-  company?: string;
-  email?: string;
-  phone?: string;
-}
+import { useState } from 'react';
+import { useClients, Client } from '@/utils/useClients';
 
 export default function Clientes() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { clients, initialized, addClient, updateClient, deleteClient } = useClients();
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState({
@@ -26,29 +16,19 @@ export default function Clientes() {
     phone: ''
   });
 
-  // Por ahora usaremos datos mock hasta conectar MySQL
-  useEffect(() => {
-    // Datos de ejemplo
-    setClients([
-      { id: 1, name: 'Zero Azul Agencia', usuario: 'admin', clave: 'admin123', company: 'Zero Azul', email: 'admin@zeroazul.com', phone: '+573001234567' }
-    ]);
-  }, []);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (editingClient) {
       // Actualizar
-      setClients(clients.map(c => c.id === editingClient.id 
-        ? { ...c, ...formData } 
-        : c));
+      updateClient(editingClient.id, formData);
     } else {
       // Crear
       const newClient: Client = {
         id: Date.now(),
         ...formData
       };
-      setClients([...clients, newClient]);
+      addClient(newClient);
     }
     
     resetForm();
@@ -69,7 +49,7 @@ export default function Clientes() {
 
   const handleDelete = (id: number) => {
     if (confirm('¿Estás seguro de eliminar este cliente?')) {
-      setClients(clients.filter(c => c.id !== id));
+      deleteClient(id);
     }
   };
 
@@ -214,9 +194,9 @@ export default function Clientes() {
                   Acciones
                 </th>
               </tr>
-            </thead>
+              </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {clients.map((client) => (
+              {initialized && clients.map((client) => (
                 <tr key={client.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {client.name}

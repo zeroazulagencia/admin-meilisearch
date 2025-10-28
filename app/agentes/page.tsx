@@ -1,20 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-
-interface Agent {
-  id: number;
-  name: string;
-  description: string;
-  photo: string;
-  client_id: number;
-  client_name?: string;
-}
+import { useState } from 'react';
+import { useAgents, Agent } from '@/utils/useAgents';
+import { useClients } from '@/utils/useClients';
 
 export default function Agentes() {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [clients, setClients] = useState<{id: number, name: string}[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { agents, initialized: agentsInitialized, addAgent, updateAgent, deleteAgent } = useAgents();
+  const { clients, initialized: clientsInitialized } = useClients();
   const [showForm, setShowForm] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [formData, setFormData] = useState({
@@ -24,34 +16,25 @@ export default function Agentes() {
     client_id: 0
   });
 
-  // Por ahora usaremos datos mock
-  useEffect(() => {
-    setClients([
-      { id: 1, name: 'Zero Azul Agencia' }
-    ]);
-    setAgents([
-      { id: 1, name: 'amavu', description: 'Agente principal', photo: '', client_id: 1, client_name: 'Zero Azul Agencia' }
-    ]);
-  }, []);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    const client = clients.find(c => c.id === formData.client_id);
+    
     if (editingAgent) {
       // Actualizar
-      const client = clients.find(c => c.id === formData.client_id);
-      setAgents(agents.map(a => a.id === editingAgent.id 
-        ? { ...a, ...formData, client_name: client?.name } 
-        : a));
+      updateAgent(editingAgent.id, {
+        ...formData,
+        client_name: client?.name
+      });
     } else {
       // Crear
-      const client = clients.find(c => c.id === formData.client_id);
       const newAgent: Agent = {
         id: Date.now(),
         ...formData,
         client_name: client?.name
       };
-      setAgents([...agents, newAgent]);
+      addAgent(newAgent);
     }
     
     resetForm();
@@ -70,7 +53,7 @@ export default function Agentes() {
 
   const handleDelete = (id: number) => {
     if (confirm('¿Estás seguro de eliminar este agente?')) {
-      setAgents(agents.filter(a => a.id !== id));
+      deleteAgent(id);
     }
   };
 
@@ -126,7 +109,7 @@ export default function Agentes() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="0">Selecciona un cliente</option>
-                    {clients.map((client) => (
+                    {clientsInitialized && clients.map((client) => (
                       <option key={client.id} value={client.id}>
                         {client.name}
                       </option>
@@ -178,7 +161,7 @@ export default function Agentes() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {agents.map((agent) => (
+          {agentsInitialized && agents.map((agent) => (
             <div key={agent.id} className="bg-white rounded-lg shadow overflow-hidden">
               {agent.photo && (
                 <img 
