@@ -92,6 +92,35 @@ export default function Clientes() {
     setShowForm(false);
   };
 
+  useEffect(() => {
+    // Cargar clientes desde MySQL
+    const loadClients = async () => {
+      try {
+        console.log('Loading clients...');
+        const res = await fetch('/api/clients');
+        const data = await res.json();
+        console.log('Clients loaded:', data);
+        if (data.ok && data.clients) {
+          setClients(data.clients);
+        }
+      } catch (err) {
+        console.error('Error cargando clientes:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadClients();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min欧-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -211,7 +240,7 @@ export default function Clientes() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Nombre
                 </th>
-                <th className="px-6 py-3 text-left рублей text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium پیام text-gray-500 uppercase tracking-wider">
                   Empresa
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
