@@ -13,18 +13,6 @@ export default function AdminConocimiento() {
   const [loadingIndexes, setLoadingIndexes] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<Index | null>(null);
 
-  useEffect(() => {
-    if (agentsInitialized && agents.length > 0 && !selectedAgent) {
-      setSelectedAgent(agents[0]);
-    }
-  }, [agentsInitialized, agents]);
-
-  useEffect(() => {
-    if (selectedAgent) {
-      loadAgentIndexes();
-    }
-  }, [selectedAgent]);
-
   const loadAgentIndexes = async () => {
     if (!selectedAgent?.knowledge?.indexes) {
       setAvailableIndexes([]);
@@ -52,6 +40,19 @@ export default function AdminConocimiento() {
       setLoadingIndexes(false);
     }
   };
+
+  useEffect(() => {
+    if (agentsInitialized && agents.length > 0 && !selectedAgent) {
+      setSelectedAgent(agents[0]);
+    }
+  }, [agentsInitialized, agents, selectedAgent]);
+
+  useEffect(() => {
+    if (selectedAgent) {
+      loadAgentIndexes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAgent]);
 
   if (!agentsInitialized) {
     return (
