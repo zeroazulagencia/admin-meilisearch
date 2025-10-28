@@ -261,6 +261,54 @@ export default function EditarCliente() {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Permisos del Sistema</h2>
             <p className="text-sm text-gray-500 mb-4">Selecciona los permisos que tendrá este cliente</p>
 
+            {/* Tipo de Perfil */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tipo de Perfil
+              </label>
+              <select
+                value={permissions.type || 'client'}
+                onChange={(e) => {
+                  const type = e.target.value;
+                  if (type === 'admin') {
+                    // Configurar permisos de admin (todos activos)
+                    setPermissions({
+                      canLogin: true,
+                      login: true,
+                      type: 'admin',
+                      dashboard: { viewOwn: true, editOwn: true, viewAll: true, editAll: true },
+                      conocimiento: { viewOwn: true, editOwn: true, viewAll: true, editAll: true },
+                      ejecuciones: { viewOwn: true, viewAll: true },
+                      conversaciones: { viewOwn: true, viewAll: true },
+                      informes: { viewOwn: true, editOwn: true, viewAll: true, editAll: true, createOwn: true, createAll: true },
+                      consumoApi: { viewOwn: true, viewAll: true },
+                      clientes: { viewOwn: true, editOwn: true, viewAll: true, editAll: true, createOwn: true, createAll: true },
+                      agentes: { viewOwn: true, editOwn: true, viewAll: true, editAll: true, createOwn: true, createAll: true }
+                    });
+                  } else {
+                    // Configurar permisos básicos de cliente
+                    setPermissions({
+                      canLogin: true,
+                      login: true,
+                      type: 'client',
+                      dashboard: { viewOwn: true, editOwn: true, viewAll: false, editAll: false },
+                      conocimiento: { viewOwn: true, editOwn: false, viewAll: false, editAll: false },
+                      ejecuciones: { viewOwn: true, viewAll: false },
+                      conversaciones: { viewOwn: true, viewAll: false },
+                      informes: { viewOwn: true, editOwn: false, viewAll: false, editAll: false, createOwn: false, createAll: false },
+                      consumoApi: { viewOwn: true, viewAll: false },
+                      clientes: { viewOwn: false, editOwn: false, viewAll: false, editAll: false, createOwn: false, createAll: false },
+                      agentes: { viewOwn: false, editOwn: false, viewAll: false, editAll: false, createOwn: false, createAll: false }
+                    });
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="client">Cliente (Perfil Normal)</option>
+                <option value="admin">Super Admin (Acceso Completo)</option>
+              </select>
+            </div>
+
             {/* Login Checkbox */}
             <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <label className="flex items-center cursor-pointer">
