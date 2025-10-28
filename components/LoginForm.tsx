@@ -97,6 +97,9 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <p className="mt-2 text-center text-sm text-gray-600">
             Inicia sesión para acceder al panel de administración
           </p>
+          <p className="mt-1 text-center text-xs text-gray-400">
+            v18.37
+          </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
