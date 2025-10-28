@@ -20,13 +20,16 @@ export default function Agentes() {
     // Cargar clientes desde MySQL
     const loadClients = async () => {
       try {
+        console.log('[AGENTES] Loading clients...');
         const res = await fetch('/api/clients');
         const data = await res.json();
+        console.log('[AGENTES] Clients response:', data);
         if (data.ok && data.clients) {
+          console.log('[AGENTES] Setting clients:', data.clients);
           setClients(data.clients);
         }
       } catch (err) {
-        console.error('Error cargando clientes:', err);
+        console.error('[AGENTES] Error cargando clientes:', err);
       }
     };
     
