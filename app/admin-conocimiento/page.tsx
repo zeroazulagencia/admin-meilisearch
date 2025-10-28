@@ -141,7 +141,7 @@ export default function AdminConocimiento() {
                 {selectedAgent?.name} no tiene índices asociados. Configura su conocimiento desde la página de Agentes.
               </p>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
