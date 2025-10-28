@@ -259,13 +259,13 @@ export default function Clientes() {
               </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {clients.map((client) => {
-                let permissions = {};
+                let permissions: any = {};
                 try {
                   permissions = typeof client.permissions === 'string' ? JSON.parse(client.permissions) : (client.permissions || {});
                 } catch {
                   permissions = {};
                 }
-                const isAdmin = permissions.type === 'admin';
+                const isAdmin = permissions?.type === 'admin';
                 
                 return (
                   <tr key={client.id}>
