@@ -11,20 +11,39 @@ export const routePermissions: Record<string, string> = {
 
 // Verificar si el usuario tiene acceso a una ruta
 export function hasAccessToRoute(route: string, permissions: any): boolean {
-  if (!permissions) return false;
+  if (!permissions) {
+    console.log('[PERMISSIONS] No permissions found');
+    return false;
+  }
   
   // Admin tiene acceso a todo
-  if (permissions.type === 'admin') return true;
+  if (permissions.type === 'admin') {
+    console.log('[PERMISSIONS] Admin user, allowing access');
+    return true;
+  }
   
   // Obtener el permiso requerido para la ruta
   const requiredPerm = routePermissions[route];
-  if (!requiredPerm) return true; // Si no hay mapeo, permitir acceso
+  if (!requiredPerm) {
+    console.log('[PERMISSIONS] No mapping for route:', route);
+    return true; // Si no hay mapeo, permitir acceso
+  }
+  
+  console.log('[PERMISSIONS] Checking route:', route, 'requiring perm:', requiredPerm);
   
   // Verificar permisos de la sección
   const sectionPerms = permissions[requiredPerm];
-  if (!sectionPerms) return false;
+  console.log('[PERMISSIONS] Section perms:', sectionPerms);
   
-  return sectionPerms.viewOwn || sectionPerms.viewAll;
+  if (!sectionPerms) {
+    console.log('[PERMISSIONS] No section perms, denying');
+    return false;
+  }
+  
+  const hasAccess = sectionPerms.viewOwn || sectionPerms.viewAll;
+  console.log('[PERMISSIONS] Has access:', hasAccess, 'viewOwn:', sectionPerms.viewOwn, 'viewAll:', sectionPerms.viewAll);
+  
+  return hasAccess;
 }
 
 // Obtener permisos del localStorage
