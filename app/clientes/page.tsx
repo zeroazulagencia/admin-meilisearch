@@ -34,8 +34,8 @@ export default function Clientes() {
     e.preventDefault();
     
     if (editingClient) {
-      // Actualizar
-      updateClient(editingClient.id, formData);
+      // Actualizar - redireccionar a la página de edición
+      router.push(`/clientes/${editingClient.id}/editar`);
     } else {
       // Crear en MySQL
       try {
