@@ -226,9 +226,9 @@ export default function Agentes() {
                 />
               )}
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{agent.name}</h3>
-                <p className="text-sm text-gray-500 mb-2">{agent.client_name}</p>
-                <p className="text-sm text-gray-600 mb-4">{agent.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{agent.name}</h3>
+                <p className="text-sm text-gray-500 mb-2 truncate">{agent.client_name}</p>
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{agent.description}</p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(agent)}
