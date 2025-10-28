@@ -56,9 +56,17 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         const usuarioNorm = ((c.usuario || '') as string).trim().toLowerCase();
         const byEmail = emailNorm === inputId;
         const byUsuario = usuarioNorm === inputId;
-        const passMatch = (c.clave === password) || (c.password === password);
+        
+        // Comparar contraseñas exactas
+        const claveMatch = String(c.clave || '').trim() === String(password).trim();
+        const passwordMatch = String(c.password || '').trim() === String(password).trim();
+        const passMatch = claveMatch || passwordMatch;
+        
         if ((byEmail || byUsuario) && !passMatch) {
-          console.log('Coincide id pero falla contraseña para cliente id:', c.id, 'inputPwdLen:', String(password).length, 'clave:', c.clave, 'password:', c.password);
+          console.log('Coincide id pero falla contraseña para cliente id:', c.id);
+          console.log('  - Input password (len):', password, `(${String(password).length})`);
+          console.log('  - Clave (len):', c.clave, `(${String(c.clave || '').length})`);
+          console.log('  - Password (len):', c.password, `(${String(c.password || '').length})`);
         }
         return (byEmail || byUsuario) && passMatch;
       });
