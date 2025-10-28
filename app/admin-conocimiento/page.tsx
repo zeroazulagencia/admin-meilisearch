@@ -28,12 +28,8 @@ export default function AdminConocimiento() {
       );
       setAvailableIndexes(agentIndexes);
       
-      // Seleccionar el primer índice si hay alguno
-      if (agentIndexes.length > 0 && !selectedIndex) {
-        setSelectedIndex(agentIndexes[0]);
-      } else if (agentIndexes.length === 0) {
-        setSelectedIndex(null);
-      }
+      // No seleccionar índice por defecto
+      setSelectedIndex(null);
     } catch (error) {
       console.error('Error loading indexes:', error);
     } finally {
@@ -41,11 +37,7 @@ export default function AdminConocimiento() {
     }
   };
 
-  useEffect(() => {
-    if (agentsInitialized && agents.length > 0 && !selectedAgent) {
-      setSelectedAgent(agents[0]);
-    }
-  }, [agentsInitialized, agents, selectedAgent]);
+  // No seleccionar agente por defecto
 
   useEffect(() => {
     if (selectedAgent) {
@@ -82,12 +74,30 @@ export default function AdminConocimiento() {
               }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
+              <option value="">Seleccionar agente...</option>
               {agents.map((agent) => (
                 <option key={agent.id} value={agent.id}>
                   {agent.name} {agent.knowledge?.indexes.length ? `(${agent.knowledge.indexes.length} índices)` : '(sin índices)'}
                 </option>
               ))}
             </select>
+            {selectedAgent && (
+              <div className="mt-3 flex items-center gap-3">
+                {selectedAgent.photo && (
+                  <img
+                    src={selectedAgent.photo}
+                    alt={selectedAgent.name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                  />
+                )}
+                <div>
+                  <p className="font-medium text-gray-900">{selectedAgent.name}</p>
+                  {selectedAgent.description && (
+                    <p className="text-sm text-gray-500">{selectedAgent.description}</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Lista de Índices del Agente */}
@@ -95,37 +105,27 @@ export default function AdminConocimiento() {
             <div className="flex justify-center items-center py-8">
               <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
             </div>
-          ) : availableIndexes.length > 0 ? (
+          ) : selectedAgent && availableIndexes.length > 0 ? (
             <>
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Índices asociados a {selectedAgent?.name}
-                </h2>
-                <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Seleccionar Índice
+                </label>
+                <select
+                  value={selectedIndex?.uid || ''}
+                  onChange={(e) => {
+                    const index = availableIndexes.find(i => i.uid === e.target.value);
+                    setSelectedIndex(index || null);
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Seleccionar índice...</option>
                   {availableIndexes.map((index) => (
-                    <button
-                      key={index.uid}
-                      onClick={() => setSelectedIndex(index)}
-                      className={`w-full text-left p-4 border-2 rounded-lg transition-all ${
-                        selectedIndex?.uid === index.uid
-                          ? 'border-blue-600 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">{index.uid}</p>
-                          {index.name && (
-                            <p className="text-sm text-gray-500">{index.name}</p>
-                          )}
-                        </div>
-                        {index.primaryKey && (
-                          <span className="text-xs text-gray-400">{index.primaryKey}</span>
-                        )}
-                      </div>
-                    </button>
+                    <option key={index.uid} value={index.uid}>
+                      {index.uid} {index.name ? `- ${index.name}` : ''}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
               {selectedIndex && (
@@ -135,7 +135,7 @@ export default function AdminConocimiento() {
                 </>
               )}
             </>
-          ) : (
+          ) : selectedAgent && availableIndexes.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-6 text-center">
               <p className="text-gray-500">
                 {selectedAgent?.name} no tiene índices asociados. Configura su conocimiento desde la página de Agentes.
