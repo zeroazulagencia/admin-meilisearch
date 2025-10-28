@@ -8,6 +8,9 @@ export interface Agent {
   photo: string;
   client_id: number;
   client_name?: string;
+  knowledge?: {
+    indexes: string[]; // Lista de IDs de índices de Meilisearch
+  };
 }
 
 export function useAgents() {
@@ -27,8 +30,8 @@ export function useAgents() {
     } else {
       // Datos iniciales
       const initialAgents: Agent[] = [
-        { id: 1, name: 'amavu', description: 'Agente principal', photo: '', client_id: 1, client_name: 'Zero Azul Agencia' },
-        { id: 2, name: 'amistoso', description: 'Agente amistoso', photo: '', client_id: 1, client_name: 'Zero Azul Agencia' }
+        { id: 1, name: 'amavu', description: 'Agente principal', photo: '', client_id: 1, client_name: 'Zero Azul Agencia', knowledge: { indexes: ['bd_conversations_dworkers'] } },
+        { id: 2, name: 'amistoso', description: 'Agente amistoso', photo: '', client_id: 1, client_name: 'Zero Azul Agencia', knowledge: { indexes: [] } }
       ];
       setAgents(initialAgents);
       localStorage.setItem('admin_agents', JSON.stringify(initialAgents));

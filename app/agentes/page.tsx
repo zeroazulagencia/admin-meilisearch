@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAgents, Agent } from '@/utils/useAgents';
 import { useClients } from '@/utils/useClients';
+import { meilisearchAPI, Index } from '@/utils/meilisearch';
 
 export default function Agentes() {
   const { agents, initialized: agentsInitialized, addAgent, updateAgent, deleteAgent } = useAgents();
@@ -16,6 +17,11 @@ export default function Agentes() {
     client_id: 0
   });
   const [uploading, setUploading] = useState(false);
+  const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
+  const [selectedAgentForKnowledge, setSelectedAgentForKnowledge] = useState<Agent | null>(null);
+  const [availableIndexes, setAvailableIndexes] = useState<Index[]>([]);
+  const [loadingIndexes, setLoadingIndexes] = useState(false);
+  const [selectedIndexes, setSelectedIndexes] = useState<string[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +71,44 @@ export default function Agentes() {
     // Limpiar el input de archivo
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
+  };
+
+  const handleOpenKnowledgeModal = async (agent: Agent) => {
+    setSelectedAgentForKnowledge(agent);
+    setSelectedIndexes(agent.knowledge?.indexes || []);
+    setShowKnowledgeModal(true);
+    
+    // Cargar índices disponibles
+    setLoadingIndexes(true);
+    try {
+      const indexes = await meilisearchAPI.getIndexes();
+      setAvailableIndexes(indexes);
+    } catch (error) {
+      console.error('Error loading indexes:', error);
+    } finally {
+      setLoadingIndexes(false);
+    }
+  };
+
+  const handleToggleIndex = (indexId: string) => {
+    setSelectedIndexes(prev => {
+      if (prev.includes(indexId)) {
+        return prev.filter(id => id !== indexId);
+      } else {
+        return [...prev, indexId];
+      }
+    });
+  };
+
+  const handleSaveKnowledge = () => {
+    if (selectedAgentForKnowledge) {
+      updateAgent(selectedAgentForKnowledge.id, {
+        knowledge: {
+          indexes: selectedIndexes
+        }
+      });
+      setShowKnowledgeModal(false);
+    }
   };
 
   return (
@@ -229,24 +273,117 @@ export default function Agentes() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{agent.name}</h3>
                 <p className="text-sm text-gray-500 mb-2 truncate">{agent.client_name}</p>
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">{agent.description}</p>
-                <div className="flex gap-2">
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(agent)}
+                      className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(agent.id)}
+                      className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                   <button
-                    onClick={() => handleEdit(agent)}
-                    className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                    onClick={() => handleOpenKnowledgeModal(agent)}
+                    className="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
                   >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(agent.id)}
-                    className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    Eliminar
+                    Configurar Conocimiento
                   </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Modal de Conocimiento */}
+        {showKnowledgeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Configurar Conocimiento - {selectedAgentForKnowledge?.name}
+                </h2>
+                <button
+                  onClick={() => setShowKnowledgeModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="px-6 py-4 overflow-y-auto flex-1">
+                {loadingIndexes ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Selecciona los índices de Meilisearch que este agente puede consultar:
+                    </p>
+                    
+                    <div className="space-y-2">
+                      {availableIndexes.map((index) => (
+                        <label
+                          key={index.uid}
+                          className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                            selectedIndexes.includes(index.uid)
+                              ? 'border-blue-600 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedIndexes.includes(index.uid)}
+                            onChange={() => handleToggleIndex(index.uid)}
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <div className="ml-3 flex-1">
+                            <p className="font-medium text-gray-900">{index.uid}</p>
+                            {index.name && (
+                              <p className="text-sm text-gray-500">{index.name}</p>
+                            )}
+                          </div>
+                          {index.primaryKey && (
+                            <span className="text-xs text-gray-400">{index.primaryKey}</span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                    
+                    {availableIndexes.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No hay índices disponibles
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowKnowledgeModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveKnowledge}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
