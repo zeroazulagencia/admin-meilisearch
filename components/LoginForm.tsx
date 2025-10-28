@@ -58,13 +58,13 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           email: c.email,
           usuario: c.usuario,
           company: c.company,
-          hasClave: Boolean(c.clave),
-          claveLen: c.clave ? String(c.clave).length : 0,
-          hasPassword: Boolean(c.password),
-          passwordLen: c.password ? String(c.password).length : 0,
+          clave: c.clave,
+          password: c.password,
           canLogin: c.permissions?.canLogin
         });
       });
+      
+      console.log('Contraseña ingresada:', password);
 
       // Validar contra clientes guardados (email o usuario) y contraseña (clave o password)
       const matched: Client | undefined = clients.find((c: any) => {
