@@ -61,6 +61,9 @@ export default function Agentes() {
     setFormData({ name: '', description: '', photo: '', client_id: 0 });
     setEditingAgent(null);
     setShowForm(false);
+    // Limpiar el input de archivo
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
   };
 
   return (
@@ -130,15 +133,32 @@ export default function Agentes() {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Foto (URL)
+                    Foto
                   </label>
                   <input
-                    type="text"
-                    value={formData.photo}
-                    onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
-                    placeholder="https://example.com/foto.jpg"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setFormData({ ...formData, photo: reader.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
+                  {formData.photo && (
+                    <div className="mt-2">
+                      <img 
+                        src={formData.photo} 
+                        alt="Preview" 
+                        className="w-32 h-32 object-cover rounded-lg"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">
