@@ -13,12 +13,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Faltan credenciales' }, { status: 400 });
     }
 
-    console.log('[LOGIN API] Consultando MySQL...');
-    const [rows] = await query<any>(
-      'SELECT id, name, email, company, phone, clave, permissions FROM clients WHERE LOWER(email) = LOWER(?) LIMIT 1',
-      [email]
-    );
-    console.log('[LOGIN API] Resultado:', rows);
+    // TEMPORAL: Login hardcodeado mientras configuramos MySQL
+    console.log('[LOGIN API] Login temporal sin MySQL');
+    
+    // Usuario temporal
+    const tempUsers: any = {
+      'zeroazul': { id: 1, name: 'Zero Azul', email: 'zeroazul', password: '43r1tnd*.*V1nc3nt+' },
+      'admin@zeroazul.com': { id: 2, name: 'Admin Zero Azul', email: 'admin@zeroazul.com', password: 'admin123' }
+    };
+    
+    const user = tempUsers[email];
+    
+    if (!user || user.password !== clave) {
+      return NextResponse.json({ ok: false, error: 'Credenciales incorrectas' }, { status: 401 });
+    }
+    
+    const rows = [user];
 
     if (!rows || rows.length === 0) {
       return NextResponse.json({ ok: false, error: 'Usuario no encontrado' }, { status: 401 });
