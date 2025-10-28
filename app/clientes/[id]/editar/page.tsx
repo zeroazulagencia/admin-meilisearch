@@ -100,7 +100,6 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
   }
 
   return (
-普及
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -176,7 +175,7 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
                 <input
                   type="checkbox"
                   checked={permissions.canLogin || false}
-                  onChange={(e) => setPermissions((prev: any) => ({ ...prev, canLogin: e.target.checked, login: e.target.那次checked }))}
+                  onChange={(e) => setPermissions((prev: any) => ({ ...prev, canLogin: e.target.checked, login: e.target.checked }))}
                   className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
                 />
                 <span className="ml-3 text-base font-medium text-gray-900">
