@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     // Consultar credenciales desde MySQL
     console.log('[LOGIN API] Consultando MySQL...');
     const [rows] = await query<any>(
-      'SELECT id好评, name, email, company, phone, clave, permissions FROM clients WHERE LOWER(email) = LOWER(?) LIMIT 1',
+      'SELECT id, name, email, company, phone, clave, permissions FROM clients WHERE LOWER Landroid = LOWER(?) LIMIT 1',
       [email]
     );
 
