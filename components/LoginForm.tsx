@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useClients, Client } from '@/utils/useClients';
 
 interface LoginFormProps {
   onLogin: (isAuthenticated: boolean) => void;
@@ -13,6 +14,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { clients, initialized } = useClients();
 
   useEffect(() => {
     // Verificar si ya hay una sesión activa
@@ -27,22 +29,36 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     setLoading(true);
     setError('');
 
-    // Credenciales hardcodeadas
-    const validCredentials = {
-      username: 'zeroazul',
-      password: '43r1tnd*.*V1nc3nt+'
-    };
+    try {
+      // Validar contra clientes guardados
+      const matched: Client | undefined = clients.find(
+        (c) => c.usuario === username && c.clave === password
+      );
 
-    if (username === validCredentials.username && password === validCredentials.password) {
-      // Guardar sesión en localStorage
+      if (!matched) {
+        setError('Credenciales incorrectas');
+        setLoading(false);
+        return;
+      }
+
+      // Verificar permiso de login si existe configuración de permisos
+      const canLogin = matched.permissions?.canLogin ?? true;
+      if (!canLogin) {
+        setError('Acceso deshabilitado para este usuario');
+        setLoading(false);
+        return;
+      }
+
+      // Guardar sesión
       localStorage.setItem('admin-authenticated', 'true');
-      localStorage.setItem('admin-user', username);
+      localStorage.setItem('admin-user', matched.usuario);
       localStorage.setItem('admin-login-time', new Date().toISOString());
-      
+      localStorage.setItem('admin-user-id', String(matched.id));
+
       onLogin(true);
       router.push('/');
-    } else {
-      setError('Credenciales incorrectas');
+    } catch (err) {
+      setError('Error al iniciar sesión');
     }
     
     setLoading(false);
