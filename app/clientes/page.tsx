@@ -37,16 +37,7 @@ export default function Clientes() {
   };
 
   const handleEdit = (client: Client) => {
-    setEditingClient(client);
-    setFormData({
-      name: client.name,
-      usuario: client.usuario,
-      clave: client.clave,
-      company: client.company || '',
-      email: client.email || '',
-      phone: client.phone || ''
-    });
-    setShowForm(true);
+    router.push(`/clientes/${client.id}/editar`);
   };
 
   const handleDelete = (id: number) => {
@@ -217,7 +208,7 @@ export default function Clientes() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
-                      onClick={() => handleEdit(client)}
+                      onClick={() => router.push(`/clientes/${client.id}/editar`)}
                       className="text-blue-600 hover:text-blue-900 mr-4"
                     >
                       Editar
