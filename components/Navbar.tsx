@@ -2,20 +2,43 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import settings from '../settings.json';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [permissions, setPermissions] = useState<any>(null);
 
-  const navItems = [
-    { href: '/', label: 'Dashboard' },
-    { href: '/admin-conocimiento', label: 'Admin Conocimiento' },
-    { href: '/ejecuciones', label: 'Ejecuciones' },
-    { href: '/conversaciones', label: 'Conversaciones' },
-    { href: '/consumo-api', label: 'Consumo API' },
-    { href: '/clientes', label: 'Clientes' },
-    { href: '/agentes', label: 'Agentes' },
+  useEffect(() => {
+    // Cargar permisos desde localStorage
+    try {
+      const perms = localStorage.getItem('admin-permissions');
+      if (perms) {
+        setPermissions(JSON.parse(perms));
+      }
+    } catch (e) {
+      console.error('Error loading permissions:', e);
+    }
+  }, []);
+
+  const allNavItems = [
+    { href: '/', label: 'Dashboard', perm: 'dashboard' },
+    { href: '/admin-conocimiento', label: 'Admin Conocimiento', perm: 'conocimiento' },
+    { href: '/ejecuciones', label: 'Ejecuciones', perm: 'ejecuciones' },
+    { href: '/conversaciones', label: 'Conversaciones', perm: 'conversaciones' },
+    { href: '/consumo-api', label: 'Consumo API', perm: 'consumoApi' },
+    { href: '/clientes', label: 'Clientes', perm: 'clientes' },
+    { href: '/agentes', label: 'Agentes', perm: 'agentes' },
   ];
+
+  // Filtrar items según permisos
+  const navItems = allNavItems.filter(item => {
+    if (!permissions) return true; // Si no hay permisos cargados, mostrar todo
+    if (permissions.type === 'admin') return true; // Admin ve todo
+    // Cliente normal: verificar permisos por sección
+    const sectionPerms = permissions[item.perm];
+    return sectionPerms && (sectionPerms.viewOwn || sectionPerms.viewAll);
+  });
 
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200">
