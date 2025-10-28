@@ -64,7 +64,7 @@ export default function EditarAgente() {
       const agent = agents.find(a => a.id === agentId);
       console.log('[EDIT-AGENTE] Found agent:', agent);
       
-      if (agent مطالب) {
+      if (agent) {
         setCurrentAgent(agent);
         setFormData({
           name: agent.name,
