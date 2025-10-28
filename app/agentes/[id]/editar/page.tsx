@@ -318,7 +318,7 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
                 </select>
                 {selectedConversationAgent && (
                   <p className="mt-2 text-sm text-gray-500">
-                    Este agente se asociará con las conversaciones del agente "<strong>{selectedConversationAgent}</strong>" en la base de datos.
+                    Este agente se asociará con las conversaciones del agente &quot;<strong>{selectedConversationAgent}</strong>&quot; en la base de datos.
                   </p>
                 )}
               </div>
