@@ -30,23 +30,40 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     setError('');
 
     try {
-      // Debug: Log de clientes y credenciales
-      console.log('Cliente buscando con email:', username);
-      console.log('Clientes disponibles:', clients);
-      console.log('Passwords de clientes:', clients.map(c => ({ email: c.email, clave: c.clave })));
-      
-      // Normalizar entrada
+      // Debug extendido
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('admin_clients') : null;
       const inputId = username.trim().toLowerCase();
+      console.log('Cliente buscando con email/usuario (normalizado):', inputId);
+      console.log('LocalStorage raw admin_clients:', raw);
+      console.log('Total clientes en hook:', clients.length);
+      clients.forEach((c: any, idx: number) => {
+        console.log(`Cliente[${idx}]`, {
+          id: c.id,
+          email: c.email,
+          usuario: c.usuario,
+          company: c.company,
+          hasClave: Boolean(c.clave),
+          claveLen: c.clave ? String(c.clave).length : 0,
+          hasPassword: Boolean(c.password),
+          passwordLen: c.password ? String(c.password).length : 0,
+          canLogin: c.permissions?.canLogin
+        });
+      });
 
       // Validar contra clientes guardados (email o usuario) y contraseña (clave o password)
       const matched: Client | undefined = clients.find((c: any) => {
-        const byEmail = ((c.email || '') as string).trim().toLowerCase() === inputId;
-        const byUsuario = ((c.usuario || '') as string).trim().toLowerCase() === inputId;
+        const emailNorm = ((c.email || '') as string).trim().toLowerCase();
+        const usuarioNorm = ((c.usuario || '') as string).trim().toLowerCase();
+        const byEmail = emailNorm === inputId;
+        const byUsuario = usuarioNorm === inputId;
         const passMatch = (c.clave === password) || (c.password === password);
+        if ((byEmail || byUsuario) && !passMatch) {
+          console.log('Coincide id pero falla contraseña para cliente id:', c.id, 'inputPwdLen:', String(password).length, 'clave:', c.clave, 'password:', c.password);
+        }
         return (byEmail || byUsuario) && passMatch;
       });
 
-      console.log('Cliente encontrado:', matched);
+      console.log('Cliente encontrado:', matched ? { id: (matched as any).id, email: (matched as any).email } : undefined);
 
       if (!matched) {
         setError('Credenciales incorrectas');
