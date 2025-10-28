@@ -32,7 +32,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     try {
       // Validar contra clientes guardados
       const matched: Client | undefined = clients.find(
-        (c) => c.usuario === username && c.clave === password
+        (c) => (c.email || '').trim().toLowerCase() === username.trim().toLowerCase() && c.clave === password
       );
 
       if (!matched) {
@@ -51,7 +51,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
       // Guardar sesión
       localStorage.setItem('admin-authenticated', 'true');
-      localStorage.setItem('admin-user', matched.usuario);
+      localStorage.setItem('admin-user', matched.email || '');
       localStorage.setItem('admin-login-time', new Date().toISOString());
       localStorage.setItem('admin-user-id', String(matched.id));
 
@@ -79,7 +79,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="username" className="sr-only">
-                Usuario
+                Correo
               </label>
               <input
                 id="username"
@@ -87,7 +87,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 type="text"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Usuario"
+                placeholder="Correo"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
