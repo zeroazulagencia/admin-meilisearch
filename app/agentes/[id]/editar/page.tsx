@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAgents, Agent } from '@/utils/useAgents';
 import { useClients } from '@/utils/useClients';
 import { meilisearchAPI, Index } from '@/utils/meilisearch';
+import { n8nAPI, Workflow } from '@/utils/n8n';
 
 export default function EditarAgente({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -23,6 +24,10 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
   const [selectedIndexes, setSelectedIndexes] = useState<string[]>([]);
   const [currentAgent, setCurrentAgent] = useState<Agent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [availableWorkflows, setAvailableWorkflows] = useState<Workflow[]>([]);
+  const [loadingWorkflows, setLoadingWorkflows] = useState(false);
+  const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
+  const [workflowSearchQuery, setWorkflowSearchQuery] = useState('');
 
   useEffect(() => {
     if (agentsInitialized && clientsInitialized) {
@@ -35,18 +40,42 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
           name: agent.name,
           description: agent.description,
           photo: agent.photo,
-          client_id: agent.client_id
-        });
-        setSelectedIndexes(agent.knowledge?.indexes || []);
-      } else {
-        router.push('/agentes');
-      }
+        client_id: agent.client_id
+      });
+      setSelectedIndexes(agent.knowledge?.indexes || []);
+      setSelectedWorkflows(agent.workflows?.workflowIds || []);
+    } else {
+      router.push('/agentes');
     }
-  }, [agentsInitialized, clientsInitialized, agents, params.id, router]);
+  }
+}, [agentsInitialized, clientsInitialized, agents, params.id, router]);
 
   useEffect(() => {
     loadIndexes();
+    loadWorkflows();
   }, []);
+
+  const loadWorkflows = async () => {
+    setLoadingWorkflows(true);
+    try {
+      const workflows = await n8nAPI.getWorkflows();
+      setAvailableWorkflows(workflows);
+    } catch (error) {
+      console.error('Error loading workflows:', error);
+    } finally {
+      setLoadingWorkflows(false);
+    }
+  };
+
+  const handleToggleWorkflow = (workflowId: string) => {
+    setSelectedWorkflows(prev => {
+      if (prev.includes(workflowId)) {
+        return prev.filter(id => id !== workflowId);
+      } else {
+        return [...prev, workflowId];
+      }
+    });
+  };
 
   const loadIndexes = async () => {
     setLoadingIndexes(true);
@@ -85,6 +114,9 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
       client_name: client?.name,
       knowledge: {
         indexes: selectedIndexes
+      },
+      workflows: {
+        workflowIds: selectedWorkflows
       }
     });
 
@@ -303,6 +335,99 @@ export default function EditarAgente({ params }: { params: { id: string } }) {
                         return (
                           <span key={indexId} className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">
                             {index?.uid}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Configuración de Flujos n8n */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Flujos n8n del Agente</h2>
+            
+            {loadingWorkflows ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600 mb-4">
+                  Selecciona los flujos de n8n que este agente puede ejecutar:
+                </p>
+                
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    placeholder="Buscar flujo..."
+                    value={workflowSearchQuery}
+                    onChange={(e) => setWorkflowSearchQuery(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {availableWorkflows
+                    .filter((workflow) => 
+                      workflow.name.toLowerCase().includes(workflowSearchQuery.toLowerCase())
+                    )
+                    .sort((a, b) => {
+                      const aSelected = selectedWorkflows.includes(a.id);
+                      const bSelected = selectedWorkflows.includes(b.id);
+                      if (aSelected && !bSelected) return -1;
+                      if (!aSelected && bSelected) return 1;
+                      return 0;
+                    })
+                    .map((workflow) => (
+                    <label
+                      key={workflow.id}
+                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        selectedWorkflows.includes(workflow.id)
+                          ? 'border-blue-600 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedWorkflows.includes(workflow.id)}
+                        onChange={() => handleToggleWorkflow(workflow.id)}
+                        className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <div className="ml-3 flex-1">
+                        <p className="font-medium text-gray-900">{workflow.name}</p>
+                        <p className="text-sm text-gray-500">ID: {workflow.id}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {workflow.active && (
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                            Activo
+                          </span>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                
+                {availableWorkflows.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No hay flujos disponibles
+                  </div>
+                )}
+
+                {selectedWorkflows.length > 0 && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm font-medium text-green-900 mb-2">
+                      Flujos seleccionados: {selectedWorkflows.length}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedWorkflows.map((workflowId) => {
+                        const workflow = availableWorkflows.find(w => w.id === workflowId);
+                        return (
+                          <span key={workflowId} className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">
+                            {workflow?.name}
                           </span>
                         );
                       })}
