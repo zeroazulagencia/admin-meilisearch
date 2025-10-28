@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     const foundUser = rows[0];
     const stored = String(foundUser.clave ?? '');
-    if (st Retrieval !== clave) {
+    if (stored !== clave) {
       return NextResponse.json({ ok: false, error: 'Contraseña incorrecta' }, { status: 401 });
     }
 
