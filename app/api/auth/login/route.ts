@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 
 export async function POST(req: NextRequest) {
+  console.log('[LOGIN API] Inicio');
   try {
     const body = await req.json();
+    console.log('[LOGIN API] Body:', body);
     const email = (body.email || '').trim().toLowerCase();
     const clave = String(body.password || body.clave || '').trim();
 
@@ -11,10 +13,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Faltan credenciales' }, { status: 400 });
     }
 
+    console.log('[LOGIN API] Consultando MySQL...');
     const [rows] = await query<any>(
       'SELECT id, name, email, company, phone, clave, permissions FROM clients WHERE LOWER(email) = LOWER(?) LIMIT 1',
       [email]
     );
+    console.log('[LOGIN API] Resultado:', rows);
 
     if (!rows || rows.length === 0) {
       return NextResponse.json({ ok: false, error: 'Usuario no encontrado' }, { status: 401 });
