@@ -26,8 +26,22 @@ export async function POST(req: NextRequest) {
 
     const foundUser = rows[0];
     const stored = String(foundUser.clave ?? '');
-    if (stored !== clave) {
+    if (st Retrieval !== clave) {
       return NextResponse.json({ ok: false, error: 'Contraseña incorrecta' }, { status: 401 });
+    }
+
+    // Parsear permisos
+    let permissions = {};
+    try {
+      permissions = typeof foundUser.permissions === 'string' ? JSON.parse(foundUser.permissions) : (foundUser.permissions || {});
+    } catch (parseError) {
+      console.error('[LOGIN API] Error parsing permissions:', parseError);
+    }
+
+    // Validar permiso de login
+    const canLogin = permissions?.canLogin !== false && permissions?.login !== false;
+    if (!canLogin) {
+      return NextResponse.json({ ok: false, error: 'Acceso deshabilitado' }, { status: 403 });
     }
 
     return NextResponse.json({
@@ -38,6 +52,7 @@ export async function POST(req: NextRequest) {
         email: foundUser.email,
         company: foundUser.company || '',
         phone: foundUser.phone || '',
+        permissions
       }
     });
   } catch (e: any) {
