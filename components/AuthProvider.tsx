@@ -12,6 +12,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Timeout de seguridad para evitar quedarse cargando
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
     // Verificar sesión al cargar
     const checkAuth = () => {
       if (typeof window === 'undefined') {
@@ -39,9 +44,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       }
       
       setIsLoading(false);
+      clearTimeout(timeout);
     };
 
     checkAuth();
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const handleLogin = (authenticated: boolean) => {
