@@ -63,9 +63,26 @@ export default function Clientes() {
     router.push(`/clientes/${client.id}/editar`);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm('¿Estás seguro de eliminar este cliente?')) {
-      deleteClient(id);
+      try {
+        const res = await fetch(`/api/clients/${id}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (data.ok) {
+          // Recargar clientes
+          const res2 = await fetch('/api/clients');
+          const data2 = await res.json();
+          if (data2.ok && data2.clients) {
+            setClients(data2.clients);
+          }
+        } else {
+          alert('Error al eliminar cliente');
+        }
+      } catch (err) {
+        alert('Error al eliminar cliente');
+      }
     }
   };
 
