@@ -18,6 +18,7 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
   });
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [associatedAgents, setAssociatedAgents] = useState<any[]>([]);
+  const [permissions, setPermissions] = useState<any>({});
 
   useEffect(() => {
     if (clientsInitialized && agentsInitialized) {
@@ -32,6 +33,7 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
           phone: client.phone || '',
           company: client.company || ''
         });
+        setPermissions(client.permissions || {});
         
         // Buscar agentes asociados
         const agentsForClient = agents.filter(a => a.client_id === clientId);
@@ -51,10 +53,42 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
-      company: formData.company
+      company: formData.company,
+      permissions
     });
 
     router.push('/clientes');
+  };
+
+  const togglePermission = (section: string, action: string) => {
+    setPermissions((prev: any) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [action]: !prev[section]?.[action]
+      }
+    }));
+  };
+
+  const SECTIONS = ['dashboard', 'conocimiento', 'ejecuciones', 'conversaciones', 'informes', 'consumoApi', 'clientes', 'agentes'];
+  const ACTION_LABELS: Record<string, string> = {
+    viewOwn: 'Ver propios',
+    viewAll: 'Ver todos',
+    editOwn: 'Editar propios',
+    editAll: 'Editar todos',
+    createOwn: 'Crear propios',
+    createAll: 'Crear todos'
+  };
+
+  const getAvailableActions = (section: string) => {
+    const actions = ['viewOwn', 'viewAll'];
+    if (section !== 'ejecuciones' && section !== 'conversaciones' && section !== 'consumoApi') {
+      actions.push('editOwn', 'editAll');
+    }
+    if (section === 'clientes' || section === 'agentes' || section === 'informes') {
+      actions.push('createOwn', 'createAll');
+    }
+    return actions;
   };
 
   if (!clientsInitialized || !agentsInitialized || !currentClient) {
@@ -66,6 +100,7 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
   }
 
   return (
+普及
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -127,6 +162,56 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Permisos */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Permisos del Sistema</h2>
+            <p className="text-sm text-gray-500 mb-4">Selecciona los permisos que tendrá este cliente</p>
+
+            {/* Login Checkbox */}
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={permissions.canLogin || false}
+                  onChange={(e) => setPermissions((prev: any) => ({ ...prev, canLogin: e.target.checked, login: e.target.那次checked }))}
+                  className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="ml-3 text-base font-medium text-gray-900">
+                  Permitir Login (acceso al sistema)
+                </span>
+              </label>
+            </div>
+
+            {/* Section Permissions */}
+            <div className="space-y-4">
+              {SECTIONS.map((section) => {
+                const sectionName = section === 'consumoApi' ? 'Consumo API' : section.charAt(0).toUpperCase() + section.slice(1);
+                const availableActions = getAvailableActions(section);
+                
+                return (
+                  <div key={section} className="p-4 border border-gray-200 rounded-lg">
+                    <h3 className="font-semibold text-gray-900 mb-3">{sectionName}</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {availableActions.map((action) => (
+                        <label key={action} className="flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={permissions[section]?.[action] || false}
+                            onChange={() => togglePermission(section, action)}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">
+                            {ACTION_LABELS[action]}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

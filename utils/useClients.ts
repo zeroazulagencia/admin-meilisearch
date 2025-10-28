@@ -8,6 +8,18 @@ export interface Client {
   company?: string;
   email?: string;
   phone?: string;
+  permissions?: {
+    canLogin?: boolean;
+    login?: boolean;
+    dashboard?: { viewOwn?: boolean; viewAll?: boolean; editOwn?: boolean; editAll?: boolean; createOwn?: boolean; createAll?: boolean; };
+    conocimiento?: { viewOwn?: boolean; viewAll?: boolean; editOwn?: boolean; editAll?: boolean; createOwn?: boolean; createAll?: boolean; };
+    ejecuciones?: { viewOwn?: boolean; viewAll?: boolean; };
+    conversaciones?: { viewOwn?: boolean; viewAll?: boolean; };
+    informes?: { viewOwn?: boolean; viewAll?: boolean; editOwn?: boolean; editAll?: boolean; createOwn?: boolean; createAll?: boolean; };
+    consumoApi?: { viewOwn?: boolean; viewAll?: boolean; };
+    clientes?: { viewOwn?: boolean; viewAll?: boolean; editOwn?: boolean; editAll?: boolean; createOwn?: boolean; createAll?: boolean; };
+    agentes?: { viewOwn?: boolean; viewAll?: boolean; editOwn?: boolean; editAll?: boolean; createOwn?: boolean; createAll?: boolean; };
+  };
 }
 
 export function useClients() {
