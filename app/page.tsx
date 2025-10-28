@@ -40,9 +40,19 @@ export default function Dashboard() {
           </div>
           
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Estadísticas</h2>
-            <p className="text-gray-600 text-sm mb-4">Próximamente</p>
-            <span className="text-gray-400 text-sm font-medium">En desarrollo</span>
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">Clientes</h2>
+            <p className="text-gray-600 text-sm mb-4">Gestiona los clientes del sistema</p>
+            <a href="/clientes" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              Ver clientes →
+            </a>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">Agentes</h2>
+            <p className="text-gray-600 text-sm mb-4">Gestiona los agentes de IA</p>
+            <a href="/agentes" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              Ver agentes →
+            </a>
           </div>
         </div>
       </div>

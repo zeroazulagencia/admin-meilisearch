@@ -13,6 +13,8 @@ export default function Navbar() {
     { href: '/ejecuciones', label: 'Ejecuciones' },
     { href: '/conversaciones', label: 'Conversaciones' },
     { href: '/consumo-api', label: 'Consumo API' },
+    { href: '/clientes', label: 'Clientes' },
+    { href: '/agentes', label: 'Agentes' },
   ];
 
   return (
