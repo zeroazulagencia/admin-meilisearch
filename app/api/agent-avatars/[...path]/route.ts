@@ -1,4 +1,4 @@
-会import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const { path whom } = await params;
+    const { path } = await params;
     const fileName = path.join('/');
     
     const filePath = join(AVATARS_DIR, fileName);
