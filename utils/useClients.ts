@@ -39,7 +39,7 @@ export function useClients() {
     } else {
       // Datos iniciales si no hay nada guardado
       const initialClients: Client[] = [
-        { id: 1, name: 'Zero Azul Agencia', usuario: 'admin', clave: 'admin123', company: 'Zero Azul', email: 'admin@zeroazul.com', phone: '+573001234567' }
+        { id: 1, name: 'Zero Azul Agencia', usuario: 'admin', clave: 'dDKAoGD2ALqo', company: 'Zero Azul', email: 'admin@zeroazul.com', phone: '+573001234567' }
       ];
       setClients(initialClients);
       localStorage.setItem('admin_clients', JSON.stringify(initialClients));

@@ -13,11 +13,14 @@ CREATE TABLE IF NOT EXISTS clients (
     email VARCHAR(255) UNIQUE,
     phone VARCHAR(50),
     company VARCHAR(255),
+    clave VARCHAR(255),
+    permissions JSON,
     status ENUM('active', 'inactive', 'pending') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_status (status),
-    INDEX idx_name (name)
+    INDEX idx_name (name),
+    INDEX idx_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabla de Agentes (relación 1:N con clients)
@@ -38,9 +41,8 @@ CREATE TABLE IF NOT EXISTS agents (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insertar datos de ejemplo (opcional)
-INSERT INTO clients (name, email, phone, company, status) VALUES
-    ('Zero Azul Agencia', 'admin@zeroazul.com', '+573001234567', 'Zero Azul', 'active'),
-    ('Cliente Ejemplo', 'cliente@ejemplo.com', '+573007654321', 'Empresa Demo', 'active');
+INSERT INTO clients (name, email, phone, company, clave, status) VALUES
+    ('Zero Azul Agencia', 'admin@zeroazul.com', '+573001234567', 'Zero Azul', 'admin123', 'active');
 
 INSERT INTO agents (client_id, name, email, agent_code, status) VALUES
     (1, 'amavu', 'amavu@zeroazul.com', 'amavu', 'active'),
