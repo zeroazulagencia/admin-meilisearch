@@ -46,68 +46,23 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     setError('');
 
     try {
-      // Debug extendido
-      const raw = typeof window !== 'undefined' ? localStorage.getItem('admin_clients') : null;
-      const inputId = username.trim().toLowerCase();
-      console.log('Cliente buscando con email/usuario (normalizado):', inputId);
-      console.log('LocalStorage raw admin_clients:', raw);
-      console.log('Total clientes en hook:', clients.length);
-      clients.forEach((c: any, idx: number) => {
-        console.log(`Cliente[${idx}]`, {
-          id: c.id,
-          email: c.email,
-          usuario: c.usuario,
-          company: c.company,
-          clave: c.clave,
-          password: c.password,
-          canLogin: c.permissions?.canLogin
-        });
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: username, password })
       });
-      
-      console.log('Contraseña ingresada:', password);
-
-      // Validar contra clientes guardados (email o usuario) y contraseña (clave o password)
-      const matched: Client | undefined = clients.find((c: any) => {
-        const emailNorm = ((c.email || '') as string).trim().toLowerCase();
-        const usuarioNorm = ((c.usuario || '') as string).trim().toLowerCase();
-        const byEmail = emailNorm === inputId;
-        const byUsuario = usuarioNorm === inputId;
-        
-        // Comparar contraseñas exactas
-        const claveMatch = String(c.clave || '').trim() === String(password).trim();
-        const passwordMatch = String(c.password || '').trim() === String(password).trim();
-        const passMatch = claveMatch || passwordMatch;
-        
-        if ((byEmail || byUsuario) && !passMatch) {
-          console.log('Coincide id pero falla contraseña para cliente id:', c.id);
-          console.log('  - Input password (len):', password, `(${String(password).length})`);
-          console.log('  - Clave (len):', c.clave, `(${String(c.clave || '').length})`);
-          console.log('  - Password (len):', c.password, `(${String(c.password || '').length})`);
-        }
-        return (byEmail || byUsuario) && passMatch;
-      });
-
-      console.log('Cliente encontrado:', matched ? { id: (matched as any).id, email: (matched as any).email } : undefined);
-
-      if (!matched) {
-        setError('Credenciales incorrectas');
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setError(data?.error || 'Credenciales incorrectas');
         setLoading(false);
         return;
       }
 
-      // Verificar permiso de login si existe configuración de permisos
-      const canLogin = matched.permissions?.canLogin ?? true;
-      if (!canLogin) {
-        setError('Acceso deshabilitado para este usuario');
-        setLoading(false);
-        return;
-      }
-
-      // Guardar sesión
+      // Guardar sesión mínima en localStorage
       localStorage.setItem('admin-authenticated', 'true');
-      localStorage.setItem('admin-user', matched.email || matched.usuario || '');
+      localStorage.setItem('admin-user', data.user?.email || '');
       localStorage.setItem('admin-login-time', new Date().toISOString());
-      localStorage.setItem('admin-user-id', String(matched.id));
+      localStorage.setItem('admin-user-id', String(data.user?.id || ''));
 
       onLogin(true);
       router.push('/');
