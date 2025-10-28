@@ -303,16 +303,32 @@ export default function Conversaciones() {
                     <div
                       key={index}
                       onClick={() => setSelectedConversation(group)}
-                      className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
                         selectedConversation?.user_id === group.user_id ? 'bg-blue-50' : ''
                       }`}
                     >
-                      <div className="flex items-start justify-between mb-1">
-                        <span className="font-semibold text-gray-900">{group.user_id}</span>
-                        <span className="text-xs text-gray-500">{formatTime(group.lastDate)}</span>
+                      <div className="flex items-center gap-3">
+                        {/* Avatar circular como WhatsApp */}
+                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+                          {group.phone_number_id ? (
+                            <span className="text-lg font-semibold text-gray-600">
+                              {group.phone_number_id.substring(group.phone_number_id.length - 1)}
+                            </span>
+                          ) : (
+                            <span className="text-lg font-semibold text-gray-600">
+                              {group.user_id.substring(group.user_id.length - 1)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <span className="font-semibold text-gray-900 truncate">{group.user_id}</span>
+                            <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{formatTime(group.lastDate)}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mb-1 truncate">{group.phone_number_id}</p>
+                          <p className="text-sm text-gray-600 truncate">{group.lastMessage}...</p>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 mb-1">{group.phone_number_id}</p>
-                      <p className="text-sm text-gray-600 truncate">{group.lastMessage}...</p>
                     </div>
                   ))}
                 </div>
