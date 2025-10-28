@@ -19,7 +19,8 @@ export async function POST(req: NextRequest) {
       'INSERT INTO clients (name, email, phone, company, clave, status) VALUES (?, ?, ?, ?, ?, ?)',
       [body.name, body.email, body.phone, body.company, body.clave, 'active']
     );
-    return NextResponse.json({ ok: true, id: result.insertId });
+    const insertResult = result as any;
+    return NextResponse.json({ ok: true, id: insertResult?.insertId || 0 });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || 'Error' }, { status: 500 });
   }
