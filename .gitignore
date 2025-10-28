@@ -46,3 +46,7 @@ logs
 # Database migrations (keep schema files, ignore backups)
 database/backups/
 database/*.dump
+
+# Agent avatars
+public/agent-avatars/*
+!public/agent-avatars/.gitkeep

@@ -15,6 +15,7 @@ export default function Agentes() {
     photo: '',
     client_id: 0
   });
+  const [uploading, setUploading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,25 +139,59 @@ export default function Agentes() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => {
+                    disabled={uploading}
+                    onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setFormData({ ...formData, photo: reader.result as string });
-                        };
-                        reader.readAsDataURL(file);
+                        // Validar tamaño (1 MB)
+                        if (file.size > 1 * 1024 * 1024) {
+                          alert('La imagen no puede ser mayor a 1 MB');
+                          return;
+                        }
+                        
+                        setUploading(true);
+                        
+                        try {
+                          // Subir archivo
+                          const uploadFormData = new FormData();
+                          uploadFormData.append('file', file);
+                          
+                          const response = await fetch('/api/upload-agent-avatar', {
+                            method: 'POST',
+                            body: uploadFormData
+                          });
+                          
+                          const data = await response.json();
+                          
+                          if (response.ok) {
+                            setFormData({ ...formData, photo: data.url });
+                          } else {
+                            alert(data.error || 'Error al subir la imagen');
+                          }
+                        } catch (error) {
+                          console.error('Error uploading image:', error);
+                          alert('Error al subir la imagen');
+                        } finally {
+                          setUploading(false);
+                        }
                       }
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                   />
                   {formData.photo && (
                     <div className="mt-2">
                       <img 
                         src={formData.photo} 
                         alt="Preview" 
-                        className="w-32 h-32 object-cover rounded-lg"
+                        className="w-32 h-32 object-cover rounded-lg border border-gray-200"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Preview de la imagen</p>
+                    </div>
+                  )}
+                  {uploading && (
+                    <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                      Subiendo imagen...
                     </div>
                   )}
                 </div>
