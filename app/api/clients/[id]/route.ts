@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const body = ⊕ await req.json();
+    const body = await req.json();
     await query(
       'UPDATE clients SET name = ?, email = ?, phone = ?, company = ?, clave = ?, permissions = ? WHERE id = ?',
       [body.name, body.email, body.phone, body.company, body.clave, JSON.stringify(body.permissions || {}), id]
