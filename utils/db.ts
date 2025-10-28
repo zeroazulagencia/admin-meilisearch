@@ -22,7 +22,8 @@ export function getDbPool(): mysql.Pool {
 
 export async function query<T = any>(sql: string, params: any[] = []): Promise<[T[], mysql.FieldPacket[]]> {
   const conn = getDbPool();
-  return conn.query<T[]>(sql, params);
+  const [rows] = await conn.query(sql, params);
+  return [rows as T[], [] as mysql.FieldPacket[]];
 }
 
 
