@@ -47,14 +47,14 @@ export async function POST(request: NextRequest) {
     
     await writeFile(filePath, buffer);
 
-    // Retornar la URL pública
-    const publicUrl = `/agent-avatars/${fileName}`;
+        // Retornar la URL pública usando la API route
+        const publicUrl = `/api/agent-avatars/${fileName}`;
 
-    return NextResponse.json({ 
-      success: true,
-      url: publicUrl,
-      fileName 
-    });
+        return NextResponse.json({ 
+          success: true,
+          url: publicUrl,
+          fileName 
+        });
 
   } catch (error: any) {
     console.error('Error uploading file:', error);
