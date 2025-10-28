@@ -222,11 +222,13 @@ export default function Agentes() {
           {agentsInitialized && agents.map((agent) => (
             <div key={agent.id} className="bg-white rounded-lg shadow overflow-hidden">
               {agent.photo && (
-                <img 
-                  src={agent.photo} 
-                  alt={agent.name}
-                  className="w-full h-48 object-cover"
-                />
+                <div className="w-full h-48 flex items-center justify-center bg-gray-100">
+                  <img 
+                    src={agent.photo} 
+                    alt={agent.name}
+                    className="w-32 h-32 rounded-full object-cover"
+                  />
+                </div>
               )}
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{agent.name}</h3>
