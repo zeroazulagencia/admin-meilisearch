@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import LoginForm from './LoginForm';
+import { hasAccessToRoute, getPermissions } from '@/utils/permissions';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -10,6 +12,8 @@ interface AuthProviderProps {
 export default function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     // Timeout de seguridad para evitar quedarse cargando
@@ -35,6 +39,13 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         
         if (hoursDiff < 24) {
           setIsAuthenticated(true);
+          
+          // Verificar permisos de acceso a la ruta actual
+          const permissions = getPermissions();
+          if (permissions && pathname && !hasAccessToRoute(pathname, permissions)) {
+            // Sin acceso a esta ruta, redirigir al dashboard
+            router.push('/');
+          }
         } else {
           // Sesión expirada
           localStorage.removeItem('admin-authenticated');
@@ -50,7 +61,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
 
     return () => clearTimeout(timeout);
-  }, []);
+  }, [pathname, router]);
 
   const handleLogin = (authenticated: boolean) => {
     setIsAuthenticated(authenticated);
