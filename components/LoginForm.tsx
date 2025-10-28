@@ -16,12 +16,20 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const router = useRouter();
   const { clients, initialized } = useClients();
   
-  // Limpiar auto-fill al cargar
+  // Limpiar auto-fill al cargar - deshabilitar completamente
   useEffect(() => {
-    const usernameInput = document.getElementById('username') as HTMLInputElement;
-    const passwordInput = document.getElementById('password') as HTMLInputElement;
-    if (usernameInput) usernameInput.value = '';
-    if (passwordInput) passwordInput.value = '';
+    setTimeout(() => {
+      const usernameInput = document.getElementById('username') as HTMLInputElement;
+      const passwordInput = document.getElementById('password') as HTMLInputElement;
+      if (usernameInput) {
+        usernameInput.value = '';
+        usernameInput.setAttribute('autocomplete', 'off');
+      }
+      if (passwordInput) {
+        passwordInput.value = '';
+        passwordInput.setAttribute('autocomplete', 'new-password');
+      }
+    }, 100);
   }, []);
 
   useEffect(() => {
