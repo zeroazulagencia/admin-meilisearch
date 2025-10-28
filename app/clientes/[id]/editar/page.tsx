@@ -14,7 +14,7 @@ interface Client {
   permissions?: any;
 }
 
-export default function EditarCliente({ params }: { params: { id: string } }) {
+export default function EditarCliente({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { agents, initialized: agentsInitialized } = useAgents();
   
@@ -29,12 +29,22 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
   const [associatedAgents, setAssociatedAgents] = useState<any[]>([]);
   const [permissions, setPermissions] = useState<any>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [clientId, setClientId] = useState<string>('');
 
   useEffect(() => {
+    // Resolver params
+    params.then(p => {
+      setClientId(p.id);
+    });
+  }, [params]);
+
+  useEffect(() => {
+    if (!clientId) return;
+    
     // Cargar cliente desde MySQL
     const loadClient = async () => {
       try {
-        const res = await fetch(`/api/clients/${params.id}`);
+        const res = await fetch(`/api/clients/${clientId}`);
         const data = await res.json();
         if (data.ok && data.client) {
           const client = data.client;
@@ -54,7 +64,7 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
           
           // Buscar agentes asociados desde localStorage
           if (agentsInitialized) {
-            const agentsForClient = agents.filter(a => a.client_id === parseInt(params.id));
+            const agentsForClient = agents.filter(a => a.client_id === parseInt(clientId));
             setAssociatedAgents(agentsForClient);
           }
         } else {
@@ -67,7 +77,7 @@ export default function EditarCliente({ params }: { params: { id: string } }) {
     };
     
     loadClient();
-  }, [params.id, router, agents, agentsInitialized]);
+  }, [clientId, router, agents, agentsInitialized]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
