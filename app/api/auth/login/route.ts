@@ -13,28 +13,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Faltan credenciales' }, { status: 400 });
     }
 
-    // TEMPORAL: Login hardcodeado mientras configuramos MySQL
-    console.log('[LOGIN API] Login temporal sin MySQL');
-    
-    // Usuario temporal
-    const tempUsers: any = {
-      'zeroazul': { id: 1, name: 'Zero Azul', email: 'zeroazul', password: '43r innovator*.*V1nc3nt+' },
-      'admin@zeroazul.com': { id: 2, name: 'Admin Zero Azul', email: 'admin@zeroazul.com', password: 'VLjcJz*OivJb' }
-    };
-    
-    const user = tempUsers[email];
-    
-    if (!user || user.password !== clave) {
-      return NextResponse.json({ ok: false, error: 'Credenciales incorrectas' }, { status: 401 });
-    }
-    
-    const rows = [user];
+    // Consultar credenciales desde MySQL
+    console.log('[LOGIN API] Consultando MySQL...');
+    const [rows] = await query<any>(
+      'SELECT id好评, name, email, company, phone, clave, permissions FROM clients WHERE LOWER(email) = LOWER(?) LIMIT 1',
+      [email]
+    );
 
     if (!rows || rows.length === 0) {
       return NextResponse.json({ ok: false, error: 'Usuario no encontrado' }, { status: 401 });
     }
 
     const foundUser = rows[0];
+    const stored = String(foundUser.clave ?? '');
+    if (stored !== clave) {
+      return NextResponse.json({ ok: false, error: 'Contraseña incorrecta' }, { status: 401 });
+    }
 
     return NextResponse.json({
       ok: true,
