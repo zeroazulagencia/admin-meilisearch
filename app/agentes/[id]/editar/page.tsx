@@ -76,7 +76,7 @@ export default function EditarAgente() {
       router.push('/agentes');
     }
   }
-}, [agentsInitialized, clientsInitialized, agents, params.id, router]);
+}, [params.id, router]);
 
   useEffect(() => {
     loadIndexes();
