@@ -2,11 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { n8nAPI, Workflow, Execution } from '@/utils/n8n';
+import { useAgents } from '@/utils/useAgents';
 
 type FilterStatus = 'all' | 'success' | 'error' | 'running';
 
 export default function Ejecuciones() {
+  const { agents, initialized: agentsInitialized } = useAgents();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [allWorkflows, setAllWorkflows] = useState<Workflow[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +39,21 @@ export default function Ejecuciones() {
   }, []);
 
   useEffect(() => {
+    if (selectedAgent && allWorkflows.length > 0) {
+      // Filtrar workflows basándose en los del agente
+      const agentWorkflowIds = selectedAgent.workflows?.workflowIds || [];
+      if (agentWorkflowIds.length > 0) {
+        const filtered = allWorkflows.filter(w => agentWorkflowIds.includes(w.id));
+        setWorkflows(filtered);
+      } else {
+        setWorkflows([]);
+      }
+      // Limpiar selección de workflow cuando cambia el agente
+      setSelectedWorkflow(null);
+    }
+  }, [selectedAgent, allWorkflows]);
+
+  useEffect(() => {
     if (selectedWorkflow) {
       loadExecutions();
     }
@@ -56,7 +75,7 @@ export default function Ejecuciones() {
     try {
       setLoading(true);
       const data = await n8nAPI.getWorkflows();
-      setWorkflows(data);
+      setAllWorkflows(data);
     } catch (err: any) {
       console.error('Error loading workflows:', err);
       alert('Error al cargar los flujos de n8n. Verifica que el servidor esté disponible.');
@@ -281,13 +300,60 @@ export default function Ejecuciones() {
   };
 
 
+  if (!agentsInitialized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Ejecuciones n8n</h1>
 
+        {/* Selector de Agente */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Seleccionar Flujo</h2>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Seleccionar Agente
+          </label>
+          <select
+            value={selectedAgent?.id || ''}
+            onChange={(e) => {
+              const agent = agents.find(a => a.id === parseInt(e.target.value));
+              setSelectedAgent(agent || null);
+              setSelectedWorkflow(null);
+            }}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Seleccionar agente...</option>
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name} {agent.workflows?.workflowIds.length ? `(${agent.workflows.workflowIds.length} flujos)` : '(sin flujos)'}
+              </option>
+            ))}
+          </select>
+          {selectedAgent && selectedAgent.photo && (
+            <div className="mt-3 flex items-center gap-3">
+              <img
+                src={selectedAgent.photo}
+                alt={selectedAgent.name}
+                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+              />
+              <div>
+                <p className="font-medium text-gray-900">{selectedAgent.name}</p>
+                {selectedAgent.description && (
+                  <p className="text-sm text-gray-500">{selectedAgent.description}</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {selectedAgent && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Seleccionar Flujo</h2>
           <div className="relative" ref={dropdownRef}>
             <input
               type="text"
@@ -341,7 +407,25 @@ export default function Ejecuciones() {
               </p>
             </div>
           )}
-        </div>
+          </div>
+          </div>
+        )}
+
+        {!selectedAgent && (
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <p className="text-gray-500">
+              Por favor, selecciona un agente para ver sus flujos y ejecuciones.
+            </p>
+          </div>
+        )}
+
+        {selectedAgent && workflows.length === 0 && !loading && (
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <p className="text-gray-500">
+              {selectedAgent.name} no tiene flujos asociados. Configura sus flujos desde la página de Agentes.
+            </p>
+          </div>
+        )}
 
         {selectedWorkflow && (
           <div className="bg-white rounded-lg shadow">
