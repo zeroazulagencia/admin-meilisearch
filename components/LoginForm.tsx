@@ -15,6 +15,14 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { clients, initialized } = useClients();
+  
+  // Limpiar auto-fill al cargar
+  useEffect(() => {
+    const usernameInput = document.getElementById('username') as HTMLInputElement;
+    const passwordInput = document.getElementById('password') as HTMLInputElement;
+    if (usernameInput) usernameInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+  }, []);
 
   useEffect(() => {
     // Verificar si ya hay una sesión activa
