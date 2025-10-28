@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useClients, Client } from '@/utils/useClients';
 
 export default function Clientes() {
+  const router = useRouter();
   const { clients, initialized, addClient, updateClient, deleteClient } = useClients();
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
