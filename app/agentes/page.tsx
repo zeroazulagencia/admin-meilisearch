@@ -1,14 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAgents, Agent } from '@/utils/useAgents';
-import { useClients } from '@/utils/useClients';
+
+interface Client {
+  id: number;
+  name: string;
+  email?: string;
+  company?: string;
+}
 
 export default function Agentes() {
   const router = useRouter();
   const { agents, initialized: agentsInitialized, addAgent, updateAgent, deleteAgent } = useAgents();
-  const { clients, initialized: clientsInitialized } = useClients();
+  const [clients, setClients] = useState<Client[]>([]);
+  
+  useEffect(() => {
+    // Cargar clientes desde MySQL
+    const loadClients = async () => {
+      try {
+        const res = await fetch('/api/clients');
+        const data = await res.json();
+        if (data.ok && data.clients) {
+          setClients(data.clients);
+        }
+      } catch (err) {
+        console.error('Error cargando clientes:', err);
+      }
+    };
+    
+    loadClients();
+  }, []);
   const [showForm, setShowForm] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [formData, setFormData] = useState({
@@ -116,7 +139,7 @@ export default function Agentes() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="0">Selecciona un cliente</option>
-                    {clientsInitialized && clients.map((client) => (
+                    {clients.map((client) => (
                       <option key={client.id} value={client.id}>
                         {client.name}
                       </option>
