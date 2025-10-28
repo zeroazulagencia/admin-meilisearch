@@ -40,5 +40,9 @@ next-env.d.ts
 logs
 *.log
 
-# Documentation with sensitive keys
-README.md
+# Documentation with sensitive keys (only root README)
+/README.md
+
+# Database migrations (keep schema files, ignore backups)
+database/backups/
+database/*.dump
