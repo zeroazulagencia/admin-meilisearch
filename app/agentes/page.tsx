@@ -84,7 +84,7 @@ export default function Agentes() {
     loadAgents();
   }, []);
   const [showForm, setShowForm] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [editingAgent, setEditingAgent] = useState<AgentDB | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
