@@ -149,8 +149,8 @@ export default function Agentes() {
     setEditingAgent(agent);
     setFormData({
       name: agent.name,
-      description: agent.description,
-      photo: agent.photo,
+      description: agent.description || '',
+      photo: agent.photo || '',
       client_id: agent.client_id
     });
     setShowForm(true);
