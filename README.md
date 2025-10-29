@@ -1,5 +1,11 @@
 # Admin Meilisearch - Panel de Administración
 
+## Roadmap
+
+- Ajustar permisos de clientes (granularidad y aplicación en rutas y vistas)
+- Agregar funcionalidad de carga de PDF (ingesta y gestión de archivos)
+- Ajustar plantilla y agregar diseño de landing al LOGIN
+
 ## 📋 Descripción General
 
 **Admin Meilisearch** es una aplicación web moderna desarrollada en Next.js que proporciona una interfaz completa para administrar índices de Meilisearch. La aplicación permite gestionar documentos, configurar búsquedas híbridas con IA, visualizar propiedades de índices y ejecutar operaciones CRUD de manera intuitiva.

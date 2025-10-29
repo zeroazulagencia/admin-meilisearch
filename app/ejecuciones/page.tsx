@@ -42,7 +42,33 @@ export default function Ejecuciones() {
       try {
         const res = await fetch('/api/agents');
         const data = await res.json();
-        if (data.ok && data.agents) setAllAgents(data.agents);
+        if (data.ok && data.agents) {
+          // Normalizar workflows por seguridad - SIEMPRE garantizar estructura válida
+          const normalized = data.agents.map((a: any) => {
+            let workflows: any = { workflowIds: [] };
+            try {
+              if (a.workflows) {
+                if (typeof a.workflows === 'string') {
+                  workflows = JSON.parse(a.workflows);
+                } else if (typeof a.workflows === 'object') {
+                  workflows = a.workflows;
+                }
+              }
+            } catch (e) {
+              console.error(`[EJECUCIONES] Error parsing workflows for agent ${a.id}:`, e);
+              workflows = { workflowIds: [] };
+            }
+            // Garantizar que workflowIds siempre sea un array
+            if (!workflows || typeof workflows !== 'object') {
+              workflows = { workflowIds: [] };
+            }
+            if (!Array.isArray(workflows.workflowIds)) {
+              workflows.workflowIds = [];
+            }
+            return { ...a, workflows } as AgentDB;
+          });
+          setAllAgents(normalized);
+        }
       } catch (e) {
         console.error('Error cargando agentes:', e);
       } finally {
@@ -81,7 +107,13 @@ export default function Ejecuciones() {
   useEffect(() => {
     if (selectedAgent && allWorkflows.length > 0) {
       // Filtrar workflows basándose en los del agente
-      const agentWorkflowIds = selectedAgent.workflows?.workflowIds || [];
+      let agentWorkflowIds: string[] = [];
+      try {
+        const w = typeof selectedAgent.workflows === 'string' ? JSON.parse(selectedAgent.workflows) : (selectedAgent.workflows || {});
+        agentWorkflowIds = Array.isArray(w.workflowIds) ? w.workflowIds : [];
+      } catch {
+        agentWorkflowIds = [];
+      }
       if (agentWorkflowIds.length > 0) {
         const filtered = allWorkflows.filter(w => agentWorkflowIds.includes(w.id));
         setWorkflows(filtered);
@@ -368,11 +400,16 @@ export default function Ejecuciones() {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Seleccionar agente...</option>
-            {agents.map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {agent.name} {agent.workflows?.workflowIds.length ? `(${agent.workflows.workflowIds.length} flujos)` : '(sin flujos)'}
-              </option>
-            ))}
+            {agents.map((agent) => {
+              // Usar workflows ya normalizado del agente
+              const workflowIds = agent.workflows?.workflowIds || [];
+              const cnt = Array.isArray(workflowIds) ? workflowIds.length : 0;
+              return (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name} {cnt ? `(${cnt} flujos)` : '(sin flujos)'}
+                </option>
+              );
+            })}
           </select>
           {selectedAgent && selectedAgent.photo && (
             <div className="mt-3 flex items-center gap-3">
