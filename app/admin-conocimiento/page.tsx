@@ -54,7 +54,28 @@ export default function AdminConocimiento() {
         const res = await fetch('/api/agents');
         const data = await res.json();
         if (data.ok && data.agents) {
-          setAgents(data.agents);
+          // Normalizar knowledge para garantizar estructura consistente
+          const normalized = data.agents.map((a: any) => {
+            let knowledge: any = { indexes: [] };
+            try {
+              if (a.knowledge) {
+                if (typeof a.knowledge === 'string') {
+                  knowledge = JSON.parse(a.knowledge);
+                } else if (typeof a.knowledge === 'object') {
+                  knowledge = a.knowledge;
+                }
+              }
+            } catch (e) {
+              console.error(`[ADMIN-CONOCIMIENTO] Error parsing knowledge for agent ${a.id}:`, e);
+              knowledge = { indexes: [] };
+            }
+            if (!knowledge || typeof knowledge !== 'object') knowledge = { indexes: [] };
+            if (!Array.isArray(knowledge.indexes)) knowledge.indexes = [];
+            return { ...a, knowledge } as AgentDB;
+          });
+          console.log('[ADMIN-CONOCIMIENTO] Agents loaded:', normalized.length);
+          console.log('[ADMIN-CONOCIMIENTO] Sample agent indexes:', normalized.slice(0, 3).map((x: any) => ({ id: x.id, indexes: x.knowledge?.indexes })));
+          setAgents(normalized);
         }
       } catch (e) {
         console.error('Error cargando agentes:', e);
