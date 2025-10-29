@@ -145,7 +145,7 @@ export default function Agentes() {
     }
   };
 
-  const handleEdit = (agent: Agent) => {
+  const handleEdit = (agent: AgentDB) => {
     setEditingAgent(agent);
     setFormData({
       name: agent.name,
