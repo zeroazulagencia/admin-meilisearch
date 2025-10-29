@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
-import { useAgents } from '@/utils/useAgents';
 import { getPermissions, getUserId } from '@/utils/permissions';
 
 interface ConversationGroup {
@@ -13,8 +12,18 @@ interface ConversationGroup {
   messages: Document[];
 }
 
+interface AgentDB {
+  id: number;
+  client_id: number;
+  name: string;
+  description?: string;
+  photo?: string;
+  conversation_agent_name?: string;
+}
+
 export default function Conversaciones() {
-  const { agents: platformAgents, initialized: agentsInitialized } = useAgents();
+  const [allPlatformAgents, setAllPlatformAgents] = useState<AgentDB[]>([]);
+  const [agentsInitialized, setAgentsInitialized] = useState<boolean>(false);
   const [conversationGroups, setConversationGroups] = useState<ConversationGroup[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
@@ -29,7 +38,7 @@ export default function Conversaciones() {
   useEffect(() => {
     if (selectedPlatformAgent !== 'all' && selectedPlatformAgent) {
       // Obtener el conversation_agent_name del agente seleccionado
-      const agent = platformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
+      const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
       if (agent?.conversation_agent_name) {
         setSelectedAgent(agent.conversation_agent_name);
       }
@@ -38,7 +47,29 @@ export default function Conversaciones() {
       setConversationGroups([]);
       setSelectedConversation(null);
     }
-  }, [selectedPlatformAgent, platformAgents]);
+  }, [selectedPlatformAgent, allPlatformAgents]);
+
+  useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        // Cargar agentes desde MySQL y aplicar permisos
+        const res = await fetch('/api/agents');
+        const data = await res.json();
+        let list: AgentDB[] = data.ok ? data.agents : [];
+        const permissions = getPermissions();
+        const userId = getUserId();
+        if (permissions && userId && permissions.type !== 'admin' && !permissions.conversaciones?.viewAll) {
+          list = list.filter(a => a.client_id === parseInt(userId));
+        }
+        setAllPlatformAgents(list);
+      } catch (e) {
+        console.error('Error cargando agentes:', e);
+      } finally {
+        setAgentsInitialized(true);
+      }
+    };
+    loadAgents();
+  }, []);
 
   useEffect(() => {
     if (selectedAgent !== 'all') {
@@ -238,7 +269,7 @@ export default function Conversaciones() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="all">Todos los agentes</option>
-                {platformAgents.map((agent) => (
+                {allPlatformAgents.map((agent) => (
                   <option key={agent.id} value={agent.id.toString()}>
                     {agent.name} {agent.conversation_agent_name ? `(${agent.conversation_agent_name})` : '(sin identificar)'}
                   </option>
@@ -247,7 +278,7 @@ export default function Conversaciones() {
               {selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
                 <div className="mt-3">
                   {(() => {
-                    const agent = platformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
+                    const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
                     return agent ? (
                       <div className="flex items-center gap-3">
                         {agent.photo && (

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAgents } from '@/utils/useAgents';
 
 interface Client {
   id: number;
@@ -17,7 +16,6 @@ interface Client {
 export default function EditarCliente() {
   const router = useRouter();
   const params = useParams();
-  const { agents, initialized: agentsInitialized } = useAgents();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -57,10 +55,16 @@ export default function EditarCliente() {
             setPermissions({});
           }
           
-          // Buscar agentes asociados desde localStorage
-          if (agentsInitialized) {
-            const agentsForClient = agents.filter(a => a.client_id === parseInt(clientId));
-            setAssociatedAgents(agentsForClient);
+          // Buscar agentes asociados desde MySQL
+          try {
+            const resAgents = await fetch('/api/agents');
+            const dataAgents = await resAgents.json();
+            if (dataAgents.ok && dataAgents.agents) {
+              const agentsForClient = dataAgents.agents.filter((a: any) => a.client_id === parseInt(clientId));
+              setAssociatedAgents(agentsForClient);
+            }
+          } catch (e) {
+            console.error('Error cargando agentes del cliente:', e);
           }
         } else {
           router.push('/clientes');
@@ -72,7 +76,7 @@ export default function EditarCliente() {
     };
     
     loadClient();
-  }, [params?.id, router, agents, agentsInitialized]);
+  }, [params?.id, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,7 +147,7 @@ export default function EditarCliente() {
     setFormData({ ...formData, clave: password });
   };
 
-  if (!agentsInitialized || !currentClient) {
+  if (!currentClient) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>

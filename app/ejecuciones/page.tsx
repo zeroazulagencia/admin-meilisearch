@@ -2,13 +2,22 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { n8nAPI, Workflow, Execution } from '@/utils/n8n';
-import { useAgents } from '@/utils/useAgents';
 import { getPermissions, getUserId } from '@/utils/permissions';
 
 type FilterStatus = 'all' | 'success' | 'error' | 'running';
 
+interface AgentDB {
+  id: number;
+  client_id: number;
+  name: string;
+  description?: string;
+  photo?: string;
+  workflows?: any;
+}
+
 export default function Ejecuciones() {
-  const { agents: allAgents, initialized: agentsInitialized } = useAgents();
+  const [allAgents, setAllAgents] = useState<AgentDB[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [allWorkflows, setAllWorkflows] = useState<Workflow[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<any>(null);
@@ -28,6 +37,20 @@ export default function Ejecuciones() {
     
     return allAgents;
   })();
+  useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        const res = await fetch('/api/agents');
+        const data = await res.json();
+        if (data.ok && data.agents) setAllAgents(data.agents);
+      } catch (e) {
+        console.error('Error cargando agentes:', e);
+      } finally {
+        setAgentsLoading(false);
+      }
+    };
+    loadAgents();
+  }, []);
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -317,7 +340,7 @@ export default function Ejecuciones() {
   };
 
 
-  if (!agentsInitialized) {
+  if (agentsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>

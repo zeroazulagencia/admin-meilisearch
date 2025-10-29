@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClients, Client } from '@/utils/useClients';
 
 interface LoginFormProps {
   onLogin: (isAuthenticated: boolean) => void;
@@ -14,7 +13,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { clients, initialized } = useClients();
+  
   
   // Limpiar auto-fill al cargar - deshabilitar completamente
   useEffect(() => {

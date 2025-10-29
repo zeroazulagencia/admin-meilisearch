@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAgents, Agent } from '@/utils/useAgents';
 import { meilisearchAPI, Index } from '@/utils/meilisearch';
 import { n8nAPI, Workflow } from '@/utils/n8n';
 
@@ -13,10 +12,24 @@ interface Client {
   company?: string;
 }
 
+interface AgentDB {
+  id: number;
+  client_id: number;
+  name: string;
+  description?: string;
+  photo?: string;
+  email?: string;
+  phone?: string;
+  agent_code?: string;
+  status?: string;
+  knowledge?: any;
+  workflows?: any;
+  conversation_agent_name?: string;
+}
+
 export default function EditarAgente() {
   const router = useRouter();
   const params = useParams();
-  const { agents, initialized: agentsInitialized, updateAgent } = useAgents();
   const [clients, setClients] = useState<Client[]>([]);
   
   const [formData, setFormData] = useState({
@@ -29,7 +42,7 @@ export default function EditarAgente() {
   const [availableIndexes, setAvailableIndexes] = useState<Index[]>([]);
   const [loadingIndexes, setLoadingIndexes] = useState(false);
   const [selectedIndexes, setSelectedIndexes] = useState<string[]>([]);
-  const [currentAgent, setCurrentAgent] = useState<Agent | null>(null);
+  const [currentAgent, setCurrentAgent] = useState<AgentDB | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [availableWorkflows, setAvailableWorkflows] = useState<Workflow[]>([]);
   const [loadingWorkflows, setLoadingWorkflows] = useState(false);
@@ -57,30 +70,42 @@ export default function EditarAgente() {
   }, []);
 
   useEffect(() => {
-    console.log('[EDIT-AGENTE] agentsInitialized:', agentsInitialized, 'agents count:', agents.length);
-    if (agentsInitialized) {
-      const agentId = parseInt(params.id as string);
-      console.log('[EDIT-AGENTE] Looking for agent ID:', agentId);
-      const agent = agents.find(a => a.id === agentId);
-      console.log('[EDIT-AGENTE] Found agent:', agent);
-      
-      if (agent) {
-        setCurrentAgent(agent);
-        setFormData({
-          name: agent.name,
-          description: agent.description,
-          photo: agent.photo,
-        client_id: agent.client_id
-      });
-      setSelectedIndexes(agent.knowledge?.indexes || []);
-      setSelectedWorkflows(agent.workflows?.workflowIds || []);
-      setSelectedConversationAgent(agent.conversation_agent_name || '');
-    } else {
-      console.log('[EDIT-AGENTE] Agent not found in agents list, redirecting');
-      router.push('/agentes');
-    }
-  }
-}, [agentsInitialized, agents, params.id, router]);
+    const loadAgent = async () => {
+      try {
+        const res = await fetch(`/api/agents/${params.id}`);
+        const data = await res.json();
+        if (data.ok && data.agent) {
+          const agent: AgentDB = data.agent;
+          setCurrentAgent(agent);
+          setFormData({
+            name: agent.name,
+            description: agent.description || '',
+            photo: agent.photo || '',
+            client_id: agent.client_id
+          });
+          try {
+            const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {});
+            setSelectedIndexes(k.indexes || []);
+          } catch {
+            setSelectedIndexes([]);
+          }
+          try {
+            const w = typeof agent.workflows === 'string' ? JSON.parse(agent.workflows) : (agent.workflows || {});
+            setSelectedWorkflows(w.workflowIds || []);
+          } catch {
+            setSelectedWorkflows([]);
+          }
+          setSelectedConversationAgent(agent.conversation_agent_name || '');
+        } else {
+          router.push('/agentes');
+        }
+      } catch (err) {
+        console.error('Error cargando agente:', err);
+        router.push('/agentes');
+      }
+    };
+    loadAgent();
+  }, [params.id, router]);
 
   useEffect(() => {
     loadIndexes();
@@ -164,29 +189,29 @@ export default function EditarAgente() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const client = clients.find(c => c.id === formData.client_id);
-    
     if (!currentAgent) return;
-
-    updateAgent(currentAgent.id, {
-      name: formData.name,
-      description: formData.description,
-      photo: formData.photo,
-      client_id: formData.client_id,
-      client_name: client?.name,
-      knowledge: {
-        indexes: selectedIndexes
-      },
-      workflows: {
-        workflowIds: selectedWorkflows
-      },
-      conversation_agent_name: selectedConversationAgent || undefined
-    });
-
-    router.push('/agentes');
+    try {
+      const res = await fetch(`/api/agents/${currentAgent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: formData.client_id,
+          name: formData.name,
+          description: formData.description,
+          photo: formData.photo,
+          knowledge: { indexes: selectedIndexes },
+          workflows: { workflowIds: selectedWorkflows },
+          conversation_agent_name: selectedConversationAgent || null
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Error al actualizar');
+      router.push('/agentes');
+    } catch (err: any) {
+      alert(err.message || 'Error al guardar cambios');
+    }
   };
 
   if (!currentAgent) {

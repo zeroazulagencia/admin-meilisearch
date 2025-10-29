@@ -2,7 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAgents, Agent } from '@/utils/useAgents';
+import settings from '../../settings.json';
+
+interface AgentDB {
+  id: number;
+  client_id: number;
+  name: string;
+  description?: string;
+  photo?: string;
+  email?: string;
+  phone?: string;
+  agent_code?: string;
+  status?: string;
+  knowledge?: any;
+  workflows?: any;
+  conversation_agent_name?: string;
+}
 
 interface Client {
   id: number;
@@ -13,19 +28,29 @@ interface Client {
 
 export default function Agentes() {
   const router = useRouter();
-  const { agents, initialized: agentsInitialized, addAgent, updateAgent, deleteAgent } = useAgents();
+  const [agents, setAgents] = useState<AgentDB[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState<boolean>(true);
   const [clients, setClients] = useState<Client[]>([]);
   
   useEffect(() => {
     // Cargar clientes desde MySQL
     const loadClients = async () => {
       try {
+        console.log('[AGENTES] UI version:', settings?.proyecto?.version || 'unknown');
+        if (typeof window !== 'undefined') {
+          try {
+            console.log('[AGENTES] LocalStorage admin_agents exists?:', !!localStorage.getItem('admin_agents'));
+            console.log('[AGENTES] LocalStorage admin_clients exists?:', !!localStorage.getItem('admin_clients'));
+          } catch (e) {
+            console.warn('[AGENTES] Unable to read localStorage keys');
+          }
+        }
         console.log('[AGENTES] Loading clients...');
         const res = await fetch('/api/clients');
         const data = await res.json();
         console.log('[AGENTES] Clients response:', data);
         if (data.ok && data.clients) {
-          console.log('[AGENTES] Setting clients:', data.clients);
+          console.log('[AGENTES] Setting clients (count):', data.clients.length);
           setClients(data.clients);
         }
       } catch (err) {
@@ -34,6 +59,29 @@ export default function Agentes() {
     };
     
     loadClients();
+  }, []);
+
+  useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        console.log('[AGENTES] Loading agents from MySQL...');
+        const res = await fetch('/api/agents');
+        const data = await res.json();
+        console.log('[AGENTES] Agents response ok?:', data?.ok, 'count:', Array.isArray(data?.agents) ? data.agents.length : 'n/a');
+        if (data.ok && data.agents) {
+          try {
+            const ids = data.agents.map((a: any) => a.id);
+            console.log('[AGENTES] Agents IDs:', ids);
+          } catch {}
+          setAgents(data.agents);
+        }
+      } catch (err) {
+        console.error('[AGENTES] Error cargando agentes:', err);
+      } finally {
+        setAgentsLoading(false);
+      }
+    };
+    loadAgents();
   }, []);
   const [showForm, setShowForm] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
@@ -45,28 +93,56 @@ export default function Agentes() {
   });
   const [uploading, setUploading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const client = clients.find(c => c.id === formData.client_id);
-    
-    if (editingAgent) {
-      // Actualizar
-      updateAgent(editingAgent.id, {
-        ...formData,
-        client_name: client?.name
-      });
-    } else {
-      // Crear
-      const newAgent: Agent = {
-        id: Date.now(),
-        ...formData,
-        client_name: client?.name
-      };
-      addAgent(newAgent);
+
+    try {
+      if (editingAgent) {
+        console.log('[AGENTES] Updating agent ID:', editingAgent.id);
+        // Actualizar en MySQL
+        const res = await fetch(`/api/agents/${editingAgent.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: formData.client_id,
+            name: formData.name,
+            description: formData.description,
+            photo: formData.photo,
+          })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Error al actualizar agente');
+      } else {
+        console.log('[AGENTES] Creating agent with client_id:', formData.client_id);
+        // Crear en MySQL
+        const res = await fetch('/api/agents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: formData.client_id,
+            name: formData.name,
+            description: formData.description,
+            photo: formData.photo,
+            status: 'active'
+          })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Error al crear agente');
+      }
+
+      // Recargar lista
+      console.log('[AGENTES] Reloading agents after save...');
+      const resList = await fetch('/api/agents');
+      const listData = await resList.json();
+      if (listData.ok && listData.agents) {
+        console.log('[AGENTES] New agents count:', listData.agents.length);
+        setAgents(listData.agents);
+      }
+
+      resetForm();
+    } catch (err: any) {
+      alert(err.message || 'Error al guardar el agente');
     }
-    
-    resetForm();
   };
 
   const handleEdit = (agent: Agent) => {
@@ -80,9 +156,15 @@ export default function Agentes() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm('¿Estás seguro de eliminar este agente?')) {
-      deleteAgent(id);
+  const handleDelete = async (id: number) => {
+    if (!confirm('¿Estás seguro de eliminar este agente?')) return;
+    try {
+      const res = await fetch(`/api/agents/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Error al eliminar agente');
+      setAgents(prev => prev.filter(a => a.id !== id));
+    } catch (err: any) {
+      alert(err.message || 'Error al eliminar');
     }
   };
 
@@ -245,7 +327,7 @@ export default function Agentes() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {agentsInitialized && agents.map((agent) => (
+          {!agentsLoading && agents.map((agent) => (
             <div key={agent.id} className="bg-white rounded-lg shadow overflow-hidden">
               {agent.photo && (
                 <div className="w-full h-48 flex items-center justify-center bg-gray-100">
@@ -258,7 +340,7 @@ export default function Agentes() {
               )}
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{agent.name}</h3>
-                <p className="text-sm text-gray-500 mb-2 truncate">{agent.client_name}</p>
+                <p className="text-sm text-gray-500 mb-2 truncate">{clients.find(c => c.id === agent.client_id)?.name || '—'}</p>
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">{agent.description}</p>
                 <div className="flex gap-2">
                   <button

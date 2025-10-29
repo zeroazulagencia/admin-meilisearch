@@ -2,13 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { Index, meilisearchAPI } from '@/utils/meilisearch';
-import { useAgents, Agent } from '@/utils/useAgents';
 import IndexProperties from '@/components/IndexProperties';
 import DocumentList from '@/components/DocumentList';
 
+interface AgentDB {
+  id: number;
+  client_id: number;
+  name: string;
+  description?: string;
+  photo?: string;
+  knowledge?: any;
+}
+
 export default function AdminConocimiento() {
-  const { agents, initialized: agentsInitialized } = useAgents();
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [agents, setAgents] = useState<AgentDB[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
+  const [selectedAgent, setSelectedAgent] = useState<AgentDB | null>(null);
   const [availableIndexes, setAvailableIndexes] = useState<Index[]>([]);
   const [loadingIndexes, setLoadingIndexes] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<Index | null>(null);
@@ -40,13 +49,30 @@ export default function AdminConocimiento() {
   // No seleccionar agente por defecto
 
   useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        const res = await fetch('/api/agents');
+        const data = await res.json();
+        if (data.ok && data.agents) {
+          setAgents(data.agents);
+        }
+      } catch (e) {
+        console.error('Error cargando agentes:', e);
+      } finally {
+        setAgentsLoading(false);
+      }
+    };
+    loadAgents();
+  }, []);
+
+  useEffect(() => {
     if (selectedAgent) {
       loadAgentIndexes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAgent]);
 
-  if (!agentsInitialized) {
+  if (agentsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
@@ -77,7 +103,7 @@ export default function AdminConocimiento() {
               <option value="">Seleccionar agente...</option>
               {agents.map((agent) => (
                 <option key={agent.id} value={agent.id}>
-                  {agent.name} {agent.knowledge?.indexes.length ? `(${agent.knowledge.indexes.length} índices)` : '(sin índices)'}
+                  {agent.name} {(() => { try { const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {}); return k.indexes?.length ? `(${k.indexes.length} índices)` : '(sin índices)'; } catch { return '(sin índices)'; } })()}
                 </option>
               ))}
             </select>

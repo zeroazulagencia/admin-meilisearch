@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClients, Client } from '@/utils/useClients';
 
 interface ClientDB {
   id: number;
@@ -16,11 +15,10 @@ interface ClientDB {
 
 export default function Clientes() {
   const router = useRouter();
-  const { initialized } = useClients();
   const [clients, setClients] = useState<ClientDB[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editingClient, setEditingClient] = useState<ClientDB | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     usuario: '',
@@ -73,7 +71,7 @@ export default function Clientes() {
         if (data.ok) {
           // Recargar clientes
           const res2 = await fetch('/api/clients');
-          const data2 = await res.json();
+          const data2 = await res2.json();
           if (data2.ok && data2.clients) {
             setClients(data2.clients);
           }
