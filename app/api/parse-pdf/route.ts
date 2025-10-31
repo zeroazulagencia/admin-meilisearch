@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Importar pdf-parse dinámicamente
-let pdfParse: any = null;
-
-async function loadPdfParse() {
-  if (!pdfParse) {
-    const pdfParseModule = await import('pdf-parse');
-    pdfParse = pdfParseModule.default || pdfParseModule;
-  }
-  return pdfParse;
+// Importar pdf-parse usando require para compatibilidad
+function loadPdfParse() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require('pdf-parse');
 }
 
 export async function POST(req: NextRequest) {
@@ -35,7 +30,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     
     // Parsear PDF directamente del buffer
-    const pdfParseFunc = await loadPdfParse();
+    const pdfParseFunc = loadPdfParse();
     const pdfData = await pdfParseFunc(buffer);
     
     // Verificar si hay texto extraído
