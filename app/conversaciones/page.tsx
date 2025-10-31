@@ -306,6 +306,31 @@ export default function Conversaciones() {
     }
   };
 
+  const highlightSearchText = (text: string, searchQuery: string, isGreenBackground = false) => {
+    if (!searchQuery || !text) return text;
+    
+    // Escapar caracteres especiales de regex en la búsqueda
+    const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    
+    const parts = text.split(regex);
+    return parts.map((part, index) => 
+      regex.test(part) ? (
+        <mark 
+          key={index} 
+          className={isGreenBackground 
+            ? "bg-yellow-400 text-gray-900 font-semibold px-1 rounded" 
+            : "bg-yellow-300 text-gray-900 font-medium px-1 rounded"
+          }
+        >
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -555,7 +580,9 @@ export default function Conversaciones() {
                             <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{formatTime(group.lastDate)}</span>
                           </div>
                           <p className="text-xs text-gray-500 mb-1 truncate">{group.phone_number_id}</p>
-                          <p className="text-sm text-gray-600 truncate">{group.lastMessage}...</p>
+                          <p className="text-sm text-gray-600 truncate">
+                            {searchQuery ? highlightSearchText(group.lastMessage, searchQuery) : group.lastMessage}...
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -578,7 +605,12 @@ export default function Conversaciones() {
                           {message['message-Human'] && (
                             <div className="flex justify-end">
                               <div className="max-w-[70%] bg-green-500 text-white rounded-lg px-4 py-2">
-                                <p className="text-sm">{message['message-Human']}</p>
+                                <p className="text-sm">
+                                  {searchQuery 
+                                    ? highlightSearchText(message['message-Human'], searchQuery, true)
+                                    : message['message-Human']
+                                  }
+                                </p>
                                 <p className="text-xs text-green-100 mt-1 text-right">
                                   {formatTime(message.datetime)}
                                 </p>
@@ -590,7 +622,12 @@ export default function Conversaciones() {
                           {message['message-AI'] && (
                             <div className="flex justify-start">
                               <div className="max-w-[70%] bg-white rounded-lg px-4 py-2 shadow-sm">
-                                <p className="text-sm text-gray-800">{message['message-AI']}</p>
+                                <p className="text-sm text-gray-800">
+                                  {searchQuery 
+                                    ? highlightSearchText(message['message-AI'], searchQuery)
+                                    : message['message-AI']
+                                  }
+                                </p>
                                 <p className="text-xs text-gray-500 mt-1">
                                   {formatTime(message.datetime)}
                                 </p>
