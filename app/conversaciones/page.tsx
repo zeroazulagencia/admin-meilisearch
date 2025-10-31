@@ -32,8 +32,18 @@ export default function Conversaciones() {
   const [selectedConversation, setSelectedConversation] = useState<ConversationGroup | null>(null);
   const [currentAgent, setCurrentAgent] = useState<string>('');
   const [selectedPlatformAgent, setSelectedPlatformAgent] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
 
   const INDEX_UID = 'bd_conversations_dworkers';
+
+  // Inicializar fechas con HOY como default
+  useEffect(() => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    setDateFrom(todayStr);
+    setDateTo(todayStr);
+  }, []);
 
   useEffect(() => {
     if (selectedPlatformAgent !== 'all' && selectedPlatformAgent) {
@@ -75,7 +85,7 @@ export default function Conversaciones() {
     if (selectedAgent !== 'all') {
       loadConversations();
     }
-  }, [selectedAgent]);
+  }, [selectedAgent, dateFrom, dateTo]);
 
   const loadAgents = async () => {
     try {
@@ -130,11 +140,21 @@ export default function Conversaciones() {
       while (hasMore) {
         const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
         
-        // Filtrar por agente y por type === 'agent'
+        // Filtrar por agente, por type === 'agent' y por rango de fechas
         const filtered = data.results.filter((doc: Document) => {
           const isAgent = doc.agent === selectedAgent;
           const isTypeAgent = doc.type === 'agent';
-          return isAgent && isTypeAgent;
+          
+          // Filtro de fechas
+          let isInDateRange = true;
+          if (dateFrom && doc.datetime) {
+            const docDate = new Date(doc.datetime);
+            const fromDate = new Date(dateFrom + 'T00:00:00');
+            const toDate = new Date(dateTo + 'T23:59:59');
+            isInDateRange = docDate >= fromDate && docDate <= toDate;
+          }
+          
+          return isAgent && isTypeAgent && isInDateRange;
         });
         
         allDocuments.push(...filtered);
@@ -305,6 +325,76 @@ export default function Conversaciones() {
             </>
           )}
         </div>
+
+        {/* Filtro de Fechas - Solo visible cuando hay agente seleccionado */}
+        {selectedAgent !== 'all' && selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-4">
+              Filtrar por Rango de Fechas
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Fecha Inicio
+                </label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Fecha Fin
+                </label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  const todayStr = today.toISOString().split('T')[0];
+                  setDateFrom(todayStr);
+                  setDateTo(todayStr);
+                }}
+                className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+              >
+                HOY
+              </button>
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  const weekAgo = new Date(today);
+                  weekAgo.setDate(today.getDate() - 7);
+                  setDateFrom(weekAgo.toISOString().split('T')[0]);
+                  setDateTo(today.toISOString().split('T')[0]);
+                }}
+                className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+              >
+                Últimos 7 días
+              </button>
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  const monthAgo = new Date(today);
+                  monthAgo.setMonth(today.getMonth() - 1);
+                  setDateFrom(monthAgo.toISOString().split('T')[0]);
+                  setDateTo(today.toISOString().split('T')[0]);
+                }}
+                className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+              >
+                Últimos 30 días
+              </button>
+            </div>
+          </div>
+        )}
 
         {selectedAgent === 'all' || !selectedPlatformAgent || selectedPlatformAgent === 'all' ? (
           <div className="text-center py-12">
