@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Importar pdf-parse usando require para compatibilidad
 function loadPdfParse() {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // @ts-ignore - pdf-parse no tiene tipos de TypeScript adecuados
   return require('pdf-parse');
 }
 
