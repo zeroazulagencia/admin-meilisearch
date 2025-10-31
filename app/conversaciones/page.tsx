@@ -135,6 +135,7 @@ export default function Conversaciones() {
       const allDocuments: Document[] = [];
       
       // Si hay búsqueda, usar búsqueda de Meilisearch
+      let searchFailed = false;
       if (searchQuery && searchQuery.trim()) {
         try {
           // Construir filtros para Meilisearch (formato string)
@@ -142,11 +143,12 @@ export default function Conversaciones() {
           filters.push(`agent = "${selectedAgent}"`);
           filters.push(`type = "agent"`);
           
+          // Meilisearch necesita fechas como strings ISO, no timestamps
           if (dateFrom && dateTo) {
-            const fromDate = new Date(dateFrom + 'T00:00:00');
-            const toDate = new Date(dateTo + 'T23:59:59');
-            filters.push(`datetime >= ${fromDate.getTime()}`);
-            filters.push(`datetime <= ${toDate.getTime()}`);
+            const fromDateISO = new Date(dateFrom + 'T00:00:00Z').toISOString();
+            const toDateISO = new Date(dateTo + 'T23:59:59Z').toISOString();
+            filters.push(`datetime >= "${fromDateISO}"`);
+            filters.push(`datetime <= "${toDateISO}"`);
           }
           
           // Realizar búsqueda con filtros usando searchDocuments
@@ -160,14 +162,16 @@ export default function Conversaciones() {
           
           allDocuments.push(...(searchResults.hits as Document[]));
           console.log(`Búsqueda encontrada: ${allDocuments.length} documentos`);
-        } catch (err) {
+        } catch (err: any) {
           console.error('Error en búsqueda de Meilisearch:', err);
+          console.error('Detalles del error:', err.response?.data);
+          searchFailed = true;
           // Continuar con carga normal si falla la búsqueda
         }
       }
       
-      // Si no hay búsqueda, cargar todos los documentos normalmente
-      if (!searchQuery || !searchQuery.trim()) {
+      // Si no hay búsqueda o si la búsqueda falló, cargar todos los documentos normalmente
+      if (!searchQuery || !searchQuery.trim() || searchFailed) {
         let currentOffset = 0;
         const batchLimit = 1000;
         let hasMore = true;
