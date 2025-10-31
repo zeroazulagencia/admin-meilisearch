@@ -231,22 +231,43 @@ export default function Ejecuciones() {
       
       const firstExecution = firstNodeExecutions[0];
       console.log('[TIPO] Verificando nodo:', firstNodeName, 'para ejecución:', exec.id);
-      console.log('[TIPO] Estructura firstExecution:', {
-        hasData: !!firstExecution?.data,
-        hasJson: !!firstExecution?.data?.json,
-        hasMessages: !!firstExecution?.data?.json?.messages,
-        hasText: !!firstExecution?.data?.json?.messages?.text
-      });
+      
+      // Log detallado de la estructura completa
+      console.log('[TIPO] firstExecution completo:', JSON.stringify(firstExecution, null, 2));
+      console.log('[TIPO] firstExecution.data:', firstExecution?.data);
+      console.log('[TIPO] Claves de firstExecution.data:', firstExecution?.data ? Object.keys(firstExecution.data) : 'no data');
       
       // Verificar múltiples rutas posibles
       const text1 = firstExecution?.data?.json?.messages?.text;
       const text2 = firstExecution?.json?.messages?.text;
       const text3 = firstExecution?.data?.messages?.text;
       
-      const text = text1 || text2 || text3;
+      // También verificar si data es un array
+      let text4 = undefined;
+      if (Array.isArray(firstExecution?.data)) {
+        const firstDataItem = firstExecution.data[0];
+        text4 = firstDataItem?.json?.messages?.text;
+        console.log('[TIPO] data es array, primer item:', firstDataItem);
+      }
+      
+      // Verificar si json está directamente en data
+      let text5 = undefined;
+      if (firstExecution?.data && typeof firstExecution.data === 'object' && !Array.isArray(firstExecution.data)) {
+        text5 = firstExecution.data.json?.messages?.text;
+      }
+      
+      const text = text1 || text2 || text3 || text4 || text5;
       const hasText = text !== undefined && text !== null && text !== '';
       
-      console.log('[TIPO] Resultado para ejecución', exec.id, ':', hasText, 'text encontrado:', text);
+      console.log('[TIPO] Rutas verificadas:', {
+        ruta1: text1,
+        ruta2: text2,
+        ruta3: text3,
+        ruta4: text4,
+        ruta5: text5,
+        textoEncontrado: text,
+        hasText
+      });
       
       return hasText;
     } catch (e) {
