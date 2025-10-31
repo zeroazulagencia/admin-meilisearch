@@ -162,7 +162,21 @@ export default function Ejecuciones() {
     try {
       setExecLoading(true);
       const response = await n8nAPI.getExecutions(selectedWorkflow.id, itemsPerPage, cursor);
-      setExecutions(response.data);
+      
+      // Cargar datos completos para cada ejecución (necesario para verificar json.messages.text)
+      const executionsWithData = await Promise.all(
+        response.data.map(async (exec: Execution) => {
+          try {
+            const fullExec = await n8nAPI.getExecution(exec.id);
+            return fullExec;
+          } catch (err) {
+            console.error(`Error cargando datos completos de ejecución ${exec.id}:`, err);
+            return exec; // Retornar ejecución sin datos si falla
+          }
+        })
+      );
+      
+      setExecutions(executionsWithData);
       setNextCursor(response.nextCursor);
     } catch (err) {
       console.error('Error loading executions:', err);
@@ -190,6 +204,32 @@ export default function Ejecuciones() {
       }
       return true;
     });
+  };
+
+  // Verificar si el primer nodo tiene json.messages.text
+  const hasMessageText = (exec: Execution): boolean => {
+    try {
+      if (!exec.data?.resultData?.runData) return false;
+      
+      const runData = exec.data.resultData.runData;
+      const nodeNames = Object.keys(runData);
+      if (nodeNames.length === 0) return false;
+      
+      // Obtener el primer nodo
+      const firstNodeName = nodeNames[0];
+      const firstNodeExecutions = runData[firstNodeName];
+      if (!firstNodeExecutions || firstNodeExecutions.length === 0) return false;
+      
+      const firstExecution = firstNodeExecutions[0];
+      // Verificar si tiene json.messages.text y que tenga un valor (no undefined ni null)
+      const text = firstExecution?.data?.json?.messages?.text;
+      const hasText = text !== undefined && text !== null;
+      
+      return hasText;
+    } catch (e) {
+      console.error('Error verificando message.text:', e);
+      return false;
+    }
   };
 
   const handleItemsPerPageChange = (value: number) => {
@@ -580,6 +620,7 @@ export default function Ejecuciones() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inicio</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fin</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                       </tr>
                     </thead>
@@ -609,6 +650,13 @@ export default function Ejecuciones() {
                                 ? 'Error'
                                 : 'En progreso'}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            {hasMessageText(exec) && (
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-500 text-white">
+                                Mensaje
+                              </span>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-right text-sm font-medium">
                             <div className="flex gap-3 justify-end">
