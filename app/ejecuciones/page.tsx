@@ -230,44 +230,35 @@ export default function Ejecuciones() {
       }
       
       const firstExecution = firstNodeExecutions[0];
-      console.log('[TIPO] Verificando nodo:', firstNodeName, 'para ejecución:', exec.id);
       
-      // Log detallado de la estructura completa
-      console.log('[TIPO] firstExecution completo:', JSON.stringify(firstExecution, null, 2));
-      console.log('[TIPO] firstExecution.data:', firstExecution?.data);
-      console.log('[TIPO] Claves de firstExecution.data:', firstExecution?.data ? Object.keys(firstExecution.data) : 'no data');
+      // La estructura real es: data.main[0][0].json.messages[0].text.body
+      // o también puede ser: data.main[0][0].json.messages[0].text (si es string directo)
+      let hasText = false;
       
-      // Verificar múltiples rutas posibles
-      const text1 = firstExecution?.data?.json?.messages?.text;
-      const text2 = firstExecution?.json?.messages?.text;
-      const text3 = firstExecution?.data?.messages?.text;
-      
-      // También verificar si data es un array
-      let text4 = undefined;
-      if (Array.isArray(firstExecution?.data)) {
-        const firstDataItem = firstExecution.data[0];
-        text4 = firstDataItem?.json?.messages?.text;
-        console.log('[TIPO] data es array, primer item:', firstDataItem);
+      try {
+        const main = firstExecution?.data?.main;
+        if (main && Array.isArray(main) && main.length > 0) {
+          const firstMain = main[0];
+          if (Array.isArray(firstMain) && firstMain.length > 0) {
+            const firstItem = firstMain[0];
+            const messages = firstItem?.json?.messages;
+            
+            // Verificar si messages es un array y tiene algún mensaje con text
+            if (Array.isArray(messages) && messages.length > 0) {
+              // Buscar cualquier mensaje que tenga text
+              const messageWithText = messages.find(msg => {
+                // Puede ser msg.text.body o msg.text (string directo)
+                return (msg?.text?.body !== undefined && msg?.text?.body !== null && msg?.text?.body !== '') ||
+                       (typeof msg?.text === 'string' && msg.text !== '');
+              });
+              
+              hasText = !!messageWithText;
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[TIPO] Error verificando estructura main:', e);
       }
-      
-      // Verificar si json está directamente en data
-      let text5 = undefined;
-      if (firstExecution?.data && typeof firstExecution.data === 'object' && !Array.isArray(firstExecution.data)) {
-        text5 = firstExecution.data.json?.messages?.text;
-      }
-      
-      const text = text1 || text2 || text3 || text4 || text5;
-      const hasText = text !== undefined && text !== null && text !== '';
-      
-      console.log('[TIPO] Rutas verificadas:', {
-        ruta1: text1,
-        ruta2: text2,
-        ruta3: text3,
-        ruta4: text4,
-        ruta5: text5,
-        textoEncontrado: text,
-        hasText
-      });
       
       return hasText;
     } catch (e) {
