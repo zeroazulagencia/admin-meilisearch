@@ -264,13 +264,37 @@ export default function Conversaciones() {
         return dateB - dateA; // Más reciente primero
       });
       
-      console.log(`Total de conversaciones agrupadas: ${conversationGroupsArray.length}`);
-      setConversationGroups(conversationGroupsArray);
+      // Filtrar conversaciones que contengan el texto buscado (si hay búsqueda)
+      let filteredConversations = conversationGroupsArray;
+      if (searchQuery && searchQuery.trim()) {
+        const queryLower = searchQuery.toLowerCase();
+        filteredConversations = conversationGroupsArray.filter(group => {
+          // Buscar en todos los mensajes de la conversación
+          return group.messages.some(message => {
+            const humanMsg = message['message-Human'] || '';
+            const aiMsg = message['message-AI'] || '';
+            return humanMsg.toLowerCase().includes(queryLower) || 
+                   aiMsg.toLowerCase().includes(queryLower);
+          });
+        });
+        console.log(`Conversaciones filtradas por búsqueda: ${filteredConversations.length} de ${conversationGroupsArray.length}`);
+      }
+      
+      console.log(`Total de conversaciones agrupadas: ${filteredConversations.length}`);
+      setConversationGroups(filteredConversations);
       setCurrentAgent(selectedAgent);
       
-      // Auto-seleccionar la primera conversación
-      if (conversationGroupsArray.length > 0) {
-        setSelectedConversation(conversationGroupsArray[0]);
+      // Auto-seleccionar la primera conversación (si hay resultados filtrados)
+      if (filteredConversations.length > 0) {
+        // Si la conversación seleccionada actual está en los filtrados, mantenerla
+        const currentStillExists = filteredConversations.find(g => g.user_id === selectedConversation?.user_id);
+        if (currentStillExists) {
+          setSelectedConversation(currentStillExists);
+        } else {
+          setSelectedConversation(filteredConversations[0]);
+        }
+      } else {
+        setSelectedConversation(null);
       }
     } catch (err) {
       console.error('Error loading conversations:', err);
