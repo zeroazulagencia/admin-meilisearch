@@ -5,7 +5,8 @@ let pdfParse: any = null;
 
 async function loadPdfParse() {
   if (!pdfParse) {
-    pdfParse = (await import('pdf-parse')).default;
+    const pdfParseModule = await import('pdf-parse');
+    pdfParse = pdfParseModule.default || pdfParseModule;
   }
   return pdfParse;
 }
