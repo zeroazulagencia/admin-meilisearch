@@ -21,6 +21,9 @@ export default function AdminConocimiento() {
   const [availableIndexes, setAvailableIndexes] = useState<Index[]>([]);
   const [loadingIndexes, setLoadingIndexes] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<Index | null>(null);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfText, setPdfText] = useState<string>('');
+  const [loadingPdf, setLoadingPdf] = useState(false);
 
   const loadAgentIndexes = async () => {
     if (!selectedAgent?.knowledge?.indexes) {
@@ -177,6 +180,16 @@ export default function AdminConocimiento() {
 
               {selectedIndex && (
                 <>
+                  <div className="bg-white rounded-lg shadow p-6 mb-6">
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowPdfModal(true)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        📄 Cargar PDF
+                      </button>
+                    </div>
+                  </div>
                   <IndexProperties indexUid={selectedIndex.uid} />
                   <DocumentList indexUid={selectedIndex.uid} />
                 </>
@@ -191,6 +204,96 @@ export default function AdminConocimiento() {
           ) : null}
         </div>
       </div>
+
+      {/* Modal para Cargar PDF */}
+      {showPdfModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-800">Cargar PDF</h2>
+              <button
+                onClick={() => {
+                  setShowPdfModal(false);
+                  setPdfText('');
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 flex-1 overflow-auto">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Seleccionar archivo PDF
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  disabled={loadingPdf}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    
+                    setLoadingPdf(true);
+                    setPdfText('');
+                    
+                    try {
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      
+                      const response = await fetch('/api/parse-pdf', {
+                        method: 'POST',
+                        body: formData
+                      });
+                      
+                      const data = await response.json();
+                      
+                      if (data.success && data.text) {
+                        setPdfText(data.text);
+                      } else {
+                        setPdfText('Error: No se pudo extraer texto del PDF. El archivo puede contener solo imágenes.');
+                      }
+                    } catch (error) {
+                      console.error('Error parsing PDF:', error);
+                      setPdfText('Error al procesar el PDF. Por favor intenta de nuevo.');
+                    } finally {
+                      setLoadingPdf(false);
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                />
+              </div>
+              
+              {loadingPdf && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                  <p className="ml-3 text-gray-600">Procesando PDF...</p>
+                </div>
+              )}
+              
+              {pdfText && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Texto Extraído:
+                  </label>
+                  <textarea
+                    readOnly
+                    value={pdfText}
+                    className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm font-mono overflow-auto"
+                  />
+                </div>
+              )}
+              
+              {pdfText && pdfText.includes('Error:') && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800 text-sm">{pdfText}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
