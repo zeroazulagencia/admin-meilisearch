@@ -209,25 +209,48 @@ export default function Ejecuciones() {
   // Verificar si el primer nodo tiene json.messages.text
   const hasMessageText = (exec: Execution): boolean => {
     try {
-      if (!exec.data?.resultData?.runData) return false;
+      if (!exec.data?.resultData?.runData) {
+        console.log('[TIPO] No hay runData para ejecución:', exec.id);
+        return false;
+      }
       
       const runData = exec.data.resultData.runData;
       const nodeNames = Object.keys(runData);
-      if (nodeNames.length === 0) return false;
+      if (nodeNames.length === 0) {
+        console.log('[TIPO] No hay nodos para ejecución:', exec.id);
+        return false;
+      }
       
       // Obtener el primer nodo
       const firstNodeName = nodeNames[0];
       const firstNodeExecutions = runData[firstNodeName];
-      if (!firstNodeExecutions || firstNodeExecutions.length === 0) return false;
+      if (!firstNodeExecutions || firstNodeExecutions.length === 0) {
+        console.log('[TIPO] No hay ejecuciones del nodo para:', exec.id, firstNodeName);
+        return false;
+      }
       
       const firstExecution = firstNodeExecutions[0];
-      // Verificar si tiene json.messages.text y que tenga un valor (no undefined ni null)
-      const text = firstExecution?.data?.json?.messages?.text;
-      const hasText = text !== undefined && text !== null;
+      console.log('[TIPO] Verificando nodo:', firstNodeName, 'para ejecución:', exec.id);
+      console.log('[TIPO] Estructura firstExecution:', {
+        hasData: !!firstExecution?.data,
+        hasJson: !!firstExecution?.data?.json,
+        hasMessages: !!firstExecution?.data?.json?.messages,
+        hasText: !!firstExecution?.data?.json?.messages?.text
+      });
+      
+      // Verificar múltiples rutas posibles
+      const text1 = firstExecution?.data?.json?.messages?.text;
+      const text2 = firstExecution?.json?.messages?.text;
+      const text3 = firstExecution?.data?.messages?.text;
+      
+      const text = text1 || text2 || text3;
+      const hasText = text !== undefined && text !== null && text !== '';
+      
+      console.log('[TIPO] Resultado para ejecución', exec.id, ':', hasText, 'text encontrado:', text);
       
       return hasText;
     } catch (e) {
-      console.error('Error verificando message.text:', e);
+      console.error('[TIPO] Error verificando message.text para ejecución', exec.id, ':', e);
       return false;
     }
   };
