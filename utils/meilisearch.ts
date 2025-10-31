@@ -70,7 +70,22 @@ export const meilisearchAPI = {
   // Obtener configuración de un índice
   async getIndexSettings(uid: string): Promise<IndexSettings> {
     const response = await api.get(`/indexes/${uid}/settings`);
-    return response.data;
+    const settings = response.data;
+    
+    // Si no hay embedders en settings, intentar obtenerlos directamente
+    if (!settings.embedders || Object.keys(settings.embedders || {}).length === 0) {
+      try {
+        const embeddersResponse = await api.get(`/indexes/${uid}/settings/embedders`);
+        if (embeddersResponse.data && Object.keys(embeddersResponse.data).length > 0) {
+          settings.embedders = embeddersResponse.data;
+        }
+      } catch (embedderErr: any) {
+        // Si falla, simplemente continuar sin embedders
+        console.log('⚠️ No se pudieron obtener embedders directamente:', embedderErr.response?.data || embedderErr.message);
+      }
+    }
+    
+    return settings;
   },
 
   // Obtener documentos de un índice

@@ -43,7 +43,9 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
       console.log('📦 Index data:', indexData);
       console.log('📊 Stats data:', statsData);
       console.log('⚙️ Settings data:', settingsData);
+      console.log('⚙️ Settings data completo (stringify):', JSON.stringify(settingsData, null, 2));
       console.log('🤖 Embedders en settings:', settingsData.embedders);
+      console.log('🤖 Keys de settings:', settingsData ? Object.keys(settingsData) : 'no settings');
       setIndex(indexData);
       setStats(statsData);
       setSettings(settingsData);
