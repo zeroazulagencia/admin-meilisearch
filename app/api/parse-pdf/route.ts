@@ -90,14 +90,15 @@ export async function POST(req: NextRequest) {
     try {
       const metadata = await pdf.getMetadata();
       if (metadata && metadata.info) {
+        const info = metadata.info as any;
         pdfInfo = {
-          Title: metadata.info.Title || null,
-          Author: metadata.info.Author || null,
-          Subject: metadata.info.Subject || null,
-          Creator: metadata.info.Creator || null,
-          Producer: metadata.info.Producer || null,
-          CreationDate: metadata.info.CreationDate || null,
-          ModDate: metadata.info.ModDate || null
+          Title: info.Title || null,
+          Author: info.Author || null,
+          Subject: info.Subject || null,
+          Creator: info.Creator || null,
+          Producer: info.Producer || null,
+          CreationDate: info.CreationDate || null,
+          ModDate: info.ModDate || null
         };
       }
     } catch (metaError) {
