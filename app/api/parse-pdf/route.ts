@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Importar pdfjs-dist dinámicamente para evitar problemas de bundling
+// Importar pdfjs-dist/legacy que funciona mejor en Node.js
 async function loadPdfJs() {
   try {
-    // @ts-ignore - pdfjs-dist no tiene tipos completos
-    const pdfjs = await import('pdfjs-dist');
+    // Usar la versión legacy que funciona mejor en Node.js sin worker
+    // @ts-ignore - pdfjs-dist/legacy no tiene tipos completos
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.js');
     
-    // En Node.js no necesitamos configurar worker, pdfjs-dist funciona sin él
-    // Simplemente no configuramos GlobalWorkerOptions
-    
-    console.log('[PDF-PARSE] pdfjs-dist cargado:', {
+    console.log('[PDF-PARSE] pdfjs-dist/legacy cargado:', {
       version: pdfjs.version,
-      hasGetDocument: typeof pdfjs.getDocument === 'function',
-      hasGlobalWorkerOptions: !!pdfjs.GlobalWorkerOptions
+      hasGetDocument: typeof pdfjs.getDocument === 'function'
     });
     
     return pdfjs;
   } catch (error: any) {
-    console.error('[PDF-PARSE] Error cargando pdfjs-dist:', error);
+    console.error('[PDF-PARSE] Error cargando pdfjs-dist/legacy:', error);
     throw new Error(`No se pudo cargar pdfjs-dist: ${error.message || error}`);
   }
 }
