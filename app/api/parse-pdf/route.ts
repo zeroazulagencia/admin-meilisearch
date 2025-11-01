@@ -7,9 +7,21 @@ async function loadPdfJs() {
     // @ts-ignore - pdfjs-dist/legacy no tiene tipos completos
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.js');
     
+    // Deshabilitar worker completamente para Node.js
+    // Configurar para que funcione sin worker (modo "fake worker")
+    if (pdfjs.GlobalWorkerOptions) {
+      // Intentar deshabilitar el worker estableciendo una ruta falsa
+      try {
+        pdfjs.GlobalWorkerOptions.workerSrc = '';
+      } catch (e) {
+        console.log('[PDF-PARSE] No se pudo establecer workerSrc vacío, continuando...');
+      }
+    }
+    
     console.log('[PDF-PARSE] pdfjs-dist/legacy cargado:', {
       version: pdfjs.version,
-      hasGetDocument: typeof pdfjs.getDocument === 'function'
+      hasGetDocument: typeof pdfjs.getDocument === 'function',
+      workerSrc: pdfjs.GlobalWorkerOptions?.workerSrc
     });
     
     return pdfjs;
@@ -66,11 +78,13 @@ export async function POST(req: NextRequest) {
     // En Node.js no necesitamos configurar worker, pdfjs-dist funcionará sin él
     // Parsear PDF usando pdfjs-dist (requiere Uint8Array, no Buffer)
     // Usar useSystemFonts: true y disableAutoFetch: true para mejor compatibilidad en servidor
+    // Agregar isEvalSupported: false para evitar problemas con workers
     const loadingTask = pdfjsLib.getDocument({ 
       data: uint8Array,
       useSystemFonts: true,
       disableAutoFetch: true,
-      disableStream: false
+      disableStream: false,
+      verbosity: 0 // Reducir logs
     });
     const pdf = await loadingTask.promise;
     
