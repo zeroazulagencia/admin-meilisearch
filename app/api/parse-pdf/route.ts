@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
 
-// Configurar worker para pdfjs-dist
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Importar pdfjs-dist dinámicamente para evitar problemas de bundling
+async function loadPdfJs() {
+  try {
+    // @ts-ignore - pdfjs-dist no tiene tipos completos
+    const pdfjs = await import('pdfjs-dist');
+    return pdfjs;
+  } catch (error: any) {
+    console.error('[PDF-PARSE] Error cargando pdfjs-dist:', error);
+    throw new Error(`No se pudo cargar pdfjs-dist: ${error.message || error}`);
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,6 +53,14 @@ export async function POST(req: NextRequest) {
     });
     
     console.log('[PDF-PARSE] Cargando PDF con pdfjs-dist...');
+    // Cargar pdfjs-dist dinámicamente
+    const pdfjsLib = await loadPdfJs();
+    
+    // Configurar worker si es necesario
+    if (pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
+    }
+    
     // Parsear PDF usando pdfjs-dist
     const loadingTask = pdfjsLib.getDocument({ data: buffer });
     const pdf = await loadingTask.promise;
