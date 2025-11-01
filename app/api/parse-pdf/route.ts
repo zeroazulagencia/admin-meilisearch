@@ -85,18 +85,29 @@ export async function POST(req: NextRequest) {
       console.log(`[PDF-PARSE] Página ${pageNum}: ${pageText.length} caracteres extraídos`);
     }
     
+    // Obtener metadatos del PDF
+    let pdfInfo: any = null;
+    try {
+      const metadata = await pdf.getMetadata();
+      if (metadata && metadata.info) {
+        pdfInfo = {
+          Title: metadata.info.Title || null,
+          Author: metadata.info.Author || null,
+          Subject: metadata.info.Subject || null,
+          Creator: metadata.info.Creator || null,
+          Producer: metadata.info.Producer || null,
+          CreationDate: metadata.info.CreationDate || null,
+          ModDate: metadata.info.ModDate || null
+        };
+      }
+    } catch (metaError) {
+      console.log('[PDF-PARSE] No se pudieron obtener metadatos:', metaError);
+    }
+    
     const pdfData = {
       text: fullText,
       numpages: numPages,
-      info: pdf.metadata ? {
-        Title: pdf.metadata.get('Title'),
-        Author: pdf.metadata.get('Author'),
-        Subject: pdf.metadata.get('Subject'),
-        Creator: pdf.metadata.get('Creator'),
-        Producer: pdf.metadata.get('Producer'),
-        CreationDate: pdf.metadata.get('CreationDate'),
-        ModDate: pdf.metadata.get('ModDate')
-      } : null,
+      info: pdfInfo || {},
       metadata: null
     };
     
