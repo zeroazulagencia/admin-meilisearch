@@ -1,42 +1,82 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Importar pdf-parse usando require para compatibilidad con Node.js
+// Cachear la función para evitar múltiples cargas
+let cachedPdfParse: any = null;
+
 function loadPdfParse() {
+  // Si ya está cargado, retornar la versión cacheada
+  if (cachedPdfParse) {
+    console.log('[PDF-PARSE] Usando pdf-parse cacheado');
+    return cachedPdfParse;
+  }
+  
   try {
     // @ts-ignore - pdf-parse no tiene tipos de TypeScript adecuados
-    const pdfParse = require('pdf-parse');
+    const pdfParseModule = require('pdf-parse');
     
-    console.log('[PDF-PARSE] pdf-parse cargado:', {
-      type: typeof pdfParse,
-      isFunction: typeof pdfParse === 'function',
-      hasDefault: pdfParse && typeof pdfParse.default === 'function'
+    console.log('[PDF-PARSE] pdf-parse require resultado:', {
+      type: typeof pdfParseModule,
+      isFunction: typeof pdfParseModule === 'function',
+      hasDefault: pdfParseModule && typeof pdfParseModule.default === 'function',
+      keys: pdfParseModule && typeof pdfParseModule === 'object' ? Object.keys(pdfParseModule) : []
     });
     
+    let pdfParseFunc: any = null;
+    
     // pdf-parse exporta directamente como función en versiones recientes
-    if (typeof pdfParse === 'function') {
+    if (typeof pdfParseModule === 'function') {
       console.log('[PDF-PARSE] pdf-parse es función directa');
-      return pdfParse;
+      pdfParseFunc = pdfParseModule;
     }
-    
     // Si tiene default (para compatibilidad)
-    if (pdfParse && typeof pdfParse.default === 'function') {
+    else if (pdfParseModule && typeof pdfParseModule.default === 'function') {
       console.log('[PDF-PARSE] pdf-parse está en default');
-      return pdfParse.default;
+      pdfParseFunc = pdfParseModule.default;
     }
-    
     // Buscar cualquier función en el objeto
-    if (pdfParse && typeof pdfParse === 'object') {
-      for (const key of Object.keys(pdfParse)) {
-        if (typeof pdfParse[key] === 'function') {
+    else if (pdfParseModule && typeof pdfParseModule === 'object') {
+      for (const key of Object.keys(pdfParseModule)) {
+        if (typeof pdfParseModule[key] === 'function' && key !== 'default') {
           console.log('[PDF-PARSE] Encontrada función en clave:', key);
-          return pdfParse[key];
+          pdfParseFunc = pdfParseModule[key];
+          break;
         }
       }
     }
     
-    console.error('[PDF-PARSE] No se encontró función válida en pdf-parse:', pdfParse);
-    throw new Error('pdf-parse no exporta una función válida');
+    if (!pdfParseFunc || typeof pdfParseFunc !== 'function') {
+      console.error('[PDF-PARSE] No se encontró función válida en pdf-parse:', pdfParseModule);
+      throw new Error('pdf-parse no exporta una función válida');
+    }
+    
+    // Cachear la función
+    cachedPdfParse = pdfParseFunc;
+    console.log('[PDF-PARSE] pdf-parse cargado y cacheado exitosamente');
+    return cachedPdfParse;
   } catch (error: any) {
+    // Si el error es sobre archivos de test, intentar ignorarlo y continuar
+    if (error.message && (error.message.includes('test/data') || error.message.includes('ENOENT'))) {
+      console.warn('[PDF-PARSE] Error relacionado con archivos de test/ENOENT, puede ser un problema de inicialización:', error.message);
+      // Si el módulo ya se cargó antes del error, intentar usarlo de todas formas
+      try {
+        // Limpiar el require cache y reintentar
+        delete require.cache[require.resolve('pdf-parse')];
+        const pdfParseModule = require('pdf-parse');
+        if (typeof pdfParseModule === 'function') {
+          cachedPdfParse = pdfParseModule;
+          console.log('[PDF-PARSE] pdf-parse cargado después de limpiar cache');
+          return cachedPdfParse;
+        } else if (pdfParseModule && typeof pdfParseModule.default === 'function') {
+          cachedPdfParse = pdfParseModule.default;
+          console.log('[PDF-PARSE] pdf-parse cargado desde default después de limpiar cache');
+          return cachedPdfParse;
+        }
+      } catch (retryError: any) {
+        console.error('[PDF-PARSE] Error en reintento después de limpiar cache:', retryError);
+      }
+    }
+    
     console.error('[PDF-PARSE] Error cargando pdf-parse:', error);
     console.error('[PDF-PARSE] Error stack:', error.stack);
     throw new Error(`No se pudo cargar pdf-parse: ${error.message || error}`);
