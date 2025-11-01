@@ -1,47 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
 
-// Importar pdf-parse usando require para compatibilidad con Node.js
-function loadPdfParse() {
-  try {
-    // @ts-ignore - pdf-parse no tiene tipos de TypeScript adecuados
-    const pdfParse = require('pdf-parse');
-    console.log('[PDF-PARSE] pdf-parse require resultado:', {
-      type: typeof pdfParse,
-      isFunction: typeof pdfParse === 'function',
-      hasDefault: pdfParse && typeof pdfParse.default === 'function',
-      constructor: pdfParse?.constructor?.name
-    });
-    
-    // pdf-parse v2.2.2 exporta directamente como función
-    if (typeof pdfParse === 'function') {
-      console.log('[PDF-PARSE] pdf-parse es función directa');
-      return pdfParse;
-    }
-    
-    // Si tiene default (para compatibilidad)
-    if (pdfParse && typeof pdfParse.default === 'function') {
-      console.log('[PDF-PARSE] pdf-parse está en default');
-      return pdfParse.default;
-    }
-    
-    // Buscar cualquier función en el objeto
-    if (pdfParse && typeof pdfParse === 'object') {
-      for (const key of Object.keys(pdfParse)) {
-        if (typeof pdfParse[key] === 'function') {
-          console.log('[PDF-PARSE] Encontrada función en clave:', key);
-          return pdfParse[key];
-        }
-      }
-    }
-    
-    console.error('[PDF-PARSE] No se encontró función válida en pdf-parse:', pdfParse);
-    throw new Error('pdf-parse no exporta una función válida');
-  } catch (error: any) {
-    console.error('[PDF-PARSE] Error cargando pdf-parse:', error);
-    console.error('[PDF-PARSE] Error stack:', error.stack);
-    throw new Error(`No se pudo cargar pdf-parse: ${error.message || error}`);
-  }
-}
+// Configurar worker para pdfjs-dist
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -83,22 +44,47 @@ export async function POST(req: NextRequest) {
       firstBytes: buffer.slice(0, 20).toString('hex')
     });
     
-    console.log('[PDF-PARSE] Cargando función de parseo...');
-    // Parsear PDF directamente del buffer
-    const pdfParseFunc = loadPdfParse();
-    console.log('[PDF-PARSE] Función de parseo cargada:', {
-      type: typeof pdfParseFunc,
-      isFunction: typeof pdfParseFunc === 'function',
-      name: pdfParseFunc?.name || 'anonymous'
-    });
+    console.log('[PDF-PARSE] Cargando PDF con pdfjs-dist...');
+    // Parsear PDF usando pdfjs-dist
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
     
-    if (typeof pdfParseFunc !== 'function') {
-      console.error('[PDF-PARSE] ERROR: pdf-parse no es una función:', pdfParseFunc);
-      throw new Error(`pdf-parse no es una función, es: ${typeof pdfParseFunc}`);
+    console.log('[PDF-PARSE] PDF cargado, número de páginas:', pdf.numPages);
+    
+    // Extraer texto de todas las páginas
+    let fullText = '';
+    const numPages = pdf.numPages;
+    
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      console.log(`[PDF-PARSE] Extrayendo texto de página ${pageNum}/${numPages}...`);
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      // Concatenar todos los items de texto
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      
+      fullText += pageText + '\n';
+      console.log(`[PDF-PARSE] Página ${pageNum}: ${pageText.length} caracteres extraídos`);
     }
     
-    console.log('[PDF-PARSE] Iniciando parseo del PDF...');
-    const pdfData = await pdfParseFunc(buffer);
+    const pdfData = {
+      text: fullText,
+      numpages: numPages,
+      info: pdf.metadata ? {
+        Title: pdf.metadata.get('Title'),
+        Author: pdf.metadata.get('Author'),
+        Subject: pdf.metadata.get('Subject'),
+        Creator: pdf.metadata.get('Creator'),
+        Producer: pdf.metadata.get('Producer'),
+        CreationDate: pdf.metadata.get('CreationDate'),
+        ModDate: pdf.metadata.get('ModDate')
+      } : null,
+      metadata: null
+    };
+    
+    console.log('[PDF-PARSE] PDF parseado exitosamente');
     
     console.log('[PDF-PARSE] PDF parseado exitosamente:', {
       numpages: pdfData.numpages,
