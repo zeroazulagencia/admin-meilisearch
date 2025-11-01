@@ -5,6 +5,19 @@ async function loadPdfJs() {
   try {
     // @ts-ignore - pdfjs-dist no tiene tipos completos
     const pdfjs = await import('pdfjs-dist');
+    
+    // Deshabilitar worker para servidor (no se necesita en Node.js)
+    // Configurar para usar modo "fake worker" o sin worker
+    if (pdfjs.GlobalWorkerOptions) {
+      // En Node.js no necesitamos worker, usamos el modo "fake worker"
+      pdfjs.GlobalWorkerOptions.workerSrc = false; // o usar string vacío
+    }
+    
+    console.log('[PDF-PARSE] pdfjs-dist cargado:', {
+      version: pdfjs.version,
+      hasGetDocument: typeof pdfjs.getDocument === 'function'
+    });
+    
     return pdfjs;
   } catch (error: any) {
     console.error('[PDF-PARSE] Error cargando pdfjs-dist:', error);
@@ -56,13 +69,15 @@ export async function POST(req: NextRequest) {
     // Cargar pdfjs-dist dinámicamente
     const pdfjsLib = await loadPdfJs();
     
-    // Configurar worker si es necesario
-    if (pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
-    }
-    
+    // En Node.js no necesitamos configurar worker, pdfjs-dist funcionará sin él
     // Parsear PDF usando pdfjs-dist (requiere Uint8Array, no Buffer)
-    const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+    // Usar useSystemFonts: true y disableAutoFetch: true para mejor compatibilidad en servidor
+    const loadingTask = pdfjsLib.getDocument({ 
+      data: uint8Array,
+      useSystemFonts: true,
+      disableAutoFetch: true,
+      disableStream: false
+    });
     const pdf = await loadingTask.promise;
     
     console.log('[PDF-PARSE] PDF cargado, número de páginas:', pdf.numPages);
