@@ -41,15 +41,15 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    console.log('[PDF-PARSE] Convirtiendo archivo a buffer...');
-    // Convertir archivo a buffer directamente (no necesitamos guardarlo en disco)
+    console.log('[PDF-PARSE] Convirtiendo archivo a Uint8Array...');
+    // Convertir archivo directamente a Uint8Array (pdfjs-dist requiere Uint8Array, no Buffer)
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const uint8Array = new Uint8Array(arrayBuffer);
     
-    console.log('[PDF-PARSE] Buffer creado:', {
-      bufferLength: buffer.length,
-      bufferType: buffer.constructor.name,
-      firstBytes: buffer.slice(0, 20).toString('hex')
+    console.log('[PDF-PARSE] Uint8Array creado:', {
+      arrayLength: uint8Array.length,
+      arrayType: uint8Array.constructor.name,
+      firstBytes: Array.from(uint8Array.slice(0, 20)).map(b => b.toString(16).padStart(2, '0')).join('')
     });
     
     console.log('[PDF-PARSE] Cargando PDF con pdfjs-dist...');
@@ -61,8 +61,8 @@ export async function POST(req: NextRequest) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
     }
     
-    // Parsear PDF usando pdfjs-dist
-    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    // Parsear PDF usando pdfjs-dist (requiere Uint8Array, no Buffer)
+    const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
     const pdf = await loadingTask.promise;
     
     console.log('[PDF-PARSE] PDF cargado, número de páginas:', pdf.numPages);
