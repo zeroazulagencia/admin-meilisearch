@@ -6,16 +6,13 @@ async function loadPdfJs() {
     // @ts-ignore - pdfjs-dist no tiene tipos completos
     const pdfjs = await import('pdfjs-dist');
     
-    // Deshabilitar worker para servidor (no se necesita en Node.js)
-    // Configurar para usar modo "fake worker" o sin worker
-    if (pdfjs.GlobalWorkerOptions) {
-      // En Node.js no necesitamos worker, usamos el modo "fake worker"
-      pdfjs.GlobalWorkerOptions.workerSrc = false; // o usar string vacío
-    }
+    // En Node.js no necesitamos configurar worker, pdfjs-dist funciona sin él
+    // Simplemente no configuramos GlobalWorkerOptions
     
     console.log('[PDF-PARSE] pdfjs-dist cargado:', {
       version: pdfjs.version,
-      hasGetDocument: typeof pdfjs.getDocument === 'function'
+      hasGetDocument: typeof pdfjs.getDocument === 'function',
+      hasGlobalWorkerOptions: !!pdfjs.GlobalWorkerOptions
     });
     
     return pdfjs;
