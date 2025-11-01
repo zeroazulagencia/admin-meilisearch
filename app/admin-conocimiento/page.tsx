@@ -266,7 +266,8 @@ export default function AdminConocimiento() {
                       });
                       
                       const data = await response.json();
-                      console.log('[PDF-UPLOAD] Datos parseados:', {
+                      console.log('[PDF-UPLOAD] Datos parseados (completo):', JSON.stringify(data, null, 2));
+                      console.log('[PDF-UPLOAD] Datos parseados (resumen):', {
                         success: data.success,
                         textLength: data.text?.length || 0,
                         pages: data.pages,
@@ -281,17 +282,21 @@ export default function AdminConocimiento() {
                         setPdfText(data.text);
                       } else {
                         console.error('[PDF-UPLOAD] Error: No se pudo extraer texto');
-                        console.error('[PDF-UPLOAD] Datos de error:', data);
-                        setPdfText('Error: No se pudo extraer texto del PDF. El archivo puede contener solo imágenes.');
+                        console.error('[PDF-UPLOAD] Datos de error (completo):', JSON.stringify(data, null, 2));
+                        console.error('[PDF-UPLOAD] Error message:', data.error);
+                        console.error('[PDF-UPLOAD] Debug info:', data.debug);
+                        const errorMessage = data.error || 'Error desconocido';
+                        setPdfText(`Error: No se pudo extraer texto del PDF. ${errorMessage}`);
                       }
                     } catch (error: any) {
                       console.error('[PDF-UPLOAD] Error al procesar PDF:', error);
-                      console.error('[PDF-UPLOAD] Detalles del error:', {
+                      console.error('[PDF-UPLOAD] Detalles del error (completo):', JSON.stringify({
                         message: error.message,
                         stack: error.stack,
-                        name: error.name
-                      });
-                      setPdfText('Error al procesar el PDF. Por favor intenta de nuevo.');
+                        name: error.name,
+                        toString: error.toString()
+                      }, null, 2));
+                      setPdfText(`Error al procesar el PDF: ${error.message || 'Error desconocido'}`);
                     } finally {
                       setLoadingPdf(false);
                       console.log('[PDF-UPLOAD] Proceso completado');
