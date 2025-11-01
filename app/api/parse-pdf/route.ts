@@ -1,43 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Importar pdf-parse dinámicamente
-async function loadPdfParse() {
+// Importar pdf-parse usando require para compatibilidad con Node.js
+function loadPdfParse() {
   try {
-    // Intentar importar como módulo ES6 primero
-    const pdfParseModule = await import('pdf-parse');
-    // pdf-parse puede exportarse como default o como named export
-    const pdfParse = pdfParseModule.default || pdfParseModule;
-    console.log('[PDF-PARSE] pdf-parse importado como ES6 module:', typeof pdfParse);
-    return pdfParse;
-  } catch (es6Error) {
-    console.log('[PDF-PARSE] Error con import ES6, intentando require:', es6Error);
-    try {
-      // Fallback a require (CommonJS)
-      // @ts-ignore - pdf-parse no tiene tipos de TypeScript adecuados
-      const pdfParse = require('pdf-parse');
-      console.log('[PDF-PARSE] pdf-parse importado como CommonJS:', typeof pdfParse);
-      // Si es un objeto con default, extraerlo
-      if (pdfParse && typeof pdfParse.default === 'function') {
-        return pdfParse.default;
-      }
-      // Si es una función directamente
-      if (typeof pdfParse === 'function') {
-        return pdfParse;
-      }
-      // Si tiene una propiedad que es función
-      if (pdfParse && typeof pdfParse === 'object') {
-        const funcKey = Object.keys(pdfParse).find(key => typeof pdfParse[key] === 'function');
-        if (funcKey) {
-          console.log('[PDF-PARSE] Encontrada función en propiedad:', funcKey);
-          return pdfParse[funcKey];
+    // @ts-ignore - pdf-parse no tiene tipos de TypeScript adecuados
+    const pdfParse = require('pdf-parse');
+    console.log('[PDF-PARSE] pdf-parse require resultado:', {
+      type: typeof pdfParse,
+      isFunction: typeof pdfParse === 'function',
+      hasDefault: pdfParse && typeof pdfParse.default === 'function',
+      constructor: pdfParse?.constructor?.name
+    });
+    
+    // pdf-parse v2.2.2 exporta directamente como función
+    if (typeof pdfParse === 'function') {
+      console.log('[PDF-PARSE] pdf-parse es función directa');
+      return pdfParse;
+    }
+    
+    // Si tiene default (para compatibilidad)
+    if (pdfParse && typeof pdfParse.default === 'function') {
+      console.log('[PDF-PARSE] pdf-parse está en default');
+      return pdfParse.default;
+    }
+    
+    // Buscar cualquier función en el objeto
+    if (pdfParse && typeof pdfParse === 'object') {
+      for (const key of Object.keys(pdfParse)) {
+        if (typeof pdfParse[key] === 'function') {
+          console.log('[PDF-PARSE] Encontrada función en clave:', key);
+          return pdfParse[key];
         }
       }
-      console.error('[PDF-PARSE] pdf-parse no es una función:', pdfParse);
-      throw new Error('pdf-parse no es una función válida');
-    } catch (requireError) {
-      console.error('[PDF-PARSE] Error con require también:', requireError);
-      throw new Error(`No se pudo cargar pdf-parse: ${requireError}`);
     }
+    
+    console.error('[PDF-PARSE] No se encontró función válida en pdf-parse:', pdfParse);
+    throw new Error('pdf-parse no exporta una función válida');
+  } catch (error: any) {
+    console.error('[PDF-PARSE] Error cargando pdf-parse:', error);
+    console.error('[PDF-PARSE] Error stack:', error.stack);
+    throw new Error(`No se pudo cargar pdf-parse: ${error.message || error}`);
   }
 }
 
