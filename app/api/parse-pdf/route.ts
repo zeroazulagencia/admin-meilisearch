@@ -1,9 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Importar pdf-parse usando require para compatibilidad
-function loadPdfParse() {
-  // @ts-ignore - pdf-parse no tiene tipos de TypeScript adecuados
-  return require('pdf-parse');
+// Importar pdf-parse dinámicamente
+async function loadPdfParse() {
+  try {
+    // Intentar importar como módulo ES6 primero
+    const pdfParseModule = await import('pdf-parse');
+    // pdf-parse puede exportarse como default o como named export
+    const pdfParse = pdfParseModule.default || pdfParseModule;
+    console.log('[PDF-PARSE] pdf-parse importado como ES6 module:', typeof pdfParse);
+    return pdfParse;
+  } catch (es6Error) {
+    console.log('[PDF-PARSE] Error con import ES6, intentando require:', es6Error);
+    try {
+      // Fallback a require (CommonJS)
+      // @ts-ignore - pdf-parse no tiene tipos de TypeScript adecuados
+      const pdfParse = require('pdf-parse');
+      console.log('[PDF-PARSE] pdf-parse importado como CommonJS:', typeof pdfParse);
+      // Si es un objeto con default, extraerlo
+      if (pdfParse && typeof pdfParse.default === 'function') {
+        return pdfParse.default;
+      }
+      // Si es una función directamente
+      if (typeof pdfParse === 'function') {
+        return pdfParse;
+      }
+      // Si tiene una propiedad que es función
+      if (pdfParse && typeof pdfParse === 'object') {
+        const funcKey = Object.keys(pdfParse).find(key => typeof pdfParse[key] === 'function');
+        if (funcKey) {
+          console.log('[PDF-PARSE] Encontrada función en propiedad:', funcKey);
+          return pdfParse[funcKey];
+        }
+      }
+      console.error('[PDF-PARSE] pdf-parse no es una función:', pdfParse);
+      throw new Error('pdf-parse no es una función válida');
+    } catch (requireError) {
+      console.error('[PDF-PARSE] Error con require también:', requireError);
+      throw new Error(`No se pudo cargar pdf-parse: ${requireError}`);
+    }
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -49,7 +84,16 @@ export async function POST(req: NextRequest) {
     console.log('[PDF-PARSE] Cargando función de parseo...');
     // Parsear PDF directamente del buffer
     const pdfParseFunc = loadPdfParse();
-    console.log('[PDF-PARSE] Función de parseo cargada:', typeof pdfParseFunc);
+    console.log('[PDF-PARSE] Función de parseo cargada:', {
+      type: typeof pdfParseFunc,
+      isFunction: typeof pdfParseFunc === 'function',
+      name: pdfParseFunc?.name || 'anonymous'
+    });
+    
+    if (typeof pdfParseFunc !== 'function') {
+      console.error('[PDF-PARSE] ERROR: pdf-parse no es una función:', pdfParseFunc);
+      throw new Error(`pdf-parse no es una función, es: ${typeof pdfParseFunc}`);
+    }
     
     console.log('[PDF-PARSE] Iniciando parseo del PDF...');
     const pdfData = await pdfParseFunc(buffer);
@@ -108,7 +152,13 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Error parsing PDF:', error);
+    console.error('[PDF-PARSE] Error parsing PDF:', error);
+    console.error('[PDF-PARSE] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      toString: error.toString()
+    });
     
     // Verificar si es un error de texto no encontrado
     if (error.message?.includes('No text') || error.message?.includes('no text')) {
@@ -123,7 +173,12 @@ export async function POST(req: NextRequest) {
       { 
         success: false, 
         error: error.message || 'Error al procesar el PDF',
-        text: 'Error: No se pudo extraer texto del PDF. El archivo puede contener solo imágenes.'
+        text: `Error: No se pudo extraer texto del PDF. ${error.message || 'Error desconocido'}`,
+        debug: {
+          errorName: error.name,
+          errorMessage: error.message,
+          errorStack: error.stack?.substring(0, 500)
+        }
       },
       { status: 500 }
     );
