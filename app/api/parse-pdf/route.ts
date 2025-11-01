@@ -1,33 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Importar pdfjs-dist/legacy que funciona mejor en Node.js
-async function loadPdfJs() {
+// Importar pdf-parse usando require para compatibilidad con Node.js
+function loadPdfParse() {
   try {
-    // Usar la versión legacy que funciona mejor en Node.js sin worker
-    // @ts-ignore - pdfjs-dist/legacy no tiene tipos completos
-    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.js');
+    // @ts-ignore - pdf-parse no tiene tipos de TypeScript adecuados
+    const pdfParse = require('pdf-parse');
     
-    // Deshabilitar worker completamente para Node.js
-    // Configurar para que funcione sin worker (modo "fake worker")
-    if (pdfjs.GlobalWorkerOptions) {
-      // Intentar deshabilitar el worker estableciendo una ruta falsa
-      try {
-        pdfjs.GlobalWorkerOptions.workerSrc = '';
-      } catch (e) {
-        console.log('[PDF-PARSE] No se pudo establecer workerSrc vacío, continuando...');
+    console.log('[PDF-PARSE] pdf-parse cargado:', {
+      type: typeof pdfParse,
+      isFunction: typeof pdfParse === 'function',
+      hasDefault: pdfParse && typeof pdfParse.default === 'function'
+    });
+    
+    // pdf-parse exporta directamente como función en versiones recientes
+    if (typeof pdfParse === 'function') {
+      console.log('[PDF-PARSE] pdf-parse es función directa');
+      return pdfParse;
+    }
+    
+    // Si tiene default (para compatibilidad)
+    if (pdfParse && typeof pdfParse.default === 'function') {
+      console.log('[PDF-PARSE] pdf-parse está en default');
+      return pdfParse.default;
+    }
+    
+    // Buscar cualquier función en el objeto
+    if (pdfParse && typeof pdfParse === 'object') {
+      for (const key of Object.keys(pdfParse)) {
+        if (typeof pdfParse[key] === 'function') {
+          console.log('[PDF-PARSE] Encontrada función en clave:', key);
+          return pdfParse[key];
+        }
       }
     }
     
-    console.log('[PDF-PARSE] pdfjs-dist/legacy cargado:', {
-      version: pdfjs.version,
-      hasGetDocument: typeof pdfjs.getDocument === 'function',
-      workerSrc: pdfjs.GlobalWorkerOptions?.workerSrc
-    });
-    
-    return pdfjs;
+    console.error('[PDF-PARSE] No se encontró función válida en pdf-parse:', pdfParse);
+    throw new Error('pdf-parse no exporta una función válida');
   } catch (error: any) {
-    console.error('[PDF-PARSE] Error cargando pdfjs-dist/legacy:', error);
-    throw new Error(`No se pudo cargar pdfjs-dist: ${error.message || error}`);
+    console.error('[PDF-PARSE] Error cargando pdf-parse:', error);
+    console.error('[PDF-PARSE] Error stack:', error.stack);
+    throw new Error(`No se pudo cargar pdf-parse: ${error.message || error}`);
   }
 }
 
@@ -60,82 +72,35 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    console.log('[PDF-PARSE] Convirtiendo archivo a Uint8Array...');
-    // Convertir archivo directamente a Uint8Array (pdfjs-dist requiere Uint8Array, no Buffer)
+    console.log('[PDF-PARSE] Convirtiendo archivo a buffer...');
+    // Convertir archivo a buffer (pdf-parse funciona con Buffer)
     const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
+    const buffer = Buffer.from(arrayBuffer);
     
-    console.log('[PDF-PARSE] Uint8Array creado:', {
-      arrayLength: uint8Array.length,
-      arrayType: uint8Array.constructor.name,
-      firstBytes: Array.from(uint8Array.slice(0, 20)).map(b => b.toString(16).padStart(2, '0')).join('')
+    console.log('[PDF-PARSE] Buffer creado:', {
+      bufferLength: buffer.length,
+      bufferType: buffer.constructor.name,
+      firstBytes: buffer.slice(0, 20).toString('hex')
     });
     
-    console.log('[PDF-PARSE] Cargando PDF con pdfjs-dist...');
-    // Cargar pdfjs-dist dinámicamente
-    const pdfjsLib = await loadPdfJs();
+    console.log('[PDF-PARSE] Cargando función de parseo...');
+    // Cargar pdf-parse
+    const pdfParseFunc = loadPdfParse();
     
-    // En Node.js no necesitamos configurar worker, pdfjs-dist funcionará sin él
-    // Parsear PDF usando pdfjs-dist (requiere Uint8Array, no Buffer)
-    // Usar useSystemFonts: true y disableAutoFetch: true para mejor compatibilidad en servidor
-    // Agregar isEvalSupported: false para evitar problemas con workers
-    const loadingTask = pdfjsLib.getDocument({ 
-      data: uint8Array,
-      useSystemFonts: true,
-      disableAutoFetch: true,
-      disableStream: false,
-      verbosity: 0 // Reducir logs
+    console.log('[PDF-PARSE] Función de parseo cargada:', {
+      type: typeof pdfParseFunc,
+      isFunction: typeof pdfParseFunc === 'function',
+      name: pdfParseFunc?.name || 'anonymous'
     });
-    const pdf = await loadingTask.promise;
     
-    console.log('[PDF-PARSE] PDF cargado, número de páginas:', pdf.numPages);
-    
-    // Extraer texto de todas las páginas
-    let fullText = '';
-    const numPages = pdf.numPages;
-    
-    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-      console.log(`[PDF-PARSE] Extrayendo texto de página ${pageNum}/${numPages}...`);
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      
-      // Concatenar todos los items de texto
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      
-      fullText += pageText + '\n';
-      console.log(`[PDF-PARSE] Página ${pageNum}: ${pageText.length} caracteres extraídos`);
+    if (typeof pdfParseFunc !== 'function') {
+      console.error('[PDF-PARSE] ERROR: pdf-parse no es una función:', pdfParseFunc);
+      throw new Error(`pdf-parse no es una función, es: ${typeof pdfParseFunc}`);
     }
     
-    // Obtener metadatos del PDF
-    let pdfInfo: any = null;
-    try {
-      const metadata = await pdf.getMetadata();
-      if (metadata && metadata.info) {
-        const info = metadata.info as any;
-        pdfInfo = {
-          Title: info.Title || null,
-          Author: info.Author || null,
-          Subject: info.Subject || null,
-          Creator: info.Creator || null,
-          Producer: info.Producer || null,
-          CreationDate: info.CreationDate || null,
-          ModDate: info.ModDate || null
-        };
-      }
-    } catch (metaError) {
-      console.log('[PDF-PARSE] No se pudieron obtener metadatos:', metaError);
-    }
-    
-    const pdfData = {
-      text: fullText,
-      numpages: numPages,
-      info: pdfInfo || {},
-      metadata: null
-    };
-    
-    console.log('[PDF-PARSE] PDF parseado exitosamente');
+    console.log('[PDF-PARSE] Iniciando parseo del PDF...');
+    // Parsear PDF usando pdf-parse
+    const pdfData = await pdfParseFunc(buffer);
     
     console.log('[PDF-PARSE] PDF parseado exitosamente:', {
       numpages: pdfData.numpages,
