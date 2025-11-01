@@ -233,32 +233,68 @@ export default function AdminConocimiento() {
                   disabled={loadingPdf}
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
-                    if (!file) return;
+                    if (!file) {
+                      console.log('[PDF-UPLOAD] No se seleccionó ningún archivo');
+                      return;
+                    }
+                    
+                    console.log('[PDF-UPLOAD] Archivo seleccionado:', {
+                      name: file.name,
+                      type: file.type,
+                      size: file.size,
+                      lastModified: new Date(file.lastModified).toISOString()
+                    });
                     
                     setLoadingPdf(true);
                     setPdfText('');
                     
                     try {
+                      console.log('[PDF-UPLOAD] Creando FormData...');
                       const formData = new FormData();
                       formData.append('file', file);
+                      console.log('[PDF-UPLOAD] FormData creado, enviando a API...');
                       
                       const response = await fetch('/api/parse-pdf', {
                         method: 'POST',
                         body: formData
                       });
                       
+                      console.log('[PDF-UPLOAD] Respuesta recibida:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        ok: response.ok
+                      });
+                      
                       const data = await response.json();
+                      console.log('[PDF-UPLOAD] Datos parseados:', {
+                        success: data.success,
+                        textLength: data.text?.length || 0,
+                        pages: data.pages,
+                        hasText: !!data.text,
+                        error: data.error,
+                        debug: data.debug
+                      });
                       
                       if (data.success && data.text) {
+                        console.log('[PDF-UPLOAD] Éxito: Texto extraído, longitud:', data.text.length);
+                        console.log('[PDF-UPLOAD] Primeros 200 caracteres:', data.text.substring(0, 200));
                         setPdfText(data.text);
                       } else {
+                        console.error('[PDF-UPLOAD] Error: No se pudo extraer texto');
+                        console.error('[PDF-UPLOAD] Datos de error:', data);
                         setPdfText('Error: No se pudo extraer texto del PDF. El archivo puede contener solo imágenes.');
                       }
-                    } catch (error) {
-                      console.error('Error parsing PDF:', error);
+                    } catch (error: any) {
+                      console.error('[PDF-UPLOAD] Error al procesar PDF:', error);
+                      console.error('[PDF-UPLOAD] Detalles del error:', {
+                        message: error.message,
+                        stack: error.stack,
+                        name: error.name
+                      });
                       setPdfText('Error al procesar el PDF. Por favor intenta de nuevo.');
                     } finally {
                       setLoadingPdf(false);
+                      console.log('[PDF-UPLOAD] Proceso completado');
                     }
                   }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
