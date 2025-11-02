@@ -252,6 +252,23 @@ export default function AdminConocimiento() {
         } else if (status === 'failed' || status === 'taskFailed') {
           console.error(`[PDF-UPLOAD] ❌ Task ${taskUid} falló`);
           const error = task?.error || task?.errorMessage || (task as any)?.task?.error || 'Error desconocido';
+          
+          // Extraer mensaje de error de forma más legible
+          let errorMessage = 'Error desconocido';
+          if (typeof error === 'string') {
+            errorMessage = error;
+          } else if (error && typeof error === 'object') {
+            // Meilisearch devuelve error.message
+            errorMessage = error.message || error.errorMessage || JSON.stringify(error);
+          }
+          
+          // Limpiar mensaje de error para que sea más legible
+          // Reemplazar saltos de línea y hacer más legible
+          errorMessage = errorMessage
+            .replace(/\\n/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          
           isCompleted = true;
           if (intervalId) {
             clearInterval(intervalId);
@@ -263,7 +280,7 @@ export default function AdminConocimiento() {
               updated[chunkIndex] = {
                 ...updated[chunkIndex],
                 status: 'failed',
-                message: `Error: ${typeof error === 'string' ? error : JSON.stringify(error)}`
+                message: errorMessage
               };
             }
             return updated;
@@ -869,21 +886,32 @@ export default function AdminConocimiento() {
                     </>
                   )}
 
-                  {/* Log de progreso de subida */}
-                  {uploading && (
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      <h4 className="text-md font-semibold text-gray-800">Progreso de Subida</h4>
+                  {/* Log de progreso de subida - siempre visible si hay progreso */}
+                  {uploadProgress.length > 0 && (
+                    <div className="space-y-3 max-h-96 overflow-y-auto border-t border-gray-200 pt-4 mt-4">
+                      <h4 className="text-md font-semibold text-gray-800">
+                        Progreso de Subida
+                        {uploading && <span className="ml-2 text-sm text-gray-500 font-normal">(en proceso...)</span>}
+                        {!uploading && uploadProgress.every(p => p.status === 'succeeded' || p.status === 'failed') && (
+                          <span className="ml-2 text-sm text-gray-500 font-normal">(completado)</span>
+                        )}
+                      </h4>
                       {uploadProgress.map((progress, idx) => (
-                        <div key={idx} className="p-3 border rounded-lg bg-gray-50">
-                          <div className="flex items-center justify-between mb-1">
+                        <div key={idx} className={`p-3 border rounded-lg ${
+                          progress.status === 'succeeded' ? 'bg-green-50 border-green-200' :
+                          progress.status === 'failed' ? 'bg-red-50 border-red-200' :
+                          progress.status === 'processing' ? 'bg-yellow-50 border-yellow-200' :
+                          'bg-gray-50 border-gray-200'
+                        }`}>
+                          <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-gray-700">
-                              Chunk {progress.chunkIndex + 1}
+                              Chunk {progress.chunkIndex + 1} de {preparedChunks.length}
                             </span>
-                            <span className={`text-xs px-2 py-1 rounded ${
-                              progress.status === 'succeeded' ? 'bg-green-100 text-green-800' :
-                              progress.status === 'failed' ? 'bg-red-100 text-red-800' :
-                              progress.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-gray-100 text-gray-800'
+                            <span className={`text-xs px-2 py-1 rounded font-medium ${
+                              progress.status === 'succeeded' ? 'bg-green-500 text-white' :
+                              progress.status === 'failed' ? 'bg-red-500 text-white' :
+                              progress.status === 'processing' ? 'bg-yellow-500 text-white' :
+                              'bg-gray-500 text-white'
                             }`}>
                               {progress.status === 'succeeded' ? '✓ Completado' :
                                progress.status === 'failed' ? '✗ Error' :
@@ -891,9 +919,20 @@ export default function AdminConocimiento() {
                                '⏱ Pendiente'}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-600">{progress.message}</p>
-                          {progress.taskUid && (
+                          <p className={`text-xs ${
+                            progress.status === 'failed' ? 'text-red-700 font-medium' :
+                            progress.status === 'succeeded' ? 'text-green-700' :
+                            'text-gray-600'
+                          }`}>
+                            {progress.message}
+                          </p>
+                          {progress.taskUid > 0 && (
                             <p className="text-xs text-gray-500 mt-1">Task UID: {progress.taskUid}</p>
+                          )}
+                          {progress.status === 'failed' && (
+                            <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-xs text-red-800">
+                              <strong>Detalles del error:</strong> El embedder del índice requiere campos adicionales que no están presentes en el documento. Verifica que el documento incluya todos los campos referenciados en el <code>documentTemplate</code> del embedder.
+                            </div>
                           )}
                         </div>
                       ))}
