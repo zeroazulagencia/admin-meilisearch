@@ -64,37 +64,98 @@ export default function AdminConocimiento() {
 
   // Extraer valor de un campo del texto del PDF usando patrones comunes
   const extractFieldValue = (text: string, fieldName: string): string => {
-    // Intentar extraer valores comunes del PDF
+    const fieldLower = fieldName.toLowerCase();
+    
+    // Intentar extraer valores comunes del PDF con patrones específicos
     const patterns: Record<string, RegExp[]> = {
       producto: [
+        /\d+\.\d+\.\s*PRODUCTO:\s*([^\n]+)/i,
         /PRODUCTO:\s*([^\n]+)/i,
-        /producto:\s*([^\n]+)/i,
-        /Producto:\s*([^\n]+)/i,
-        /\d+\.\d+\.\s*PRODUCTO:\s*([^\n]+)/i
+        /producto:\s*([^\n]+)/i
       ],
       categoria: [
+        /\d+\.\s*CATEGORIA:\s*([^\n]+)/i,
         /CATEGORIA:\s*([^\n]+)/i,
         /categoria:\s*([^\n]+)/i,
-        /Categoría:\s*([^\n]+)/i,
-        /\d+\.\s*CATEGORIA:\s*([^\n]+)/i
+        /Categoría:\s*([^\n]+)/i
+      ],
+      indicaciones_uso: [
+        /\d+\.\d+\.\d+\.\s*INDICACIONES\s+DE\s+USO:\s*([\s\S]*?)(?=\d+\.\d+\.\d+\.|$)/i,
+        /\d+\.\d+\.\s*INDICACIONES\s+DE\s+USO:\s*([\s\S]*?)(?=\d+\.\d+\.|$)/i,
+        /INDICACIONES\s+DE\s+USO:\s*([\s\S]*?)(?=\d+\.|$)/i,
+        /INDICACIONES\s+DE\s+USO:\s*([\s\S]*?)(?=PRESENTACIONES|DESCRIPCION|EDAD|CONDICIONES|NECESIDADES|$)/i
+      ],
+      edad_momento_vida: [
+        /\d+\.\d+\.\d+\.\s*EDAD\s+O\s+MOMENTO\s+DE\s+VIDA:\s*([\s\S]*?)(?=\d+\.\d+\.\d+\.|$)/i,
+        /\d+\.\d+\.\s*EDAD\s+O\s+MOMENTO\s+DE\s+VIDA:\s*([\s\S]*?)(?=\d+\.\d+\.|$)/i,
+        /EDAD\s+O\s+MOMENTO\s+DE\s+VIDA:\s*([\s\S]*?)(?=\d+\.|$)/i
+      ],
+      condiciones: [
+        /\d+\.\d+\.\d+\.\s*CONDICIONES\s+MEDICAS[^:]*:\s*([\s\S]*?)(?=\d+\.\d+\.\d+\.|$)/i,
+        /\d+\.\d+\.\s*CONDICIONES\s+MEDICAS[^:]*:\s*([\s\S]*?)(?=\d+\.\d+\.|$)/i,
+        /CONDICIONES\s+MEDICAS[^:]*:\s*([\s\S]*?)(?=\d+\.|$)/i
+      ],
+      necesidades: [
+        /\d+\.\d+\.\d+\.\s*NECESIDADES[^:]*:\s*([\s\S]*?)(?=\d+\.\d+\.\d+\.|$)/i,
+        /\d+\.\d+\.\s*NECESIDADES[^:]*:\s*([\s\S]*?)(?=\d+\.\d+\.|$)/i,
+        /NECESIDADES[^:]*:\s*([\s\S]*?)(?=\d+\.|$)/i
+      ],
+      palabras_clave: [
+        /\d+\.\d+\.\d+\.\s*ASOCIACIONES\s+O\s+PALABRAS[^:]*:\s*([^\n]+(?:\n[^\d]+)*)/i,
+        /\d+\.\d+\.\s*ASOCIACIONES\s+O\s+PALABRAS[^:]*:\s*([^\n]+(?:\n[^\d]+)*)/i,
+        /ASOCIACIONES\s+O\s+PALABRAS[^:]*:\s*([^\n]+(?:\n[^\d]+)*)/i
+      ],
+      textura: [
+        /\d+\.\d+\.\d+\.\s*TEXTURA:\s*([^\n]+)/i,
+        /\d+\.\d+\.\s*TEXTURA:\s*([^\n]+)/i,
+        /TEXTURA:\s*([^\n]+)/i
+      ],
+      contenido: [
+        /\d+\.\d+\.\d+\.\d+\.\s*[^:]+:\s*(\d+\s*ML|\d+\s*unidades)/i,
+        /(\d+\s*ML|\d+\s*unidades)/i
+      ],
+      duracion: [
+        /duración[^:]*:\s*([^\n]+)/i,
+        /duracion[^:]*:\s*([^\n]+)/i
       ]
     };
 
-    const fieldPatterns = patterns[fieldName.toLowerCase()] || [];
+    const fieldPatterns = patterns[fieldLower] || [];
     for (const pattern of fieldPatterns) {
       const match = text.match(pattern);
       if (match && match[1]) {
-        return match[1].trim();
+        let extracted = match[1].trim();
+        // Limpiar el texto extraído (eliminar números de sección al inicio)
+        extracted = extracted.replace(/^\d+\.\d*\.\d*\.?\s*/, '').trim();
+        if (extracted.length > 0) {
+          return extracted;
+        }
       }
     }
 
-    // Si no se encuentra, buscar cualquier línea que contenga el nombre del campo
+    // Si no se encuentra con patrones específicos, buscar cualquier línea que contenga el nombre del campo
     const lines = text.split('\n');
-    for (const line of lines) {
-      if (line.toLowerCase().includes(fieldName.toLowerCase() + ':')) {
-        const match = line.match(new RegExp(`${fieldName}:\\s*([^\\n]+)`, 'i'));
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.toLowerCase().includes(fieldLower.replace(/_/g, ' ')) || 
+          line.toLowerCase().includes(fieldLower.replace(/_/g, '_'))) {
+        // Buscar el valor después de los dos puntos
+        const match = line.match(/:\s*(.+)/i);
         if (match && match[1]) {
-          return match[1].trim();
+          let value = match[1].trim();
+          // Si el valor es corto, podría estar en la misma línea
+          if (value.length < 200 && i < lines.length - 1) {
+            // Intentar obtener más líneas si el valor parece incompleto
+            let nextLines = '';
+            for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+              if (lines[j].match(/^\d+\./)) break; // Detener si encontramos una nueva sección numerada
+              nextLines += lines[j] + ' ';
+            }
+            if (nextLines.trim().length > 0) {
+              value += ' ' + nextLines.trim();
+            }
+          }
+          return value.trim();
         }
       }
     }
@@ -279,10 +340,22 @@ export default function AdminConocimiento() {
         [selectedTextField]: text
       };
       
-      // Agregar campos requeridos
+      // Agregar campos requeridos - primero intentar extraer del chunk específico
       requiredFields.forEach(({ field, value }) => {
         if (field !== selectedIdField && field !== selectedTextField) {
-          initialFields[field] = value || extractedValues[field] || '';
+          // Prioridad: valor extraído del chunk específico > valor global > vacío
+          const chunkValue = extractedValues[field] || extractFieldValue(text, field);
+          initialFields[field] = chunkValue || value || '';
+        }
+      });
+      
+      // Agregar otros campos del índice con valores extraídos si existen
+      allIndexFields.forEach(fieldInfo => {
+        if (!initialFields.hasOwnProperty(fieldInfo.name)) {
+          const extractedValue = extractFieldValue(text, fieldInfo.name);
+          if (extractedValue) {
+            initialFields[fieldInfo.name] = extractedValue;
+          }
         }
       });
       
@@ -342,9 +415,12 @@ export default function AdminConocimiento() {
       // Construir documento con todos los campos
       const document: any = {};
       
-      // Agregar todos los campos que el usuario editó
+      // Agregar todos los campos que el usuario editó Y todos los campos requeridos por el embedder
       allIndexFields.forEach(fieldInfo => {
         const value = chunkFieldValues[fieldInfo.name];
+        const isRequired = fieldInfo.required || requiredFields.some(rf => rf.field === fieldInfo.name);
+        
+        // Si el campo tiene valor, usarlo
         if (value !== undefined && value !== null && value !== '') {
           // Convertir según el tipo
           if (fieldInfo.type === 'integer') {
@@ -362,8 +438,8 @@ export default function AdminConocimiento() {
           } else {
             document[fieldInfo.name] = String(value);
           }
-        } else if (fieldInfo.required || requiredFields.some(rf => rf.field === fieldInfo.name)) {
-          // Si es requerido y está vacío, intentar extraer del texto
+        } else if (isRequired) {
+          // Si es requerido y está vacío, intentar extraer del texto del chunk
           const extractedValue = extractFieldValue(chunk.text, fieldInfo.name);
           if (extractedValue) {
             document[fieldInfo.name] = extractedValue;
@@ -380,6 +456,39 @@ export default function AdminConocimiento() {
             } else {
               document[fieldInfo.name] = '';
             }
+          }
+        } else {
+          // Campo opcional con valor vacío - solo incluirlo si tiene valor
+          if (value !== undefined && value !== null && value !== '') {
+            if (fieldInfo.type === 'integer') {
+              document[fieldInfo.name] = parseInt(String(value), 10);
+            } else if (fieldInfo.type === 'number') {
+              document[fieldInfo.name] = parseFloat(String(value));
+            } else if (fieldInfo.type === 'boolean') {
+              document[fieldInfo.name] = String(value).toLowerCase() === 'true' || value === true || value === 1;
+            } else if (fieldInfo.type === 'array' || fieldInfo.type === 'object') {
+              try {
+                document[fieldInfo.name] = typeof value === 'string' ? JSON.parse(value) : value;
+              } catch {
+                document[fieldInfo.name] = value;
+              }
+            } else {
+              document[fieldInfo.name] = String(value);
+            }
+          }
+        }
+      });
+      
+      // IMPORTANTE: Asegurar que todos los campos requeridos por el embedder estén presentes
+      requiredFields.forEach(({ field }) => {
+        if (!document.hasOwnProperty(field)) {
+          // Intentar extraer del texto si aún no está
+          const extractedValue = extractFieldValue(chunk.text, field);
+          if (extractedValue) {
+            document[field] = extractedValue;
+          } else {
+            // Valor por defecto para campos requeridos
+            document[field] = '';
           }
         }
       });
