@@ -576,8 +576,20 @@ export default function AdminConocimiento() {
               <h2 className="text-xl font-semibold text-gray-800">Cargar PDF</h2>
               <button
                 onClick={() => {
-                  setShowPdfModal(false);
-                  setPdfText('');
+                  // Solo limpiar si NO hay progreso activo o completado
+                  if (!uploading && uploadProgress.length === 0) {
+                    setShowPdfModal(false);
+                    setPdfText('');
+                    setPdfIdPrefix('');
+                    setPdfStep('text');
+                    setIndexFields([]);
+                    setSelectedIdField('');
+                    setSelectedTextField('');
+                    setPreparedChunks([]);
+                  } else {
+                    // Si hay progreso, solo cerrar modal pero mantener progreso
+                    setShowPdfModal(false);
+                  }
                 }}
                 className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
               >
