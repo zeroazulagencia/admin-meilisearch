@@ -24,13 +24,25 @@ export async function POST(request: NextRequest) {
 
     const systemMessage = `Eres un asistente experto en estructurar información de documentos PDF en formato JSON. Tu tarea es analizar el texto proporcionado y extraer la información relevante para cada campo especificado. 
 
-IMPORTANTE:
+CRÍTICO - REGLAS DE TIPOS DE DATOS:
+- Si un campo es de tipo "array", DEBES devolver un array JSON válido. Ejemplo: ["item1", "item2", "item3"] - NUNCA un string separado por comas
+- Si encuentras una lista separada por comas en el texto, conviértela en un array JSON real
+- Si un campo es de tipo "object", debes devolver un objeto JSON válido como {"key": "value"}
+- Si un campo es de tipo "boolean", devuelve true o false (NUNCA strings como "true" o "false")
+- Si un campo es de tipo "integer" o "number", devuelve el número directamente como número (NUNCA como string)
+- Si un campo es de tipo "string", devuelve un string
+
+VALORES POR DEFECTO:
+- Si un campo es obligatorio y no encuentras información, usa valores por defecto:
+  * string: "" (string vacío)
+  * array: [] (array vacío)
+  * object: {} (objeto vacío)
+  * integer/number: 0
+  * boolean: false
+
+FORMATO DE RESPUESTA:
 - Debes devolver SOLO un objeto JSON válido, sin texto adicional antes o después
-- Si un campo es de tipo "array", debes devolver un array JSON, no un string
-- Si un campo es de tipo "object", debes devolver un objeto JSON válido
-- Si un campo es de tipo "boolean", devuelve true o false (no strings)
-- Si un campo es de tipo "integer" o "number", devuelve el número directamente (no string)
-- Si un campo es obligatorio y no encuentras información, usa un valor por defecto apropiado (string vacío para strings, [] para arrays, {} para objects, 0 para números, false para boolean)
+- El JSON debe ser válido y parseable
 - Si encuentras información pero el campo no está en la lista, no lo incluyas en el JSON
 - Extrae toda la información relevante del texto, incluso si está en diferentes partes`;
 
@@ -95,6 +107,58 @@ Devuelve SOLO un objeto JSON con los campos especificados. Asegúrate de que:
         throw new Error('No se pudo extraer JSON válido de la respuesta');
       }
     }
+
+    // Normalizar tipos de datos según la estructura de campos esperada
+    fields.forEach((field: any) => {
+      if (structuredData.hasOwnProperty(field.name)) {
+        const value = structuredData[field.name];
+        
+        // Convertir arrays que vengan como strings separados por comas
+        if (field.type === 'array') {
+          if (typeof value === 'string') {
+            // Intentar parsear como JSON primero
+            try {
+              const parsed = JSON.parse(value);
+              if (Array.isArray(parsed)) {
+                structuredData[field.name] = parsed;
+              } else {
+                // Si es un string separado por comas, convertirlo a array
+                structuredData[field.name] = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+              }
+            } catch {
+              // Si no es JSON válido, tratar como string separado por comas
+              structuredData[field.name] = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+            }
+          } else if (!Array.isArray(value)) {
+            // Si no es array ni string, convertir a array
+            structuredData[field.name] = [String(value)];
+          }
+        }
+        
+        // Convertir números
+        if (field.type === 'integer' && typeof value === 'string') {
+          const num = parseInt(value, 10);
+          structuredData[field.name] = isNaN(num) ? 0 : num;
+        } else if (field.type === 'number' && typeof value === 'string') {
+          const num = parseFloat(value);
+          structuredData[field.name] = isNaN(num) ? 0 : num;
+        }
+        
+        // Convertir booleanos
+        if (field.type === 'boolean' && typeof value === 'string') {
+          structuredData[field.name] = value.toLowerCase() === 'true' || value === '1';
+        }
+        
+        // Convertir objetos
+        if (field.type === 'object' && typeof value === 'string') {
+          try {
+            structuredData[field.name] = JSON.parse(value);
+          } catch {
+            structuredData[field.name] = {};
+          }
+        }
+      }
+    });
 
     return NextResponse.json({ 
       success: true,

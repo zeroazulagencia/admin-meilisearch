@@ -1246,7 +1246,7 @@ export default function AdminConocimiento() {
                 <div className="mt-6 space-y-4 border-t border-gray-200 pt-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Prefijo del ID para Meilisearch
+                      Prefijo del ID para Meilisearch <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
