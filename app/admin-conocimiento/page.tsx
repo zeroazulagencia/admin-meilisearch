@@ -58,7 +58,8 @@ export default function AdminConocimiento() {
     const matches = documentTemplate.match(/\{\{doc\.(\w+)\}\}/g);
     if (!matches) return [];
     const fields = matches.map(match => match.replace(/\{\{doc\.|\}\}/g, ''));
-    return [...new Set(fields)]; // Eliminar duplicados
+    // Eliminar duplicados usando Array.from
+    return Array.from(new Set(fields));
   };
 
   // Extraer valor de un campo del texto del PDF usando patrones comunes
