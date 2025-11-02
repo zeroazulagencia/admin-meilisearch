@@ -559,6 +559,91 @@ export default function AdminConocimiento() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Mostrar progreso FUERA del modal si existe */}
+                  {uploadProgress.length > 0 && !showPdfModal && (
+                    <div className="bg-white rounded-lg shadow p-6 mb-6 border-2 border-blue-300">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          📊 Progreso de Subida de PDF
+                          {uploading && <span className="ml-2 text-sm text-gray-500 font-normal">(en proceso...)</span>}
+                          {!uploading && uploadProgress.every(p => p.status === 'succeeded' || p.status === 'failed') && (
+                            <span className="ml-2 text-sm text-gray-500 font-normal">(completado)</span>
+                          )}
+                        </h3>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setShowPdfModal(true);
+                              setPdfStep('review');
+                            }}
+                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                          >
+                            Ver detalles
+                          </button>
+                          {!uploading && (
+                            <button
+                              onClick={() => {
+                                setUploadProgress([]);
+                                setPreparedChunks([]);
+                                setPdfStep('text');
+                                setPdfText('');
+                                setPdfIdPrefix('');
+                              }}
+                              className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                            >
+                              Limpiar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="text-2xl font-bold text-green-700">
+                            {uploadProgress.filter(p => p.status === 'succeeded').length}
+                          </div>
+                          <div className="text-sm text-green-600">Exitosos</div>
+                        </div>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                          <div className="text-2xl font-bold text-red-700">
+                            {uploadProgress.filter(p => p.status === 'failed').length}
+                          </div>
+                          <div className="text-sm text-red-600">Errores</div>
+                        </div>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                          <div className="text-2xl font-bold text-yellow-700">
+                            {uploadProgress.filter(p => p.status === 'processing' || p.status === 'pending').length}
+                          </div>
+                          <div className="text-sm text-yellow-600">Procesando</div>
+                        </div>
+                      </div>
+                      {uploadProgress.some(p => p.status === 'failed') && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-300 rounded-lg">
+                          <h4 className="text-sm font-semibold text-red-800 mb-2">Errores detectados:</h4>
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {uploadProgress
+                              .filter(p => p.status === 'failed')
+                              .slice(0, 3)
+                              .map((progress, idx) => (
+                                <div key={idx} className="text-xs text-red-700">
+                                  <strong>Chunk {progress.chunkIndex + 1}:</strong> {progress.message.substring(0, 150)}
+                                  {progress.message.length > 150 && '...'}
+                                </div>
+                              ))}
+                            {uploadProgress.filter(p => p.status === 'failed').length > 3 && (
+                              <div className="text-xs text-red-600 italic">
+                                ... y {uploadProgress.filter(p => p.status === 'failed').length - 3} error(es) más
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-3 text-xs text-red-800 bg-red-100 p-2 rounded">
+                            <strong>Nota:</strong> El embedder del índice requiere el campo <code className="bg-red-200 px-1 rounded">producto</code>, pero solo se están enviando <code className="bg-red-200 px-1 rounded">{selectedIdField}</code> y <code className="bg-red-200 px-1 rounded">{selectedTextField}</code>. Ajusta el template del embedder o incluye todos los campos requeridos.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <IndexProperties indexUid={selectedIndex.uid} />
                   <DocumentList indexUid={selectedIndex.uid} />
                 </>
