@@ -42,15 +42,22 @@ export default function AdminConocimiento() {
       const end = textarea.selectionEnd;
       const currentText = pdfText;
       
+      // Guardar posición de scroll
+      const scrollTop = textarea.scrollTop;
+      
       // Insertar [separador] en la posición del cursor
       const newText = currentText.slice(0, start) + '[separador]' + currentText.slice(end);
       setPdfText(newText);
       
-      // Restaurar posición del cursor después del separador
+      // Restaurar posición del cursor y scroll después del separador
       setTimeout(() => {
-        textarea.focus();
-        const newPosition = start + '[separador]'.length;
-        textarea.setSelectionRange(newPosition, newPosition);
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          const newPosition = start + '[separador]'.length;
+          textareaRef.current.setSelectionRange(newPosition, newPosition);
+          // Restaurar posición de scroll
+          textareaRef.current.scrollTop = scrollTop;
+        }
       }, 0);
     }
   };
