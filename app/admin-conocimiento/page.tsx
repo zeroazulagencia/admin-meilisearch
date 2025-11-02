@@ -44,6 +44,8 @@ export default function AdminConocimiento() {
   const [indexSettings, setIndexSettings] = useState<any>(null);
   const [allIndexFields, setAllIndexFields] = useState<Array<{ name: string; type: string; required: boolean }>>([]);
   const [chunkFields, setChunkFields] = useState<Record<number, Record<string, any>>>({});
+  const [structuringChunks, setStructuringChunks] = useState(false);
+  const [structuringProgress, setStructuringProgress] = useState<Record<number, { status: 'pending' | 'processing' | 'succeeded' | 'failed'; message?: string }>>({});
   
   // Calcular cantidad de chunks basado en el símbolo [separador]
   const calculateChunks = (text: string): number => {
@@ -314,70 +316,130 @@ export default function AdminConocimiento() {
     }
   };
 
+  // Estructurar chunk con OpenAI
+  const structureChunkWithAI = async (chunkText: string, chunkIndex: number): Promise<Record<string, any> | null> => {
+    try {
+      setStructuringProgress(prev => ({
+        ...prev,
+        [chunkIndex]: { status: 'processing', message: 'Enviando a OpenAI...' }
+      }));
+
+      const response = await fetch('/api/openai/structure-chunk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chunkText,
+          fields: allIndexFields.map(field => ({
+            name: field.name,
+            type: field.type,
+            required: field.required || requiredFields.some(rf => rf.field === field.name)
+          }))
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.success || !result.structuredData) {
+        throw new Error(result.error || 'Error desconocido al estructurar chunk');
+      }
+
+      setStructuringProgress(prev => ({
+        ...prev,
+        [chunkIndex]: { status: 'succeeded', message: 'Estructurado correctamente' }
+      }));
+
+      return result.structuredData;
+    } catch (error: any) {
+      console.error(`[PDF-UPLOAD] Error estructurando chunk ${chunkIndex + 1}:`, error);
+      setStructuringProgress(prev => ({
+        ...prev,
+        [chunkIndex]: { status: 'failed', message: error.message || 'Error al estructurar' }
+      }));
+      return null;
+    }
+  };
+
   // Dividir texto en chunks y generar IDs
-  const prepareChunks = () => {
+  const prepareChunks = async () => {
     if (!pdfText || pdfText.includes('Error:')) return;
     
     // Dividir por [separador]
     const chunks = pdfText.split('[separador]').map(chunk => chunk.trim()).filter(chunk => chunk.length > 0);
     
-    // Generar IDs para cada chunk y extraer valores de campos requeridos
+    // Generar IDs para cada chunk
     const chunksWithIds = chunks.map((text, index) => {
       const id = pdfIdPrefix ? `${pdfIdPrefix}${Date.now()}-${index + 1}` : `chunk-${Date.now()}-${index + 1}`;
-      
-      // Extraer valores de campos requeridos de este chunk específico
-      const extractedValues: Record<string, string> = {};
-      requiredFields.forEach(({ field }) => {
-        const value = extractFieldValue(text, field);
-        if (value) {
-          extractedValues[field] = value;
-        }
-      });
-      
-      // Inicializar valores de campos para este chunk
-      const initialFields: Record<string, any> = {
-        [selectedIdField]: id,
-        [selectedTextField]: text
-      };
-      
-      // Agregar campos requeridos - primero intentar extraer del chunk específico
-      requiredFields.forEach(({ field, value }) => {
-        if (field !== selectedIdField && field !== selectedTextField) {
-          // Prioridad: valor extraído del chunk específico > valor global > vacío
-          const chunkValue = extractedValues[field] || extractFieldValue(text, field);
-          initialFields[field] = chunkValue || value || '';
-        }
-      });
-      
-      // Agregar otros campos del índice con valores extraídos si existen
-      allIndexFields.forEach(fieldInfo => {
-        if (!initialFields.hasOwnProperty(fieldInfo.name)) {
-          const extractedValue = extractFieldValue(text, fieldInfo.name);
-          if (extractedValue) {
-            initialFields[fieldInfo.name] = extractedValue;
-          }
-        }
-      });
-      
-      return { id, text, extractedValues, fields: initialFields };
+      return { id, text };
     });
     
     setPreparedChunks(chunksWithIds);
     
-    // Inicializar valores de campos para cada chunk
-    const initialChunkFields: Record<number, Record<string, any>> = {};
-    chunksWithIds.forEach((chunk, index) => {
-      initialChunkFields[index] = { ...chunk.fields };
+    // Inicializar progreso de estructuración
+    const initialProgress: Record<number, { status: 'pending' | 'processing' | 'succeeded' | 'failed'; message?: string }> = {};
+    chunksWithIds.forEach((_, index) => {
+      initialProgress[index] = { status: 'pending' };
     });
-    setChunkFields(initialChunkFields);
+    setStructuringProgress(initialProgress);
+    
+    // Estructurar cada chunk con OpenAI
+    setStructuringChunks(true);
+    const structuredFields: Record<number, Record<string, any>> = {};
+    
+    for (let i = 0; i < chunksWithIds.length; i++) {
+      const chunk = chunksWithIds[i];
+      
+      // Inicializar con ID y texto
+      structuredFields[i] = {
+        [selectedIdField]: chunk.id,
+        [selectedTextField]: chunk.text
+      };
+      
+      // Estructurar con OpenAI
+      const aiStructured = await structureChunkWithAI(chunk.text, i);
+      
+      if (aiStructured) {
+        // Combinar los campos estructurados por AI con ID y texto
+        structuredFields[i] = {
+          ...structuredFields[i],
+          ...aiStructured
+        };
+      } else {
+        // Si falla, usar extracción manual como fallback
+        const extractedValues: Record<string, string> = {};
+        requiredFields.forEach(({ field }) => {
+          const value = extractFieldValue(chunk.text, field);
+          if (value) {
+            extractedValues[field] = value;
+          }
+        });
+        
+        requiredFields.forEach(({ field, value }) => {
+          if (field !== selectedIdField && field !== selectedTextField) {
+            const chunkValue = extractedValues[field] || extractFieldValue(chunk.text, field);
+            structuredFields[i][field] = chunkValue || value || '';
+          }
+        });
+        
+        allIndexFields.forEach(fieldInfo => {
+          if (!structuredFields[i].hasOwnProperty(fieldInfo.name)) {
+            const extractedValue = extractFieldValue(chunk.text, fieldInfo.name);
+            if (extractedValue) {
+              structuredFields[i][fieldInfo.name] = extractedValue;
+            }
+          }
+        });
+      }
+    }
+    
+    setChunkFields(structuredFields);
+    setStructuringChunks(false);
     
     // Actualizar campos requeridos con valores extraídos si están vacíos
-    if (requiredFields.length > 0) {
+    if (requiredFields.length > 0 && chunks.length > 0) {
       const updatedFields = requiredFields.map(({ field, value }) => {
         if (!value) {
-          // Buscar el valor en el primer chunk
-          const firstChunkValue = extractFieldValue(chunks[0] || '', field);
-          return { field, value: firstChunkValue };
+          const firstChunkValue = structuredFields[0]?.[field] || extractFieldValue(chunks[0] || '', field);
+          return { field, value: firstChunkValue || '' };
         }
         return { field, value };
       });
@@ -1148,6 +1210,34 @@ export default function AdminConocimiento() {
               {pdfText && pdfText.includes('Error:') && (
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-800 text-sm">{pdfText}</p>
+                </div>
+              )}
+
+              {/* Indicador de estructuración con IA */}
+              {structuringChunks && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-300 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-800">
+                        Estructurando chunks con OpenAI...
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Procesando {Object.keys(structuringProgress).length} {Object.keys(structuringProgress).length === 1 ? 'chunk' : 'chunks'}...
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {Object.entries(structuringProgress).map(([index, progress]) => (
+                          <div key={index} className="text-xs text-blue-700">
+                            Chunk {parseInt(index) + 1}: {progress.status === 'pending' ? '⏱ Pendiente' : 
+                                                          progress.status === 'processing' ? '⏳ Procesando...' :
+                                                          progress.status === 'succeeded' ? '✓ Completado' :
+                                                          '✗ Error'}
+                            {progress.message && ` - ${progress.message}`}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
