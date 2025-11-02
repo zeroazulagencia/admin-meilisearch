@@ -104,13 +104,12 @@ export async function POST(req: NextRequest) {
     const pdfData = await extractTextFromPdf(buffer);
     
     console.log('[PDF-PARSE] PDF parseado exitosamente:', {
-      numpages: pdfData.numpages,
+      pages: pdfData.pages,
       textLength: pdfData.text?.length || 0,
       textPreview: pdfData.text?.substring(0, 200) || '(sin texto)',
       hasText: !!pdfData.text,
       textIsEmpty: !pdfData.text || pdfData.text.trim().length === 0,
-      info: pdfData.info || null,
-      metadata: pdfData.metadata || null
+      info: pdfData.info || null
     });
     
     console.log('[PDF-PARSE] Texto completo (primeros 500 caracteres):', pdfData.text?.substring(0, 500));
@@ -128,10 +127,9 @@ export async function POST(req: NextRequest) {
     if (!text || text.length === 0) {
       console.error('[PDF-PARSE] Error: No se encontró texto en el PDF');
       console.error('[PDF-PARSE] Datos completos del PDF:', JSON.stringify({
-        numpages: pdfData.numpages,
+        pages: pdfData.pages,
         text: pdfData.text,
-        info: pdfData.info,
-        metadata: pdfData.metadata
+        info: pdfData.info
       }, null, 2));
       
       return NextResponse.json({
@@ -139,7 +137,7 @@ export async function POST(req: NextRequest) {
         text: 'Error: No se pudo extraer texto del PDF. El archivo puede contener solo imágenes.',
         error: 'No se encontró texto en el PDF',
         debug: {
-          numpages: pdfData.numpages,
+          pages: pdfData.pages,
           textLength: pdfData.text?.length || 0,
           hasText: !!pdfData.text,
           info: pdfData.info
@@ -152,7 +150,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       text: text,
-      pages: pdfData.numpages || 0,
+      pages: pdfData.pages || 0,
       info: pdfData.info || {}
     });
     
