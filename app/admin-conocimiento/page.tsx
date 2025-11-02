@@ -42,6 +42,8 @@ export default function AdminConocimiento() {
   }>>([]);
   const [requiredFields, setRequiredFields] = useState<Array<{ field: string; value: string }>>([]);
   const [indexSettings, setIndexSettings] = useState<any>(null);
+  const [allIndexFields, setAllIndexFields] = useState<Array<{ name: string; type: string; required: boolean }>>([]);
+  const [chunkFields, setChunkFields] = useState<Record<number, Record<string, any>>>({});
   
   // Calcular cantidad de chunks basado en el símbolo [separador]
   const calculateChunks = (text: string): number => {
@@ -125,6 +127,30 @@ export default function AdminConocimiento() {
         const sampleDoc = documents.results[0];
         const fields = Object.keys(sampleDoc);
         setIndexFields(fields);
+        
+        // Analizar tipos de datos de cada campo
+        const fieldsWithTypes = fields.map(field => {
+          const value = sampleDoc[field];
+          let type = 'string';
+          if (typeof value === 'number') {
+            type = Number.isInteger(value) ? 'integer' : 'number';
+          } else if (typeof value === 'boolean') {
+            type = 'boolean';
+          } else if (Array.isArray(value)) {
+            type = 'array';
+          } else if (value && typeof value === 'object') {
+            type = 'object';
+          }
+          
+          return {
+            name: field,
+            type,
+            required: requiredFieldsList.includes(field)
+          };
+        });
+        setAllIndexFields(fieldsWithTypes);
+        console.log('[PDF-UPLOAD] Campos del índice con tipos:', fieldsWithTypes);
+        
         // Seleccionar primeros campos por defecto si existen
         if (fields.length > 0) {
           setSelectedIdField(fields[0]);
@@ -175,6 +201,57 @@ export default function AdminConocimiento() {
     }
   };
 
+  // Validar tipo de dato
+  const validateFieldType = (value: any, expectedType: string): { valid: boolean; error?: string } => {
+    if (value === null || value === undefined || value === '') {
+      return { valid: true }; // Valores vacíos son válidos (se pueden requerir después)
+    }
+
+    switch (expectedType) {
+      case 'integer':
+        const intValue = parseInt(String(value), 10);
+        if (isNaN(intValue)) {
+          return { valid: false, error: `Debe ser un número entero, recibido: "${value}"` };
+        }
+        return { valid: true };
+      case 'number':
+        const numValue = parseFloat(String(value));
+        if (isNaN(numValue)) {
+          return { valid: false, error: `Debe ser un número, recibido: "${value}"` };
+        }
+        return { valid: true };
+      case 'boolean':
+        const strValue = String(value).toLowerCase();
+        if (strValue !== 'true' && strValue !== 'false' && strValue !== '1' && strValue !== '0') {
+          return { valid: false, error: `Debe ser true/false, recibido: "${value}"` };
+        }
+        return { valid: true };
+      case 'array':
+        try {
+          const parsed = JSON.parse(String(value));
+          if (!Array.isArray(parsed)) {
+            return { valid: false, error: `Debe ser un array JSON, recibido: "${value}"` };
+          }
+          return { valid: true };
+        } catch {
+          return { valid: false, error: `Debe ser un array JSON válido, recibido: "${value}"` };
+        }
+      case 'object':
+        try {
+          const parsed = JSON.parse(String(value));
+          if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return { valid: false, error: `Debe ser un objeto JSON, recibido: "${value}"` };
+          }
+          return { valid: true };
+        } catch {
+          return { valid: false, error: `Debe ser un objeto JSON válido, recibido: "${value}"` };
+        }
+      case 'string':
+      default:
+        return { valid: true };
+    }
+  };
+
   // Dividir texto en chunks y generar IDs
   const prepareChunks = () => {
     if (!pdfText || pdfText.includes('Error:')) return;
@@ -195,10 +272,30 @@ export default function AdminConocimiento() {
         }
       });
       
-      return { id, text, extractedValues };
+      // Inicializar valores de campos para este chunk
+      const initialFields: Record<string, any> = {
+        [selectedIdField]: id,
+        [selectedTextField]: text
+      };
+      
+      // Agregar campos requeridos
+      requiredFields.forEach(({ field, value }) => {
+        if (field !== selectedIdField && field !== selectedTextField) {
+          initialFields[field] = value || extractedValues[field] || '';
+        }
+      });
+      
+      return { id, text, extractedValues, fields: initialFields };
     });
     
     setPreparedChunks(chunksWithIds);
+    
+    // Inicializar valores de campos para cada chunk
+    const initialChunkFields: Record<number, Record<string, any>> = {};
+    chunksWithIds.forEach((chunk, index) => {
+      initialChunkFields[index] = { ...chunk.fields };
+    });
+    setChunkFields(initialChunkFields);
     
     // Actualizar campos requeridos con valores extraídos si están vacíos
     if (requiredFields.length > 0) {
@@ -235,28 +332,52 @@ export default function AdminConocimiento() {
       const chunk = preparedChunks[i];
       console.log(`[PDF-UPLOAD] Procesando chunk ${i + 1}/${preparedChunks.length}:`, chunk);
       
-      // Crear documento con los campos seleccionados
-      const document: any = {
+      // Crear documento con todos los campos editados del chunk
+      const chunkFieldValues = chunkFields[i] || {
         [selectedIdField]: chunk.id,
         [selectedTextField]: chunk.text
       };
-
-      // Agregar campos requeridos por el embedder
-      requiredFields.forEach(({ field, value }) => {
-        if (field && field !== selectedIdField && field !== selectedTextField) {
-          // Intentar extraer el valor del chunk actual si no hay valor configurado
-          if (value) {
-            document[field] = value;
-          } else if (chunk.extractedValues && chunk.extractedValues[field]) {
-            document[field] = chunk.extractedValues[field];
+      
+      // Construir documento con todos los campos
+      const document: any = {};
+      
+      // Agregar todos los campos que el usuario editó
+      allIndexFields.forEach(fieldInfo => {
+        const value = chunkFieldValues[fieldInfo.name];
+        if (value !== undefined && value !== null && value !== '') {
+          // Convertir según el tipo
+          if (fieldInfo.type === 'integer') {
+            document[fieldInfo.name] = parseInt(String(value), 10);
+          } else if (fieldInfo.type === 'number') {
+            document[fieldInfo.name] = parseFloat(String(value));
+          } else if (fieldInfo.type === 'boolean') {
+            document[fieldInfo.name] = String(value).toLowerCase() === 'true' || value === true || value === 1;
+          } else if (fieldInfo.type === 'array' || fieldInfo.type === 'object') {
+            try {
+              document[fieldInfo.name] = typeof value === 'string' ? JSON.parse(value) : value;
+            } catch {
+              document[fieldInfo.name] = value;
+            }
           } else {
-            // Extraer del texto del chunk actual
-            const extractedValue = extractFieldValue(chunk.text, field);
-            if (extractedValue) {
-              document[field] = extractedValue;
+            document[fieldInfo.name] = String(value);
+          }
+        } else if (fieldInfo.required || requiredFields.some(rf => rf.field === fieldInfo.name)) {
+          // Si es requerido y está vacío, intentar extraer del texto
+          const extractedValue = extractFieldValue(chunk.text, fieldInfo.name);
+          if (extractedValue) {
+            document[fieldInfo.name] = extractedValue;
+          } else {
+            // Si no se puede extraer, usar valor por defecto según tipo
+            if (fieldInfo.type === 'integer' || fieldInfo.type === 'number') {
+              document[fieldInfo.name] = 0;
+            } else if (fieldInfo.type === 'boolean') {
+              document[fieldInfo.name] = false;
+            } else if (fieldInfo.type === 'array') {
+              document[fieldInfo.name] = [];
+            } else if (fieldInfo.type === 'object') {
+              document[fieldInfo.name] = {};
             } else {
-              // Si no se puede extraer, usar un valor por defecto vacío o el nombre del campo
-              document[field] = '';
+              document[fieldInfo.name] = '';
             }
           }
         }
@@ -1099,7 +1220,7 @@ export default function AdminConocimiento() {
                             />
                             {fieldData.value && (
                               <p className="text-xs text-green-600 mt-1">
-                                ✓ Valor configurado: "{fieldData.value}"
+                                ✓ Valor configurado: &quot;{fieldData.value}&quot;
                               </p>
                             )}
                           </div>
@@ -1117,25 +1238,30 @@ export default function AdminConocimiento() {
                       Verificación Final de Chunks
                     </h3>
                     <p className="text-sm text-gray-600 mb-4">
-                      Revisa todos los chunks que se crearán en el índice <strong>{selectedIndex?.uid}</strong>.
+                      Revisa y edita todos los campos de cada chunk antes de enviarlos al índice <strong>{selectedIndex?.uid}</strong>.
                     </p>
                     
-                    {/* Mostrar chunks con su estado de progreso */}
+                    {/* Mostrar chunks con todos sus campos editables */}
                     <div className="space-y-4 max-h-96 overflow-y-auto">
                       {preparedChunks.map((chunk, index) => {
                         const progress = uploadProgress.find(p => p.chunkIndex === index);
+                        const chunkFieldValues = chunkFields[index] || {
+                          [selectedIdField]: chunk.id,
+                          [selectedTextField]: chunk.text
+                        };
+                        
                         return (
-                          <div key={index} className={`p-4 border rounded-lg ${
+                          <div key={index} className={`p-4 border-2 rounded-lg ${
                             progress?.status === 'succeeded' ? 'bg-green-50 border-green-300' :
                             progress?.status === 'failed' ? 'bg-red-50 border-red-300' :
                             progress?.status === 'processing' ? 'bg-yellow-50 border-yellow-300' :
                             progress?.status === 'pending' ? 'bg-blue-50 border-blue-300' :
-                            'bg-gray-50 border-gray-200'
+                            'bg-white border-gray-300'
                           }`}>
-                            <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <p className="text-xs font-medium text-gray-500">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <p className="text-sm font-semibold text-gray-800">
                                     Chunk {index + 1} de {preparedChunks.length}
                                   </p>
                                   {progress && (
@@ -1145,16 +1271,13 @@ export default function AdminConocimiento() {
                                       progress.status === 'processing' ? 'bg-yellow-500 text-white' :
                                       'bg-blue-500 text-white'
                                     }`}>
-                                      {progress.status === 'succeeded' ? '✓ Enviado y Completado' :
+                                      {progress.status === 'succeeded' ? '✓ Enviado' :
                                        progress.status === 'failed' ? '✗ Error' :
                                        progress.status === 'processing' ? '⏳ Procesando' :
                                        '⏱ Pendiente'}
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-sm font-semibold text-gray-800 mb-2">
-                                  <span className="text-gray-500">{selectedIdField}:</span> {chunk.id}
-                                </p>
                                 {progress && progress.taskUid > 0 && (
                                   <p className="text-xs text-gray-600 mb-1">
                                     <strong>Task UID:</strong> {progress.taskUid}
@@ -1171,27 +1294,98 @@ export default function AdminConocimiento() {
                                 )}
                               </div>
                             </div>
-                            <div>
-                              <p className="text-xs font-medium text-gray-500 mb-1">
-                                {selectedTextField}:
-                              </p>
-                              <p className="text-sm text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto bg-white p-2 rounded border">
-                                {chunk.text.substring(0, 200)}{chunk.text.length > 200 ? '...' : ''}
-                              </p>
-                              {chunk.text.length > 200 && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  ({chunk.text.length} caracteres en total)
-                                </p>
-                              )}
+
+                            {/* Campos editables del chunk */}
+                            <div className="space-y-3 mt-4 border-t border-gray-200 pt-3">
+                              <h4 className="text-xs font-semibold text-gray-700 mb-2">
+                                Campos del Documento:
+                              </h4>
+                              {allIndexFields.map((fieldInfo) => {
+                                const fieldValue = chunkFieldValues[fieldInfo.name] || '';
+                                const validation = validateFieldType(fieldValue, fieldInfo.type);
+                                const isRequired = fieldInfo.required || requiredFields.some(rf => rf.field === fieldInfo.name);
+                                
+                                return (
+                                  <div key={fieldInfo.name} className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <label className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                                        {fieldInfo.name}
+                                        {isRequired && (
+                                          <span className="text-red-500 font-bold" title="Campo obligatorio">*</span>
+                                        )}
+                                        <span className="text-gray-400 text-xs font-normal">
+                                          ({fieldInfo.type})
+                                        </span>
+                                      </label>
+                                    </div>
+                                    {fieldInfo.name === selectedTextField && fieldInfo.type === 'string' ? (
+                                      <textarea
+                                        value={fieldValue}
+                                        onChange={(e) => {
+                                          setChunkFields(prev => ({
+                                            ...prev,
+                                            [index]: {
+                                              ...prev[index],
+                                              [fieldInfo.name]: e.target.value
+                                            }
+                                          }));
+                                        }}
+                                        className={`w-full px-3 py-2 text-xs border rounded-lg ${
+                                          !validation.valid ? 'border-red-500 bg-red-50' :
+                                          isRequired && !fieldValue ? 'border-yellow-500 bg-yellow-50' :
+                                          'border-gray-300 bg-white'
+                                        }`}
+                                        rows={3}
+                                        placeholder={isRequired ? `Campo obligatorio (${fieldInfo.type})` : `Campo opcional (${fieldInfo.type})`}
+                                      />
+                                    ) : (
+                                      <input
+                                        type={fieldInfo.type === 'number' || fieldInfo.type === 'integer' ? 'number' : 'text'}
+                                        value={fieldValue}
+                                        onChange={(e) => {
+                                          let value: any = e.target.value;
+                                          if (fieldInfo.type === 'number' || fieldInfo.type === 'integer') {
+                                            value = e.target.value === '' ? '' : (fieldInfo.type === 'integer' ? parseInt(value, 10) : parseFloat(value));
+                                          } else if (fieldInfo.type === 'boolean') {
+                                            value = e.target.value === 'true' || e.target.value === '1';
+                                          }
+                                          
+                                          setChunkFields(prev => ({
+                                            ...prev,
+                                            [index]: {
+                                              ...prev[index],
+                                              [fieldInfo.name]: value
+                                            }
+                                          }));
+                                        }}
+                                        className={`w-full px-3 py-2 text-xs border rounded-lg ${
+                                          !validation.valid ? 'border-red-500 bg-red-50' :
+                                          isRequired && !fieldValue ? 'border-yellow-500 bg-yellow-50' :
+                                          'border-gray-300 bg-white'
+                                        }`}
+                                        placeholder={isRequired ? `Campo obligatorio (${fieldInfo.type})` : `Campo opcional (${fieldInfo.type})`}
+                                      />
+                                    )}
+                                    {!validation.valid && (
+                                      <p className="text-xs text-red-600">
+                                        ⚠️ {validation.error}
+                                      </p>
+                                    )}
+                                    {isRequired && !fieldValue && !progress && (
+                                      <p className="text-xs text-yellow-600">
+                                        ⚠️ Este campo es obligatorio
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
+
                             {progress && progress.status === 'failed' && (
                               <div className="mt-3 p-3 bg-red-100 border border-red-300 rounded text-xs text-red-800">
                                 <strong>❌ Error al procesar:</strong>
                                 <div className="mt-1 font-mono text-xs bg-red-200 p-2 rounded break-words">
                                   {progress.message}
-                                </div>
-                                <div className="mt-2 pt-2 border-t border-red-300">
-                                  <strong>Motivo:</strong> El embedder del índice requiere el campo <code className="bg-red-200 px-1 rounded">producto</code> en el <code>documentTemplate</code>, pero solo se están enviando los campos <code className="bg-red-200 px-1 rounded">{selectedIdField}</code> y <code className="bg-red-200 px-1 rounded">{selectedTextField}</code>.
                                 </div>
                               </div>
                             )}
