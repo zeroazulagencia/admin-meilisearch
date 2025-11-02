@@ -166,6 +166,12 @@ export const meilisearchAPI = {
   async updateEmbedders(uid: string, embedders: Record<string, any>): Promise<any> {
     const response = await api.patch(`/indexes/${uid}/settings/embedders`, embedders);
     return response.data;
+  },
+
+  // Obtener estado de una task
+  async getTask(uid: number): Promise<any> {
+    const response = await api.get(`/tasks/${uid}`);
+    return response.data;
   }
 };
 

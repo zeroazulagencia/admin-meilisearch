@@ -33,6 +33,13 @@ export default function AdminConocimiento() {
   const [selectedIdField, setSelectedIdField] = useState<string>('');
   const [selectedTextField, setSelectedTextField] = useState<string>('');
   const [preparedChunks, setPreparedChunks] = useState<Array<{ id: string; text: string }>>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Array<{
+    chunkIndex: number;
+    taskUid: number;
+    status: 'pending' | 'processing' | 'succeeded' | 'failed';
+    message: string;
+  }>>([]);
   
   // Calcular cantidad de chunks basado en el símbolo [separador]
   const calculateChunks = (text: string): number => {
@@ -92,6 +99,156 @@ export default function AdminConocimiento() {
     });
     
     setPreparedChunks(chunksWithIds);
+  };
+
+  // Subir chunks a Meilisearch uno por uno
+  const uploadChunks = async () => {
+    if (!selectedIndex || preparedChunks.length === 0) return;
+
+    setUploading(true);
+    setUploadProgress([]);
+
+    for (let i = 0; i < preparedChunks.length; i++) {
+      const chunk = preparedChunks[i];
+      
+      // Crear documento con los campos seleccionados
+      const document: any = {
+        [selectedIdField]: chunk.id,
+        [selectedTextField]: chunk.text
+      };
+
+      try {
+        // Inicializar progreso
+        setUploadProgress(prev => [...prev, {
+          chunkIndex: i,
+          taskUid: 0,
+          status: 'pending',
+          message: `Creando documento ${i + 1}/${preparedChunks.length}...`
+        }]);
+
+        // Agregar documento a Meilisearch
+        const response = await meilisearchAPI.addDocuments(selectedIndex.uid, [document]);
+        
+        const taskUid = response.taskUid || response.taskUid || 0;
+        
+        // Actualizar progreso con task UID
+        setUploadProgress(prev => {
+          const updated = [...prev];
+          updated[i] = {
+            chunkIndex: i,
+            taskUid,
+            status: 'processing',
+            message: `Task ${taskUid} generada. Consultando estado...`
+          };
+          return updated;
+        });
+
+        // Consultar estado de la task cada 3 segundos hasta completar
+        if (taskUid > 0) {
+          await checkTaskStatus(i, taskUid);
+        } else {
+          // Si no hay taskUid, asumir éxito
+          setUploadProgress(prev => {
+            const updated = [...prev];
+            updated[i] = {
+              ...updated[i],
+              status: 'succeeded',
+              message: 'Documento creado exitosamente'
+            };
+            return updated;
+          });
+        }
+      } catch (error: any) {
+        console.error(`[PDF-UPLOAD] Error subiendo chunk ${i + 1}:`, error);
+        setUploadProgress(prev => {
+          const updated = [...prev];
+          updated[i] = {
+            ...updated[i],
+            status: 'failed',
+            message: `Error: ${error.message || 'Error desconocido'}`
+          };
+          return updated;
+        });
+      }
+    }
+
+    setUploading(false);
+  };
+
+  // Consultar estado de una task cada 3 segundos
+  const checkTaskStatus = async (chunkIndex: number, taskUid: number, maxAttempts: number = 60) => {
+    let attempts = 0;
+
+    const checkInterval = setInterval(async () => {
+      try {
+        attempts++;
+        const task = await meilisearchAPI.getTask(taskUid);
+        
+        const status = task.status || task.state || 'unknown';
+        
+        if (status === 'succeeded' || status === 'taskSucceeded') {
+          clearInterval(checkInterval);
+          setUploadProgress(prev => {
+            const updated = [...prev];
+            updated[chunkIndex] = {
+              ...updated[chunkIndex],
+              status: 'succeeded',
+              message: 'Documento procesado exitosamente'
+            };
+            return updated;
+          });
+        } else if (status === 'failed' || status === 'taskFailed') {
+          clearInterval(checkInterval);
+          const error = task.error || 'Error desconocido';
+          setUploadProgress(prev => {
+            const updated = [...prev];
+            updated[chunkIndex] = {
+              ...updated[chunkIndex],
+              status: 'failed',
+              message: `Error: ${typeof error === 'string' ? error : JSON.stringify(error)}`
+            };
+            return updated;
+          });
+        } else {
+          // Actualizar mensaje mientras procesa
+          setUploadProgress(prev => {
+            const updated = [...prev];
+            updated[chunkIndex] = {
+              ...updated[chunkIndex],
+              status: 'processing',
+              message: `Procesando... (intento ${attempts}/${maxAttempts})`
+            };
+            return updated;
+          });
+        }
+
+        // Si excede máximo de intentos, detener
+        if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          setUploadProgress(prev => {
+            const updated = [...prev];
+            updated[chunkIndex] = {
+              ...updated[chunkIndex],
+              status: 'failed',
+              message: 'Tiempo de espera agotado'
+            };
+            return updated;
+          });
+        }
+      } catch (error: any) {
+        console.error(`[PDF-UPLOAD] Error consultando task ${taskUid}:`, error);
+        clearInterval(checkInterval);
+        setUploadProgress(prev => {
+          const updated = [...prev];
+          updated[chunkIndex] = {
+            ...updated[chunkIndex],
+            status: 'failed',
+            message: `Error consultando task: ${error.message || 'Error desconocido'}`
+          };
+          return updated;
+        });
+      }
+    }, 3000); // Consultar cada 3 segundos
   };
 
   // Agregar separador en la posición del cursor
@@ -450,12 +607,42 @@ export default function AdminConocimiento() {
                       Haz clic en el botón &quot;Agregar Separador&quot; para insertar <code className="bg-gray-100 px-1 py-0.5 rounded">[separador]</code> en la posición del cursor. 
                       Cada <code className="bg-gray-100 px-1 py-0.5 rounded">[separador]</code> indica un punto de división entre chunks.
                     </p>
-                    <textarea
-                      ref={textareaRef}
-                      value={pdfText}
-                      onChange={(e) => setPdfText(e.target.value)}
-                      className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <div className="relative">
+                      <textarea
+                        ref={textareaRef}
+                        value={pdfText}
+                        onChange={(e) => setPdfText(e.target.value)}
+                        className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        style={{ color: 'transparent', caretColor: '#000' }}
+                      />
+                      {/* Vista previa con separadores resaltados */}
+                      <div 
+                        className="absolute inset-0 pointer-events-none px-4 py-2 text-sm font-mono whitespace-pre-wrap break-words overflow-auto"
+                        style={{ 
+                          zIndex: 1,
+                          background: 'white',
+                          color: '#000'
+                        }}
+                      >
+                        {pdfText.split('[separador]').map((part, index, array) => (
+                          <span key={index}>
+                            {part}
+                            {index < array.length - 1 && (
+                              <span className="bg-blue-500 text-white font-bold px-1 rounded">[separador]</span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Indicador visual de separadores */}
+                    <div className="mt-2 text-xs text-gray-500">
+                      {pdfText.split('[separador]').length - 1 > 0 && (
+                        <p className="text-blue-600">
+                          {pdfText.split('[separador]').length - 1} separador(es) detectado(s) - 
+                          <span className="bg-blue-500 text-white font-bold px-1 rounded font-mono">[separador]</span> resaltado en azul
+                        </p>
+                      )}
+                    </div>
                     <p className="mt-2 text-xs text-gray-600">
                       Chunks detectados: <strong>{calculateChunks(pdfText)}</strong> {calculateChunks(pdfText) === 1 ? 'chunk' : 'chunks'} 
                       ({pdfText.match(/\[separador\]/g)?.length || 0} separadores <code className="bg-gray-100 px-1 py-0.5 rounded">[separador]</code>)
@@ -520,41 +707,76 @@ export default function AdminConocimiento() {
                     Revisa todos los chunks que se crearán en el índice <strong>{selectedIndex?.uid}</strong>.
                   </p>
                   
-                  <div className="space-y-4 max-h-96 overflow-y-auto">
-                    {preparedChunks.map((chunk, index) => (
-                      <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <p className="text-xs font-medium text-gray-500 mb-1">
-                              Chunk {index + 1} de {preparedChunks.length}
-                            </p>
-                            <p className="text-sm font-semibold text-gray-800 mb-2">
-                              <span className="text-gray-500">{selectedIdField}:</span> {chunk.id}
-                            </p>
+                  {!uploading && (
+                    <>
+                      <div className="space-y-4 max-h-96 overflow-y-auto">
+                        {preparedChunks.map((chunk, index) => (
+                          <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <p className="text-xs font-medium text-gray-500 mb-1">
+                                  Chunk {index + 1} de {preparedChunks.length}
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800 mb-2">
+                                  <span className="text-gray-500">{selectedIdField}:</span> {chunk.id}
+                                </p>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 mb-1">
+                                {selectedTextField}:
+                              </p>
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto bg-white p-2 rounded border">
+                                {chunk.text.substring(0, 200)}{chunk.text.length > 200 ? '...' : ''}
+                              </p>
+                              {chunk.text.length > 200 && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  ({chunk.text.length} caracteres en total)
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-gray-500 mb-1">
-                            {selectedTextField}:
-                          </p>
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto bg-white p-2 rounded border">
-                            {chunk.text.substring(0, 200)}{chunk.text.length > 200 ? '...' : ''}
-                          </p>
-                          {chunk.text.length > 200 && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              ({chunk.text.length} caracteres en total)
-                            </p>
+                        ))}
+                      </div>
+                      
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          <strong>Resumen:</strong> Se crearán {preparedChunks.length} {preparedChunks.length === 1 ? 'documento' : 'documentos'} en el índice.
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Log de progreso de subida */}
+                  {uploading && (
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      <h4 className="text-md font-semibold text-gray-800">Progreso de Subida</h4>
+                      {uploadProgress.map((progress, idx) => (
+                        <div key={idx} className="p-3 border rounded-lg bg-gray-50">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-gray-700">
+                              Chunk {progress.chunkIndex + 1}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              progress.status === 'succeeded' ? 'bg-green-100 text-green-800' :
+                              progress.status === 'failed' ? 'bg-red-100 text-red-800' :
+                              progress.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {progress.status === 'succeeded' ? '✓ Completado' :
+                               progress.status === 'failed' ? '✗ Error' :
+                               progress.status === 'processing' ? '⏳ Procesando' :
+                               '⏱ Pendiente'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600">{progress.message}</p>
+                          {progress.taskUid && (
+                            <p className="text-xs text-gray-500 mt-1">Task UID: {progress.taskUid}</p>
                           )}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">
-                      <strong>Resumen:</strong> Se crearán {preparedChunks.length} {preparedChunks.length === 1 ? 'documento' : 'documentos'} en el índice.
-                    </p>
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -577,7 +799,7 @@ export default function AdminConocimiento() {
               </button>
               {pdfText && !pdfText.includes('Error:') && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (pdfStep === 'text') {
                       // Paso 1: Ir al paso de selección de campos
                       loadIndexFields();
@@ -586,12 +808,23 @@ export default function AdminConocimiento() {
                       // Paso 2: Preparar chunks y mostrar verificación
                       prepareChunks();
                       setPdfStep('review');
+                    } else if (pdfStep === 'review' && !uploading) {
+                      // Paso 3: Subir chunks a Meilisearch
+                      await uploadChunks();
                     }
                   }}
-                  disabled={pdfStep === 'fields' && (!selectedIdField || !selectedTextField)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={
+                    (pdfStep === 'fields' && (!selectedIdField || !selectedTextField)) ||
+                    uploading
+                  }
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {pdfStep === 'text' ? 'Siguiente' : pdfStep === 'fields' ? 'Verificar Chunks' : 'Finalizar'}
+                  {uploading && (
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  )}
+                  {pdfStep === 'text' ? 'Siguiente' : 
+                   pdfStep === 'fields' ? 'Verificar Chunks' : 
+                   uploading ? 'Subiendo...' : 'Finalizar'}
                 </button>
               )}
             </div>
