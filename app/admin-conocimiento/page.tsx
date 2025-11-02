@@ -24,6 +24,8 @@ export default function AdminConocimiento() {
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [pdfText, setPdfText] = useState<string>('');
   const [loadingPdf, setLoadingPdf] = useState(false);
+  const [pdfIdPrefix, setPdfIdPrefix] = useState<string>('');
+  const [pdfChunks, setPdfChunks] = useState<number>(1);
 
   const loadAgentIndexes = async () => {
     if (!selectedAgent?.knowledge?.indexes) {
@@ -330,6 +332,68 @@ export default function AdminConocimiento() {
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-800 text-sm">{pdfText}</p>
                 </div>
+              )}
+
+              {pdfText && !pdfText.includes('Error:') && (
+                <div className="mt-6 space-y-4 border-t border-gray-200 pt-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prefijo del ID para Meilisearch
+                    </label>
+                    <input
+                      type="text"
+                      value={pdfIdPrefix}
+                      onChange={(e) => setPdfIdPrefix(e.target.value)}
+                      placeholder="Ej: pdf-doc-"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Cantidad de chunks (partes)
+                    </label>
+                    <input
+                      type="number"
+                      value={pdfChunks}
+                      onChange={(e) => setPdfChunks(Math.max(1, parseInt(e.target.value) || 1))}
+                      min="1"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      El texto se dividirá en {pdfChunks} {pdfChunks === 1 ? 'parte' : 'partes'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowPdfModal(false);
+                  setPdfText('');
+                  setPdfIdPrefix('');
+                  setPdfChunks(1);
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              {pdfText && !pdfText.includes('Error:') && (
+                <button
+                  onClick={() => {
+                    // Sin funcionalidad por ahora
+                    console.log('[PDF-UPLOAD] Botón Siguiente clickeado', {
+                      idPrefix: pdfIdPrefix,
+                      chunks: pdfChunks,
+                      textLength: pdfText.length
+                    });
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Siguiente
+                </button>
               )}
             </div>
           </div>
