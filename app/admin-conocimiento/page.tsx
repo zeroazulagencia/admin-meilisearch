@@ -27,11 +27,71 @@ export default function AdminConocimiento() {
   const [pdfIdPrefix, setPdfIdPrefix] = useState<string>('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
+  // Estados para los pasos del modal PDF
+  const [pdfStep, setPdfStep] = useState<'text' | 'fields' | 'review'>('text');
+  const [indexFields, setIndexFields] = useState<string[]>([]);
+  const [selectedIdField, setSelectedIdField] = useState<string>('');
+  const [selectedTextField, setSelectedTextField] = useState<string>('');
+  const [preparedChunks, setPreparedChunks] = useState<Array<{ id: string; text: string }>>([]);
+  
   // Calcular cantidad de chunks basado en el símbolo [separador]
   const calculateChunks = (text: string): number => {
     if (!text || text.trim().length === 0) return 1;
     const separators = (text.match(/\[separador\]/g) || []).length;
     return separators + 1; // Si hay n separadores, hay n+1 chunks
+  };
+
+  // Cargar campos del índice desde un documento de ejemplo
+  const loadIndexFields = async () => {
+    if (!selectedIndex) return;
+    
+    try {
+      // Obtener un documento de ejemplo para ver la estructura
+      const documents = await meilisearchAPI.getDocuments(selectedIndex.uid, 1, 0);
+      if (documents.results.length > 0) {
+        const sampleDoc = documents.results[0];
+        const fields = Object.keys(sampleDoc);
+        setIndexFields(fields);
+        // Seleccionar primeros campos por defecto si existen
+        if (fields.length > 0) {
+          setSelectedIdField(fields[0]);
+          if (fields.length > 1) {
+            setSelectedTextField(fields[1]);
+          } else {
+            setSelectedTextField(fields[0]);
+          }
+        }
+      } else {
+        // Si no hay documentos, usar campos comunes
+        const commonFields = ['id', 'text', 'content', 'title', 'body'];
+        setIndexFields(commonFields);
+        setSelectedIdField(commonFields[0]);
+        setSelectedTextField(commonFields[1] || commonFields[0]);
+      }
+    } catch (error) {
+      console.error('[PDF-UPLOAD] Error cargando campos del índice:', error);
+      // Campos por defecto
+      const defaultFields = ['id', 'text', 'content'];
+      setIndexFields(defaultFields);
+      setSelectedIdField(defaultFields[0]);
+      setSelectedTextField(defaultFields[1]);
+    }
+  };
+
+  // Dividir texto en chunks y generar IDs
+  const prepareChunks = () => {
+    if (!pdfText || pdfText.includes('Error:')) return;
+    
+    // Dividir por [separador]
+    const chunks = pdfText.split('[separador]').map(chunk => chunk.trim()).filter(chunk => chunk.length > 0);
+    
+    // Generar IDs para cada chunk
+    const chunksWithIds = chunks.map((text, index) => {
+      const id = pdfIdPrefix ? `${pdfIdPrefix}${Date.now()}-${index + 1}` : `chunk-${Date.now()}-${index + 1}`;
+      return { id, text };
+    });
+    
+    setPreparedChunks(chunksWithIds);
   };
 
   // Agregar separador en la posición del cursor
@@ -357,7 +417,8 @@ export default function AdminConocimiento() {
                 </div>
               )}
 
-              {pdfText && !pdfText.includes('Error:') && (
+              {/* Paso 1: Edición de texto */}
+              {pdfStep === 'text' && pdfText && !pdfText.includes('Error:') && (
                 <div className="mt-6 space-y-4 border-t border-gray-200 pt-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -402,6 +463,100 @@ export default function AdminConocimiento() {
                   </div>
                 </div>
               )}
+
+              {/* Paso 2: Selección de campos */}
+              {pdfStep === 'fields' && (
+                <div className="mt-6 space-y-4 border-t border-gray-200 pt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Seleccionar Campos del Índice
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Elige qué campos del índice <strong>{selectedIndex?.uid}</strong> se usarán para el ID y el texto del chunk.
+                  </p>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Campo para el ID
+                    </label>
+                    <select
+                      value={selectedIdField}
+                      onChange={(e) => setSelectedIdField(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {indexFields.map((field) => (
+                        <option key={field} value={field}>
+                          {field}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Campo para el Texto del Chunk
+                    </label>
+                    <select
+                      value={selectedTextField}
+                      onChange={(e) => setSelectedTextField(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {indexFields.map((field) => (
+                        <option key={field} value={field}>
+                          {field}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Paso 3: Verificación final */}
+              {pdfStep === 'review' && (
+                <div className="mt-6 space-y-4 border-t border-gray-200 pt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Verificación Final de Chunks
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Revisa todos los chunks que se crearán en el índice <strong>{selectedIndex?.uid}</strong>.
+                  </p>
+                  
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {preparedChunks.map((chunk, index) => (
+                      <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-gray-500 mb-1">
+                              Chunk {index + 1} de {preparedChunks.length}
+                            </p>
+                            <p className="text-sm font-semibold text-gray-800 mb-2">
+                              <span className="text-gray-500">{selectedIdField}:</span> {chunk.id}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 mb-1">
+                            {selectedTextField}:
+                          </p>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto bg-white p-2 rounded border">
+                            {chunk.text.substring(0, 200)}{chunk.text.length > 200 ? '...' : ''}
+                          </p>
+                          {chunk.text.length > 200 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              ({chunk.text.length} caracteres en total)
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Resumen:</strong> Se crearán {preparedChunks.length} {preparedChunks.length === 1 ? 'documento' : 'documentos'} en el índice.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
@@ -410,6 +565,11 @@ export default function AdminConocimiento() {
                   setShowPdfModal(false);
                   setPdfText('');
                   setPdfIdPrefix('');
+                  setPdfStep('text');
+                  setIndexFields([]);
+                  setSelectedIdField('');
+                  setSelectedTextField('');
+                  setPreparedChunks([]);
                 }}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
@@ -418,18 +578,20 @@ export default function AdminConocimiento() {
               {pdfText && !pdfText.includes('Error:') && (
                 <button
                   onClick={() => {
-                    // Sin funcionalidad por ahora
-                    const chunks = calculateChunks(pdfText);
-                    console.log('[PDF-UPLOAD] Botón Siguiente clickeado', {
-                      idPrefix: pdfIdPrefix,
-                      chunks: chunks,
-                      textLength: pdfText.length,
-                      separators: pdfText.match(/\[separador\]/g)?.length || 0
-                    });
+                    if (pdfStep === 'text') {
+                      // Paso 1: Ir al paso de selección de campos
+                      loadIndexFields();
+                      setPdfStep('fields');
+                    } else if (pdfStep === 'fields') {
+                      // Paso 2: Preparar chunks y mostrar verificación
+                      prepareChunks();
+                      setPdfStep('review');
+                    }
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={pdfStep === 'fields' && (!selectedIdField || !selectedTextField)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Siguiente
+                  {pdfStep === 'text' ? 'Siguiente' : pdfStep === 'fields' ? 'Verificar Chunks' : 'Finalizar'}
                 </button>
               )}
             </div>
