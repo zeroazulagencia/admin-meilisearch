@@ -939,29 +939,65 @@ export default function AdminConocimiento() {
                 </div>
               )}
 
-              {/* Paso 3: Verificación final */}
-              {pdfStep === 'review' && (
-                <div className="mt-6 space-y-4 border-t border-gray-200 pt-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    Verificación Final de Chunks
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Revisa todos los chunks que se crearán en el índice <strong>{selectedIndex?.uid}</strong>.
-                  </p>
-                  
-                  {!uploading && (
-                    <>
-                      <div className="space-y-4 max-h-96 overflow-y-auto">
-                        {preparedChunks.map((chunk, index) => (
-                          <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                {/* Paso 3: Verificación final */}
+                {pdfStep === 'review' && (
+                  <div className="mt-6 space-y-4 border-t border-gray-200 pt-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                      Verificación Final de Chunks
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Revisa todos los chunks que se crearán en el índice <strong>{selectedIndex?.uid}</strong>.
+                    </p>
+                    
+                    {/* Mostrar chunks con su estado de progreso */}
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {preparedChunks.map((chunk, index) => {
+                        const progress = uploadProgress.find(p => p.chunkIndex === index);
+                        return (
+                          <div key={index} className={`p-4 border rounded-lg ${
+                            progress?.status === 'succeeded' ? 'bg-green-50 border-green-300' :
+                            progress?.status === 'failed' ? 'bg-red-50 border-red-300' :
+                            progress?.status === 'processing' ? 'bg-yellow-50 border-yellow-300' :
+                            progress?.status === 'pending' ? 'bg-blue-50 border-blue-300' :
+                            'bg-gray-50 border-gray-200'
+                          }`}>
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1">
-                                <p className="text-xs font-medium text-gray-500 mb-1">
-                                  Chunk {index + 1} de {preparedChunks.length}
-                                </p>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="text-xs font-medium text-gray-500">
+                                    Chunk {index + 1} de {preparedChunks.length}
+                                  </p>
+                                  {progress && (
+                                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                                      progress.status === 'succeeded' ? 'bg-green-500 text-white' :
+                                      progress.status === 'failed' ? 'bg-red-500 text-white' :
+                                      progress.status === 'processing' ? 'bg-yellow-500 text-white' :
+                                      'bg-blue-500 text-white'
+                                    }`}>
+                                      {progress.status === 'succeeded' ? '✓ Enviado y Completado' :
+                                       progress.status === 'failed' ? '✗ Error' :
+                                       progress.status === 'processing' ? '⏳ Procesando' :
+                                       '⏱ Pendiente'}
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-sm font-semibold text-gray-800 mb-2">
                                   <span className="text-gray-500">{selectedIdField}:</span> {chunk.id}
                                 </p>
+                                {progress && progress.taskUid > 0 && (
+                                  <p className="text-xs text-gray-600 mb-1">
+                                    <strong>Task UID:</strong> {progress.taskUid}
+                                  </p>
+                                )}
+                                {progress && (
+                                  <p className={`text-xs mb-2 ${
+                                    progress.status === 'failed' ? 'text-red-700 font-medium' :
+                                    progress.status === 'succeeded' ? 'text-green-700' :
+                                    'text-gray-600'
+                                  }`}>
+                                    <strong>Estado:</strong> {progress.message}
+                                  </p>
+                                )}
                               </div>
                             </div>
                             <div>
@@ -977,88 +1013,78 @@ export default function AdminConocimiento() {
                                 </p>
                               )}
                             </div>
+                            {progress && progress.status === 'failed' && (
+                              <div className="mt-3 p-3 bg-red-100 border border-red-300 rounded text-xs text-red-800">
+                                <strong>❌ Error al procesar:</strong>
+                                <div className="mt-1 font-mono text-xs bg-red-200 p-2 rounded break-words">
+                                  {progress.message}
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-red-300">
+                                  <strong>Motivo:</strong> El embedder del índice requiere el campo <code className="bg-red-200 px-1 rounded">producto</code> en el <code>documentTemplate</code>, pero solo se están enviando los campos <code className="bg-red-200 px-1 rounded">{selectedIdField}</code> y <code className="bg-red-200 px-1 rounded">{selectedTextField}</code>.
+                                </div>
+                              </div>
+                            )}
+                            {progress && progress.status === 'succeeded' && (
+                              <div className="mt-3 p-2 bg-green-100 border border-green-300 rounded text-xs text-green-800">
+                                <strong>✓ Éxito:</strong> El documento fue creado correctamente en el índice.
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                      
+                        );
+                      })}
+                    </div>
+                    
+                    {!uploading && uploadProgress.length === 0 && (
                       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <p className="text-sm text-blue-800">
                           <strong>Resumen:</strong> Se crearán {preparedChunks.length} {preparedChunks.length === 1 ? 'documento' : 'documentos'} en el índice.
                         </p>
                       </div>
-                    </>
-                  )}
+                    )}
 
-                  {/* Log de progreso de subida - siempre visible si hay progreso */}
-                  {uploadProgress.length > 0 && (
-                    <div className="space-y-3 max-h-96 overflow-y-auto border-t border-gray-200 pt-4 mt-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-md font-semibold text-gray-800">
-                          Progreso de Subida
-                          {uploading && <span className="ml-2 text-sm text-gray-500 font-normal">(en proceso...)</span>}
-                          {!uploading && uploadProgress.every(p => p.status === 'succeeded' || p.status === 'failed') && (
-                            <span className="ml-2 text-sm text-gray-500 font-normal">(completado)</span>
-                          )}
-                        </h4>
-                        {!uploading && (
-                          <button
-                            onClick={() => {
-                              setUploadProgress([]);
-                              setPreparedChunks([]);
-                              setPdfStep('text');
-                              setPdfText('');
-                              setPdfIdPrefix('');
-                            }}
-                            className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                          >
-                            Limpiar progreso
-                          </button>
+                    {/* Resumen del progreso */}
+                    {uploadProgress.length > 0 && (
+                      <div className={`p-4 border rounded-lg ${
+                        uploadProgress.every(p => p.status === 'succeeded') ? 'bg-green-50 border-green-300' :
+                        uploadProgress.some(p => p.status === 'failed') ? 'bg-red-50 border-red-300' :
+                        'bg-yellow-50 border-yellow-300'
+                      }`}>
+                        <div className="grid grid-cols-3 gap-3 mb-2">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-700">
+                              {uploadProgress.filter(p => p.status === 'succeeded').length}
+                            </div>
+                            <div className="text-xs text-green-600">Exitosos</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-red-700">
+                              {uploadProgress.filter(p => p.status === 'failed').length}
+                            </div>
+                            <div className="text-xs text-red-600">Errores</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-yellow-700">
+                              {uploadProgress.filter(p => p.status === 'processing' || p.status === 'pending').length}
+                            </div>
+                            <div className="text-xs text-yellow-600">Procesando</div>
+                          </div>
+                        </div>
+                        {uploading && (
+                          <p className="text-sm text-center text-gray-600 mt-2">
+                            ⏳ Subiendo chunks... Por favor espera.
+                          </p>
+                        )}
+                        {!uploading && uploadProgress.every(p => p.status === 'succeeded' || p.status === 'failed') && (
+                          <p className="text-sm text-center text-gray-600 mt-2">
+                            {uploadProgress.every(p => p.status === 'succeeded') 
+                              ? '✅ Todos los chunks se procesaron exitosamente'
+                              : '⚠️ Algunos chunks tuvieron errores. Revisa los detalles arriba.'}
+                          </p>
                         )}
                       </div>
-                      {uploadProgress.map((progress, idx) => (
-                        <div key={idx} className={`p-3 border rounded-lg ${
-                          progress.status === 'succeeded' ? 'bg-green-50 border-green-200' :
-                          progress.status === 'failed' ? 'bg-red-50 border-red-200' :
-                          progress.status === 'processing' ? 'bg-yellow-50 border-yellow-200' :
-                          'bg-gray-50 border-gray-200'
-                        }`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-gray-700">
-                              Chunk {progress.chunkIndex + 1} de {preparedChunks.length}
-                            </span>
-                            <span className={`text-xs px-2 py-1 rounded font-medium ${
-                              progress.status === 'succeeded' ? 'bg-green-500 text-white' :
-                              progress.status === 'failed' ? 'bg-red-500 text-white' :
-                              progress.status === 'processing' ? 'bg-yellow-500 text-white' :
-                              'bg-gray-500 text-white'
-                            }`}>
-                              {progress.status === 'succeeded' ? '✓ Completado' :
-                               progress.status === 'failed' ? '✗ Error' :
-                               progress.status === 'processing' ? '⏳ Procesando' :
-                               '⏱ Pendiente'}
-                            </span>
-                          </div>
-                          <p className={`text-xs ${
-                            progress.status === 'failed' ? 'text-red-700 font-medium' :
-                            progress.status === 'succeeded' ? 'text-green-700' :
-                            'text-gray-600'
-                          }`}>
-                            {progress.message}
-                          </p>
-                          {progress.taskUid > 0 && (
-                            <p className="text-xs text-gray-500 mt-1">Task UID: {progress.taskUid}</p>
-                          )}
-                          {progress.status === 'failed' && (
-                            <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-xs text-red-800">
-                              <strong>Detalles del error:</strong> El embedder del índice requiere campos adicionales que no están presentes en el documento. El error indica que el campo <code className="bg-red-200 px-1 rounded">producto</code> es requerido por el <code>documentTemplate</code> del embedder, pero solo se están enviando los campos <code className="bg-red-200 px-1 rounded">{selectedIdField}</code> y <code className="bg-red-200 px-1 rounded">{selectedTextField}</code>. Verifica que el documento incluya todos los campos referenciados en el <code>documentTemplate</code> del embedder o ajusta el template para usar solo los campos disponibles.
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
             </div>
 
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
