@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Index, meilisearchAPI } from '@/utils/meilisearch';
 import IndexProperties from '@/components/IndexProperties';
 import DocumentList from '@/components/DocumentList';
@@ -25,12 +25,34 @@ export default function AdminConocimiento() {
   const [pdfText, setPdfText] = useState<string>('');
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfIdPrefix, setPdfIdPrefix] = useState<string>('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  // Calcular cantidad de chunks basado en el símbolo +++
+  // Calcular cantidad de chunks basado en el símbolo [separador]
   const calculateChunks = (text: string): number => {
     if (!text || text.trim().length === 0) return 1;
-    const separators = (text.match(/\+\+\+/g) || []).length;
+    const separators = (text.match(/\[separador\]/g) || []).length;
     return separators + 1; // Si hay n separadores, hay n+1 chunks
+  };
+
+  // Agregar separador en la posición del cursor
+  const addSeparator = () => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentText = pdfText;
+      
+      // Insertar [separador] en la posición del cursor
+      const newText = currentText.slice(0, start) + '[separador]' + currentText.slice(end);
+      setPdfText(newText);
+      
+      // Restaurar posición del cursor después del separador
+      setTimeout(() => {
+        textarea.focus();
+        const newPosition = start + '[separador]'.length;
+        textarea.setSelectionRange(newPosition, newPosition);
+      }, 0);
+    }
   };
 
   const loadAgentIndexes = async () => {
@@ -344,21 +366,35 @@ export default function AdminConocimiento() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Texto Extraído (editable)
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Texto Extraído (editable)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={addSeparator}
+                        className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                      >
+                        ➕ Agregar Separador
+                      </button>
+                    </div>
                     <p className="mb-2 text-xs text-gray-500">
-                      Usa el símbolo <code className="bg-gray-100 px-1 py-0.5 rounded">+++</code> para separar los chunks. 
-                      Cada <code className="bg-gray-100 px-1 py-0.5 rounded">+++</code> indica un punto de división.
+                      Haz clic en el botón "Agregar Separador" para insertar <code className="bg-gray-100 px-1 py-0.5 rounded">[separador]</code> en la posición del cursor. 
+                      Cada <code className="bg-gray-100 px-1 py-0.5 rounded">[separador]</code> indica un punto de división entre chunks.
                     </p>
                     <textarea
+                      ref={textareaRef}
                       value={pdfText}
                       onChange={(e) => setPdfText(e.target.value)}
+                      onSelect={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        setCursorPosition(target.selectionStart);
+                      }}
                       className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <p className="mt-2 text-xs text-gray-600">
                       Chunks detectados: <strong>{calculateChunks(pdfText)}</strong> {calculateChunks(pdfText) === 1 ? 'chunk' : 'chunks'} 
-                      ({pdfText.match(/\+\+\+/g)?.length || 0} separadores <code className="bg-gray-100 px-1 py-0.5 rounded">+++</code>)
+                      ({pdfText.match(/\[separador\]/g)?.length || 0} separadores <code className="bg-gray-100 px-1 py-0.5 rounded">[separador]</code>)
                     </p>
                   </div>
                 </div>
@@ -385,7 +421,7 @@ export default function AdminConocimiento() {
                       idPrefix: pdfIdPrefix,
                       chunks: chunks,
                       textLength: pdfText.length,
-                      separators: pdfText.match(/\+\+\+/g)?.length || 0
+                      separators: pdfText.match(/\[separador\]/g)?.length || 0
                     });
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
