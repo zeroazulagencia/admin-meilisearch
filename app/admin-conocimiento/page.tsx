@@ -32,7 +32,7 @@ export default function AdminConocimiento() {
   const [indexFields, setIndexFields] = useState<string[]>([]);
   const [selectedIdField, setSelectedIdField] = useState<string>('');
   const [selectedTextField, setSelectedTextField] = useState<string>('');
-  const [preparedChunks, setPreparedChunks] = useState<Array<{ id: string; text: string }>>([]);
+  const [preparedChunks, setPreparedChunks] = useState<Array<{ id: string; text: string; extractedValues?: Record<string, string> }>>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Array<{
     chunkIndex: number;
@@ -40,6 +40,8 @@ export default function AdminConocimiento() {
     status: 'pending' | 'processing' | 'succeeded' | 'failed';
     message: string;
   }>>([]);
+  const [requiredFields, setRequiredFields] = useState<Array<{ field: string; value: string }>>([]);
+  const [indexSettings, setIndexSettings] = useState<any>(null);
   
   // Calcular cantidad de chunks basado en el símbolo [separador]
   const calculateChunks = (text: string): number => {
@@ -48,11 +50,75 @@ export default function AdminConocimiento() {
     return separators + 1; // Si hay n separadores, hay n+1 chunks
   };
 
+  // Extraer campos requeridos del documentTemplate del embedder
+  const extractRequiredFields = (documentTemplate: string): string[] => {
+    if (!documentTemplate) return [];
+    const matches = documentTemplate.match(/\{\{doc\.(\w+)\}\}/g);
+    if (!matches) return [];
+    const fields = matches.map(match => match.replace(/\{\{doc\.|\}\}/g, ''));
+    return [...new Set(fields)]; // Eliminar duplicados
+  };
+
+  // Extraer valor de un campo del texto del PDF usando patrones comunes
+  const extractFieldValue = (text: string, fieldName: string): string => {
+    // Intentar extraer valores comunes del PDF
+    const patterns: Record<string, RegExp[]> = {
+      producto: [
+        /PRODUCTO:\s*([^\n]+)/i,
+        /producto:\s*([^\n]+)/i,
+        /Producto:\s*([^\n]+)/i,
+        /\d+\.\d+\.\s*PRODUCTO:\s*([^\n]+)/i
+      ],
+      categoria: [
+        /CATEGORIA:\s*([^\n]+)/i,
+        /categoria:\s*([^\n]+)/i,
+        /Categoría:\s*([^\n]+)/i,
+        /\d+\.\s*CATEGORIA:\s*([^\n]+)/i
+      ]
+    };
+
+    const fieldPatterns = patterns[fieldName.toLowerCase()] || [];
+    for (const pattern of fieldPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+
+    // Si no se encuentra, buscar cualquier línea que contenga el nombre del campo
+    const lines = text.split('\n');
+    for (const line of lines) {
+      if (line.toLowerCase().includes(fieldName.toLowerCase() + ':')) {
+        const match = line.match(new RegExp(`${fieldName}:\\s*([^\\n]+)`, 'i'));
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+      }
+    }
+
+    return '';
+  };
+
   // Cargar campos del índice desde un documento de ejemplo
   const loadIndexFields = async () => {
     if (!selectedIndex) return;
     
     try {
+      // Obtener settings del índice para detectar campos requeridos por el embedder
+      const settings = await meilisearchAPI.getIndexSettings(selectedIndex.uid);
+      setIndexSettings(settings);
+      
+      // Detectar campos requeridos por el embedder
+      const requiredFieldsList: string[] = [];
+      if (settings.embedders && Object.keys(settings.embedders).length > 0) {
+        const embedder = Object.values(settings.embedders)[0] as any;
+        if (embedder.documentTemplate) {
+          const fields = extractRequiredFields(embedder.documentTemplate);
+          requiredFieldsList.push(...fields);
+          console.log('[PDF-UPLOAD] Campos requeridos por embedder:', fields);
+        }
+      }
+
       // Obtener un documento de ejemplo para ver la estructura
       const documents = await meilisearchAPI.getDocuments(selectedIndex.uid, 1, 0);
       if (documents.results.length > 0) {
@@ -68,12 +134,36 @@ export default function AdminConocimiento() {
             setSelectedTextField(fields[0]);
           }
         }
+
+        // Configurar campos requeridos con valores extraídos del PDF si está disponible
+        if (requiredFieldsList.length > 0 && pdfText) {
+          const extractedFields = requiredFieldsList.map(field => ({
+            field,
+            value: extractFieldValue(pdfText, field)
+          }));
+          setRequiredFields(extractedFields);
+          console.log('[PDF-UPLOAD] Campos requeridos con valores extraídos:', extractedFields);
+        } else if (requiredFieldsList.length > 0) {
+          // Si no hay texto PDF aún, inicializar con valores vacíos
+          setRequiredFields(requiredFieldsList.map(field => ({ field, value: '' })));
+        }
       } else {
         // Si no hay documentos, usar campos comunes
         const commonFields = ['id', 'text', 'content', 'title', 'body'];
         setIndexFields(commonFields);
         setSelectedIdField(commonFields[0]);
         setSelectedTextField(commonFields[1] || commonFields[0]);
+
+        // Configurar campos requeridos
+        if (requiredFieldsList.length > 0 && pdfText) {
+          const extractedFields = requiredFieldsList.map(field => ({
+            field,
+            value: extractFieldValue(pdfText, field)
+          }));
+          setRequiredFields(extractedFields);
+        } else if (requiredFieldsList.length > 0) {
+          setRequiredFields(requiredFieldsList.map(field => ({ field, value: '' })));
+        }
       }
     } catch (error) {
       console.error('[PDF-UPLOAD] Error cargando campos del índice:', error);
@@ -92,13 +182,36 @@ export default function AdminConocimiento() {
     // Dividir por [separador]
     const chunks = pdfText.split('[separador]').map(chunk => chunk.trim()).filter(chunk => chunk.length > 0);
     
-    // Generar IDs para cada chunk
+    // Generar IDs para cada chunk y extraer valores de campos requeridos
     const chunksWithIds = chunks.map((text, index) => {
       const id = pdfIdPrefix ? `${pdfIdPrefix}${Date.now()}-${index + 1}` : `chunk-${Date.now()}-${index + 1}`;
-      return { id, text };
+      
+      // Extraer valores de campos requeridos de este chunk específico
+      const extractedValues: Record<string, string> = {};
+      requiredFields.forEach(({ field }) => {
+        const value = extractFieldValue(text, field);
+        if (value) {
+          extractedValues[field] = value;
+        }
+      });
+      
+      return { id, text, extractedValues };
     });
     
     setPreparedChunks(chunksWithIds);
+    
+    // Actualizar campos requeridos con valores extraídos si están vacíos
+    if (requiredFields.length > 0) {
+      const updatedFields = requiredFields.map(({ field, value }) => {
+        if (!value) {
+          // Buscar el valor en el primer chunk
+          const firstChunkValue = extractFieldValue(chunks[0] || '', field);
+          return { field, value: firstChunkValue };
+        }
+        return { field, value };
+      });
+      setRequiredFields(updatedFields);
+    }
   };
 
   // Subir chunks a Meilisearch uno por uno
@@ -127,6 +240,27 @@ export default function AdminConocimiento() {
         [selectedIdField]: chunk.id,
         [selectedTextField]: chunk.text
       };
+
+      // Agregar campos requeridos por el embedder
+      requiredFields.forEach(({ field, value }) => {
+        if (field && field !== selectedIdField && field !== selectedTextField) {
+          // Intentar extraer el valor del chunk actual si no hay valor configurado
+          if (value) {
+            document[field] = value;
+          } else if (chunk.extractedValues && chunk.extractedValues[field]) {
+            document[field] = chunk.extractedValues[field];
+          } else {
+            // Extraer del texto del chunk actual
+            const extractedValue = extractFieldValue(chunk.text, field);
+            if (extractedValue) {
+              document[field] = extractedValue;
+            } else {
+              // Si no se puede extraer, usar un valor por defecto vacío o el nombre del campo
+              document[field] = '';
+            }
+          }
+        }
+      });
 
       console.log(`[PDF-UPLOAD] Documento a crear:`, document);
 
@@ -936,6 +1070,43 @@ export default function AdminConocimiento() {
                       ))}
                     </select>
                   </div>
+
+                  {/* Campos requeridos por el embedder */}
+                  {requiredFields.length > 0 && (
+                    <div className="mt-6 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+                      <h4 className="text-sm font-semibold text-yellow-800 mb-3">
+                        ⚠️ Campos Requeridos por el Embedder
+                      </h4>
+                      <p className="text-xs text-yellow-700 mb-3">
+                        El embedder del índice requiere estos campos adicionales. Los valores se extraerán automáticamente del PDF, pero puedes ajustarlos manualmente:
+                      </p>
+                      <div className="space-y-3">
+                        {requiredFields.map((fieldData, idx) => (
+                          <div key={idx}>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              {fieldData.field}
+                            </label>
+                            <input
+                              type="text"
+                              value={fieldData.value}
+                              onChange={(e) => {
+                                const updated = [...requiredFields];
+                                updated[idx] = { ...updated[idx], value: e.target.value };
+                                setRequiredFields(updated);
+                              }}
+                              placeholder={`Valor para ${fieldData.field} (se extraerá del PDF si está vacío)`}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            {fieldData.value && (
+                              <p className="text-xs text-green-600 mt-1">
+                                ✓ Valor configurado: "{fieldData.value}"
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
