@@ -13,9 +13,41 @@ function loadPdfParse() {
   
   try {
     // @ts-ignore - pdf-parse no tiene tipos de TypeScript adecuados
-    const pdfParse = require('pdf-parse');
+    let pdfParse: any;
     
-    console.log('[PDF-PARSE] pdf-parse cargado:', {
+    try {
+      pdfParse = require('pdf-parse');
+    } catch (requireError: any) {
+      // Si el error es sobre archivos de test, es un problema de inicialización
+      // pero el módulo puede estar disponible de todas formas en el cache de require
+      if (requireError.message && (
+        requireError.message.includes('test/data') || 
+        requireError.message.includes('ENOENT') ||
+        requireError.message.includes('05-versions-space.pdf')
+      )) {
+        console.warn('[PDF-PARSE] Error de archivos de test durante require, intentando acceder al módulo...');
+        
+        // Intentar acceder al módulo desde el cache de require
+        try {
+          const resolvedPath = require.resolve('pdf-parse');
+          if (require.cache[resolvedPath]) {
+            pdfParse = require.cache[resolvedPath].exports;
+            console.log('[PDF-PARSE] Módulo encontrado en cache después de error de test');
+          } else {
+            // Si no está en cache, el require falló completamente
+            throw requireError;
+          }
+        } catch (cacheError: any) {
+          console.error('[PDF-PARSE] No se pudo acceder al módulo desde cache:', cacheError);
+          throw requireError;
+        }
+      } else {
+        // Si no es un error de test, lanzar el error original
+        throw requireError;
+      }
+    }
+    
+    console.log('[PDF-PARSE] pdf-parse obtenido:', {
       type: typeof pdfParse,
       isFunction: typeof pdfParse === 'function',
       hasDefault: pdfParse && typeof pdfParse.default === 'function'
@@ -55,35 +87,6 @@ function loadPdfParse() {
     return cachedPdfParse;
     
   } catch (error: any) {
-    // Si el error es sobre archivos de test o datos, es un problema de inicialización
-    // pero el módulo puede estar disponible de todas formas
-    if (error.message && (
-      error.message.includes('test/data') || 
-      error.message.includes('ENOENT') ||
-      error.message.includes('05-versions-space.pdf')
-    )) {
-      console.warn('[PDF-PARSE] Advertencia sobre archivos de test durante carga:', error.message);
-      
-      // Intentar acceder directamente al módulo ya que puede estar parcialmente cargado
-      try {
-        // Limpiar cache y reintentar
-        delete require.cache[require.resolve('pdf-parse')];
-        const pdfParseRetry = require('pdf-parse');
-        
-        if (typeof pdfParseRetry === 'function') {
-          cachedPdfParse = pdfParseRetry;
-          console.log('[PDF-PARSE] pdf-parse cargado después de ignorar error de test');
-          return cachedPdfParse;
-        } else if (pdfParseRetry && typeof pdfParseRetry.default === 'function') {
-          cachedPdfParse = pdfParseRetry.default;
-          console.log('[PDF-PARSE] pdf-parse cargado desde default después de ignorar error de test');
-          return cachedPdfParse;
-        }
-      } catch (retryError: any) {
-        console.error('[PDF-PARSE] Error en reintento:', retryError);
-      }
-    }
-    
     console.error('[PDF-PARSE] Error cargando pdf-parse:', error);
     console.error('[PDF-PARSE] Error stack:', error.stack);
     throw new Error(`No se pudo cargar pdf-parse: ${error.message || error}`);
