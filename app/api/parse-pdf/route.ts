@@ -1,96 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { promisify } from 'util';
+import { readFile } from 'fs/promises';
+import { writeFile, unlink } from 'fs/promises';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
-// Cachear pdf-parse para evitar recargar múltiples veces
-let cachedPdfParse: any = null;
-
-// Importar pdf-parse usando require para compatibilidad con Node.js
-function loadPdfParse() {
-  // Si ya está cacheado, retornarlo
-  if (cachedPdfParse) {
-    console.log('[PDF-PARSE] Usando pdf-parse cacheado');
-    return cachedPdfParse;
-  }
-  
-  try {
-    // @ts-ignore - pdf-parse no tiene tipos de TypeScript adecuados
-    let pdfParse: any;
+// Usar pdf-text-extract que es más simple y estable
+async function extractTextFromPdf(buffer: Buffer): Promise<{ text: string; pages: number; info: any }> {
+  return new Promise((resolve, reject) => {
+    // @ts-ignore - pdf-text-extract no tiene tipos
+    const pdfTextExtract = require('pdf-text-extract');
     
-    try {
-      pdfParse = require('pdf-parse');
-    } catch (requireError: any) {
-      // Si el error es sobre archivos de test, es un problema de inicialización
-      // pero el módulo puede estar disponible de todas formas en el cache de require
-      if (requireError.message && (
-        requireError.message.includes('test/data') || 
-        requireError.message.includes('ENOENT') ||
-        requireError.message.includes('05-versions-space.pdf')
-      )) {
-        console.warn('[PDF-PARSE] Error de archivos de test durante require, intentando acceder al módulo...');
+    // pdf-text-extract requiere un archivo temporal
+    const tempFilePath = join(tmpdir(), `pdf-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`);
+    
+    // Escribir buffer a archivo temporal
+    writeFile(tempFilePath, buffer)
+      .then(() => {
+        console.log('[PDF-PARSE] Archivo temporal creado:', tempFilePath);
         
-        // Intentar acceder al módulo desde el cache de require
-        try {
-          const resolvedPath = require.resolve('pdf-parse');
-          if (require.cache[resolvedPath]) {
-            pdfParse = require.cache[resolvedPath].exports;
-            console.log('[PDF-PARSE] Módulo encontrado en cache después de error de test');
-          } else {
-            // Si no está en cache, el require falló completamente
-            throw requireError;
+        // Extraer texto del PDF
+        pdfTextExtract(tempFilePath, (err: any, pages: string[]) => {
+          // Limpiar archivo temporal
+          unlink(tempFilePath).catch((unlinkErr: any) => {
+            console.warn('[PDF-PARSE] Error eliminando archivo temporal:', unlinkErr);
+          });
+          
+          if (err) {
+            console.error('[PDF-PARSE] Error extrayendo texto:', err);
+            reject(err);
+            return;
           }
-        } catch (cacheError: any) {
-          console.error('[PDF-PARSE] No se pudo acceder al módulo desde cache:', cacheError);
-          throw requireError;
-        }
-      } else {
-        // Si no es un error de test, lanzar el error original
-        throw requireError;
-      }
-    }
-    
-    console.log('[PDF-PARSE] pdf-parse obtenido:', {
-      type: typeof pdfParse,
-      isFunction: typeof pdfParse === 'function',
-      hasDefault: pdfParse && typeof pdfParse.default === 'function'
-    });
-    
-    let pdfParseFunc: any = null;
-    
-    // pdf-parse exporta directamente como función en versiones recientes
-    if (typeof pdfParse === 'function') {
-      console.log('[PDF-PARSE] pdf-parse es función directa');
-      pdfParseFunc = pdfParse;
-    }
-    // Si tiene default (para compatibilidad)
-    else if (pdfParse && typeof pdfParse.default === 'function') {
-      console.log('[PDF-PARSE] pdf-parse está en default');
-      pdfParseFunc = pdfParse.default;
-    }
-    // Buscar cualquier función en el objeto
-    else if (pdfParse && typeof pdfParse === 'object') {
-      for (const key of Object.keys(pdfParse)) {
-        if (typeof pdfParse[key] === 'function') {
-          console.log('[PDF-PARSE] Encontrada función en clave:', key);
-          pdfParseFunc = pdfParse[key];
-          break;
-        }
-      }
-    }
-    
-    if (!pdfParseFunc || typeof pdfParseFunc !== 'function') {
-      console.error('[PDF-PARSE] No se encontró función válida en pdf-parse:', pdfParse);
-      throw new Error('pdf-parse no exporta una función válida');
-    }
-    
-    // Cachear la función
-    cachedPdfParse = pdfParseFunc;
-    console.log('[PDF-PARSE] pdf-parse cargado y cacheado exitosamente');
-    return cachedPdfParse;
-    
-  } catch (error: any) {
-    console.error('[PDF-PARSE] Error cargando pdf-parse:', error);
-    console.error('[PDF-PARSE] Error stack:', error.stack);
-    throw new Error(`No se pudo cargar pdf-parse: ${error.message || error}`);
-  }
+          
+          if (!pages || pages.length === 0) {
+            reject(new Error('No se encontró texto en el PDF'));
+            return;
+          }
+          
+          // Concatenar todas las páginas
+          const fullText = pages.join('\n\n').trim();
+          
+          console.log('[PDF-PARSE] Texto extraído:', {
+            pages: pages.length,
+            textLength: fullText.length
+          });
+          
+          resolve({
+            text: fullText,
+            pages: pages.length,
+            info: {}
+          });
+        });
+      })
+      .catch((writeErr: any) => {
+        console.error('[PDF-PARSE] Error escribiendo archivo temporal:', writeErr);
+        reject(writeErr);
+      });
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -133,24 +99,9 @@ export async function POST(req: NextRequest) {
       firstBytes: buffer.slice(0, 20).toString('hex')
     });
     
-    console.log('[PDF-PARSE] Cargando función de parseo...');
-    // Cargar pdf-parse
-    const pdfParseFunc = loadPdfParse();
-    
-    console.log('[PDF-PARSE] Función de parseo cargada:', {
-      type: typeof pdfParseFunc,
-      isFunction: typeof pdfParseFunc === 'function',
-      name: pdfParseFunc?.name || 'anonymous'
-    });
-    
-    if (typeof pdfParseFunc !== 'function') {
-      console.error('[PDF-PARSE] ERROR: pdf-parse no es una función:', pdfParseFunc);
-      throw new Error(`pdf-parse no es una función, es: ${typeof pdfParseFunc}`);
-    }
-    
-    console.log('[PDF-PARSE] Iniciando parseo del PDF...');
-    // Parsear PDF usando pdf-parse
-    const pdfData = await pdfParseFunc(buffer);
+    console.log('[PDF-PARSE] Iniciando extracción de texto del PDF...');
+    // Extraer texto usando pdf-text-extract
+    const pdfData = await extractTextFromPdf(buffer);
     
     console.log('[PDF-PARSE] PDF parseado exitosamente:', {
       numpages: pdfData.numpages,
