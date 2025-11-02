@@ -969,9 +969,9 @@ export default function AdminConocimiento() {
                     setSelectedTextField('');
                     setPreparedChunks([]);
                   } else if (!uploading) {
-                    // Si hay progreso pero no está subiendo, solo cerrar modal pero mantener progreso
+                    // Si hay progreso pero no está subiendo, solo cerrar modal pero mantener progreso y paso
                     setShowPdfModal(false);
-                    setPdfStep('text');
+                    // Mantener pdfStep en 'review' para que al reabrir muestre el progreso
                     // Mantener uploadProgress visible para referencia
                   } else {
                     // Si está subiendo, solo cerrar el modal pero mantener todo
