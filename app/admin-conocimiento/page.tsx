@@ -546,10 +546,16 @@ export default function AdminConocimiento() {
                   <div className="bg-white rounded-lg shadow p-6 mb-6">
                     <div className="flex gap-3">
                       <button
-                        onClick={() => setShowPdfModal(true)}
+                        onClick={() => {
+                          setShowPdfModal(true);
+                          // Si hay progreso, ir directamente al paso de revisión
+                          if (uploadProgress.length > 0) {
+                            setPdfStep('review');
+                          }
+                        }}
                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                       >
-                        📄 Cargar PDF
+                        📄 Cargar PDF {uploadProgress.length > 0 && <span className="ml-1 text-xs">({uploadProgress.filter(p => p.status === 'failed').length} errores)</span>}
                       </button>
                     </div>
                   </div>
@@ -901,13 +907,29 @@ export default function AdminConocimiento() {
                   {/* Log de progreso de subida - siempre visible si hay progreso */}
                   {uploadProgress.length > 0 && (
                     <div className="space-y-3 max-h-96 overflow-y-auto border-t border-gray-200 pt-4 mt-4">
-                      <h4 className="text-md font-semibold text-gray-800">
-                        Progreso de Subida
-                        {uploading && <span className="ml-2 text-sm text-gray-500 font-normal">(en proceso...)</span>}
-                        {!uploading && uploadProgress.every(p => p.status === 'succeeded' || p.status === 'failed') && (
-                          <span className="ml-2 text-sm text-gray-500 font-normal">(completado)</span>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-md font-semibold text-gray-800">
+                          Progreso de Subida
+                          {uploading && <span className="ml-2 text-sm text-gray-500 font-normal">(en proceso...)</span>}
+                          {!uploading && uploadProgress.every(p => p.status === 'succeeded' || p.status === 'failed') && (
+                            <span className="ml-2 text-sm text-gray-500 font-normal">(completado)</span>
+                          )}
+                        </h4>
+                        {!uploading && (
+                          <button
+                            onClick={() => {
+                              setUploadProgress([]);
+                              setPreparedChunks([]);
+                              setPdfStep('text');
+                              setPdfText('');
+                              setPdfIdPrefix('');
+                            }}
+                            className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                          >
+                            Limpiar progreso
+                          </button>
                         )}
-                      </h4>
+                      </div>
                       {uploadProgress.map((progress, idx) => (
                         <div key={idx} className={`p-3 border rounded-lg ${
                           progress.status === 'succeeded' ? 'bg-green-50 border-green-200' :
