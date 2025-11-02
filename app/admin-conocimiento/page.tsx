@@ -379,7 +379,7 @@ export default function AdminConocimiento() {
                       </button>
                     </div>
                     <p className="mb-2 text-xs text-gray-500">
-                      Haz clic en el botón "Agregar Separador" para insertar <code className="bg-gray-100 px-1 py-0.5 rounded">[separador]</code> en la posición del cursor. 
+                      Haz clic en el botón &quot;Agregar Separador&quot; para insertar <code className="bg-gray-100 px-1 py-0.5 rounded">[separador]</code> en la posición del cursor. 
                       Cada <code className="bg-gray-100 px-1 py-0.5 rounded">[separador]</code> indica un punto de división entre chunks.
                     </p>
                     <textarea
