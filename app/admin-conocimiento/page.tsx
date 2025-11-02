@@ -386,10 +386,6 @@ export default function AdminConocimiento() {
                       ref={textareaRef}
                       value={pdfText}
                       onChange={(e) => setPdfText(e.target.value)}
-                      onSelect={(e) => {
-                        const target = e.target as HTMLTextAreaElement;
-                        setCursorPosition(target.selectionStart);
-                      }}
                       className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <p className="mt-2 text-xs text-gray-600">
