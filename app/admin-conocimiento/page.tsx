@@ -931,7 +931,7 @@ export default function AdminConocimiento() {
                           )}
                           {progress.status === 'failed' && (
                             <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-xs text-red-800">
-                              <strong>Detalles del error:</strong> El embedder del índice requiere campos adicionales que no están presentes en el documento. Verifica que el documento incluya todos los campos referenciados en el <code>documentTemplate</code> del embedder.
+                              <strong>Detalles del error:</strong> El embedder del índice requiere campos adicionales que no están presentes en el documento. El error indica que el campo <code className="bg-red-200 px-1 rounded">producto</code> es requerido por el <code>documentTemplate</code> del embedder, pero solo se están enviando los campos <code className="bg-red-200 px-1 rounded">{selectedIdField}</code> y <code className="bg-red-200 px-1 rounded">{selectedTextField}</code>. Verifica que el documento incluya todos los campos referenciados en el <code>documentTemplate</code> del embedder o ajusta el template para usar solo los campos disponibles.
                             </div>
                           )}
                         </div>
@@ -945,18 +945,30 @@ export default function AdminConocimiento() {
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
               <button
                 onClick={() => {
-                  setShowPdfModal(false);
-                  setPdfText('');
-                  setPdfIdPrefix('');
-                  setPdfStep('text');
-                  setIndexFields([]);
-                  setSelectedIdField('');
-                  setSelectedTextField('');
-                  setPreparedChunks([]);
+                  // Solo limpiar si NO hay progreso activo o completado
+                  // Si hay progreso, mantenerlo para referencia
+                  if (!uploading && uploadProgress.length === 0) {
+                    setShowPdfModal(false);
+                    setPdfText('');
+                    setPdfIdPrefix('');
+                    setPdfStep('text');
+                    setIndexFields([]);
+                    setSelectedIdField('');
+                    setSelectedTextField('');
+                    setPreparedChunks([]);
+                  } else if (!uploading) {
+                    // Si hay progreso pero no está subiendo, solo cerrar modal pero mantener progreso
+                    setShowPdfModal(false);
+                    setPdfStep('text');
+                    // Mantener uploadProgress visible para referencia
+                  } else {
+                    // Si está subiendo, solo cerrar el modal pero mantener todo
+                    setShowPdfModal(false);
+                  }
                 }}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Cancelar
+                {uploading ? 'Cerrar (subiendo...)' : uploadProgress.length > 0 ? 'Cerrar (ver resultados)' : 'Cancelar'}
               </button>
               {pdfText && !pdfText.includes('Error:') && (
                 <button
