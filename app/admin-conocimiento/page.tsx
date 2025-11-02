@@ -25,7 +25,13 @@ export default function AdminConocimiento() {
   const [pdfText, setPdfText] = useState<string>('');
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfIdPrefix, setPdfIdPrefix] = useState<string>('');
-  const [pdfChunks, setPdfChunks] = useState<number>(1);
+  
+  // Calcular cantidad de chunks basado en el símbolo +++
+  const calculateChunks = (text: string): number => {
+    if (!text || text.trim().length === 0) return 1;
+    const separators = (text.match(/\+\+\+/g) || []).length;
+    return separators + 1; // Si hay n separadores, hay n+1 chunks
+  };
 
   const loadAgentIndexes = async () => {
     if (!selectedAgent?.knowledge?.indexes) {
@@ -315,18 +321,6 @@ export default function AdminConocimiento() {
                 </div>
               )}
               
-              {pdfText && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Texto Extraído:
-                  </label>
-                  <textarea
-                    readOnly
-                    value={pdfText}
-                    className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm font-mono overflow-auto"
-                  />
-                </div>
-              )}
               
               {pdfText && pdfText.includes('Error:') && (
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -351,17 +345,20 @@ export default function AdminConocimiento() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cantidad de chunks (partes)
+                      Texto Extraído (editable)
                     </label>
-                    <input
-                      type="number"
-                      value={pdfChunks}
-                      onChange={(e) => setPdfChunks(Math.max(1, parseInt(e.target.value) || 1))}
-                      min="1"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    <p className="mb-2 text-xs text-gray-500">
+                      Usa el símbolo <code className="bg-gray-100 px-1 py-0.5 rounded">+++</code> para separar los chunks. 
+                      Cada <code className="bg-gray-100 px-1 py-0.5 rounded">+++</code> indica un punto de división.
+                    </p>
+                    <textarea
+                      value={pdfText}
+                      onChange={(e) => setPdfText(e.target.value)}
+                      className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                      El texto se dividirá en {pdfChunks} {pdfChunks === 1 ? 'parte' : 'partes'}
+                    <p className="mt-2 text-xs text-gray-600">
+                      Chunks detectados: <strong>{calculateChunks(pdfText)}</strong> {calculateChunks(pdfText) === 1 ? 'chunk' : 'chunks'} 
+                      ({pdfText.match(/\+\+\+/g)?.length || 0} separadores <code className="bg-gray-100 px-1 py-0.5 rounded">+++</code>)
                     </p>
                   </div>
                 </div>
@@ -374,7 +371,6 @@ export default function AdminConocimiento() {
                   setShowPdfModal(false);
                   setPdfText('');
                   setPdfIdPrefix('');
-                  setPdfChunks(1);
                 }}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
@@ -384,10 +380,12 @@ export default function AdminConocimiento() {
                 <button
                   onClick={() => {
                     // Sin funcionalidad por ahora
+                    const chunks = calculateChunks(pdfText);
                     console.log('[PDF-UPLOAD] Botón Siguiente clickeado', {
                       idPrefix: pdfIdPrefix,
-                      chunks: pdfChunks,
-                      textLength: pdfText.length
+                      chunks: chunks,
+                      textLength: pdfText.length,
+                      separators: pdfText.match(/\+\+\+/g)?.length || 0
                     });
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
