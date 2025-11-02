@@ -103,19 +103,32 @@ export default function AdminConocimiento() {
 
   // Subir chunks a Meilisearch uno por uno
   const uploadChunks = async () => {
-    if (!selectedIndex || preparedChunks.length === 0) return;
+    if (!selectedIndex || preparedChunks.length === 0) {
+      console.error('[PDF-UPLOAD] No hay índice seleccionado o chunks preparados');
+      return;
+    }
+
+    console.log('[PDF-UPLOAD] Iniciando subida de chunks:', {
+      indexUid: selectedIndex.uid,
+      chunksCount: preparedChunks.length,
+      idField: selectedIdField,
+      textField: selectedTextField
+    });
 
     setUploading(true);
     setUploadProgress([]);
 
     for (let i = 0; i < preparedChunks.length; i++) {
       const chunk = preparedChunks[i];
+      console.log(`[PDF-UPLOAD] Procesando chunk ${i + 1}/${preparedChunks.length}:`, chunk);
       
       // Crear documento con los campos seleccionados
       const document: any = {
         [selectedIdField]: chunk.id,
         [selectedTextField]: chunk.text
       };
+
+      console.log(`[PDF-UPLOAD] Documento a crear:`, document);
 
       try {
         // Inicializar progreso
@@ -126,28 +139,41 @@ export default function AdminConocimiento() {
           message: `Creando documento ${i + 1}/${preparedChunks.length}...`
         }]);
 
+        console.log(`[PDF-UPLOAD] Llamando a addDocuments para chunk ${i + 1}...`);
         // Agregar documento a Meilisearch
         const response = await meilisearchAPI.addDocuments(selectedIndex.uid, [document]);
+        console.log(`[PDF-UPLOAD] Respuesta de addDocuments:`, response);
+        console.log(`[PDF-UPLOAD] Tipo de respuesta:`, typeof response);
+        console.log(`[PDF-UPLOAD] Keys de respuesta:`, Object.keys(response || {}));
         
-        const taskUid = response.taskUid || (response as any).taskUid || 0;
+        // Meilisearch devuelve taskUid directamente o en response.taskUid
+        const taskUid = response?.taskUid || (response as any)?.taskUid || response?.uid || 0;
+        console.log(`[PDF-UPLOAD] Task UID extraído:`, taskUid);
+        
+        if (!taskUid || taskUid === 0) {
+          console.warn(`[PDF-UPLOAD] No se encontró taskUid en la respuesta para chunk ${i + 1}`);
+        }
         
         // Actualizar progreso con task UID
         setUploadProgress(prev => {
           const updated = [...prev];
           updated[i] = {
             chunkIndex: i,
-            taskUid,
+            taskUid: taskUid || 0,
             status: 'processing',
-            message: `Task ${taskUid} generada. Consultando estado...`
+            message: taskUid > 0 ? `Task ${taskUid} generada. Consultando estado...` : 'Documento enviado, esperando confirmación...'
           };
           return updated;
         });
 
         // Consultar estado de la task cada 3 segundos hasta completar
         if (taskUid > 0) {
+          console.log(`[PDF-UPLOAD] Iniciando seguimiento de task ${taskUid} para chunk ${i + 1}`);
           await checkTaskStatus(i, taskUid);
         } else {
-          // Si no hay taskUid, asumir éxito
+          // Si no hay taskUid, esperar un momento y asumir éxito
+          console.log(`[PDF-UPLOAD] No hay taskUid, esperando 2 segundos y asumiendo éxito...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
           setUploadProgress(prev => {
             const updated = [...prev];
             updated[i] = {
@@ -160,34 +186,46 @@ export default function AdminConocimiento() {
         }
       } catch (error: any) {
         console.error(`[PDF-UPLOAD] Error subiendo chunk ${i + 1}:`, error);
+        console.error(`[PDF-UPLOAD] Error completo:`, JSON.stringify(error, null, 2));
         setUploadProgress(prev => {
           const updated = [...prev];
           updated[i] = {
             ...updated[i],
             status: 'failed',
-            message: `Error: ${error.message || 'Error desconocido'}`
+            message: `Error: ${error.message || error.response?.data?.message || 'Error desconocido'}`
           };
           return updated;
         });
       }
     }
 
+    console.log('[PDF-UPLOAD] Finalizada subida de todos los chunks');
     setUploading(false);
   };
 
   // Consultar estado de una task cada 3 segundos
   const checkTaskStatus = async (chunkIndex: number, taskUid: number, maxAttempts: number = 60) => {
+    console.log(`[PDF-UPLOAD] Iniciando seguimiento de task ${taskUid} para chunk ${chunkIndex}`);
     let attempts = 0;
+    let intervalId: NodeJS.Timeout | null = null;
 
-    const checkInterval = setInterval(async () => {
+    const checkTask = async () => {
       try {
         attempts++;
+        console.log(`[PDF-UPLOAD] Consultando task ${taskUid} (intento ${attempts}/${maxAttempts})...`);
+        
         const task = await meilisearchAPI.getTask(taskUid);
+        console.log(`[PDF-UPLOAD] Respuesta de getTask:`, task);
+        console.log(`[PDF-UPLOAD] Tipo de task:`, typeof task);
+        console.log(`[PDF-UPLOAD] Keys de task:`, task ? Object.keys(task) : 'task es null/undefined');
         
-        const status = task.status || task.state || 'unknown';
+        // Meilisearch puede devolver status como 'succeeded', 'failed', 'enqueued', 'processing'
+        const status = task?.status || task?.state || task?.type || 'unknown';
+        console.log(`[PDF-UPLOAD] Estado de task ${taskUid}:`, status);
         
-        if (status === 'succeeded' || status === 'taskSucceeded') {
-          clearInterval(checkInterval);
+        if (status === 'succeeded' || status === 'taskSucceeded' || status === 'documentAdditionOrUpdate') {
+          console.log(`[PDF-UPLOAD] Task ${taskUid} completada exitosamente`);
+          if (intervalId) clearInterval(intervalId);
           setUploadProgress(prev => {
             const updated = [...prev];
             updated[chunkIndex] = {
@@ -198,8 +236,9 @@ export default function AdminConocimiento() {
             return updated;
           });
         } else if (status === 'failed' || status === 'taskFailed') {
-          clearInterval(checkInterval);
-          const error = task.error || 'Error desconocido';
+          console.error(`[PDF-UPLOAD] Task ${taskUid} falló`);
+          const error = task?.error || task?.errorMessage || 'Error desconocido';
+          if (intervalId) clearInterval(intervalId);
           setUploadProgress(prev => {
             const updated = [...prev];
             updated[chunkIndex] = {
@@ -211,12 +250,13 @@ export default function AdminConocimiento() {
           });
         } else {
           // Actualizar mensaje mientras procesa
+          console.log(`[PDF-UPLOAD] Task ${taskUid} aún procesando (${status})...`);
           setUploadProgress(prev => {
             const updated = [...prev];
             updated[chunkIndex] = {
               ...updated[chunkIndex],
               status: 'processing',
-              message: `Procesando... (intento ${attempts}/${maxAttempts})`
+              message: `Procesando... (${status}) - intento ${attempts}/${maxAttempts}`
             };
             return updated;
           });
@@ -224,7 +264,8 @@ export default function AdminConocimiento() {
 
         // Si excede máximo de intentos, detener
         if (attempts >= maxAttempts) {
-          clearInterval(checkInterval);
+          console.warn(`[PDF-UPLOAD] Task ${taskUid} excedió máximo de intentos`);
+          if (intervalId) clearInterval(intervalId);
           setUploadProgress(prev => {
             const updated = [...prev];
             updated[chunkIndex] = {
@@ -237,18 +278,25 @@ export default function AdminConocimiento() {
         }
       } catch (error: any) {
         console.error(`[PDF-UPLOAD] Error consultando task ${taskUid}:`, error);
-        clearInterval(checkInterval);
+        console.error(`[PDF-UPLOAD] Error completo:`, JSON.stringify(error, null, 2));
+        if (intervalId) clearInterval(intervalId);
         setUploadProgress(prev => {
           const updated = [...prev];
           updated[chunkIndex] = {
             ...updated[chunkIndex],
             status: 'failed',
-            message: `Error consultando task: ${error.message || 'Error desconocido'}`
+            message: `Error consultando task: ${error.message || error.response?.data?.message || 'Error desconocido'}`
           };
           return updated;
         });
       }
-    }, 3000); // Consultar cada 3 segundos
+    };
+
+    // Primera consulta inmediata
+    await checkTask();
+    
+    // Luego consultar cada 3 segundos
+    intervalId = setInterval(checkTask, 3000);
   };
 
   // Agregar separador en la posición del cursor
