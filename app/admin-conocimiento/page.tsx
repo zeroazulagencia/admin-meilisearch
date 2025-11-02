@@ -129,7 +129,7 @@ export default function AdminConocimiento() {
         // Agregar documento a Meilisearch
         const response = await meilisearchAPI.addDocuments(selectedIndex.uid, [document]);
         
-        const taskUid = response.taskUid || response.taskUid || 0;
+        const taskUid = response.taskUid || (response as any).taskUid || 0;
         
         // Actualizar progreso con task UID
         setUploadProgress(prev => {
@@ -612,26 +612,56 @@ export default function AdminConocimiento() {
                         ref={textareaRef}
                         value={pdfText}
                         onChange={(e) => setPdfText(e.target.value)}
-                        className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        style={{ color: 'transparent', caretColor: '#000' }}
+                        className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500 relative z-10"
+                        style={{ 
+                          position: 'relative',
+                          zIndex: 10
+                        }}
                       />
-                      {/* Vista previa con separadores resaltados */}
+                      {/* Vista previa con separadores resaltados - overlay invisible */}
                       <div 
-                        className="absolute inset-0 pointer-events-none px-4 py-2 text-sm font-mono whitespace-pre-wrap break-words overflow-auto"
+                        className="absolute inset-0 pointer-events-none px-4 py-2 text-sm font-mono whitespace-pre-wrap break-words overflow-auto border border-transparent rounded-lg"
                         style={{ 
                           zIndex: 1,
-                          background: 'white',
-                          color: '#000'
+                          color: 'transparent',
+                          userSelect: 'none'
                         }}
+                        aria-hidden="true"
                       >
                         {pdfText.split('[separador]').map((part, index, array) => (
-                          <span key={index}>
+                          <React.Fragment key={index}>
                             {part}
                             {index < array.length - 1 && (
-                              <span className="bg-blue-500 text-white font-bold px-1 rounded">[separador]</span>
+                              <span className="bg-blue-500 text-white font-bold px-1 rounded" style={{ color: 'transparent' }}>
+                                [separador]
+                              </span>
                             )}
-                          </span>
+                          </React.Fragment>
                         ))}
+                      </div>
+                      {/* Overlay con separadores visibles */}
+                      <div 
+                        className="absolute inset-0 pointer-events-none px-4 py-2 text-sm font-mono whitespace-pre-wrap break-words overflow-auto border border-transparent rounded-lg"
+                        style={{ 
+                          zIndex: 2,
+                          background: 'transparent'
+                        }}
+                        aria-hidden="true"
+                      >
+                        {pdfText.split('[separador]').map((part, index, array) => {
+                          // Calcular posición del texto para alinearlo con el textarea
+                          const textBefore = array.slice(0, index).join('[separador]') + part;
+                          return (
+                            <React.Fragment key={index}>
+                              <span style={{ visibility: 'hidden' }}>{part}</span>
+                              {index < array.length - 1 && (
+                                <span className="bg-blue-500 text-white font-bold px-1 rounded" style={{ visibility: 'visible' }}>
+                                  [separador]
+                                </span>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
                       </div>
                     </div>
                     {/* Indicador visual de separadores */}
