@@ -14,6 +14,7 @@ export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [emailSub, setEmailSub] = useState('');
+  const [activeTab, setActiveTab] = useState<'select' | 'configure' | 'describe'>('configure');
 
   // Si está autenticado, redirigir al dashboard
   useEffect(() => {
