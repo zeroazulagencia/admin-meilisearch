@@ -25,4 +25,18 @@ body {
   font-family: 'Raleway', sans-serif;
 }
 
+/* Animación de flotar muy lenta */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.float-slow {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
 

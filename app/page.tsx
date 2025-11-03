@@ -362,7 +362,14 @@ export default function Home() {
       {/* Modal de Login */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowLoginModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={(e) => e.stopPropagation()}>
+            {/* Imagen worker1b.png flotante */}
+            <img 
+              src="/public-img/worker1b.png" 
+              alt="Worker" 
+              className="absolute -top-6 -left-6 w-16 h-16 object-contain float-slow"
+              style={{ zIndex: 999 }}
+            />
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-gray-900">Iniciar Sesión</h3>
               <button
