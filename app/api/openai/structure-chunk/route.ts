@@ -247,10 +247,10 @@ Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos 
             const match = chunkText.match(/PRODUCTO:\s*(.+?)(?:\n|$)/i);
             if (match) extractedValue = match[1].trim();
           } else if (fieldNameLower.includes('descripcion')) {
-            const match = chunkText.match(/DESCRIPCION[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            const match = chunkText.match(/DESCRIPCION[:\s]*([\s\S]+?)(?:\n\n|3\.1\.|$)/i);
             if (match) extractedValue = match[1].trim();
           } else if (fieldNameLower.includes('palabra') || fieldNameLower.includes('clave')) {
-            const match = chunkText.match(/PALABRAS[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            const match = chunkText.match(/PALABRAS[:\s]*([\s\S]+?)(?:\n\n|3\.1\.|$)/i);
             if (match) {
               const palabras = match[1].split(',').map(p => p.trim()).filter(p => p.length > 0);
               if (palabras.length > 0) {
@@ -259,19 +259,19 @@ Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos 
               }
             }
           } else if (fieldNameLower.includes('indicacion')) {
-            const match = chunkText.match(/INDICACIONES[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            const match = chunkText.match(/INDICACIONES[:\s]*([\s\S]+?)(?:\n\n|3\.1\.|$)/i);
             if (match) extractedValue = match[1].trim();
           } else if (fieldNameLower.includes('textura')) {
             const match = chunkText.match(/TEXTURA:\s*(.+?)(?:\n|$)/i);
             if (match) extractedValue = match[1].trim();
           } else if (fieldNameLower.includes('edad') || fieldNameLower.includes('momento')) {
-            const match = chunkText.match(/EDAD[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            const match = chunkText.match(/EDAD[:\s]*([\s\S]+?)(?:\n\n|3\.1\.|$)/i);
             if (match) extractedValue = match[1].trim();
           } else if (fieldNameLower.includes('condicion')) {
-            const match = chunkText.match(/CONDICIONES[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            const match = chunkText.match(/CONDICIONES[:\s]*([\s\S]+?)(?:\n\n|3\.1\.|$)/i);
             if (match) extractedValue = match[1].trim();
           } else if (fieldNameLower.includes('necesidad')) {
-            const match = chunkText.match(/NECESIDADES[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            const match = chunkText.match(/NECESIDADES[:\s]*([\s\S]+?)(?:\n\n|3\.1\.|$)/i);
             if (match) extractedValue = match[1].trim();
           }
           
