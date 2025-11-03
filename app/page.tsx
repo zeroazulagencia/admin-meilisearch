@@ -194,7 +194,7 @@ export default function Home() {
           {/* Contenedor principal del contenido */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
               {/* Icono redondo sobre fondo primary - mitad dentro mitad fuera */}
-              <div className="flex justify-center -mt-12 mb-4 relative z-20">
+              <div className="flex justify-center relative z-20" style={{ marginTop: '-120px', paddingBottom: '60px' }}>
                 <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: '#5DE1E5' }}>
                   <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
