@@ -1678,37 +1678,67 @@ export default function AdminConocimiento() {
                 }}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                {uploading ? 'Cerrar (subiendo...)' : uploadProgress.length > 0 ? 'Cerrar (ver resultados)' : 'Cancelar'}
+                {uploading ? 'Cerrar (subiendo...)' : uploadProgress.length > 0 ? 'Cerrar (ver resultados)' : 'Cerrar'}
               </button>
               {pdfText && !pdfText.includes('Error:') && (
-                <button
-                  onClick={async () => {
-                    if (pdfStep === 'text') {
-                      // Paso 1: Ir al paso de selección de campos
-                      loadIndexFields();
-                      setPdfStep('fields');
-                    } else if (pdfStep === 'fields') {
-                      // Paso 2: Preparar chunks y mostrar verificación
-                      prepareChunks();
-                      setPdfStep('review');
-                    } else if (pdfStep === 'review' && !uploading) {
-                      // Paso 3: Subir chunks a Meilisearch
-                      await uploadChunks();
-                    }
-                  }}
-                  disabled={
-                    (pdfStep === 'fields' && (!selectedIdField || !selectedTextField)) ||
-                    uploading
-                  }
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {uploading && (
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                <div className="flex gap-2">
+                  {/* Botón Anterior */}
+                  {(pdfStep === 'fields' || pdfStep === 'review') && (
+                    <button
+                      onClick={() => {
+                        if (pdfStep === 'fields') {
+                          setPdfStep('text');
+                        } else if (pdfStep === 'review') {
+                          setPdfStep('fields');
+                        }
+                      }}
+                      disabled={uploading}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Anterior
+                    </button>
                   )}
-                  {pdfStep === 'text' ? 'Siguiente' : 
-                   pdfStep === 'fields' ? 'Verificar Chunks' : 
-                   uploading ? 'Subiendo...' : 'Finalizar'}
-                </button>
+                  
+                  {/* Botón Siguiente/Finalizar */}
+                  <button
+                    onClick={async () => {
+                      if (pdfStep === 'text') {
+                        // Validar prefijo del ID
+                        if (!pdfIdPrefix || pdfIdPrefix.trim() === '') {
+                          alert('El prefijo del ID es obligatorio');
+                          return;
+                        }
+                        // Paso 1: Ir al paso de selección de campos
+                        await loadIndexFields();
+                        setPdfStep('fields');
+                      } else if (pdfStep === 'fields') {
+                        // Paso 2: Preparar chunks y mostrar verificación
+                        await prepareChunks();
+                        setPdfStep('review');
+                      } else if (pdfStep === 'review' && !uploading) {
+                        // Paso 3: Subir chunks a Meilisearch
+                        await uploadChunks();
+                      }
+                    }}
+                    disabled={
+                      (pdfStep === 'text' && (!pdfIdPrefix || pdfIdPrefix.trim() === '')) ||
+                      (pdfStep === 'fields' && (!selectedIdField || !selectedTextField)) ||
+                      uploading ||
+                      structuringChunks
+                    }
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {uploading && (
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    )}
+                    {structuringChunks && (
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    )}
+                    {pdfStep === 'text' ? 'Siguiente' : 
+                     pdfStep === 'fields' ? 'Siguiente' : 
+                     uploading ? 'Subiendo...' : 'Finalizar'}
+                  </button>
+                </div>
               )}
             </div>
           </div>
