@@ -189,16 +189,7 @@ export default function Home() {
         </div>
 
         {/* Sección 3: Proceso de Activación de Agentes */}
-        <section id="activation" className="py-20 bg-gray-50 border-t border-gray-200 w-full relative" style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}>
-          {/* Imagen worker2.png fuera del contenedor (off canvas, mitad dentro mitad fuera) - alineado con contenedor */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block" style={{ zIndex: 20, left: 'calc(50% - 50vw - 150px)' }}>
-            <img 
-              src="/public-img/worker2.png" 
-              alt="Worker" 
-              className="h-[500px] w-auto object-contain float-slow opacity-90"
-            />
-          </div>
-          
+        <section id="activation" className="py-20 bg-gray-50 border-t border-gray-200 w-full relative" style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}>          
           {/* Contenedor principal del contenido */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
               {/* Título */}
@@ -258,7 +249,16 @@ export default function Home() {
               </div>
 
               {/* Bloque de texto complementario - Moderno y llamativo - Solo mitad derecha */}
-              <div className="bg-white rounded-2xl p-8 lg:p-12 border border-gray-200 shadow-xl relative overflow-hidden">
+              <div className="bg-white rounded-2xl p-8 lg:p-12 border border-gray-200 shadow-xl relative overflow-visible">
+                {/* Imagen worker2.png dentro del div (off canvas, mitad dentro mitad fuera) */}
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block" style={{ zIndex: 20, left: '-150px' }}>
+                  <img 
+                    src="/public-img/worker2.png" 
+                    alt="Worker" 
+                    className="h-[500px] w-auto object-contain float-slow opacity-90"
+                  />
+                </div>
+                
                 {/* Contenedor que ocupa solo desde el centro hacia la derecha (50%) */}
                 <div className="w-full lg:w-1/2 lg:ml-auto relative z-10">
                   <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
