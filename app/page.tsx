@@ -190,9 +190,18 @@ export default function Home() {
 
         {/* Sección 3: Proceso de Activación de Agentes */}
         <section id="activation" className="py-20 bg-gray-50 border-t border-gray-200 w-full">
-          <div className="w-full">
+          <div className="w-full relative">
+            {/* Imagen worker2.png fuera del contenedor (off canvas, mitad dentro mitad fuera) */}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block" style={{ zIndex: 1, left: '-150px' }}>
+              <img 
+                src="/public-img/worker2.png" 
+                alt="Worker" 
+                className="h-[500px] w-auto object-contain float-slow opacity-90"
+              />
+            </div>
+            
             {/* Contenedor principal del contenido */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
               {/* Título */}
               <div className="text-center mb-8">
                 <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6">
@@ -250,21 +259,15 @@ export default function Home() {
               </div>
 
               {/* Bloque de texto complementario - Moderno y llamativo */}
-              <div className="bg-white rounded-2xl p-8 lg:p-12 border border-gray-200 shadow-lg relative overflow-hidden">
-                {/* Imagen worker2.png grande flotante a la izquierda */}
-                <div className="absolute left-0 top-0 bottom-0 hidden lg:block" style={{ zIndex: 1 }}>
-                  <img 
-                    src="/public-img/worker2.png" 
-                    alt="Worker" 
-                    className="h-full w-auto object-contain float-slow opacity-90"
-                    style={{ minHeight: '400px', maxHeight: '500px' }}
-                  />
-                </div>
-                
+              <div className="bg-white rounded-2xl p-8 lg:p-12 border border-gray-200 shadow-lg relative overflow-visible">
                 {/* Contenido de texto */}
-                <div className="relative z-10 lg:ml-96 lg:pl-8">
+                <div className="relative z-10 lg:pl-32">
                   <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
-                    Desbloquea las funciones avanzadas que redefinen tu operación con IA
+                    Desbloquea las funciones avanzadas que redefinen tu{' '}
+                    <span className="relative">
+                      <span className="text-[#5DE1E5]">operación con IA</span>
+                      <span className="absolute bottom-0 left-0 right-0 h-2 bg-[#5DE1E5] opacity-20"></span>
+                    </span>
                   </h3>
                   <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
                     Los agentes de DWRKRS se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
