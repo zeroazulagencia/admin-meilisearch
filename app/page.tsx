@@ -289,12 +289,12 @@ export default function Home() {
                   <img 
                     src="/public-img/worker2.png" 
                     alt="Worker" 
-                    className="h-[420px] w-auto object-contain float-slow opacity-90"
+                    className="h-[460px] w-auto object-contain float-slow opacity-90"
                   />
                 </div>
                 
-                {/* Contenedor que ocupa solo desde el centro hacia la derecha (65%) */}
-                <div className="w-full lg:w-[65%] lg:ml-auto relative z-10">
+                {/* Contenedor que ocupa solo desde el centro hacia la derecha (75%) */}
+                <div className="w-full lg:w-[75%] lg:ml-auto relative z-10">
                   {activeTab === 'select' && (
                     <>
                       <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
