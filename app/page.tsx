@@ -294,8 +294,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
         {/* Sección 4: Tipos de Agentes Digitales */}
         <section id="agents-types" className="py-20 bg-gray-50 border-t border-gray-200">
