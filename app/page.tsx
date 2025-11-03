@@ -92,16 +92,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 relative overflow-hidden">
+      <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20 lg:h-24">
-            <div className="flex items-center gap-2 z-10">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">DW</span>
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">DWORKERS Zero Azul</h1>
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-2">
+              <img 
+                src="/public-img/logo-dworkers.png" 
+                alt="DWORKERS Zero Azul" 
+                className="h-10 w-auto"
+              />
             </div>
-            <nav className="hidden md:flex space-x-8 items-center z-10">
+            <nav className="hidden md:flex space-x-8 items-center">
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Características</a>
               <a href="#about" className="text-gray-600 hover:text-gray-900 transition-colors">Acerca de</a>
               <button
@@ -113,23 +114,11 @@ export default function Home() {
             </nav>
             <button
               onClick={() => setShowLoginModal(true)}
-              className="md:hidden bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition-colors shadow-md z-10"
+              className="md:hidden bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition-colors shadow-md"
             >
               Login
             </button>
           </div>
-        </div>
-        {/* Video en el header */}
-        <div className="absolute top-0 right-0 w-full lg:w-1/2 h-full opacity-20 lg:opacity-100 pointer-events-none">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-          >
-            <source src="/public-img/worker1.mp4" type="video/mp4" />
-          </video>
         </div>
       </header>
 
