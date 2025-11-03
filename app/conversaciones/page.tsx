@@ -368,8 +368,8 @@ export default function Conversaciones() {
             Seleccionar Agente de la Plataforma
           </label>
           {!agentsInitialized ? (
-            <div className="text-blue-600 text-sm flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+            <div className="text-sm flex items-center gap-2" style={{ color: '#5DE1E5' }}>
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent" style={{ borderColor: '#5DE1E5' }}></div>
               Cargando agentes de la plataforma...
             </div>
           ) : (
@@ -377,7 +377,8 @@ export default function Conversaciones() {
               <select
                 value={selectedPlatformAgent}
                 onChange={(e) => setSelectedPlatformAgent(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
               >
                 <option value="all">Todos los agentes</option>
                 {allPlatformAgents.map((agent) => (
@@ -430,7 +431,8 @@ export default function Conversaciones() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar en conversaciones..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
               />
               {searchQuery && (
                 <button
@@ -456,7 +458,8 @@ export default function Conversaciones() {
                     type="date"
                     value={dateFrom}
                     onChange={(e) => setDateFrom(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   />
                 </div>
                 <div>
@@ -467,7 +470,8 @@ export default function Conversaciones() {
                     type="date"
                     value={dateTo}
                     onChange={(e) => setDateTo(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   />
                 </div>
               </div>
@@ -561,7 +565,7 @@ export default function Conversaciones() {
         ) : loadingConversations ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
-              <div className="inline-block animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+              <div className="inline-block animate-spin h-8 w-8 border-2 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
               <p className="mt-2 text-gray-600">Cargando conversaciones...</p>
             </div>
           </div>

@@ -451,7 +451,7 @@ export default function Ejecuciones() {
   if (agentsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+        <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
       </div>
     );
   }
@@ -474,7 +474,8 @@ export default function Ejecuciones() {
               setSelectedAgent(agent || null);
               setSelectedWorkflow(null);
             }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+            style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
           >
             <option value="">Seleccionar agente...</option>
             {agents.map((agent) => {
@@ -524,8 +525,8 @@ export default function Ejecuciones() {
             {isOpen && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
                 {loading || workflows.length === 0 ? (
-                  <div className="px-4 py-3 text-blue-600 text-sm flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                  <div className="px-4 py-3 text-sm flex items-center gap-2" style={{ color: '#5DE1E5' }}>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent" style={{ borderColor: '#5DE1E5' }}></div>
                     Cargando flujos...
                   </div>
                 ) : filteredWorkflows.length === 0 ? (
@@ -537,7 +538,12 @@ export default function Ejecuciones() {
                     <button
                       key={workflow.id}
                       onClick={() => handleSelectWorkflow(workflow)}
-                      className="w-full text-left px-4 py-2 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none transition-colors"
+                      className="w-full text-left px-4 py-2 focus:outline-none transition-colors"
+                      style={{ '--hover-bg': 'rgba(93, 225, 229, 0.1)' } as React.CSSProperties}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(93, 225, 229, 0.1)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      onFocus={(e) => e.currentTarget.style.backgroundColor = 'rgba(93, 225, 229, 0.1)'}
+                      onBlur={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <div className="font-medium text-gray-900">
                         {workflow.name}
@@ -701,7 +707,10 @@ export default function Ejecuciones() {
                                 href={`https://automation.zeroazul.com/workflow/${exec.workflowId}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-900"
+                                className="transition-colors"
+                                style={{ color: '#5DE1E5' }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#4DD1D5'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#5DE1E5'}
                               >
                                 Workflow
                               </a>
