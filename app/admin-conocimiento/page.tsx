@@ -386,10 +386,40 @@ export default function AdminConocimiento() {
       const aiStructured = await structureChunkWithAI(chunk.text, i);
       
       if (aiStructured) {
-        // Combinar los campos estructurados por AI con ID y texto
+        // Normalizar arrays en los datos estructurados por AI
+        const normalizedAI: Record<string, any> = {};
+        Object.keys(aiStructured).forEach(key => {
+          const fieldInfo = allIndexFields.find(f => f.name === key);
+          if (fieldInfo && fieldInfo.type === 'array') {
+            const value = aiStructured[key];
+            if (typeof value === 'string') {
+              // Intentar parsear como JSON primero
+              try {
+                const parsed = JSON.parse(value);
+                if (Array.isArray(parsed)) {
+                  normalizedAI[key] = parsed;
+                } else {
+                  // Si no es JSON válido, tratar como string separado por comas
+                  normalizedAI[key] = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+                }
+              } catch {
+                // Si falla el parseo, tratar como string separado por comas
+                normalizedAI[key] = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+              }
+            } else if (Array.isArray(value)) {
+              normalizedAI[key] = value;
+            } else {
+              normalizedAI[key] = [];
+            }
+          } else {
+            normalizedAI[key] = aiStructured[key];
+          }
+        });
+        
+        // Combinar los campos estructurados por AI (normalizados) con ID y texto
         structuredFields[i] = {
           ...structuredFields[i],
-          ...aiStructured
+          ...normalizedAI
         };
       } else {
         // Si falla, usar extracción manual como fallback
