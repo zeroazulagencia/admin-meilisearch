@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Index, meilisearchAPI } from '@/utils/meilisearch';
 import IndexProperties from '@/components/IndexProperties';
 import DocumentList from '@/components/DocumentList';
+import ProtectedLayout from '@/components/ProtectedLayout';
 
 interface AgentDB {
   id: number;
@@ -1122,7 +1123,8 @@ export default function AdminConocimiento() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ProtectedLayout>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Conocimiento</h1>
         
@@ -2004,6 +2006,7 @@ export default function AdminConocimiento() {
         </div>
       )}
     </div>
+    </ProtectedLayout>
   );
 }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { getPermissions, getUserId } from '@/utils/permissions';
+import ProtectedLayout from '@/components/ProtectedLayout';
 
 interface ConversationGroup {
   user_id: string;
@@ -356,7 +357,8 @@ export default function Conversaciones() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ProtectedLayout>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Conversaciones</h1>
         
@@ -673,5 +675,6 @@ export default function Conversaciones() {
         )}
       </div>
     </div>
+    </ProtectedLayout>
   );
 }

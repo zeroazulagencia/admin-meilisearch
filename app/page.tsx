@@ -99,7 +99,7 @@ export default function Home() {
               <img 
                 src="/public-img/logo-dworkers.png" 
                 alt="DWORKERS Zero Azul" 
-                className="h-8 w-auto"
+                className="h-6 w-auto"
               />
             </div>
             <nav className="hidden md:flex space-x-8 items-center">
@@ -107,14 +107,16 @@ export default function Home() {
               <a href="#about" className="text-gray-600 hover:text-gray-900 transition-colors">Acerca de</a>
               <button
                 onClick={() => setShowLoginModal(true)}
-                className="bg-yellow-400 text-gray-900 px-6 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition-colors shadow-md"
+                className="text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md"
+                style={{ backgroundColor: '#5DE1E5' }}
               >
                 Iniciar Sesión
               </button>
             </nav>
             <button
               onClick={() => setShowLoginModal(true)}
-              className="md:hidden bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition-colors shadow-md"
+              className="md:hidden text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md"
+              style={{ backgroundColor: '#5DE1E5' }}
             >
               Login
             </button>
@@ -129,7 +131,7 @@ export default function Home() {
           <div className="space-y-8">
             <div className="space-y-4">
               <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight">
-                Unlock The Power of <span className="underline decoration-yellow-400 decoration-4">DWORKERS</span> AI
+                Unlock The Power of <span className="underline decoration-4" style={{ textDecorationColor: '#5DE1E5' }}>DWORKERS</span> AI
                 <br />
                 Create Content Faster
               </h2>
@@ -144,7 +146,8 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4">
               <button 
                 onClick={() => setShowLoginModal(true)}
-                className="bg-yellow-400 text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors text-center shadow-md"
+                className="text-white px-6 sm:px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all text-center shadow-md"
+                style={{ backgroundColor: '#5DE1E5' }}
               >
                 Comenzar Gratis
               </button>
