@@ -1443,9 +1443,9 @@ export default function AdminConocimiento() {
               {structuringChunks && (
                 <div className="mt-4 p-4 border rounded-lg" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)', borderColor: '#5DE1E5' }}>
                   <div className="flex items-center gap-3">
-                    <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                    <div className="animate-spin h-5 w-5 border-2 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-800">
+                      <p className="text-sm font-medium" style={{ color: '#0369a1' }}>
                         Estructurando chunks con OpenAI...
                       </p>
                       <p className="text-xs mt-1" style={{ color: '#5DE1E5' }}>
