@@ -206,28 +206,28 @@ export default function Home() {
               {/* Tres Pasos como Botones Horizontales */}
               <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center items-stretch">
                 {/* Paso 1 */}
-              <button className="bg-white border-2 border-gray-200 rounded-lg px-6 py-4 hover:border-[#5DE1E5] transition-all text-left flex items-center gap-3 flex-1 max-w-xs">
+                <button className="bg-white border-2 border-gray-200 rounded-lg px-6 py-4 hover:border-[#5DE1E5] transition-all text-left flex items-center gap-3 flex-1 max-w-xs">
                 <svg className="w-6 h-6 flex-shrink-0" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span className="font-raleway font-semibold text-gray-900">Selecciona tu tipo de agente</span>
-              </button>
+                  <span className="font-raleway font-semibold text-gray-900">Selecciona tu tipo de agente</span>
+                </button>
 
-              {/* Paso 2 - Destacado */}
-              <button className="rounded-lg px-6 py-4 transition-all text-left flex items-center gap-3 flex-1 max-w-xs shadow-md" style={{ backgroundColor: '#5DE1E5' }}>
-                <svg className="w-6 h-6 flex-shrink-0 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span className="font-raleway font-semibold text-gray-900">Configura y genera tareas</span>
-              </button>
+                {/* Paso 2 - Destacado */}
+                <button className="rounded-lg px-6 py-4 transition-all text-left flex items-center gap-3 flex-1 max-w-xs shadow-md" style={{ backgroundColor: '#5DE1E5' }}>
+                  <svg className="w-6 h-6 flex-shrink-0 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span className="font-raleway font-semibold text-gray-900">Configura y genera tareas</span>
+                </button>
 
-              {/* Paso 3 */}
-              <button className="bg-white border-2 border-gray-200 rounded-lg px-6 py-4 hover:border-[#5DE1E5] transition-all text-left flex items-center gap-3 flex-1 max-w-xs">
-                <svg className="w-6 h-6 flex-shrink-0" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <span className="font-raleway font-semibold text-gray-900">Describe tus objetivos</span>
-              </button>
+                {/* Paso 3 */}
+                <button className="bg-white border-2 border-gray-200 rounded-lg px-6 py-4 hover:border-[#5DE1E5] transition-all text-left flex items-center gap-3 flex-1 max-w-xs">
+                  <svg className="w-6 h-6 flex-shrink-0" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span className="font-raleway font-semibold text-gray-900">Describe tus objetivos</span>
+                </button>
               </div>
 
               {/* Descripción de los pasos */}
