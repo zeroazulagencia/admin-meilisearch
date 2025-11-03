@@ -332,7 +332,7 @@ export default function Home() {
             <img 
               src="/public-img/worker1b.png" 
               alt="Worker" 
-              className="absolute -top-6 -left-6 w-16 h-16 object-contain float-slow"
+              className="absolute -top-12 -left-12 w-48 h-48 object-contain float-slow"
               style={{ zIndex: 999 }}
             />
             <div className="flex justify-between items-center mb-6">
