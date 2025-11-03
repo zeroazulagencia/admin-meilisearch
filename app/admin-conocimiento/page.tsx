@@ -1920,10 +1920,22 @@ export default function AdminConocimiento() {
                           alert('El prefijo del ID es obligatorio');
                           return;
                         }
+                        console.log('[PDF-UPLOAD] Validación: allIndexFields tiene', allIndexFields.length, 'campos antes de preparar');
+                        
                         // Cargar campos del índice automáticamente
-                        await loadIndexFields();
+                        const fields = await loadIndexFields();
+                        
+                        console.log('[PDF-UPLOAD] Campos cargados:', fields.length, 'campos');
+                        console.log('[PDF-UPLOAD] Validación antes de preparar chunks: campos =', fields.length);
+                        
+                        if (!fields || fields.length === 0) {
+                          console.error('[PDF-UPLOAD] ERROR: No se pudieron cargar los campos del índice');
+                          alert('Error: No se pudieron cargar los campos del índice. Por favor intenta de nuevo.');
+                          return;
+                        }
+                        
                         // Preparar chunks y estructurar con IA directamente
-                        await prepareChunks();
+                        await prepareChunks(fields);
                         // Ir directamente a revisión
                         setPdfStep('review');
                       } else if (pdfStep === 'review' && !uploading) {
