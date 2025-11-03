@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import ProtectedLayout from '@/components/ProtectedLayout';
 
 interface ClientDB {
   id: number;
@@ -113,14 +114,17 @@ export default function Clientes() {
 
   if (loading) {
     return (
-      <div className="min欧-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
-      </div>
+      <ProtectedLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+        </div>
+      </ProtectedLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ProtectedLayout>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
@@ -151,7 +155,8 @@ export default function Clientes() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   />
                 </div>
                 <div>
@@ -163,7 +168,8 @@ export default function Clientes() {
                     required
                     value={formData.usuario}
                     onChange={(e) => setFormData({ ...formData, usuario: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   />
                 </div>
                 <div>
@@ -175,7 +181,8 @@ export default function Clientes() {
                     required
                     value={formData.clave}
                     onChange={(e) => setFormData({ ...formData, clave: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   />
                 </div>
                 <div>
@@ -186,7 +193,8 @@ export default function Clientes() {
                     type="text"
                     value={formData.company}
                     onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   />
                 </div>
                 <div>
@@ -197,7 +205,8 @@ export default function Clientes() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   />
                 </div>
                 <div>
@@ -208,14 +217,16 @@ export default function Clientes() {
                     type="text"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   />
                 </div>
               </div>
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
+                  style={{ backgroundColor: '#5DE1E5' }}
                 >
                   {editingClient ? 'Actualizar' : 'Guardar'}
                 </button>
@@ -271,11 +282,10 @@ export default function Clientes() {
                       {client.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        isAdmin 
-                          ? 'bg-purple-100 text-purple-800' 
-                          : 'bg-blue-100 text-blue-800'
-                      }`}>
+                      <span 
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${isAdmin ? 'bg-purple-100 text-purple-800' : ''}`}
+                        style={!isAdmin ? { backgroundColor: 'rgba(93, 225, 229, 0.1)', color: '#0369a1' } : {}}
+                      >
                         {isAdmin ? 'Super Admin' : 'Cliente'}
                       </span>
                     </td>
@@ -291,7 +301,10 @@ export default function Clientes() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={() => router.push(`/clientes/${client.id}/editar`)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
+                      className="mr-4 transition-colors"
+                      style={{ color: '#5DE1E5' }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = '#4DD1D5'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = '#5DE1E5'}
                     >
                       Editar
                     </button>
@@ -310,6 +323,7 @@ export default function Clientes() {
         </div>
       </div>
     </div>
+    </ProtectedLayout>
   );
 }
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import ProtectedLayout from '@/components/ProtectedLayout';
 
 interface Client {
   id: number;
@@ -149,14 +150,17 @@ export default function EditarCliente() {
 
   if (!currentClient) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
-      </div>
+      <ProtectedLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+        </div>
+      </ProtectedLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ProtectedLayout>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Editar Cliente</h1>
@@ -178,7 +182,8 @@ export default function EditarCliente() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                 />
               </div>
 
@@ -190,7 +195,8 @@ export default function EditarCliente() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                 />
               </div>
 
@@ -202,7 +208,8 @@ export default function EditarCliente() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                 />
               </div>
 
@@ -214,7 +221,8 @@ export default function EditarCliente() {
                   type="text"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                 />
               </div>
 
@@ -228,7 +236,8 @@ export default function EditarCliente() {
                       type={showPassword ? 'text' : 'password'}
                       value={formData.clave}
                       onChange={(e) => setFormData({ ...formData, clave: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                     />
                     <button
                       type="button"
@@ -314,13 +323,14 @@ export default function EditarCliente() {
             </div>
 
             {/* Login Checkbox */}
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mb-6 p-4 rounded-lg border" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)', borderColor: '#5DE1E5' }}>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={permissions.canLogin || false}
                   onChange={(e) => setPermissions((prev: any) => ({ ...prev, canLogin: e.target.checked, login: e.target.checked }))}
-                  className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                  className="w-5 h-5 rounded focus:ring-[#5DE1E5]"
+                  style={{ color: '#5DE1E5' }}
                 />
                 <span className="ml-3 text-base font-medium text-gray-900">
                   Permitir Login (acceso al sistema)
@@ -369,7 +379,10 @@ export default function EditarCliente() {
                 {associatedAgents.map((agent) => (
                   <div 
                     key={agent.id} 
-                    className="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-500 transition-colors cursor-pointer"
+                    className="border-2 border-gray-200 rounded-lg p-4 transition-colors cursor-pointer"
+                    style={{ '--hover-border': '#5DE1E5' } as React.CSSProperties}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#5DE1E5'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
                     onClick={() => router.push(`/agentes/${agent.id}/editar`)}
                   >
                     <div className="flex items-center gap-3">
@@ -417,7 +430,8 @@ export default function EditarCliente() {
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-6 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
+              style={{ backgroundColor: '#5DE1E5' }}
             >
               Guardar Cambios
             </button>
@@ -425,6 +439,7 @@ export default function EditarCliente() {
         </form>
       </div>
     </div>
+    </ProtectedLayout>
   );
 }
 

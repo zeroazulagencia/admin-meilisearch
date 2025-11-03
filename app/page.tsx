@@ -43,7 +43,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block animate-spin h-8 w-8 border-2 border-[#5DE1E5] border-t-transparent rounded-full"></div>
+          <div className="inline-block animate-spin h-8 w-8 border-2 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
           <p className="mt-2 text-gray-600">Redirigiendo...</p>
         </div>
       </div>
@@ -107,7 +107,7 @@ export default function Home() {
               <a href="#about" className="text-gray-600 hover:text-gray-900 transition-colors">Acerca de</a>
               <button
                 onClick={() => setShowLoginModal(true)}
-                className="text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md"
+                className="text-gray-900 px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md"
                 style={{ backgroundColor: '#5DE1E5' }}
               >
                 Iniciar Sesión
@@ -115,7 +115,7 @@ export default function Home() {
             </nav>
             <button
               onClick={() => setShowLoginModal(true)}
-              className="md:hidden text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md"
+              className="md:hidden text-gray-900 px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md"
               style={{ backgroundColor: '#5DE1E5' }}
             >
               Login
@@ -146,7 +146,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4">
               <button 
                 onClick={() => setShowLoginModal(true)}
-                className="text-white px-6 sm:px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all text-center shadow-md"
+                className="text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all text-center shadow-md"
                 style={{ backgroundColor: '#5DE1E5' }}
               >
                 Comenzar Gratis
@@ -294,12 +294,12 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-full text-gray-900 py-3 px-6 rounded-lg font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 style={{ backgroundColor: '#5DE1E5' }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center">
-                    <span className="inline-block animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                    <span className="inline-block animate-spin h-5 w-5 border-2 border-gray-900 border-t-transparent rounded-full mr-2"></span>
                     Iniciando sesión...
                   </span>
                 ) : (

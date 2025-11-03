@@ -212,7 +212,8 @@ export default function Agentes() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   />
                 </div>
                 <div>
@@ -223,7 +224,8 @@ export default function Agentes() {
                     required
                     value={formData.client_id}
                     onChange={(e) => setFormData({ ...formData, client_id: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   >
                     <option value="0">Selecciona un cliente</option>
                     {clients.map((client) => (
@@ -242,7 +244,8 @@ export default function Agentes() {
                     rows={3}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                   ></textarea>
                 </div>
                 <div className="md:col-span-2">
@@ -303,7 +306,7 @@ export default function Agentes() {
                   )}
                   {uploading && (
                     <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
-                      <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                      <div className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
                       Subiendo imagen...
                     </div>
                   )}
@@ -312,7 +315,8 @@ export default function Agentes() {
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
+                  style={{ backgroundColor: '#5DE1E5' }}
                 >
                   {editingAgent ? 'Actualizar' : 'Guardar'}
                 </button>
@@ -344,13 +348,14 @@ export default function Agentes() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{agent.name}</h3>
                 <div className="mb-2">
                   <span className="text-xs font-medium text-gray-400 uppercase">Cliente:</span>
-                  <p className="text-sm font-medium text-blue-600 truncate">{clients.find(c => c.id === agent.client_id)?.name || 'Sin asignar'}</p>
+                  <p className="text-sm font-medium truncate" style={{ color: '#5DE1E5' }}>{clients.find(c => c.id === agent.client_id)?.name || 'Sin asignar'}</p>
                 </div>
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">{agent.description}</p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => router.push(`/agentes/${agent.id}/editar`)}
-                    className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-3 py-2 text-gray-900 text-sm rounded-lg hover:opacity-90 transition-all"
+                    style={{ backgroundColor: '#5DE1E5' }}
                   >
                     Editar
                   </button>

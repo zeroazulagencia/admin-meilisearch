@@ -1,5 +1,7 @@
 'use client';
 
+import ProtectedLayout from '@/components/ProtectedLayout';
+
 interface ServiceInfo {
   name: string;
   status: string;
@@ -36,12 +38,13 @@ export default function ConsumoAPI() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ProtectedLayout>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Consumo API</h1>
         
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
+        <div className="mb-6 p-4 rounded-lg border rounded-lg" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)', borderColor: '#5DE1E5' }}>
+          <p className="text-sm" style={{ color: '#0369a1' }}>
             <strong>Nota:</strong> Verifica regularmente el estado de créditos de cada servicio para asegurar su disponibilidad.
           </p>
         </div>
@@ -68,7 +71,8 @@ export default function ConsumoAPI() {
                 href={service.dashboardUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium w-full justify-center"
+                className="inline-flex items-center px-4 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all text-sm font-medium w-full justify-center"
+                style={{ backgroundColor: '#5DE1E5' }}
               >
                 Ver Dashboard →
               </a>
@@ -87,6 +91,7 @@ export default function ConsumoAPI() {
         </div>
       </div>
     </div>
+    </ProtectedLayout>
   );
 }
 
