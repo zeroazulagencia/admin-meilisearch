@@ -6,6 +6,12 @@ export async function POST(request: NextRequest) {
   try {
     const { chunkText, fields } = await request.json();
     
+    console.log('[OPENAI-STRUCTURE] Recibiendo solicitud:', {
+      chunkTextLength: chunkText?.length || 0,
+      fieldsCount: fields?.length || 0,
+      requiredFields: fields?.filter((f: any) => f.required).length || 0
+    });
+    
     if (!chunkText || !fields || !Array.isArray(fields)) {
       return NextResponse.json(
         { error: 'chunkText y fields son requeridos' },
@@ -26,57 +32,86 @@ export async function POST(request: NextRequest) {
     const requiredFields = fields.filter((f: any) => f.required);
     const optionalFields = fields.filter((f: any) => !f.required);
     
-    const systemMessage = `Eres un asistente experto en estructurar información de documentos PDF en formato JSON.
+    // Buscar patrones comunes en el texto para ayudar a OpenAI
+    const categoriaMatch = chunkText.match(/CATEGORIA:\s*(.+?)(?:\n|$)/i);
+    const productoMatch = chunkText.match(/PRODUCTO:\s*(.+?)(?:\n|$)/i);
+    const palabrasMatch = chunkText.match(/PALABRAS[:\s]*(.+?)(?:\n|$)/i);
+    
+    const systemMessage = `Eres un asistente experto en extraer información estructurada de documentos de productos.
 
-INSTRUCCIONES CRÍTICAS:
-1. Debes devolver UNICAMENTE un objeto JSON válido, sin texto adicional, sin explicaciones, sin markdown, SIN código backticks.
-2. El objeto JSON DEBE contener TODOS los campos especificados, sin excepción.
-3. Si un campo obligatorio no tiene información en el texto, usa el valor por defecto según su tipo.
+TU TAREA:
+Analizar el texto proporcionado y extraer información específica para cada campo solicitado.
 
-CAMPOS OBLIGATORIOS (DEBEN estar presentes siempre):
-${requiredFields.map((field: any) => `- ${field.name}: tipo ${field.type} - DEBE tener un valor. Si no hay información, usa valor por defecto.`).join('\n')}
+REGLAS ABSOLUTAS:
+1. Debes devolver UNICAMENTE un objeto JSON válido. NADA más, sin texto, sin explicaciones, sin markdown.
+2. El objeto JSON DEBE contener TODOS los campos listados abajo, sin excepción.
+3. Para cada campo, busca la información relevante en el texto y extráela.
+4. Si un campo obligatorio no tiene información directa, INFIERE o usa valor por defecto apropiado.
 
-CAMPOS OPCIONALES (incluir solo si hay información relevante):
-${optionalFields.map((field: any) => `- ${field.name}: tipo ${field.type}`).join('\n')}
+CAMPOS QUE DEBES INCLUIR (OBLIGATORIO - TODOS):
+${fields.map((field: any) => {
+  const required = field.required ? ' [OBLIGATORIO]' : ' [OPCIONAL]';
+  let hint = '';
+  
+  // Agregar pistas sobre dónde buscar la información
+  if (field.name.toLowerCase().includes('categoria')) {
+    hint = ' - Busca líneas que digan "CATEGORIA:" o "Categoría:"';
+  } else if (field.name.toLowerCase().includes('producto')) {
+    hint = ' - Busca líneas que digan "PRODUCTO:" o "Producto:"';
+  } else if (field.name.toLowerCase().includes('descripcion')) {
+    hint = ' - Busca secciones que digan "DESCRIPCION:" o "Descripción:" o "DESCRIPCIÓN:"';
+  } else if (field.name.toLowerCase().includes('palabra')) {
+    hint = ' - Busca secciones que digan "PALABRAS:" o "ASOCIACIONES:" o listas separadas por comas';
+  } else if (field.name.toLowerCase().includes('indicacion')) {
+    hint = ' - Busca secciones que digan "INDICACIONES:" o "USO:" o "Instrucciones:"';
+  } else if (field.name.toLowerCase().includes('textura')) {
+    hint = ' - Busca líneas que digan "TEXTURA:" o "Consistencia:"';
+  } else if (field.name.toLowerCase().includes('edad') || field.name.toLowerCase().includes('momento')) {
+    hint = ' - Busca secciones que digan "EDAD:" o "MOMENTO:" o "Para:"';
+  } else if (field.name.toLowerCase().includes('condicion')) {
+    hint = ' - Busca secciones que digan "CONTRAINDICACIONES:" o "CONDICIONES:"';
+  } else if (field.name.toLowerCase().includes('necesidad')) {
+    hint = ' - Busca secciones que digan "NECESIDADES:" o "INTERESES:"';
+  }
+  
+  return `- ${field.name}: tipo ${field.type}${required}${hint}`;
+}).join('\n')}
 
-REGLAS CRÍTICAS DE TIPOS DE DATOS:
+REGLAS DE TIPOS DE DATOS:
 ${fields.map((field: any) => {
   if (field.type === 'array') {
-    return `- ${field.name}: DEBE ser un array JSON válido. Ejemplo: ["item1", "item2"] ✅. NUNCA usar strings como "item1, item2" ❌`;
+    return `- ${field.name}: DEBE ser un array JSON. Si encuentras lista separada por comas, conviértela a array. Ejemplo: ["item1", "item2"] ✅ NO: "item1, item2" ❌`;
   } else if (field.type === 'object') {
-    return `- ${field.name}: DEBE ser un objeto JSON válido. Ejemplo: {"key": "value"} ✅. NUNCA usar strings ❌`;
+    return `- ${field.name}: DEBE ser un objeto JSON. Ejemplo: {"key": "value"} ✅`;
   } else if (field.type === 'number' || field.type === 'integer') {
-    return `- ${field.name}: DEBE ser un número. Ejemplo: 123 ✅. NUNCA usar strings como "123" ❌`;
+    return `- ${field.name}: DEBE ser un número. Ejemplo: 123 ✅ NO: "123" ❌`;
   } else if (field.type === 'boolean') {
-    return `- ${field.name}: DEBE ser un booleano. Ejemplo: true o false ✅. NUNCA usar strings como "true" ❌`;
+    return `- ${field.name}: DEBE ser true o false. NO strings.`;
   } else {
-    return `- ${field.name}: DEBE ser un string. Ejemplo: "texto" ✅`;
+    return `- ${field.name}: DEBE ser un string con la información extraída del texto.`;
   }
 }).join('\n')}
 
-VALORES POR DEFECTO (para campos obligatorios sin información):
+INSTRUCCIONES DE EXTRACCIÓN:
+1. Lee TODO el texto cuidadosamente
+2. Para cada campo, busca la sección relevante en el texto
+3. Extrae la información específica, no todo el texto
+4. Si un campo obligatorio no tiene información clara, usa tu mejor juicio o valor por defecto
+5. Para campos opcionales, inclúyelos solo si encuentras información relevante
+
+VALORES POR DEFECTO (solo para campos obligatorios sin información):
 - String: "" (cadena vacía)
 - Array: [] (array vacío)
-- Number/Integer: 0 (cero)
+- Number/Integer: 0
 - Boolean: false
-- Object: {} (objeto vacío)
+- Object: {}`;
 
-FORMATO DE RESPUESTA:
-- SOLO JSON válido, empezando con { y terminando con }
-- NO incluyas texto antes o después del JSON
-- NO uses markdown code blocks
-- NO uses explicaciones
-- Ejemplo correcto: {"campo1": "valor1", "campo2": ["item1", "item2"], "campo3": 123}`;
+    const userMessage = `Extrae la información del siguiente texto y estructura en un objeto JSON con TODOS los campos especificados.
 
-    const userMessage = `Analiza el siguiente texto y extrae/estructura TODA la información disponible en un objeto JSON con TODOS los campos especificados.
-
-TEXTO A ANALIZAR:
+TEXTO:
 ${chunkText}
 
-IMPORTANTE: 
-- Responde SOLO con el objeto JSON, sin texto adicional.
-- Incluye TODOS los campos especificados, sin excepción.
-- Para campos obligatorios sin información, usa valores por defecto según el tipo.`;
+Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos listados.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -98,7 +133,7 @@ IMPORTANTE:
         ],
         response_format: { type: 'json_object' },
         max_tokens: 2000,
-        temperature: 0.3
+        temperature: 0.1
       })
     });
 
@@ -197,19 +232,64 @@ IMPORTANTE:
           finalData[field.name] = String(value || '');
         }
       } else {
-        // Campo no presente en la respuesta
+        // Campo no presente en la respuesta de OpenAI
         if (field.required) {
-          // Valores por defecto para campos requeridos
-          if (field.type === 'array') {
-            finalData[field.name] = [];
-          } else if (field.type === 'object') {
-            finalData[field.name] = {};
-          } else if (field.type === 'boolean') {
-            finalData[field.name] = false;
-          } else if (field.type === 'integer' || field.type === 'number') {
-            finalData[field.name] = 0;
+          // Intentar extraer del texto usando patrones comunes antes de usar valor por defecto
+          let extractedValue: string | undefined = undefined;
+          
+          // Buscar en el texto del chunk
+          const fieldNameLower = field.name.toLowerCase();
+          
+          if (fieldNameLower.includes('categoria')) {
+            const match = chunkText.match(/CATEGORIA:\s*(.+?)(?:\n|$)/i);
+            if (match) extractedValue = match[1].trim();
+          } else if (fieldNameLower.includes('producto')) {
+            const match = chunkText.match(/PRODUCTO:\s*(.+?)(?:\n|$)/i);
+            if (match) extractedValue = match[1].trim();
+          } else if (fieldNameLower.includes('descripcion')) {
+            const match = chunkText.match(/DESCRIPCION[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            if (match) extractedValue = match[1].trim();
+          } else if (fieldNameLower.includes('palabra') || fieldNameLower.includes('clave')) {
+            const match = chunkText.match(/PALABRAS[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            if (match) {
+              const palabras = match[1].split(',').map(p => p.trim()).filter(p => p.length > 0);
+              if (palabras.length > 0) {
+                finalData[field.name] = palabras;
+                continue;
+              }
+            }
+          } else if (fieldNameLower.includes('indicacion')) {
+            const match = chunkText.match(/INDICACIONES[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            if (match) extractedValue = match[1].trim();
+          } else if (fieldNameLower.includes('textura')) {
+            const match = chunkText.match(/TEXTURA:\s*(.+?)(?:\n|$)/i);
+            if (match) extractedValue = match[1].trim();
+          } else if (fieldNameLower.includes('edad') || fieldNameLower.includes('momento')) {
+            const match = chunkText.match(/EDAD[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            if (match) extractedValue = match[1].trim();
+          } else if (fieldNameLower.includes('condicion')) {
+            const match = chunkText.match(/CONDICIONES[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            if (match) extractedValue = match[1].trim();
+          } else if (fieldNameLower.includes('necesidad')) {
+            const match = chunkText.match(/NECESIDADES[:\s]*(.+?)(?:\n\n|3\.1\.|$)/is);
+            if (match) extractedValue = match[1].trim();
+          }
+          
+          if (extractedValue && field.type === 'string') {
+            finalData[field.name] = extractedValue;
           } else {
-            finalData[field.name] = '';
+            // Valores por defecto para campos requeridos
+            if (field.type === 'array') {
+              finalData[field.name] = [];
+            } else if (field.type === 'object') {
+              finalData[field.name] = {};
+            } else if (field.type === 'boolean') {
+              finalData[field.name] = false;
+            } else if (field.type === 'integer' || field.type === 'number') {
+              finalData[field.name] = 0;
+            } else {
+              finalData[field.name] = '';
+            }
           }
         } else {
           // Campos opcionales sin valor no se incluyen
@@ -226,6 +306,17 @@ IMPORTANTE:
     });
     
     structuredData = finalData;
+    
+    console.log('[OPENAI-STRUCTURE] Resultado final:', {
+      fieldsCount: Object.keys(structuredData).length,
+      fields: Object.keys(structuredData),
+      sampleValues: Object.keys(structuredData).slice(0, 5).reduce((acc, key) => {
+        acc[key] = typeof structuredData[key] === 'string' 
+          ? structuredData[key].substring(0, 50) 
+          : structuredData[key];
+        return acc;
+      }, {} as Record<string, any>)
+    });
 
     return NextResponse.json({ 
       success: true,
