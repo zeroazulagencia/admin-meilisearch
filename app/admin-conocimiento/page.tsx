@@ -837,6 +837,9 @@ export default function AdminConocimiento() {
 
     console.log('[PDF-UPLOAD] Finalizada subida de todos los chunks');
     setUploading(false);
+    
+    // Recargar el índice después de subir PDFs
+    await refreshIndex();
   };
 
   // Consultar estado de una task cada 3 segundos
@@ -1039,12 +1042,27 @@ export default function AdminConocimiento() {
       );
       setAvailableIndexes(agentIndexes);
       
-      // No seleccionar índice por defecto
-      setSelectedIndex(null);
+      // Si había un índice seleccionado, mantenerlo seleccionado si aún existe
+      if (selectedIndex) {
+        const stillExists = agentIndexes.find(idx => idx.uid === selectedIndex.uid);
+        if (stillExists) {
+          // Mantener el índice seleccionado pero recargar sus datos
+          setSelectedIndex(stillExists);
+        } else {
+          setSelectedIndex(null);
+        }
+      }
     } catch (error) {
       console.error('Error loading indexes:', error);
     } finally {
       setLoadingIndexes(false);
+    }
+  };
+
+  // Función para refrescar el índice después de operaciones
+  const refreshIndex = async () => {
+    if (selectedAgent) {
+      await loadAgentIndexes();
     }
   };
 
@@ -1179,23 +1197,6 @@ export default function AdminConocimiento() {
 
               {selectedIndex && (
                 <>
-                  <div className="bg-white rounded-lg shadow p-6 mb-6">
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => {
-                          setShowPdfModal(true);
-                          // Si hay progreso, ir directamente al paso de revisión
-                          if (uploadProgress.length > 0) {
-                            setPdfStep('review');
-                          }
-                        }}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        📄 Cargar PDF {uploadProgress.length > 0 && <span className="ml-1 text-xs">({uploadProgress.filter(p => p.status === 'failed').length} errores)</span>}
-                      </button>
-                    </div>
-                  </div>
-
                   {/* Mostrar progreso FUERA del modal si existe */}
                   {uploadProgress.length > 0 && !showPdfModal && (
                     <div className="bg-white rounded-lg shadow p-6 mb-6 border-2 border-blue-300">
@@ -1281,7 +1282,18 @@ export default function AdminConocimiento() {
                   )}
 
                   <IndexProperties indexUid={selectedIndex.uid} />
-                  <DocumentList indexUid={selectedIndex.uid} />
+                  <DocumentList 
+                    indexUid={selectedIndex.uid}
+                    onLoadPdf={() => {
+                      setShowPdfModal(true);
+                      // Si hay progreso, ir directamente al paso de revisión
+                      if (uploadProgress.length > 0) {
+                        setPdfStep('review');
+                      }
+                    }}
+                    uploadProgressCount={uploadProgress.filter(p => p.status === 'failed').length}
+                    onRefresh={refreshIndex}
+                  />
                 </>
               )}
             </>

@@ -6,9 +6,12 @@ import DocumentEditor from './DocumentEditor';
 
 interface DocumentListProps {
   indexUid: string;
+  onLoadPdf?: () => void;
+  uploadProgressCount?: number;
+  onRefresh?: () => void;
 }
 
-export default function DocumentList({ indexUid }: DocumentListProps) {
+export default function DocumentList({ indexUid, onLoadPdf, uploadProgressCount = 0, onRefresh }: DocumentListProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -183,6 +186,11 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
       
       // Recargar documentos
       await loadDocuments();
+      
+      // Notificar al padre para refrescar el índice
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (err) {
       console.error('Error saving document:', err);
       alert('Error al guardar el documento');
@@ -200,6 +208,11 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
       await meilisearchAPI.deleteDocument(indexUid, doc[primaryKey] as string);
       await new Promise(resolve => setTimeout(resolve, 300));
       await loadDocuments();
+      
+      // Notificar al padre para refrescar el índice
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (err) {
       console.error('Error deleting document:', err);
       alert('Error al eliminar el documento');
@@ -218,6 +231,11 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
       setSelectedDocs(new Set());
       await new Promise(resolve => setTimeout(resolve, 300));
       await loadDocuments();
+      
+      // Notificar al padre para refrescar el índice
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (err) {
       console.error('Error deleting documents:', err);
       alert('Error al eliminar los documentos');
@@ -263,6 +281,14 @@ export default function DocumentList({ indexUid }: DocumentListProps) {
                   className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {deleting ? '⏳ Eliminando...' : `Eliminar Seleccionados (${selectedDocs.size})`}
+                </button>
+              )}
+              {onLoadPdf && (
+                <button
+                  onClick={onLoadPdf}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                >
+                  📄 Cargar PDF {uploadProgressCount > 0 && <span className="ml-1 text-xs">({uploadProgressCount} errores)</span>}
                 </button>
               )}
               <button

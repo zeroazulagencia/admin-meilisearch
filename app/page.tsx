@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { meilisearchAPI } from '@/utils/meilisearch';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface ChartData {
+  agentsByClient: Array<{ clientName: string; count: number }>;
+  executionsByAgent: Array<{ agentName: string; count: number }>;
+  topIndexes: Array<{ indexUid: string; documentCount: number }>;
+}
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -9,7 +16,13 @@ export default function Dashboard() {
     agents: 0,
     conversations: 0
   });
+  const [chartData, setChartData] = useState<ChartData>({
+    agentsByClient: [],
+    executionsByAgent: [],
+    topIndexes: []
+  });
   const [loading, setLoading] = useState(true);
+  const [chartsLoading, setChartsLoading] = useState(true);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -44,7 +57,26 @@ export default function Dashboard() {
       }
     };
     
+    const loadChartData = async () => {
+      try {
+        const res = await fetch('/api/dashboard/stats');
+        const data = await res.json();
+        if (data.ok) {
+          setChartData({
+            agentsByClient: data.agentsByClient || [],
+            executionsByAgent: data.executionsByAgent || [],
+            topIndexes: data.topIndexes || []
+          });
+        }
+      } catch (err) {
+        console.error('Error loading chart data:', err);
+      } finally {
+        setChartsLoading(false);
+      }
+    };
+    
     loadStats();
+    loadChartData();
   }, []);
 
   if (loading) {
@@ -105,56 +137,96 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Accesos rápidos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Admin Conocimiento</h2>
-            <p className="text-gray-600 text-sm mb-4">Administra tus índices de Meilisearch</p>
-            <a href="/admin-conocimiento" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              Ir a Admin →
-            </a>
+        {/* Gráficas */}
+        {chartsLoading ? (
+          <div className="bg-white rounded-lg shadow p-6 flex items-center justify-center">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
           </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Ejecuciones</h2>
-            <p className="text-gray-600 text-sm mb-4">Revisa las ejecuciones de n8n</p>
-            <a href="/ejecuciones" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              Ver ejecuciones →
-            </a>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Gráfica 1: Asistente con más ejecuciones (este mes) */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Ejecuciones por Agente (Este Mes)</h2>
+              {chartData.executionsByAgent.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={chartData.executionsByAgent}
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="agentName" type="category" width={80} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-gray-500">
+                  No hay datos disponibles
+                </div>
+              )}
+            </div>
+
+            {/* Gráfica 2: Número de agentes por cliente */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Agentes por Cliente</h2>
+              {chartData.agentsByClient.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={chartData.agentsByClient}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="clientName" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={80}
+                      interval={0}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#10b981" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-gray-500">
+                  No hay datos disponibles
+                </div>
+              )}
+            </div>
+
+            {/* Gráfica 3: Top 5 índices de Meilisearch con más documentos */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Top 5 Índices Meilisearch</h2>
+              {chartData.topIndexes.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={chartData.topIndexes}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="indexUid" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={80}
+                      interval={0}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="documentCount" fill="#8b5cf6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-gray-500">
+                  No hay datos disponibles
+                </div>
+              )}
+            </div>
           </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Conversaciones</h2>
-            <p className="text-gray-600 text-sm mb-4">Revisa conversaciones por agente</p>
-            <a href="/conversaciones" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              Ver conversaciones →
-            </a>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Consumo API</h2>
-            <p className="text-gray-600 text-sm mb-4">Monitorea créditos y consumo de las APIs</p>
-            <a href="/consumo-api" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              Ver consumo →
-            </a>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Clientes</h2>
-            <p className="text-gray-600 text-sm mb-4">Gestiona los clientes del sistema</p>
-            <a href="/clientes" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              Ver clientes →
-            </a>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Agentes</h2>
-            <p className="text-gray-600 text-sm mb-4">Gestiona los agentes de IA</p>
-            <a href="/agentes" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              Ver agentes →
-            </a>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
