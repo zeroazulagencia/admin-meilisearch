@@ -189,29 +189,22 @@ export default function Home() {
         </div>
 
         {/* Sección 3: Proceso de Activación de Agentes */}
-        <section id="activation" className="py-20 bg-gray-50 border-t border-gray-200 relative">
-          {/* Imagen worker2.png flotante */}
-          <div className="absolute top-20 right-8 z-10 hidden lg:block">
-            <img 
-              src="/public-img/worker2.png" 
-              alt="Worker" 
-              className="w-64 h-64 object-contain float-slow"
-              style={{ zIndex: 10 }}
-            />
-          </div>
-          <div className="max-w-5xl mx-auto relative z-20">
-            {/* Título */}
-            <div className="text-center mb-8">
-              <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6">
-                Pocos pasos para activar tus agentes digitales
-              </h2>
-              <p className="font-raleway text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto mb-8">
-                Antes de integrar un agente, es esencial definir qué área de tu negocio necesita apoyo. Considera sus procesos, flujos de trabajo y objetivos estratégicos. Tus agentes aprenderán y se adaptarán según esos parámetros.
-              </p>
-            </div>
+        <section id="activation" className="py-20 bg-gray-50 border-t border-gray-200 w-full">
+          <div className="w-full">
+            {/* Contenedor principal del contenido */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              {/* Título */}
+              <div className="text-center mb-8">
+                <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6">
+                  Pocos pasos para activar tus agentes digitales
+                </h2>
+                <p className="font-raleway text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto mb-8">
+                  Antes de integrar un agente, es esencial definir qué área de tu negocio necesita apoyo. Considera sus procesos, flujos de trabajo y objetivos estratégicos. Tus agentes aprenderán y se adaptarán según esos parámetros.
+                </p>
+              </div>
 
-            {/* Tres Pasos como Botones Horizontales */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center items-stretch">
+              {/* Tres Pasos como Botones Horizontales */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center items-stretch"
               {/* Paso 1 */}
               <button className="bg-white border-2 border-gray-200 rounded-lg px-6 py-4 hover:border-[#5DE1E5] transition-all text-left flex items-center gap-3 flex-1 max-w-xs">
                 <svg className="w-6 h-6 flex-shrink-0" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,10 +228,10 @@ export default function Home() {
                 </svg>
                 <span className="font-raleway font-semibold text-gray-900">Describe tus objetivos</span>
               </button>
-            </div>
+              </div>
 
-            {/* Descripción de los pasos */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              {/* Descripción de los pasos */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
               <div className="text-center">
                 <p className="font-raleway text-gray-600 text-sm">
                   Elige entre agentes de atención, ventas, operaciones o análisis. Cada uno está diseñado para resolver desafíos específicos.
