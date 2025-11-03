@@ -166,10 +166,16 @@ export default function AdminConocimiento() {
   };
 
   // Cargar campos del índice desde un documento de ejemplo (automático, sin selección manual)
-  const loadIndexFields = async () => {
-    if (!selectedIndex) return;
+  const loadIndexFields = async (): Promise<Array<{name: string, type: string, required: boolean}>> => {
+    console.log('[PDF-UPLOAD] loadIndexFields iniciado');
+    
+    if (!selectedIndex) {
+      console.warn('[PDF-UPLOAD] No hay índice seleccionado');
+      return [];
+    }
     
     try {
+      console.log('[PDF-UPLOAD] Obteniendo settings del índice:', selectedIndex.uid);
       // Obtener settings del índice para detectar campos requeridos por el embedder
       const settings = await meilisearchAPI.getIndexSettings(selectedIndex.uid);
       setIndexSettings(settings);
@@ -185,12 +191,14 @@ export default function AdminConocimiento() {
         }
       }
 
+      console.log('[PDF-UPLOAD] Obteniendo documento de ejemplo del índice');
       // Obtener un documento de ejemplo para ver la estructura
       const documents = await meilisearchAPI.getDocuments(selectedIndex.uid, 1, 0);
       if (documents.results.length > 0) {
         const sampleDoc = documents.results[0];
         const fields = Object.keys(sampleDoc);
         setIndexFields(fields);
+        console.log('[PDF-UPLOAD] Campos detectados del índice:', fields.length, 'campos:', fields);
         
         // Analizar tipos de datos de cada campo
         const fieldsWithTypes = fields.map(field => {
@@ -212,8 +220,9 @@ export default function AdminConocimiento() {
             required: requiredFieldsList.includes(field)
           };
         });
+        
+        console.log('[PDF-UPLOAD] Tipos inferidos:', fieldsWithTypes.map(f => `${f.name}:${f.type}${f.required ? ' (requerido)' : ''}`));
         setAllIndexFields(fieldsWithTypes);
-        console.log('[PDF-UPLOAD] Campos del índice con tipos:', fieldsWithTypes);
         
         // Detectar automáticamente el campo ID (buscar 'id' o el primer campo)
         if (fields.includes('id')) {
@@ -232,16 +241,32 @@ export default function AdminConocimiento() {
         } else if (fields.length > 0) {
           setSelectedTextField(fields[0]);
         }
+        
+        console.log('[PDF-UPLOAD] loadIndexFields completado, retornando', fieldsWithTypes.length, 'campos');
+        return fieldsWithTypes;
       } else {
         // Si no hay documentos, usar campos comunes
+        console.warn('[PDF-UPLOAD] No hay documentos en el índice, usando campos por defecto');
         setSelectedIdField('id');
         setSelectedTextField('descripcion');
+        const defaultFields = [
+          { name: 'id', type: 'string', required: true },
+          { name: 'descripcion', type: 'string', required: false }
+        ];
+        setAllIndexFields(defaultFields);
+        return defaultFields;
       }
     } catch (error) {
       console.error('[PDF-UPLOAD] Error cargando campos del índice:', error);
       // Campos por defecto
       setSelectedIdField('id');
       setSelectedTextField('descripcion');
+      const defaultFields = [
+        { name: 'id', type: 'string', required: true },
+        { name: 'descripcion', type: 'string', required: false }
+      ];
+      setAllIndexFields(defaultFields);
+      return defaultFields;
     }
   };
 
@@ -305,8 +330,15 @@ export default function AdminConocimiento() {
   };
 
   // Estructurar chunk con OpenAI
-  const structureChunkWithAI = async (chunkText: string, chunkIndex: number): Promise<Record<string, any> | null> => {
+  const structureChunkWithAI = async (
+    chunkText: string, 
+    chunkIndex: number, 
+    fields: Array<{name: string, type: string, required: boolean}>
+  ): Promise<Record<string, any> | null> => {
     try {
+      console.log(`[PDF-UPLOAD] structureChunkWithAI: procesando chunk ${chunkIndex + 1} con ${fields.length} campos`);
+      console.log(`[PDF-UPLOAD] structureChunkWithAI: campos enviados a OpenAI:`, fields.map(f => `${f.name}:${f.type}${f.required ? ' (requerido)' : ''}`));
+      
       setStructuringProgress(prev => ({
         ...prev,
         [chunkIndex]: { status: 'processing', message: 'Enviando a OpenAI...' }
@@ -317,7 +349,7 @@ export default function AdminConocimiento() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chunkText,
-          fields: allIndexFields.map(field => ({
+          fields: fields.map(field => ({
             name: field.name,
             type: field.type,
             required: field.required || requiredFields.some(rf => rf.field === field.name)
@@ -330,6 +362,16 @@ export default function AdminConocimiento() {
       if (!result.success || !result.structuredData) {
         throw new Error(result.error || 'Error desconocido al estructurar chunk');
       }
+
+      const structuredKeys = Object.keys(result.structuredData);
+      console.log(`[PDF-UPLOAD] structureChunkWithAI: respuesta recibida con ${structuredKeys.length} campos:`, structuredKeys);
+      console.log(`[PDF-UPLOAD] structureChunkWithAI: datos estructurados (muestra):`, 
+        Object.keys(result.structuredData).slice(0, 5).reduce((acc, key) => {
+          const value = result.structuredData[key];
+          acc[key] = typeof value === 'string' ? value.substring(0, 50) : value;
+          return acc;
+        }, {} as Record<string, any>)
+      );
 
       setStructuringProgress(prev => ({
         ...prev,
@@ -348,11 +390,24 @@ export default function AdminConocimiento() {
   };
 
   // Dividir texto en chunks y generar IDs
-  const prepareChunks = async () => {
-    if (!pdfText || pdfText.includes('Error:')) return;
+  const prepareChunks = async (fields: Array<{name: string, type: string, required: boolean}>) => {
+    console.log('[PDF-UPLOAD] prepareChunks iniciado con', fields.length, 'campos');
+    console.log('[PDF-UPLOAD] prepareChunks: campos recibidos:', fields.map(f => `${f.name}:${f.type}${f.required ? ' (requerido)' : ''}`));
+    
+    if (!pdfText || pdfText.includes('Error:')) {
+      console.warn('[PDF-UPLOAD] prepareChunks: No hay texto PDF válido');
+      return;
+    }
+    
+    if (!fields || fields.length === 0) {
+      console.error('[PDF-UPLOAD] prepareChunks: ERROR - No se recibieron campos!');
+      alert('Error: No se pudieron cargar los campos del índice. Por favor intenta de nuevo.');
+      return;
+    }
     
     // Dividir por [separador]
     const chunks = pdfText.split('[separador]').map(chunk => chunk.trim()).filter(chunk => chunk.length > 0);
+    console.log('[PDF-UPLOAD] Chunks a procesar:', chunks.length);
     
     // Generar IDs para cada chunk
     const chunksWithIds = chunks.map((text, index) => {
@@ -375,6 +430,7 @@ export default function AdminConocimiento() {
     
     for (let i = 0; i < chunksWithIds.length; i++) {
       const chunk = chunksWithIds[i];
+      console.log(`[PDF-UPLOAD] Procesando chunk ${i + 1}/${chunksWithIds.length} con campos:`, fields.map(f => f.name));
       
       // Inicializar con ID y texto para TODOS los campos
       structuredFields[i] = {
@@ -383,7 +439,7 @@ export default function AdminConocimiento() {
       };
       
       // Inicializar todos los campos del índice con valores por defecto
-      allIndexFields.forEach(fieldInfo => {
+      fields.forEach(fieldInfo => {
         if (!structuredFields[i][fieldInfo.name]) {
           if (fieldInfo.type === 'array') {
             structuredFields[i][fieldInfo.name] = [];
@@ -400,13 +456,13 @@ export default function AdminConocimiento() {
       });
       
       // Estructurar con OpenAI
-      const aiStructured = await structureChunkWithAI(chunk.text, i);
+      const aiStructured = await structureChunkWithAI(chunk.text, i, fields);
       
       if (aiStructured) {
         // Normalizar arrays y objetos en los datos estructurados por AI
         const normalizedAI: Record<string, any> = {};
         Object.keys(aiStructured).forEach(key => {
-          const fieldInfo = allIndexFields.find(f => f.name === key);
+          const fieldInfo = fields.find(f => f.name === key);
           const value = aiStructured[key];
           
           if (fieldInfo && fieldInfo.type === 'array') {
@@ -475,7 +531,7 @@ export default function AdminConocimiento() {
           }
         });
         
-        allIndexFields.forEach(fieldInfo => {
+        fields.forEach(fieldInfo => {
           if (!structuredFields[i].hasOwnProperty(fieldInfo.name)) {
             const extractedValue = extractFieldValue(chunk.text, fieldInfo.name);
             if (extractedValue) {
@@ -486,6 +542,7 @@ export default function AdminConocimiento() {
       }
     }
     
+    console.log('[PDF-UPLOAD] prepareChunks completado, campos estructurados para', Object.keys(structuredFields).length, 'chunks');
     setChunkFields(structuredFields);
     setStructuringChunks(false);
     
@@ -509,12 +566,20 @@ export default function AdminConocimiento() {
       return;
     }
 
+    console.log('[PDF-UPLOAD] Validación: allIndexFields tiene', allIndexFields.length, 'campos antes de subir');
     console.log('[PDF-UPLOAD] Iniciando subida de chunks:', {
       indexUid: selectedIndex.uid,
       chunksCount: preparedChunks.length,
       idField: selectedIdField,
-      textField: selectedTextField
+      textField: selectedTextField,
+      availableFields: allIndexFields.length
     });
+    
+    if (allIndexFields.length === 0) {
+      console.error('[PDF-UPLOAD] ERROR: No hay campos disponibles para subir');
+      alert('Error: No hay campos disponibles. Por favor vuelve al paso anterior y reintenta.');
+      return;
+    }
 
     setUploading(true);
     setUploadProgress([]);
