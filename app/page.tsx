@@ -332,8 +332,8 @@ export default function Home() {
             <img 
               src="/public-img/worker1b.png" 
               alt="Worker" 
-              className="absolute -top-12 -left-12 w-48 h-48 object-contain float-slow"
-              style={{ zIndex: 999 }}
+              className="absolute -top-12 w-48 h-48 object-contain float-slow"
+              style={{ zIndex: 999, left: '-118px' }}
             />
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-gray-900">Iniciar Sesión</h3>
