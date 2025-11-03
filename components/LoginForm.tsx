@@ -78,7 +78,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       localStorage.setItem('admin-permissions', JSON.stringify(data.user?.permissions || {}));
 
       onLogin(true);
-      router.push('/');
+      router.push('/dashboard');
     } catch (err) {
       console.error('ERROR COMPLETO:', err);
       setError(`Error al iniciar sesión: ${err}`);

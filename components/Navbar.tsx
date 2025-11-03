@@ -22,7 +22,7 @@ export default function Navbar() {
   }, []);
 
   const allNavItems = [
-    { href: '/', label: 'Dashboard', perm: 'dashboard' },
+    { href: '/dashboard', label: 'Dashboard', perm: 'dashboard' },
     { href: '/admin-conocimiento', label: 'Admin Conocimiento', perm: 'conocimiento' },
     { href: '/ejecuciones', label: 'Ejecuciones', perm: 'ejecuciones' },
     { href: '/conversaciones', label: 'Conversaciones', perm: 'conversaciones' },

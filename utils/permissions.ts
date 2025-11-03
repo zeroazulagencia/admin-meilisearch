@@ -1,6 +1,6 @@
 // Mapa de rutas a permisos requeridos
 export const routePermissions: Record<string, string> = {
-  '/': 'dashboard',
+  '/dashboard': 'dashboard',
   '/admin-conocimiento': 'conocimiento',
   '/ejecuciones': 'ejecuciones',
   '/conversaciones': 'conversaciones',

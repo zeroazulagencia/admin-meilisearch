@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import LoginForm from './LoginForm';
 import { hasAccessToRoute, getPermissions } from '@/utils/permissions';
@@ -8,6 +8,22 @@ import { hasAccessToRoute, getPermissions } from '@/utils/permissions';
 interface AuthProviderProps {
   children: React.ReactNode;
 }
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  handleLogin: (authenticated: boolean) => void;
+  handleLogout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
 
 export default function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -44,7 +60,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
           const permissions = getPermissions();
           if (permissions && pathname && !hasAccessToRoute(pathname, permissions)) {
             // Sin acceso a esta ruta, redirigir al dashboard
-            router.push('/');
+            router.push('/dashboard');
           }
         } else {
           // Sesión expirada
@@ -76,6 +92,14 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     setIsAuthenticated(false);
   };
 
+  // Rutas públicas que no requieren autenticación
+  const publicRoutes = ['/'];
+  const isPublicRoute = pathname && publicRoutes.includes(pathname);
+  
+  // Rutas protegidas que requieren autenticación
+  const protectedRoutes = ['/dashboard', '/admin-conocimiento', '/ejecuciones', '/conversaciones', '/consumo-api', '/clientes', '/agentes'];
+  const isProtectedRoute = pathname && protectedRoutes.some(route => pathname.startsWith(route));
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -87,22 +111,21 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     );
   }
 
-  if (!isAuthenticated) {
+  // Si no está autenticado y es ruta protegida, mostrar login
+  if (!isAuthenticated && isProtectedRoute) {
     return <LoginForm onLogin={handleLogin} />;
   }
 
+  // Exportar funciones de login/logout para uso en landing page
+  const authContext = {
+    isAuthenticated,
+    handleLogin,
+    handleLogout
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Botón de logout */}
-      <div className="absolute top-4 right-4 z-50">
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-        >
-          Cerrar Sesión
-        </button>
-      </div>
+    <AuthContext.Provider value={authContext}>
       {children}
-    </div>
+    </AuthContext.Provider>
   );
 }
