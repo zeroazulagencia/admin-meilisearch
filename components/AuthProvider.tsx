@@ -88,8 +88,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem('admin-authenticated');
       localStorage.removeItem('admin-user');
       localStorage.removeItem('admin-login-time');
+      localStorage.removeItem('admin-user-id');
+      localStorage.removeItem('admin-permissions');
     }
     setIsAuthenticated(false);
+    router.push('/');
   };
 
   // Rutas públicas que no requieren autenticación
@@ -104,16 +107,24 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+          <div className="inline-block animate-spin h-8 w-8 border-2 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
           <p className="mt-2 text-gray-600">Verificando sesión...</p>
         </div>
       </div>
     );
   }
 
-  // Si no está autenticado y es ruta protegida, mostrar login
+  // Si no está autenticado y es ruta protegida, redirigir a landing page
   if (!isAuthenticated && isProtectedRoute) {
-    return <LoginForm onLogin={handleLogin} />;
+    router.push('/');
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin h-8 w-8 border-2 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+          <p className="mt-2 text-gray-600">Redirigiendo...</p>
+        </div>
+      </div>
+    );
   }
 
   // Exportar funciones de login/logout para uso en landing page
