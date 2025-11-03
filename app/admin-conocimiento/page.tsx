@@ -608,7 +608,35 @@ export default function AdminConocimiento() {
         }
       });
 
-      console.log(`[PDF-UPLOAD] Documento a crear:`, document);
+      // Verificar y normalizar arrays una última vez antes de enviar
+      Object.keys(document).forEach(key => {
+        const fieldInfo = allIndexFields.find(f => f.name === key);
+        if (fieldInfo && fieldInfo.type === 'array') {
+          if (!Array.isArray(document[key])) {
+            const value = document[key];
+            if (typeof value === 'string') {
+              try {
+                const parsed = JSON.parse(value);
+                if (Array.isArray(parsed)) {
+                  document[key] = parsed;
+                } else {
+                  document[key] = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+                }
+              } catch {
+                document[key] = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+              }
+            } else {
+              document[key] = [];
+            }
+          }
+        }
+      });
+      
+      console.log(`[PDF-UPLOAD] Documento a crear (después de normalización final):`, document);
+      console.log(`[PDF-UPLOAD] Verificación de tipos en documento:`, Object.keys(document).map(key => {
+        const fieldInfo = allIndexFields.find(f => f.name === key);
+        return `${key}: ${typeof document[key]} (${Array.isArray(document[key]) ? 'array' : typeof document[key]}) - esperado: ${fieldInfo?.type || 'unknown'}`;
+      }));
 
       try {
         // Inicializar progreso
