@@ -376,22 +376,40 @@ export default function AdminConocimiento() {
     for (let i = 0; i < chunksWithIds.length; i++) {
       const chunk = chunksWithIds[i];
       
-      // Inicializar con ID y texto
+      // Inicializar con ID y texto para TODOS los campos
       structuredFields[i] = {
         [selectedIdField]: chunk.id,
         [selectedTextField]: chunk.text
       };
       
+      // Inicializar todos los campos del índice con valores por defecto
+      allIndexFields.forEach(fieldInfo => {
+        if (!structuredFields[i][fieldInfo.name]) {
+          if (fieldInfo.type === 'array') {
+            structuredFields[i][fieldInfo.name] = [];
+          } else if (fieldInfo.type === 'object') {
+            structuredFields[i][fieldInfo.name] = {};
+          } else if (fieldInfo.type === 'boolean') {
+            structuredFields[i][fieldInfo.name] = false;
+          } else if (fieldInfo.type === 'integer' || fieldInfo.type === 'number') {
+            structuredFields[i][fieldInfo.name] = 0;
+          } else {
+            structuredFields[i][fieldInfo.name] = '';
+          }
+        }
+      });
+      
       // Estructurar con OpenAI
       const aiStructured = await structureChunkWithAI(chunk.text, i);
       
       if (aiStructured) {
-        // Normalizar arrays en los datos estructurados por AI
+        // Normalizar arrays y objetos en los datos estructurados por AI
         const normalizedAI: Record<string, any> = {};
         Object.keys(aiStructured).forEach(key => {
           const fieldInfo = allIndexFields.find(f => f.name === key);
+          const value = aiStructured[key];
+          
           if (fieldInfo && fieldInfo.type === 'array') {
-            const value = aiStructured[key];
             if (typeof value === 'string') {
               // Intentar parsear como JSON primero
               try {
@@ -411,12 +429,31 @@ export default function AdminConocimiento() {
             } else {
               normalizedAI[key] = [];
             }
+          } else if (fieldInfo && fieldInfo.type === 'object') {
+            // Si es objeto, asegurar que sea un objeto válido
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+              normalizedAI[key] = value;
+            } else if (typeof value === 'string') {
+              try {
+                normalizedAI[key] = JSON.parse(value);
+              } catch {
+                normalizedAI[key] = {};
+              }
+            } else {
+              normalizedAI[key] = {};
+            }
           } else {
-            normalizedAI[key] = aiStructured[key];
+            // Para otros tipos, convertir objetos inesperados a string
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+              // Si es un objeto pero el campo no es de tipo object, convertirlo a string
+              normalizedAI[key] = JSON.stringify(value);
+            } else {
+              normalizedAI[key] = value;
+            }
           }
         });
         
-        // Combinar los campos estructurados por AI (normalizados) con ID y texto
+        // Combinar los campos estructurados por AI (normalizados) con valores iniciales
         structuredFields[i] = {
           ...structuredFields[i],
           ...normalizedAI
@@ -1499,7 +1536,22 @@ export default function AdminConocimiento() {
                                 Campos del Documento:
                               </h4>
                               {allIndexFields.map((fieldInfo) => {
-                                let fieldValue = chunkFieldValues[fieldInfo.name] || '';
+                                let fieldValue = chunkFieldValues[fieldInfo.name];
+                                
+                                // Si el valor es undefined/null, usar valor por defecto según tipo
+                                if (fieldValue === undefined || fieldValue === null) {
+                                  if (fieldInfo.type === 'array') {
+                                    fieldValue = [];
+                                  } else if (fieldInfo.type === 'object') {
+                                    fieldValue = {};
+                                  } else if (fieldInfo.type === 'boolean') {
+                                    fieldValue = false;
+                                  } else if (fieldInfo.type === 'integer' || fieldInfo.type === 'number') {
+                                    fieldValue = '';
+                                  } else {
+                                    fieldValue = '';
+                                  }
+                                }
                                 
                                 // Normalizar arrays: si es string separado por comas, convertir a array
                                 if (fieldInfo.type === 'array') {
@@ -1522,6 +1574,33 @@ export default function AdminConocimiento() {
                                   }
                                 }
                                 
+                                // Normalizar objetos: convertir objetos a JSON string para mostrar
+                                if (fieldInfo.type === 'object') {
+                                  if (typeof fieldValue === 'object' && fieldValue !== null && !Array.isArray(fieldValue)) {
+                                    try {
+                                      fieldValue = JSON.stringify(fieldValue, null, 2);
+                                    } catch {
+                                      fieldValue = String(fieldValue);
+                                    }
+                                  } else if (typeof fieldValue !== 'string') {
+                                    fieldValue = '';
+                                  }
+                                }
+                                
+                                // Convertir otros tipos a string para mostrar
+                                if (fieldInfo.type !== 'array' && fieldInfo.type !== 'object') {
+                                  if (typeof fieldValue === 'object' && fieldValue !== null) {
+                                    // Si es un objeto no esperado, convertirlo a string
+                                    try {
+                                      fieldValue = JSON.stringify(fieldValue);
+                                    } catch {
+                                      fieldValue = String(fieldValue);
+                                    }
+                                  } else {
+                                    fieldValue = String(fieldValue || '');
+                                  }
+                                }
+                                
                                 const validation = validateFieldType(fieldValue, fieldInfo.type);
                                 const isRequired = fieldInfo.required || requiredFields.some(rf => rf.field === fieldInfo.name);
                                 
@@ -1540,7 +1619,7 @@ export default function AdminConocimiento() {
                                     </div>
                                     {fieldInfo.type === 'array' ? (
                                       <textarea
-                                        value={Array.isArray(fieldValue) ? fieldValue.join(', ') : String(fieldValue)}
+                                        value={Array.isArray(fieldValue) ? fieldValue.join(', ') : String(fieldValue || '')}
                                         onChange={(e) => {
                                           const inputValue = e.target.value;
                                           // Convertir string separado por comas a array
@@ -1549,7 +1628,7 @@ export default function AdminConocimiento() {
                                           setChunkFields(prev => ({
                                             ...prev,
                                             [index]: {
-                                              ...prev[index],
+                                              ...prev[index] || {},
                                               [fieldInfo.name]: arrayValue
                                             }
                                           }));
@@ -1562,14 +1641,42 @@ export default function AdminConocimiento() {
                                         rows={2}
                                         placeholder={isRequired ? `Campo obligatorio (array): separa los valores con comas` : `Campo opcional (array): separa los valores con comas`}
                                       />
+                                    ) : fieldInfo.type === 'object' ? (
+                                      <textarea
+                                        value={typeof fieldValue === 'string' ? fieldValue : (fieldValue ? JSON.stringify(fieldValue, null, 2) : '{}')}
+                                        onChange={(e) => {
+                                          let value: any = e.target.value;
+                                          try {
+                                            value = JSON.parse(e.target.value);
+                                          } catch {
+                                            // Si no es JSON válido, mantener como string para que el usuario pueda corregirlo
+                                            value = e.target.value;
+                                          }
+                                          
+                                          setChunkFields(prev => ({
+                                            ...prev,
+                                            [index]: {
+                                              ...prev[index] || {},
+                                              [fieldInfo.name]: value
+                                            }
+                                          }));
+                                        }}
+                                        className={`w-full px-3 py-2 text-xs border rounded-lg font-mono ${
+                                          !validation.valid ? 'border-red-500 bg-red-50' :
+                                          isRequired && !fieldValue ? 'border-yellow-500 bg-yellow-50' :
+                                          'border-gray-300 bg-white'
+                                        }`}
+                                        rows={4}
+                                        placeholder={isRequired ? `Campo obligatorio (object): JSON válido` : `Campo opcional (object): JSON válido`}
+                                      />
                                     ) : fieldInfo.name === selectedTextField && fieldInfo.type === 'string' ? (
                                       <textarea
-                                        value={String(fieldValue)}
+                                        value={String(fieldValue || '')}
                                         onChange={(e) => {
                                           setChunkFields(prev => ({
                                             ...prev,
                                             [index]: {
-                                              ...prev[index],
+                                              ...prev[index] || {},
                                               [fieldInfo.name]: e.target.value
                                             }
                                           }));
@@ -1585,7 +1692,7 @@ export default function AdminConocimiento() {
                                     ) : (
                                       <input
                                         type={fieldInfo.type === 'number' || fieldInfo.type === 'integer' ? 'number' : 'text'}
-                                        value={String(fieldValue)}
+                                        value={String(fieldValue || '')}
                                         onChange={(e) => {
                                           let value: any = e.target.value;
                                           if (fieldInfo.type === 'number' || fieldInfo.type === 'integer') {
@@ -1597,7 +1704,7 @@ export default function AdminConocimiento() {
                                           setChunkFields(prev => ({
                                             ...prev,
                                             [index]: {
-                                              ...prev[index],
+                                              ...prev[index] || {},
                                               [fieldInfo.name]: value
                                             }
                                           }));
