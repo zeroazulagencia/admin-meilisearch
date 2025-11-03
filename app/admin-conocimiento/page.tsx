@@ -1117,7 +1117,7 @@ export default function AdminConocimiento() {
   if (agentsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+        <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
       </div>
     );
   }
@@ -1141,7 +1141,8 @@ export default function AdminConocimiento() {
                 setSelectedAgent(agent || null);
                 setSelectedIndex(null);
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+              style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
             >
               <option value="">Seleccionar agente...</option>
               {agents.map((agent) => (
@@ -1172,7 +1173,7 @@ export default function AdminConocimiento() {
           {/* Lista de Índices del Agente */}
           {loadingIndexes ? (
             <div className="flex justify-center items-center py-8">
-              <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+              <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
             </div>
           ) : selectedAgent && availableIndexes.length > 0 ? (
             <>
@@ -1186,7 +1187,8 @@ export default function AdminConocimiento() {
                     const index = availableIndexes.find(i => i.uid === e.target.value);
                     setSelectedIndex(index || null);
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+              style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                 >
                   <option value="">Seleccionar índice...</option>
                   {availableIndexes.map((index) => (
@@ -1201,7 +1203,7 @@ export default function AdminConocimiento() {
                 <>
                   {/* Mostrar progreso FUERA del modal si existe */}
                   {uploadProgress.length > 0 && !showPdfModal && (
-                    <div className="bg-white rounded-lg shadow p-6 mb-6 border-2 border-blue-300">
+                    <div className="bg-white rounded-lg shadow p-6 mb-6 border-2" style={{ borderColor: '#5DE1E5' }}>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-800">
                           📊 Progreso de Subida de PDF
@@ -1216,7 +1218,8 @@ export default function AdminConocimiento() {
                               setShowPdfModal(true);
                               setPdfStep('review');
                             }}
-                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                            className="px-3 py-1 text-sm text-gray-900 rounded hover:opacity-90 transition-all"
+                            style={{ backgroundColor: '#5DE1E5' }}
                           >
                             Ver detalles
                           </button>
@@ -1424,7 +1427,7 @@ export default function AdminConocimiento() {
               
               {loadingPdf && (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                  <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
                   <p className="ml-3 text-gray-600">Procesando PDF...</p>
                 </div>
               )}
@@ -1438,19 +1441,19 @@ export default function AdminConocimiento() {
 
               {/* Indicador de estructuración con IA */}
               {structuringChunks && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-300 rounded-lg">
+                <div className="mt-4 p-4 border rounded-lg" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)', borderColor: '#5DE1E5' }}>
                   <div className="flex items-center gap-3">
                     <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-blue-800">
                         Estructurando chunks con OpenAI...
                       </p>
-                      <p className="text-xs text-blue-600 mt-1">
+                      <p className="text-xs mt-1" style={{ color: '#5DE1E5' }}>
                         Procesando {Object.keys(structuringProgress).length} {Object.keys(structuringProgress).length === 1 ? 'chunk' : 'chunks'}...
                       </p>
                       <div className="mt-2 space-y-1">
                         {Object.entries(structuringProgress).map(([index, progress]) => (
-                          <div key={index} className="text-xs text-blue-700">
+                          <div key={index} className="text-xs" style={{ color: '#0369a1' }}>
                             Chunk {parseInt(index) + 1}: {progress.status === 'pending' ? '⏱ Pendiente' : 
                                                           progress.status === 'processing' ? '⏳ Procesando...' :
                                                           progress.status === 'succeeded' ? '✓ Completado' :
@@ -1476,7 +1479,8 @@ export default function AdminConocimiento() {
                       value={pdfIdPrefix}
                       onChange={(e) => setPdfIdPrefix(e.target.value)}
                       placeholder="Ej: pdf-doc-"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+              style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                     />
                   </div>
 
