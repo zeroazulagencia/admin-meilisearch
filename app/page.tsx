@@ -222,6 +222,132 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Sección 3: Proceso de Activación de Agentes */}
+        <section id="activation" className="py-20 bg-gray-50 border-t border-gray-200">
+          <div className="max-w-5xl mx-auto">
+            {/* Título */}
+            <div className="text-center mb-8">
+              <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6">
+                Pocos pasos para activar tus agentes digitales
+              </h2>
+              <p className="font-raleway text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
+                Antes de integrar un agente, es esencial definir qué área de tu negocio necesita apoyo. Considera sus procesos, flujos de trabajo y objetivos estratégicos. Tus agentes aprenderán y se adaptarán según esos parámetros.
+              </p>
+            </div>
+
+            {/* Tres Pasos en Tarjetas Horizontales */}
+            <div className="space-y-6 mb-12">
+              {/* Paso 1 */}
+              <div className="bg-white rounded-xl border border-gray-200 p-8 hover:shadow-lg transition-shadow">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)' }}>
+                      <svg className="w-8 h-8" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-3">
+                      1. Selecciona tu tipo de agente
+                    </h3>
+                    <p className="font-raleway text-gray-600 leading-relaxed mb-4">
+                      Elige entre agentes de atención, ventas, operaciones o análisis. Cada uno está diseñado para resolver desafíos específicos y conectarse con tus sistemas actuales.
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <button className="px-6 py-3 rounded-lg font-semibold text-gray-900 hover:opacity-90 transition-all border-2 border-gray-200 hover:border-[#5DE1E5]" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)' }}>
+                      Ver más →
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Paso 2 */}
+              <div className="bg-white rounded-xl border border-gray-200 p-8 hover:shadow-lg transition-shadow">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 rounded-lg flex items-center justify-center text-gray-900" style={{ backgroundColor: '#5DE1E5' }}>
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-3">
+                      2. Configura y genera tareas
+                    </h3>
+                    <p className="font-raleway text-gray-600 leading-relaxed mb-4">
+                      Define las funciones clave que el agente debe ejecutar: responder clientes, procesar datos, generar reportes o coordinar equipos. En minutos podrás verlos trabajando en tu flujo operativo.
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <button className="px-6 py-3 rounded-lg font-semibold text-gray-900 hover:opacity-90 transition-all shadow-md" style={{ backgroundColor: '#5DE1E5' }}>
+                      Comenzar →
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Paso 3 */}
+              <div className="bg-white rounded-xl border border-gray-200 p-8 hover:shadow-lg transition-shadow">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)' }}>
+                      <svg className="w-8 h-8" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-3">
+                      3. Describe tus objetivos
+                    </h3>
+                    <p className="font-raleway text-gray-600 leading-relaxed mb-4">
+                      Ajusta la personalidad y propósito de tu agente según el tono y metas de tu negocio. Desde asistentes analíticos hasta creativos, cada uno aprende de tus datos y evoluciona con el uso.
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <button className="px-6 py-3 rounded-lg font-semibold text-gray-900 hover:opacity-90 transition-all border-2 border-gray-200 hover:border-[#5DE1E5]" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)' }}>
+                      Configurar →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bloque de texto complementario */}
+            <div className="bg-gray-100 rounded-xl p-8 border border-gray-200">
+              <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-4">
+                Desbloquea las funciones avanzadas que redefinen tu operación con IA
+              </h3>
+              <p className="font-raleway text-lg text-gray-600 leading-relaxed mb-6">
+                Los agentes de DWRKRS se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <p className="font-raleway text-gray-700">Automatización sostenible y escalable</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <p className="font-raleway text-gray-700">Coordinación inteligente entre equipos humanos y digitales</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <p className="font-raleway text-gray-700">Análisis predictivo para decisiones basadas en datos</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
