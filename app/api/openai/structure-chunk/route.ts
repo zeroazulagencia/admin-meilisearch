@@ -108,57 +108,107 @@ Devuelve SOLO un objeto JSON con los campos especificados. Asegúrate de que:
       }
     }
 
-    // Normalizar tipos de datos según la estructura de campos esperada
+    // Asegurar que TODOS los campos estén presentes con valores por defecto si faltan
+    const finalData: Record<string, any> = {};
+    
     fields.forEach((field: any) => {
       if (structuredData.hasOwnProperty(field.name)) {
-        const value = structuredData[field.name];
+        let value = structuredData[field.name];
         
-        // Convertir arrays que vengan como strings separados por comas
+        // Normalizar según el tipo esperado
         if (field.type === 'array') {
-          if (typeof value === 'string') {
+          if (Array.isArray(value)) {
+            finalData[field.name] = value;
+          } else if (typeof value === 'string') {
             // Intentar parsear como JSON primero
             try {
               const parsed = JSON.parse(value);
               if (Array.isArray(parsed)) {
-                structuredData[field.name] = parsed;
+                finalData[field.name] = parsed;
               } else {
-                // Si es un string separado por comas, convertirlo a array
-                structuredData[field.name] = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+                // Si no es JSON válido, tratar como string separado por comas
+                finalData[field.name] = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
               }
             } catch {
               // Si no es JSON válido, tratar como string separado por comas
-              structuredData[field.name] = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+              finalData[field.name] = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
             }
-          } else if (!Array.isArray(value)) {
+          } else {
             // Si no es array ni string, convertir a array
-            structuredData[field.name] = [String(value)];
+            finalData[field.name] = [String(value)];
           }
-        }
-        
-        // Convertir números
-        if (field.type === 'integer' && typeof value === 'string') {
-          const num = parseInt(value, 10);
-          structuredData[field.name] = isNaN(num) ? 0 : num;
-        } else if (field.type === 'number' && typeof value === 'string') {
-          const num = parseFloat(value);
-          structuredData[field.name] = isNaN(num) ? 0 : num;
-        }
-        
-        // Convertir booleanos
-        if (field.type === 'boolean' && typeof value === 'string') {
-          structuredData[field.name] = value.toLowerCase() === 'true' || value === '1';
-        }
-        
-        // Convertir objetos
-        if (field.type === 'object' && typeof value === 'string') {
-          try {
-            structuredData[field.name] = JSON.parse(value);
-          } catch {
-            structuredData[field.name] = {};
+        } else if (field.type === 'integer') {
+          if (typeof value === 'number') {
+            finalData[field.name] = Math.floor(value);
+          } else if (typeof value === 'string') {
+            const num = parseInt(value, 10);
+            finalData[field.name] = isNaN(num) ? (field.required ? 0 : undefined) : num;
+          } else {
+            finalData[field.name] = field.required ? 0 : undefined;
           }
+        } else if (field.type === 'number') {
+          if (typeof value === 'number') {
+            finalData[field.name] = value;
+          } else if (typeof value === 'string') {
+            const num = parseFloat(value);
+            finalData[field.name] = isNaN(num) ? (field.required ? 0 : undefined) : num;
+          } else {
+            finalData[field.name] = field.required ? 0 : undefined;
+          }
+        } else if (field.type === 'boolean') {
+          if (typeof value === 'boolean') {
+            finalData[field.name] = value;
+          } else if (typeof value === 'string') {
+            finalData[field.name] = value.toLowerCase() === 'true' || value === '1';
+          } else {
+            finalData[field.name] = field.required ? false : undefined;
+          }
+        } else if (field.type === 'object') {
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            finalData[field.name] = value;
+          } else if (typeof value === 'string') {
+            try {
+              finalData[field.name] = JSON.parse(value);
+            } catch {
+              finalData[field.name] = field.required ? {} : undefined;
+            }
+          } else {
+            finalData[field.name] = field.required ? {} : undefined;
+          }
+        } else {
+          // String o tipo desconocido
+          finalData[field.name] = String(value || '');
+        }
+      } else {
+        // Campo no presente en la respuesta
+        if (field.required) {
+          // Valores por defecto para campos requeridos
+          if (field.type === 'array') {
+            finalData[field.name] = [];
+          } else if (field.type === 'object') {
+            finalData[field.name] = {};
+          } else if (field.type === 'boolean') {
+            finalData[field.name] = false;
+          } else if (field.type === 'integer' || field.type === 'number') {
+            finalData[field.name] = 0;
+          } else {
+            finalData[field.name] = '';
+          }
+        } else {
+          // Campos opcionales sin valor no se incluyen
+          finalData[field.name] = undefined;
         }
       }
     });
+    
+    // Remover campos undefined
+    Object.keys(finalData).forEach(key => {
+      if (finalData[key] === undefined) {
+        delete finalData[key];
+      }
+    });
+    
+    structuredData = finalData;
 
     return NextResponse.json({ 
       success: true,
