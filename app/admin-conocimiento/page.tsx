@@ -271,18 +271,26 @@ export default function AdminConocimiento() {
         }
         return { valid: true };
       case 'array':
-        try {
-          const parsed = JSON.parse(String(value));
-          if (!Array.isArray(parsed)) {
-            return { valid: false, error: `Debe ser un array JSON, recibido: "${value}"` };
-          }
+        // Arrays son válidos si son arrays o strings separados por comas (se convertirán después)
+        if (Array.isArray(value)) {
           return { valid: true };
-        } catch {
-          return { valid: false, error: `Debe ser un array JSON válido, recibido: "${value}"` };
         }
+        if (typeof value === 'string') {
+          // Intentar parsear como JSON
+          try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) {
+              return { valid: true };
+            }
+          } catch {
+            // Si no es JSON, asumir que es string separado por comas (válido, se convertirá)
+            return { valid: true };
+          }
+        }
+        return { valid: false, error: `Debe ser un array, recibido: "${value}"` };
       case 'object':
         try {
-          const parsed = JSON.parse(String(value));
+          const parsed = typeof value === 'string' ? JSON.parse(value) : value;
           if (typeof parsed !== 'object' || Array.isArray(parsed)) {
             return { valid: false, error: `Debe ser un objeto JSON, recibido: "${value}"` };
           }
@@ -457,36 +465,87 @@ export default function AdminConocimiento() {
       // Construir documento con todos los campos
       const document: any = {};
       
+      // Función helper para normalizar valores según tipo
+      const normalizeValue = (value: any, type: string): any => {
+        if (value === undefined || value === null || value === '') {
+          return undefined;
+        }
+        
+        if (type === 'array') {
+          // Si ya es un array, devolverlo
+          if (Array.isArray(value)) {
+            return value;
+          }
+          // Si es string, intentar parsear como JSON o separar por comas
+          if (typeof value === 'string') {
+            try {
+              const parsed = JSON.parse(value);
+              if (Array.isArray(parsed)) {
+                return parsed;
+              }
+            } catch {
+              // Si no es JSON válido, tratar como string separado por comas
+              const arrayValue = value.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+              return arrayValue.length > 0 ? arrayValue : undefined;
+            }
+          }
+          return undefined;
+        } else if (type === 'integer') {
+          const num = parseInt(String(value), 10);
+          return isNaN(num) ? undefined : num;
+        } else if (type === 'number') {
+          const num = parseFloat(String(value));
+          return isNaN(num) ? undefined : num;
+        } else if (type === 'boolean') {
+          if (typeof value === 'boolean') return value;
+          const str = String(value).toLowerCase();
+          return str === 'true' || str === '1';
+        } else if (type === 'object') {
+          if (typeof value === 'object' && !Array.isArray(value)) return value;
+          try {
+            return typeof value === 'string' ? JSON.parse(value) : value;
+          } catch {
+            return undefined;
+          }
+        } else {
+          return String(value);
+        }
+      };
+      
       // Agregar todos los campos que el usuario editó Y todos los campos requeridos por el embedder
       allIndexFields.forEach(fieldInfo => {
         const value = chunkFieldValues[fieldInfo.name];
         const isRequired = fieldInfo.required || requiredFields.some(rf => rf.field === fieldInfo.name);
         
-        // Si el campo tiene valor, usarlo
-        if (value !== undefined && value !== null && value !== '') {
-          // Convertir según el tipo
-          if (fieldInfo.type === 'integer') {
-            document[fieldInfo.name] = parseInt(String(value), 10);
-          } else if (fieldInfo.type === 'number') {
-            document[fieldInfo.name] = parseFloat(String(value));
-          } else if (fieldInfo.type === 'boolean') {
-            document[fieldInfo.name] = String(value).toLowerCase() === 'true' || value === true || value === 1;
-          } else if (fieldInfo.type === 'array' || fieldInfo.type === 'object') {
-            try {
-              document[fieldInfo.name] = typeof value === 'string' ? JSON.parse(value) : value;
-            } catch {
-              document[fieldInfo.name] = value;
-            }
-          } else {
-            document[fieldInfo.name] = String(value);
-          }
+        // Normalizar el valor según el tipo
+        const normalizedValue = normalizeValue(value, fieldInfo.type);
+        
+        // Si el campo tiene valor normalizado, usarlo
+        if (normalizedValue !== undefined) {
+          document[fieldInfo.name] = normalizedValue;
         } else if (isRequired) {
           // Si es requerido y está vacío, intentar extraer del texto del chunk
           const extractedValue = extractFieldValue(chunk.text, fieldInfo.name);
           if (extractedValue) {
-            document[fieldInfo.name] = extractedValue;
+            const normalizedExtracted = normalizeValue(extractedValue, fieldInfo.type);
+            if (normalizedExtracted !== undefined) {
+              document[fieldInfo.name] = normalizedExtracted;
+            } else {
+              // Valor por defecto según tipo
+              if (fieldInfo.type === 'integer' || fieldInfo.type === 'number') {
+                document[fieldInfo.name] = 0;
+              } else if (fieldInfo.type === 'boolean') {
+                document[fieldInfo.name] = false;
+              } else if (fieldInfo.type === 'array') {
+                document[fieldInfo.name] = [];
+              } else if (fieldInfo.type === 'object') {
+                document[fieldInfo.name] = {};
+              } else {
+                document[fieldInfo.name] = '';
+              }
+            }
           } else {
-            // Si no se puede extraer, usar valor por defecto según tipo
+            // Valor por defecto según tipo
             if (fieldInfo.type === 'integer' || fieldInfo.type === 'number') {
               document[fieldInfo.name] = 0;
             } else if (fieldInfo.type === 'boolean') {
@@ -499,26 +558,8 @@ export default function AdminConocimiento() {
               document[fieldInfo.name] = '';
             }
           }
-        } else {
-          // Campo opcional con valor vacío - solo incluirlo si tiene valor
-          if (value !== undefined && value !== null && value !== '') {
-            if (fieldInfo.type === 'integer') {
-              document[fieldInfo.name] = parseInt(String(value), 10);
-            } else if (fieldInfo.type === 'number') {
-              document[fieldInfo.name] = parseFloat(String(value));
-            } else if (fieldInfo.type === 'boolean') {
-              document[fieldInfo.name] = String(value).toLowerCase() === 'true' || value === true || value === 1;
-            } else if (fieldInfo.type === 'array' || fieldInfo.type === 'object') {
-              try {
-                document[fieldInfo.name] = typeof value === 'string' ? JSON.parse(value) : value;
-              } catch {
-                document[fieldInfo.name] = value;
-              }
-            } else {
-              document[fieldInfo.name] = String(value);
-            }
-          }
         }
+        // Si no es requerido y no tiene valor, no incluirlo en el documento
       });
       
       // IMPORTANTE: Asegurar que todos los campos requeridos por el embedder estén presentes
@@ -527,7 +568,9 @@ export default function AdminConocimiento() {
           // Intentar extraer del texto si aún no está
           const extractedValue = extractFieldValue(chunk.text, field);
           if (extractedValue) {
-            document[field] = extractedValue;
+            const fieldInfo = allIndexFields.find(f => f.name === field);
+            const normalizedExtracted = normalizeValue(extractedValue, fieldInfo?.type || 'string');
+            document[field] = normalizedExtracted !== undefined ? normalizedExtracted : '';
           } else {
             // Valor por defecto para campos requeridos
             document[field] = '';
@@ -1398,7 +1441,29 @@ export default function AdminConocimiento() {
                                 Campos del Documento:
                               </h4>
                               {allIndexFields.map((fieldInfo) => {
-                                const fieldValue = chunkFieldValues[fieldInfo.name] || '';
+                                let fieldValue = chunkFieldValues[fieldInfo.name] || '';
+                                
+                                // Normalizar arrays: si es string separado por comas, convertir a array
+                                if (fieldInfo.type === 'array') {
+                                  if (typeof fieldValue === 'string' && fieldValue.trim() !== '') {
+                                    // Intentar parsear como JSON primero
+                                    try {
+                                      const parsed = JSON.parse(fieldValue);
+                                      if (Array.isArray(parsed)) {
+                                        fieldValue = parsed;
+                                      } else {
+                                        // Si no es JSON válido, tratar como string separado por comas
+                                        fieldValue = fieldValue.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+                                      }
+                                    } catch {
+                                      // Si falla el parseo, tratar como string separado por comas
+                                      fieldValue = fieldValue.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+                                    }
+                                  } else if (!Array.isArray(fieldValue)) {
+                                    fieldValue = [];
+                                  }
+                                }
+                                
                                 const validation = validateFieldType(fieldValue, fieldInfo.type);
                                 const isRequired = fieldInfo.required || requiredFields.some(rf => rf.field === fieldInfo.name);
                                 
@@ -1415,9 +1480,33 @@ export default function AdminConocimiento() {
                                         </span>
                                       </label>
                                     </div>
-                                    {fieldInfo.name === selectedTextField && fieldInfo.type === 'string' ? (
+                                    {fieldInfo.type === 'array' ? (
                                       <textarea
-                                        value={fieldValue}
+                                        value={Array.isArray(fieldValue) ? fieldValue.join(', ') : String(fieldValue)}
+                                        onChange={(e) => {
+                                          const inputValue = e.target.value;
+                                          // Convertir string separado por comas a array
+                                          const arrayValue = inputValue.split(',').map((item: string) => item.trim()).filter((item: string) => item.length > 0);
+                                          
+                                          setChunkFields(prev => ({
+                                            ...prev,
+                                            [index]: {
+                                              ...prev[index],
+                                              [fieldInfo.name]: arrayValue
+                                            }
+                                          }));
+                                        }}
+                                        className={`w-full px-3 py-2 text-xs border rounded-lg ${
+                                          !validation.valid ? 'border-red-500 bg-red-50' :
+                                          isRequired && (!fieldValue || (Array.isArray(fieldValue) && fieldValue.length === 0)) ? 'border-yellow-500 bg-yellow-50' :
+                                          'border-gray-300 bg-white'
+                                        }`}
+                                        rows={2}
+                                        placeholder={isRequired ? `Campo obligatorio (array): separa los valores con comas` : `Campo opcional (array): separa los valores con comas`}
+                                      />
+                                    ) : fieldInfo.name === selectedTextField && fieldInfo.type === 'string' ? (
+                                      <textarea
+                                        value={String(fieldValue)}
                                         onChange={(e) => {
                                           setChunkFields(prev => ({
                                             ...prev,
@@ -1438,7 +1527,7 @@ export default function AdminConocimiento() {
                                     ) : (
                                       <input
                                         type={fieldInfo.type === 'number' || fieldInfo.type === 'integer' ? 'number' : 'text'}
-                                        value={fieldValue}
+                                        value={String(fieldValue)}
                                         onChange={(e) => {
                                           let value: any = e.target.value;
                                           if (fieldInfo.type === 'number' || fieldInfo.type === 'integer') {
