@@ -4,7 +4,7 @@ import Navbar from '@/components/Navbar'
 import AuthProvider from '@/components/AuthProvider'
 
 export const metadata: Metadata = {
-  title: 'Admin Zero Azul',
+  title: 'DWORKERS Zero Azul',
   description: 'Panel de administración Zero Azul',
 }
 

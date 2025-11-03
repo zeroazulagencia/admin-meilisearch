@@ -46,7 +46,7 @@ export default function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center gap-3">
-              <h1 className="text-xl font-bold text-gray-900">Admin Zero Azul</h1>
+              <h1 className="text-xl font-bold text-gray-900">DWORKERS Zero Azul</h1>
               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                 {settings.proyecto.version}
               </span>
