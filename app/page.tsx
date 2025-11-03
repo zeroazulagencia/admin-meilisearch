@@ -479,7 +479,9 @@ export default function Home() {
             {/* Logo y Descripción */}
             <div className="col-span-1 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <span className="font-raleway text-2xl font-bold">DWRKRS</span>
+                <a href="https://zeroazul.com/" target="_blank" rel="noopener noreferrer" className="font-raleway text-2xl font-bold hover:text-[#5DE1E5] transition-colors">
+                  DWRKRS
+                </a>
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#5DE1E5' }}></span>
               </div>
               <p className="font-raleway text-sm text-gray-400 leading-relaxed">
