@@ -117,6 +117,7 @@ export default function Home() {
             >
               Login
             </button>
+          </div>
         </div>
         {/* Video en el header */}
         <div className="absolute top-0 right-0 w-full lg:w-1/2 h-full opacity-20 lg:opacity-100 pointer-events-none">
