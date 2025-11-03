@@ -28,10 +28,10 @@ export default function AdminConocimiento() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Estados para los pasos del modal PDF
-  const [pdfStep, setPdfStep] = useState<'text' | 'fields' | 'review'>('text');
+  const [pdfStep, setPdfStep] = useState<'text' | 'review'>('text');
   const [indexFields, setIndexFields] = useState<string[]>([]);
-  const [selectedIdField, setSelectedIdField] = useState<string>('');
-  const [selectedTextField, setSelectedTextField] = useState<string>('');
+  const [selectedIdField, setSelectedIdField] = useState<string>('id'); // Por defecto 'id'
+  const [selectedTextField, setSelectedTextField] = useState<string>('descripcion'); // Por defecto 'descripcion'
   const [preparedChunks, setPreparedChunks] = useState<Array<{ id: string; text: string; extractedValues?: Record<string, string> }>>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Array<{
@@ -165,7 +165,7 @@ export default function AdminConocimiento() {
     return '';
   };
 
-  // Cargar campos del índice desde un documento de ejemplo
+  // Cargar campos del índice desde un documento de ejemplo (automático, sin selección manual)
   const loadIndexFields = async () => {
     if (!selectedIndex) return;
     
@@ -215,53 +215,33 @@ export default function AdminConocimiento() {
         setAllIndexFields(fieldsWithTypes);
         console.log('[PDF-UPLOAD] Campos del índice con tipos:', fieldsWithTypes);
         
-        // Seleccionar primeros campos por defecto si existen
-        if (fields.length > 0) {
+        // Detectar automáticamente el campo ID (buscar 'id' o el primer campo)
+        if (fields.includes('id')) {
+          setSelectedIdField('id');
+        } else if (fields.length > 0) {
           setSelectedIdField(fields[0]);
-          if (fields.length > 1) {
-            setSelectedTextField(fields[1]);
-          } else {
-            setSelectedTextField(fields[0]);
-          }
         }
-
-        // Configurar campos requeridos con valores extraídos del PDF si está disponible
-        if (requiredFieldsList.length > 0 && pdfText) {
-          const extractedFields = requiredFieldsList.map(field => ({
-            field,
-            value: extractFieldValue(pdfText, field)
-          }));
-          setRequiredFields(extractedFields);
-          console.log('[PDF-UPLOAD] Campos requeridos con valores extraídos:', extractedFields);
-        } else if (requiredFieldsList.length > 0) {
-          // Si no hay texto PDF aún, inicializar con valores vacíos
-          setRequiredFields(requiredFieldsList.map(field => ({ field, value: '' })));
+        
+        // Detectar automáticamente el campo de texto (buscar 'descripcion', 'text', 'content', etc.)
+        const textFieldOptions = ['descripcion', 'text', 'content', 'body', 'description'];
+        const foundTextField = textFieldOptions.find(field => fields.includes(field));
+        if (foundTextField) {
+          setSelectedTextField(foundTextField);
+        } else if (fields.length > 1) {
+          setSelectedTextField(fields[1]);
+        } else if (fields.length > 0) {
+          setSelectedTextField(fields[0]);
         }
       } else {
         // Si no hay documentos, usar campos comunes
-        const commonFields = ['id', 'text', 'content', 'title', 'body'];
-        setIndexFields(commonFields);
-        setSelectedIdField(commonFields[0]);
-        setSelectedTextField(commonFields[1] || commonFields[0]);
-
-        // Configurar campos requeridos
-        if (requiredFieldsList.length > 0 && pdfText) {
-          const extractedFields = requiredFieldsList.map(field => ({
-            field,
-            value: extractFieldValue(pdfText, field)
-          }));
-          setRequiredFields(extractedFields);
-        } else if (requiredFieldsList.length > 0) {
-          setRequiredFields(requiredFieldsList.map(field => ({ field, value: '' })));
-        }
+        setSelectedIdField('id');
+        setSelectedTextField('descripcion');
       }
     } catch (error) {
       console.error('[PDF-UPLOAD] Error cargando campos del índice:', error);
       // Campos por defecto
-      const defaultFields = ['id', 'text', 'content'];
-      setIndexFields(defaultFields);
-      setSelectedIdField(defaultFields[0]);
-      setSelectedTextField(defaultFields[1]);
+      setSelectedIdField('id');
+      setSelectedTextField('descripcion');
     }
   };
 
@@ -1348,90 +1328,7 @@ export default function AdminConocimiento() {
                 </div>
               )}
 
-              {/* Paso 2: Selección de campos */}
-              {pdfStep === 'fields' && (
-                <div className="mt-6 space-y-4 border-t border-gray-200 pt-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    Seleccionar Campos del Índice
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Elige qué campos del índice <strong>{selectedIndex?.uid}</strong> se usarán para el ID y el texto del chunk.
-                  </p>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Campo para el ID
-                    </label>
-                    <select
-                      value={selectedIdField}
-                      onChange={(e) => setSelectedIdField(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      {indexFields.map((field) => (
-                        <option key={field} value={field}>
-                          {field}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Campo para el Texto del Chunk
-                    </label>
-                    <select
-                      value={selectedTextField}
-                      onChange={(e) => setSelectedTextField(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      {indexFields.map((field) => (
-                        <option key={field} value={field}>
-                          {field}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Campos requeridos por el embedder */}
-                  {requiredFields.length > 0 && (
-                    <div className="mt-6 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
-                      <h4 className="text-sm font-semibold text-yellow-800 mb-3">
-                        ⚠️ Campos Requeridos por el Embedder
-                      </h4>
-                      <p className="text-xs text-yellow-700 mb-3">
-                        El embedder del índice requiere estos campos adicionales. Los valores se extraerán automáticamente del PDF, pero puedes ajustarlos manualmente:
-                      </p>
-                      <div className="space-y-3">
-                        {requiredFields.map((fieldData, idx) => (
-                          <div key={idx}>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                              {fieldData.field}
-                            </label>
-                            <input
-                              type="text"
-                              value={fieldData.value}
-                              onChange={(e) => {
-                                const updated = [...requiredFields];
-                                updated[idx] = { ...updated[idx], value: e.target.value };
-                                setRequiredFields(updated);
-                              }}
-                              placeholder={`Valor para ${fieldData.field} (se extraerá del PDF si está vacío)`}
-                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                            {fieldData.value && (
-                              <p className="text-xs text-green-600 mt-1">
-                                ✓ Valor configurado: &quot;{fieldData.value}&quot;
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-                {/* Paso 3: Verificación final */}
+                {/* Paso 2: Verificación final */}
                 {pdfStep === 'review' && (
                   <div className="mt-6 space-y-4 border-t border-gray-200 pt-4">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -1683,14 +1580,10 @@ export default function AdminConocimiento() {
               {pdfText && !pdfText.includes('Error:') && (
                 <div className="flex gap-2">
                   {/* Botón Anterior */}
-                  {(pdfStep === 'fields' || pdfStep === 'review') && (
+                  {pdfStep === 'review' && (
                     <button
                       onClick={() => {
-                        if (pdfStep === 'fields') {
-                          setPdfStep('text');
-                        } else if (pdfStep === 'review') {
-                          setPdfStep('fields');
-                        }
+                        setPdfStep('text');
                       }}
                       disabled={uploading}
                       className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1708,21 +1601,19 @@ export default function AdminConocimiento() {
                           alert('El prefijo del ID es obligatorio');
                           return;
                         }
-                        // Paso 1: Ir al paso de selección de campos
+                        // Cargar campos del índice automáticamente
                         await loadIndexFields();
-                        setPdfStep('fields');
-                      } else if (pdfStep === 'fields') {
-                        // Paso 2: Preparar chunks y mostrar verificación
+                        // Preparar chunks y estructurar con IA directamente
                         await prepareChunks();
+                        // Ir directamente a revisión
                         setPdfStep('review');
                       } else if (pdfStep === 'review' && !uploading) {
-                        // Paso 3: Subir chunks a Meilisearch
+                        // Subir chunks a Meilisearch
                         await uploadChunks();
                       }
                     }}
                     disabled={
                       (pdfStep === 'text' && (!pdfIdPrefix || pdfIdPrefix.trim() === '')) ||
-                      (pdfStep === 'fields' && (!selectedIdField || !selectedTextField)) ||
                       uploading ||
                       structuringChunks
                     }
@@ -1735,7 +1626,6 @@ export default function AdminConocimiento() {
                       <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
                     )}
                     {pdfStep === 'text' ? 'Siguiente' : 
-                     pdfStep === 'fields' ? 'Siguiente' : 
                      uploading ? 'Subiendo...' : 'Finalizar'}
                   </button>
                 </div>
