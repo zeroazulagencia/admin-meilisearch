@@ -11,6 +11,7 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Si está autenticado, redirigir al dashboard
   useEffect(() => {
@@ -19,12 +20,12 @@ export default function Home() {
     }
   }, [isAuthenticated, router]);
 
-  // Limpiar auto-fill al cargar
+  // Limpiar auto-fill al cargar y cuando se abre el modal
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && showLoginModal) {
       setTimeout(() => {
-        const usernameInput = document.getElementById('landing-username') as HTMLInputElement;
-        const passwordInput = document.getElementById('landing-password') as HTMLInputElement;
+        const usernameInput = document.getElementById('modal-username') as HTMLInputElement;
+        const passwordInput = document.getElementById('modal-password') as HTMLInputElement;
         if (usernameInput) {
           usernameInput.value = '';
           usernameInput.setAttribute('autocomplete', 'off');
@@ -35,7 +36,7 @@ export default function Home() {
         }
       }, 100);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, showLoginModal]);
 
   // Si está autenticado, mostrar loading mientras redirige
   if (isAuthenticated) {
@@ -77,6 +78,8 @@ export default function Home() {
       localStorage.setItem('admin-permissions', JSON.stringify(data.user?.permissions || {}));
 
       handleLogin(true);
+      setShowLoginModal(false);
+      setError('');
       router.push('/dashboard');
     } catch (err) {
       console.error('ERROR COMPLETO:', err);
@@ -89,20 +92,43 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white border-b border-gray-200 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
+          <div className="flex justify-between items-center h-20 lg:h-24">
+            <div className="flex items-center gap-2 z-10">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">DW</span>
               </div>
               <h1 className="text-xl font-bold text-gray-900">DWORKERS Zero Azul</h1>
             </div>
-            <nav className="hidden md:flex space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-gray-900">Características</a>
-              <a href="#about" className="text-gray-600 hover:text-gray-900">Acerca de</a>
+            <nav className="hidden md:flex space-x-8 items-center z-10">
+              <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Características</a>
+              <a href="#about" className="text-gray-600 hover:text-gray-900 transition-colors">Acerca de</a>
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="bg-yellow-400 text-gray-900 px-6 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition-colors shadow-md"
+              >
+                Iniciar Sesión
+              </button>
             </nav>
-          </div>
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="md:hidden bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition-colors shadow-md z-10"
+            >
+              Login
+            </button>
+        </div>
+        {/* Video en el header */}
+        <div className="absolute top-0 right-0 w-full lg:w-1/2 h-full opacity-20 lg:opacity-100 pointer-events-none">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+          >
+            <source src="/public-img/worker1.mp4" type="video/mp4" />
+          </video>
         </div>
       </header>
 
@@ -123,71 +149,12 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Login Form */}
-            <div className="bg-gray-50 rounded-2xl p-6 shadow-lg border border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Iniciar Sesión</h3>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="landing-username" className="sr-only">
-                    Correo
-                  </label>
-                  <input
-                    id="landing-username"
-                    name="username"
-                    type="text"
-                    required
-                    autoComplete="off"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Correo electrónico"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="landing-password" className="sr-only">
-                    Contraseña
-                  </label>
-                  <input
-                    id="landing-password"
-                    name="password"
-                    type="password"
-                    required
-                    autoComplete="new-password"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Contraseña"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-
-                {error && (
-                  <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
-                    {error}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <span className="inline-block animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></span>
-                      Iniciando sesión...
-                    </span>
-                  ) : (
-                    'Iniciar Sesión'
-                  )}
-                </button>
-              </form>
-            </div>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
               <button 
-                onClick={() => document.getElementById('landing-username')?.focus()}
-                className="bg-yellow-400 text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors text-center"
+                onClick={() => setShowLoginModal(true)}
+                className="bg-yellow-400 text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors text-center shadow-md"
               >
                 Comenzar Gratis
               </button>
@@ -203,32 +170,18 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Side - Illustration */}
+          {/* Right Side - Video */}
           <div className="hidden lg:block relative">
-            <div className="relative bg-gradient-to-br from-blue-50 to-gray-100 rounded-3xl p-8 h-full min-h-[500px] flex items-center justify-center">
-              {/* Placeholder illustration - puede reemplazarse con SVG o imagen */}
-              <div className="text-center space-y-4">
-                <div className="w-32 h-32 bg-blue-600 rounded-full mx-auto flex items-center justify-center">
-                  <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                </div>
-                <div className="space-y-2">
-                  <div className="w-64 h-4 bg-gray-300 rounded mx-auto"></div>
-                  <div className="w-56 h-4 bg-gray-300 rounded mx-auto"></div>
-                  <div className="w-48 h-4 bg-gray-300 rounded mx-auto"></div>
-                </div>
-                <div className="flex justify-center gap-2 mt-6">
-                  <div className="w-12 h-12 bg-yellow-400 rounded-lg flex items-center justify-center">
-                    <span className="text-gray-900 font-bold">A</span>
-                  </div>
-                  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
+            <div className="relative bg-gradient-to-br from-blue-50 to-gray-100 rounded-3xl overflow-hidden h-full min-h-[500px] flex items-center justify-center">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover rounded-3xl"
+              >
+                <source src="/public-img/worker1.mp4" type="video/mp4" />
+              </video>
             </div>
           </div>
         </div>
@@ -279,6 +232,83 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Modal de Login */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowLoginModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Iniciar Sesión</h3>
+              <button
+                onClick={() => {
+                  setShowLoginModal(false);
+                  setError('');
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="modal-username" className="block text-sm font-medium text-gray-700 mb-2">
+                  Correo electrónico
+                </label>
+                <input
+                  id="modal-username"
+                  name="username"
+                  type="text"
+                  required
+                  autoComplete="off"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Correo electrónico"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="modal-password" className="block text-sm font-medium text-gray-700 mb-2">
+                  Contraseña
+                </label>
+                <input
+                  id="modal-password"
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              {error && (
+                <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <span className="inline-block animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                    Iniciando sesión...
+                  </span>
+                ) : (
+                  'Iniciar Sesión'
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
