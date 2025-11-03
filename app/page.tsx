@@ -289,7 +289,7 @@ export default function Home() {
                   <img 
                     src="/public-img/worker2.png" 
                     alt="Worker" 
-                    className="h-[500px] w-auto object-contain float-slow opacity-90"
+                    className="h-[420px] w-auto object-contain float-slow opacity-90"
                   />
                 </div>
                 
