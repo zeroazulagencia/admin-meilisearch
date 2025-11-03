@@ -438,6 +438,9 @@ export default function AdminConocimiento() {
         [selectedTextField]: chunk.text
       };
       
+      // Guardar el ID generado para preservarlo después de la estructuración con OpenAI
+      const generatedId = chunk.id;
+      
       // Inicializar todos los campos del índice con valores por defecto
       fields.forEach(fieldInfo => {
         if (!structuredFields[i][fieldInfo.name]) {
@@ -464,6 +467,19 @@ export default function AdminConocimiento() {
         Object.keys(aiStructured).forEach(key => {
           const fieldInfo = fields.find(f => f.name === key);
           const value = aiStructured[key];
+          
+          // IMPORTANTE: Preservar el ID generado, no sobrescribirlo con valores vacíos de OpenAI
+          if (key === selectedIdField) {
+            // Si OpenAI devolvió un ID vacío o no válido, usar el ID generado
+            if (!value || value === '' || value === null || value === undefined) {
+              normalizedAI[key] = generatedId;
+              console.log(`[PDF-UPLOAD] Preservando ID generado para chunk ${i + 1}:`, generatedId);
+            } else {
+              // Si OpenAI devolvió un ID válido, usarlo pero prefijarlo si es necesario
+              normalizedAI[key] = value;
+            }
+            return; // Saltar el procesamiento normal para el campo ID
+          }
           
           if (fieldInfo && fieldInfo.type === 'array') {
             if (typeof value === 'string') {
@@ -509,11 +525,21 @@ export default function AdminConocimiento() {
           }
         });
         
+        // Asegurar que el ID siempre esté presente con el valor generado
+        if (!normalizedAI[selectedIdField] || normalizedAI[selectedIdField] === '') {
+          normalizedAI[selectedIdField] = generatedId;
+          console.log(`[PDF-UPLOAD] ID faltante, estableciendo ID generado para chunk ${i + 1}:`, generatedId);
+        }
+        
         // Combinar los campos estructurados por AI (normalizados) con valores iniciales
         structuredFields[i] = {
           ...structuredFields[i],
           ...normalizedAI
         };
+        
+        // Garantía final: asegurar que el ID siempre tenga el valor correcto
+        structuredFields[i][selectedIdField] = generatedId;
+        console.log(`[PDF-UPLOAD] ID final para chunk ${i + 1}:`, structuredFields[i][selectedIdField]);
       } else {
         // Si falla, usar extracción manual como fallback
         const extractedValues: Record<string, string> = {};
