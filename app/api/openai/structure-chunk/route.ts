@@ -22,44 +22,61 @@ export async function POST(request: NextRequest) {
       return desc;
     }).join('\n');
 
-    const systemMessage = `Eres un asistente experto en estructurar información de documentos PDF en formato JSON. Tu tarea es analizar el texto proporcionado y extraer la información relevante para cada campo especificado. 
+    // Separar campos requeridos y opcionales
+    const requiredFields = fields.filter((f: any) => f.required);
+    const optionalFields = fields.filter((f: any) => !f.required);
+    
+    const systemMessage = `Eres un asistente experto en estructurar información de documentos PDF en formato JSON.
 
-CRÍTICO - REGLAS DE TIPOS DE DATOS:
-- Si un campo es de tipo "array", DEBES devolver un array JSON válido. Ejemplo: ["item1", "item2", "item3"] - NUNCA un string separado por comas
-- Si encuentras una lista separada por comas en el texto, conviértela en un array JSON real
-- Si un campo es de tipo "object", debes devolver un objeto JSON válido como {"key": "value"}
-- Si un campo es de tipo "boolean", devuelve true o false (NUNCA strings como "true" o "false")
-- Si un campo es de tipo "integer" o "number", devuelve el número directamente como número (NUNCA como string)
-- Si un campo es de tipo "string", devuelve un string
+INSTRUCCIONES CRÍTICAS:
+1. Debes devolver UNICAMENTE un objeto JSON válido, sin texto adicional, sin explicaciones, sin markdown, SIN código backticks.
+2. El objeto JSON DEBE contener TODOS los campos especificados, sin excepción.
+3. Si un campo obligatorio no tiene información en el texto, usa el valor por defecto según su tipo.
 
-VALORES POR DEFECTO:
-- Si un campo es obligatorio y no encuentras información, usa valores por defecto:
-  * string: "" (string vacío)
-  * array: [] (array vacío)
-  * object: {} (objeto vacío)
-  * integer/number: 0
-  * boolean: false
+CAMPOS OBLIGATORIOS (DEBEN estar presentes siempre):
+${requiredFields.map((field: any) => `- ${field.name}: tipo ${field.type} - DEBE tener un valor. Si no hay información, usa valor por defecto.`).join('\n')}
+
+CAMPOS OPCIONALES (incluir solo si hay información relevante):
+${optionalFields.map((field: any) => `- ${field.name}: tipo ${field.type}`).join('\n')}
+
+REGLAS CRÍTICAS DE TIPOS DE DATOS:
+${fields.map((field: any) => {
+  if (field.type === 'array') {
+    return `- ${field.name}: DEBE ser un array JSON válido. Ejemplo: ["item1", "item2"] ✅. NUNCA usar strings como "item1, item2" ❌`;
+  } else if (field.type === 'object') {
+    return `- ${field.name}: DEBE ser un objeto JSON válido. Ejemplo: {"key": "value"} ✅. NUNCA usar strings ❌`;
+  } else if (field.type === 'number' || field.type === 'integer') {
+    return `- ${field.name}: DEBE ser un número. Ejemplo: 123 ✅. NUNCA usar strings como "123" ❌`;
+  } else if (field.type === 'boolean') {
+    return `- ${field.name}: DEBE ser un booleano. Ejemplo: true o false ✅. NUNCA usar strings como "true" ❌`;
+  } else {
+    return `- ${field.name}: DEBE ser un string. Ejemplo: "texto" ✅`;
+  }
+}).join('\n')}
+
+VALORES POR DEFECTO (para campos obligatorios sin información):
+- String: "" (cadena vacía)
+- Array: [] (array vacío)
+- Number/Integer: 0 (cero)
+- Boolean: false
+- Object: {} (objeto vacío)
 
 FORMATO DE RESPUESTA:
-- Debes devolver SOLO un objeto JSON válido, sin texto adicional antes o después
-- El JSON debe ser válido y parseable
-- Si encuentras información pero el campo no está en la lista, no lo incluyas en el JSON
-- Extrae toda la información relevante del texto, incluso si está en diferentes partes`;
+- SOLO JSON válido, empezando con { y terminando con }
+- NO incluyas texto antes o después del JSON
+- NO uses markdown code blocks
+- NO uses explicaciones
+- Ejemplo correcto: {"campo1": "valor1", "campo2": ["item1", "item2"], "campo3": 123}`;
 
-    const userMessage = `Analiza el siguiente texto y estructura la información según estos campos:
-
-CAMPOS DISPONIBLES:
-${fieldsDescription}
+    const userMessage = `Analiza el siguiente texto y extrae/estructura TODA la información disponible en un objeto JSON con TODOS los campos especificados.
 
 TEXTO A ANALIZAR:
 ${chunkText}
 
-Devuelve SOLO un objeto JSON con los campos especificados. Asegúrate de que:
-- Los arrays sean arrays JSON reales (ej: ["item1", "item2"])
-- Los objetos sean objetos JSON reales (ej: {"key": "value"})
-- Los números sean números (no strings)
-- Los booleanos sean true/false (no strings)
-- Todos los campos obligatorios estén presentes`;
+IMPORTANTE: 
+- Responde SOLO con el objeto JSON, sin texto adicional.
+- Incluye TODOS los campos especificados, sin excepción.
+- Para campos obligatorios sin información, usa valores por defecto según el tipo.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -95,7 +112,7 @@ Devuelve SOLO un objeto JSON con los campos especificados. Asegúrate de que:
     const content = responseData.choices[0]?.message?.content || '{}';
     
     // Intentar parsear el JSON
-    let structuredData;
+    let structuredData: Record<string, any>;
     try {
       structuredData = JSON.parse(content);
     } catch (parseError) {
