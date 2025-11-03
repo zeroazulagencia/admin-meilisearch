@@ -255,7 +255,7 @@ Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos 
               const palabras = match[1].split(',').map(p => p.trim()).filter(p => p.length > 0);
               if (palabras.length > 0) {
                 finalData[field.name] = palabras;
-                continue;
+                extractedValue = undefined; // Marcar como ya procesado
               }
             }
           } else if (fieldNameLower.includes('indicacion')) {
@@ -277,6 +277,11 @@ Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos 
           
           if (extractedValue && field.type === 'string') {
             finalData[field.name] = extractedValue;
+          } else if (fieldNameLower.includes('palabra') || fieldNameLower.includes('clave')) {
+            // Ya procesado arriba, usar array vacío si no se encontró
+            if (!finalData[field.name]) {
+              finalData[field.name] = [];
+            }
           } else {
             // Valores por defecto para campos requeridos
             if (field.type === 'array') {
