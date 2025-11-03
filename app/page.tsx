@@ -203,30 +203,54 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Tres Pasos como Botones Horizontales */}
+              {/* Tres Pasos como TABS */}
               <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center items-stretch">
-                {/* Paso 1 */}
-                <button className="bg-white border-2 border-gray-200 rounded-lg px-6 py-4 hover:border-[#5DE1E5] transition-all text-left flex items-center gap-3 flex-1 max-w-xs">
-                  <svg className="w-6 h-6 flex-shrink-0" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {/* Tab 1 - Seleccionar */}
+                <button 
+                  onClick={() => setActiveTab('select')}
+                  className={`rounded-lg px-6 py-4 transition-all text-left flex items-center gap-3 flex-1 max-w-xs ${
+                    activeTab === 'select' 
+                      ? 'shadow-md' 
+                      : 'bg-white border-2 border-gray-200 hover:border-[#5DE1E5]'
+                  }`}
+                  style={activeTab === 'select' ? { backgroundColor: '#5DE1E5' } : {}}
+                >
+                  <svg className={`w-6 h-6 flex-shrink-0 ${activeTab === 'select' ? 'text-gray-900' : ''}`} style={activeTab !== 'select' ? { color: '#5DE1E5' } : {}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span className="font-raleway font-semibold text-gray-900">Selecciona tu tipo de agente</span>
+                  <span className={`font-raleway font-semibold ${activeTab === 'select' ? 'text-gray-900' : 'text-gray-900'}`}>Selecciona tu tipo de agente</span>
                 </button>
 
-                {/* Paso 2 - Destacado */}
-                <button className="rounded-lg px-6 py-4 transition-all text-left flex items-center gap-3 flex-1 max-w-xs shadow-md" style={{ backgroundColor: '#5DE1E5' }}>
-                  <svg className="w-6 h-6 flex-shrink-0 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {/* Tab 2 - Configurar (por defecto activo) */}
+                <button 
+                  onClick={() => setActiveTab('configure')}
+                  className={`rounded-lg px-6 py-4 transition-all text-left flex items-center gap-3 flex-1 max-w-xs ${
+                    activeTab === 'configure' 
+                      ? 'shadow-md' 
+                      : 'bg-white border-2 border-gray-200 hover:border-[#5DE1E5]'
+                  }`}
+                  style={activeTab === 'configure' ? { backgroundColor: '#5DE1E5' } : {}}
+                >
+                  <svg className={`w-6 h-6 flex-shrink-0 ${activeTab === 'configure' ? 'text-gray-900' : ''}`} style={activeTab !== 'configure' ? { color: '#5DE1E5' } : {}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  <span className="font-raleway font-semibold text-gray-900">Configura y genera tareas</span>
+                  <span className={`font-raleway font-semibold ${activeTab === 'configure' ? 'text-gray-900' : 'text-gray-900'}`}>Configura y genera tareas</span>
                 </button>
 
-                {/* Paso 3 */}
-                <button className="bg-white border-2 border-gray-200 rounded-lg px-6 py-4 hover:border-[#5DE1E5] transition-all text-left flex items-center gap-3 flex-1 max-w-xs">
-                  <svg className="w-6 h-6 flex-shrink-0" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {/* Tab 3 - Describir */}
+                <button 
+                  onClick={() => setActiveTab('describe')}
+                  className={`rounded-lg px-6 py-4 transition-all text-left flex items-center gap-3 flex-1 max-w-xs ${
+                    activeTab === 'describe' 
+                      ? 'shadow-md' 
+                      : 'bg-white border-2 border-gray-200 hover:border-[#5DE1E5]'
+                  }`}
+                  style={activeTab === 'describe' ? { backgroundColor: '#5DE1E5' } : {}}
+                >
+                  <svg className={`w-6 h-6 flex-shrink-0 ${activeTab === 'describe' ? 'text-gray-900' : ''}`} style={activeTab !== 'describe' ? { color: '#5DE1E5' } : {}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
-                  <span className="font-raleway font-semibold text-gray-900">Describe tus objetivos</span>
+                  <span className={`font-raleway font-semibold ${activeTab === 'describe' ? 'text-gray-900' : 'text-gray-900'}`}>Describe tus objetivos</span>
                 </button>
               </div>
 
@@ -260,38 +284,104 @@ export default function Home() {
                   />
                 </div>
                 
-                {/* Contenedor que ocupa solo desde el centro hacia la derecha (50%) */}
-                <div className="w-full lg:w-1/2 lg:ml-auto relative z-10">
-                  <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
-                    Desbloquea las funciones avanzadas que redefinen tu{' '}
-                    <span className="relative">
-                      <span className="text-[#5DE1E5]">operación con IA</span>
-                      <span className="absolute bottom-0 left-0 right-0 h-2 bg-[#5DE1E5] opacity-20"></span>
-                    </span>
-                  </h3>
-                  <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
-                    Los agentes de <span className="font-bold">DWRKRS</span> se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
-                  </p>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3 group">
-                      <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
-                      <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                        Automatización sostenible y escalable
+                {/* Contenedor que ocupa solo desde el centro hacia la derecha (65%) */}
+                <div className="w-full lg:w-[65%] lg:ml-auto relative z-10">
+                  {activeTab === 'select' && (
+                    <>
+                      <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+                        Selecciona el tipo de agente que mejor se adapte a tu negocio
+                      </h3>
+                      <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
+                        Los agentes de <span className="font-bold">DWRKRS</span> están diseñados para resolver desafíos específicos. Elige entre agentes de atención al cliente, ventas automatizadas, operaciones o análisis de datos.
                       </p>
-                    </div>
-                    <div className="flex items-start gap-3 group">
-                      <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
-                      <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                        Coordinación inteligente entre equipos humanos y digitales
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3 group">
+                          <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                          <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                            Agentes de atención al cliente para respuestas inmediatas 24/7
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-3 group">
+                          <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                          <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                            Agentes de ventas para gestión de leads y conversiones
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-3 group">
+                          <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                          <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                            Agentes operativos para automatización de procesos internos
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {activeTab === 'configure' && (
+                    <>
+                      <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+                        Desbloquea las funciones avanzadas que redefinen tu{' '}
+                        <span className="relative">
+                          <span className="text-[#5DE1E5]">operación con IA</span>
+                          <span className="absolute bottom-0 left-0 right-0 h-2 bg-[#5DE1E5] opacity-20"></span>
+                        </span>
+                      </h3>
+                      <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
+                        Los agentes de <span className="font-bold">DWRKRS</span> se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
                       </p>
-                    </div>
-                    <div className="flex items-start gap-3 group">
-                      <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
-                      <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                        Análisis predictivo para decisiones basadas en datos
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3 group">
+                          <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                          <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                            Automatización sostenible y escalable
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-3 group">
+                          <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                          <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                            Coordinación inteligente entre equipos humanos y digitales
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-3 group">
+                          <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                          <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                            Análisis predictivo para decisiones basadas en datos
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {activeTab === 'describe' && (
+                    <>
+                      <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+                        Define los objetivos y personalidad de tu agente digital
+                      </h3>
+                      <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
+                        Los agentes de <span className="font-bold">DWRKRS</span> se adaptan al tono y metas de tu negocio. Personaliza su personalidad desde asistentes analíticos hasta creativos, cada uno aprende de tus datos y evoluciona con el uso.
                       </p>
-                    </div>
-                  </div>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3 group">
+                          <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                          <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                            Personalización del tono de comunicación según tu marca
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-3 group">
+                          <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                          <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                            Configuración de objetivos específicos por área de negocio
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-3 group">
+                          <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                          <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                            Aprendizaje continuo basado en interacciones y resultados
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
