@@ -252,7 +252,7 @@ Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos 
           } else if (fieldNameLower.includes('palabra') || fieldNameLower.includes('clave')) {
             const match = chunkText.match(/PALABRAS[:\s]*([\s\S]+?)(?:\n\n|3\.1\.|$)/i);
             if (match) {
-              const palabras = match[1].split(',').map(p => p.trim()).filter(p => p.length > 0);
+              const palabras = match[1].split(',').map((p: string) => p.trim()).filter((p: string) => p.length > 0);
               if (palabras.length > 0) {
                 finalData[field.name] = palabras;
                 extractedValue = undefined; // Marcar como ya procesado
