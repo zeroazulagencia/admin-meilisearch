@@ -6,4 +6,13 @@ body {
   @apply bg-gray-50 text-gray-900;
 }
 
+/* Color primary personalizado */
+:root {
+  --color-primary: #5DE1E5;
+}
+
+.focus\:ring-primary:focus {
+  --tw-ring-color: #5DE1E5;
+}
+
 

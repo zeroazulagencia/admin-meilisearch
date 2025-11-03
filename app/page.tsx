@@ -43,7 +43,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+          <div className="inline-block animate-spin h-8 w-8 border-2 border-[#5DE1E5] border-t-transparent rounded-full"></div>
           <p className="mt-2 text-gray-600">Redirigiendo...</p>
         </div>
       </div>
@@ -99,7 +99,7 @@ export default function Home() {
               <img 
                 src="/public-img/logo-dworkers.png" 
                 alt="DWORKERS Zero Azul" 
-                className="h-10 w-auto"
+                className="h-8 w-auto"
               />
             </div>
             <nav className="hidden md:flex space-x-8 items-center">
@@ -162,16 +162,23 @@ export default function Home() {
 
           {/* Right Side - Video */}
           <div className="hidden lg:block relative">
-            <div className="relative bg-gradient-to-br from-blue-50 to-gray-100 rounded-3xl overflow-hidden h-full min-h-[500px] flex items-center justify-center">
+            <div className="relative bg-white rounded-3xl overflow-hidden h-full min-h-[500px] flex items-center justify-center">
               <video
                 autoPlay
                 loop
                 muted
                 playsInline
-                className="w-full h-full object-cover rounded-3xl"
+                className="w-full h-full object-cover"
               >
                 <source src="/public-img/worker1.mp4" type="video/mp4" />
               </video>
+              {/* Overlay con gradiente difuminado en los bordes */}
+              <div className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(to right, white 0%, transparent 15%, transparent 85%, white 100%), linear-gradient(to bottom, white 0%, transparent 10%, transparent 90%, white 100%)',
+                  mixBlendMode: 'normal'
+                }}
+              ></div>
             </div>
           </div>
         </div>
@@ -184,8 +191,8 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)' }}>
+                <svg className="w-6 h-6" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -252,7 +259,7 @@ export default function Home() {
                   type="text"
                   required
                   autoComplete="off"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent focus:ring-[#5DE1E5]"
                   placeholder="Correo electrónico"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -268,7 +275,7 @@ export default function Home() {
                   type="password"
                   required
                   autoComplete="new-password"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent focus:ring-[#5DE1E5]"
                   placeholder="Contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -284,7 +291,8 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                style={{ backgroundColor: '#5DE1E5' }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center">
