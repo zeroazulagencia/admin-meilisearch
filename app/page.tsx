@@ -204,8 +204,8 @@ export default function Home() {
               </div>
 
               {/* Tres Pasos como Botones Horizontales */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center items-stretch"
-              {/* Paso 1 */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center items-stretch">
+                {/* Paso 1 */}
               <button className="bg-white border-2 border-gray-200 rounded-lg px-6 py-4 hover:border-[#5DE1E5] transition-all text-left flex items-center gap-3 flex-1 max-w-xs">
                 <svg className="w-6 h-6 flex-shrink-0" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -247,9 +247,9 @@ export default function Home() {
                   Ajusta la personalidad y propósito de tu agente según el tono y metas de tu negocio. Cada uno aprende y evoluciona con el uso.
                 </p>
               </div>
-            </div>
+              </div>
 
-            {/* Bloque de texto complementario */}
+              {/* Bloque de texto complementario - Moderno y llamativo */}
             <div className="bg-gray-100 rounded-xl p-8 border border-gray-200">
               <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-4">
                 Desbloquea las funciones avanzadas que redefinen tu operación con IA
