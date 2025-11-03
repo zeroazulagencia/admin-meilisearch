@@ -1115,7 +1115,7 @@ export default function AdminConocimiento() {
   }, [selectedAgent]);
 
   if (agentsLoading) {
-    return (
+  return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
       </div>
@@ -1124,7 +1124,7 @@ export default function AdminConocimiento() {
 
   return (
     <ProtectedLayout>
-      <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Conocimiento</h1>
         
@@ -1199,8 +1199,8 @@ export default function AdminConocimiento() {
                 </select>
               </div>
 
-              {selectedIndex && (
-                <>
+          {selectedIndex && (
+            <>
                   {/* Mostrar progreso FUERA del modal si existe */}
                   {uploadProgress.length > 0 && !showPdfModal && (
                     <div className="bg-white rounded-lg shadow p-6 mb-6 border-2" style={{ borderColor: '#5DE1E5' }}>
@@ -1286,7 +1286,7 @@ export default function AdminConocimiento() {
                     </div>
                   )}
 
-                  <IndexProperties indexUid={selectedIndex.uid} />
+              <IndexProperties indexUid={selectedIndex.uid} />
                   <DocumentList 
                     indexUid={selectedIndex.uid}
                     onLoadPdf={() => {
@@ -1299,18 +1299,18 @@ export default function AdminConocimiento() {
                     uploadProgressCount={uploadProgress.filter(p => p.status === 'failed').length}
                     onRefresh={refreshIndex}
                   />
-                </>
-              )}
+            </>
+          )}
             </>
           ) : selectedAgent && availableIndexes.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-6 text-center">
               <p className="text-gray-500">
                 {selectedAgent?.name} no tiene índices asociados. Configura su conocimiento desde la página de Agentes.
               </p>
-            </div>
-          ) : null}
         </div>
+          ) : null}
       </div>
+    </div>
 
       {/* Modal para Cargar PDF */}
       {showPdfModal && (

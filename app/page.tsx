@@ -105,7 +105,7 @@ export default function Home() {
               />
             </div>
             <nav className="hidden md:flex space-x-8 items-center">
-              <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Características</a>
+              <a href="#activation" className="text-gray-600 hover:text-gray-900 transition-colors">Proceso</a>
               <a href="#about" className="text-gray-600 hover:text-gray-900 transition-colors">Acerca de</a>
               <button
                 onClick={() => setShowLoginModal(true)}
@@ -155,12 +155,12 @@ export default function Home() {
               </button>
               <button 
                 onClick={() => {
-                  const featuresSection = document.getElementById('features');
-                  featuresSection?.scrollIntoView({ behavior: 'smooth' });
+                  const activationSection = document.getElementById('activation');
+                  activationSection?.scrollIntoView({ behavior: 'smooth' });
                 }}
                 className="bg-gray-200 text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-center"
               >
-                Ver Características
+                Ver Proceso
               </button>
             </div>
           </div>
@@ -188,46 +188,18 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Features Section */}
-        <section id="features" className="py-16 border-t border-gray-200">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">Características Principales</h3>
-            <p className="text-gray-600">Todo lo que necesitas para gestionar tus agentes de IA</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)' }}>
-                <svg className="w-6 h-6" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">Gestión de Agentes</h4>
-              <p className="text-gray-600">Administra y configura tus agentes de IA de forma centralizada.</p>
-            </div>
-            <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">Conversaciones</h4>
-              <p className="text-gray-600">Revisa y analiza todas las conversaciones de tus agentes.</p>
-            </div>
-            <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">Base de Conocimiento</h4>
-              <p className="text-gray-600">Gestiona el conocimiento de tus agentes con búsqueda avanzada.</p>
-            </div>
-          </div>
-        </section>
-
         {/* Sección 3: Proceso de Activación de Agentes */}
-        <section id="activation" className="py-20 bg-gray-50 border-t border-gray-200">
-          <div className="max-w-5xl mx-auto">
+        <section id="activation" className="py-20 bg-gray-50 border-t border-gray-200 relative">
+          {/* Imagen worker2.png flotante */}
+          <div className="absolute top-20 right-8 z-10 hidden lg:block">
+            <img 
+              src="/public-img/worker2.png" 
+              alt="Worker" 
+              className="w-64 h-64 object-contain float-slow"
+              style={{ zIndex: 10 }}
+            />
+          </div>
+          <div className="max-w-5xl mx-auto relative z-20">
             {/* Título */}
             <div className="text-center mb-8">
               <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6">
