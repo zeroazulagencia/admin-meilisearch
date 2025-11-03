@@ -250,34 +250,38 @@ export default function Home() {
               </div>
 
               {/* Bloque de texto complementario - Moderno y llamativo */}
-            <div className="bg-gray-100 rounded-xl p-8 border border-gray-200">
-              <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-4">
-                Desbloquea las funciones avanzadas que redefinen tu operación con IA
-              </h3>
-              <p className="font-raleway text-lg text-gray-600 leading-relaxed mb-6">
-                Los agentes de DWRKRS se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
-              </p>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <p className="font-raleway text-gray-700">Automatización sostenible y escalable</p>
+              <div className="bg-white rounded-2xl p-8 lg:p-12 border border-gray-200 shadow-lg relative overflow-hidden">
+                {/* Imagen worker2.png grande flotante a la izquierda */}
+                <div className="absolute left-0 top-0 bottom-0 hidden lg:block" style={{ zIndex: 1 }}>
+                  <img 
+                    src="/public-img/worker2.png" 
+                    alt="Worker" 
+                    className="h-full w-auto object-contain float-slow opacity-90"
+                    style={{ minHeight: '400px', maxHeight: '500px' }}
+                  />
                 </div>
-                <div className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <p className="font-raleway text-gray-700">Coordinación inteligente entre equipos humanos y digitales</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <p className="font-raleway text-gray-700">Análisis predictivo para decisiones basadas en datos</p>
+                
+                {/* Contenido de texto */}
+                <div className="relative z-10 lg:ml-96 lg:pl-8">
+                  <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+                    Desbloquea las funciones avanzadas que redefinen tu operación con IA
+                  </h3>
+                  <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
+                    Los agentes de DWRKRS se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
+                  </p>
+                  <div className="space-y-4">
+                    <p className="font-raleway text-lg text-gray-700 font-medium">
+                      • Automatización sostenible y escalable
+                    </p>
+                    <p className="font-raleway text-lg text-gray-700 font-medium">
+                      • Coordinación inteligente entre equipos humanos y digitales
+                    </p>
+                    <p className="font-raleway text-lg text-gray-700 font-medium">
+                      • Análisis predictivo para decisiones basadas en datos
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
           </div>
         </section>
 
