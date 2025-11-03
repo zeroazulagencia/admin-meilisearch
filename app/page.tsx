@@ -92,7 +92,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -189,19 +189,18 @@ export default function Home() {
         </div>
 
         {/* Sección 3: Proceso de Activación de Agentes */}
-        <section id="activation" className="py-20 bg-gray-50 border-t border-gray-200 w-full">
-          <div className="w-full relative">
-            {/* Imagen worker2.png fuera del contenedor (off canvas, mitad dentro mitad fuera) */}
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block" style={{ zIndex: 1, left: '-150px' }}>
-              <img 
-                src="/public-img/worker2.png" 
-                alt="Worker" 
-                className="h-[500px] w-auto object-contain float-slow opacity-90"
-              />
-            </div>
-            
-            {/* Contenedor principal del contenido */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <section id="activation" className="py-20 bg-gray-50 border-t border-gray-200 w-full relative" style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}>
+          {/* Imagen worker2.png fuera del contenedor (off canvas, mitad dentro mitad fuera) - alineado con contenedor */}
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block" style={{ zIndex: 20, left: 'calc(50% - 50vw - 150px)' }}>
+            <img 
+              src="/public-img/worker2.png" 
+              alt="Worker" 
+              className="h-[500px] w-auto object-contain float-slow opacity-90"
+            />
+          </div>
+          
+          {/* Contenedor principal del contenido */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
               {/* Título */}
               <div className="text-center mb-8">
                 <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6">
@@ -258,10 +257,10 @@ export default function Home() {
               </div>
               </div>
 
-              {/* Bloque de texto complementario - Moderno y llamativo */}
-              <div className="bg-white rounded-2xl p-8 lg:p-12 border border-gray-200 shadow-lg relative overflow-visible">
-                {/* Contenido de texto */}
-                <div className="relative z-10 lg:pl-32">
+              {/* Bloque de texto complementario - Moderno y llamativo - Solo mitad derecha */}
+              <div className="bg-white rounded-2xl p-8 lg:p-12 border border-gray-200 shadow-xl relative overflow-hidden">
+                {/* Contenedor que ocupa solo desde el centro hacia la derecha (50%) */}
+                <div className="w-full lg:w-1/2 lg:ml-auto relative z-10">
                   <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
                     Desbloquea las funciones avanzadas que redefinen tu{' '}
                     <span className="relative">
@@ -270,18 +269,27 @@ export default function Home() {
                     </span>
                   </h3>
                   <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
-                    Los agentes de DWRKRS se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
+                    Los agentes de <span className="font-bold">DWRKRS</span> se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
                   </p>
-                  <div className="space-y-4">
-                    <p className="font-raleway text-lg text-gray-700 font-medium">
-                      • Automatización sostenible y escalable
-                    </p>
-                    <p className="font-raleway text-lg text-gray-700 font-medium">
-                      • Coordinación inteligente entre equipos humanos y digitales
-                    </p>
-                    <p className="font-raleway text-lg text-gray-700 font-medium">
-                      • Análisis predictivo para decisiones basadas en datos
-                    </p>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 group">
+                      <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                      <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                        Automatización sostenible y escalable
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3 group">
+                      <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                      <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                        Coordinación inteligente entre equipos humanos y digitales
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3 group">
+                      <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
+                      <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
+                        Análisis predictivo para decisiones basadas en datos
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
