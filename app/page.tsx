@@ -19,6 +19,24 @@ export default function Home() {
     }
   }, [isAuthenticated, router]);
 
+  // Limpiar auto-fill al cargar
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTimeout(() => {
+        const usernameInput = document.getElementById('landing-username') as HTMLInputElement;
+        const passwordInput = document.getElementById('landing-password') as HTMLInputElement;
+        if (usernameInput) {
+          usernameInput.value = '';
+          usernameInput.setAttribute('autocomplete', 'off');
+        }
+        if (passwordInput) {
+          passwordInput.value = '';
+          passwordInput.setAttribute('autocomplete', 'new-password');
+        }
+      }, 100);
+    }
+  }, [isAuthenticated]);
+
   // Si está autenticado, mostrar loading mientras redirige
   if (isAuthenticated) {
     return (
@@ -30,22 +48,6 @@ export default function Home() {
       </div>
     );
   }
-
-  // Limpiar auto-fill al cargar
-  useEffect(() => {
-    setTimeout(() => {
-      const usernameInput = document.getElementById('landing-username') as HTMLInputElement;
-      const passwordInput = document.getElementById('landing-password') as HTMLInputElement;
-      if (usernameInput) {
-        usernameInput.value = '';
-        usernameInput.setAttribute('autocomplete', 'off');
-      }
-      if (passwordInput) {
-        passwordInput.value = '';
-        passwordInput.setAttribute('autocomplete', 'new-password');
-      }
-    }, 100);
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
