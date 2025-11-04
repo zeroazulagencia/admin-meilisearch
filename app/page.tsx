@@ -775,7 +775,7 @@ export default function Home() {
                         </div>
                       </div>
                       <SectionCTA onClick={() => setShowContactModal(true)} text="Comunícate con nosotros" />
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
