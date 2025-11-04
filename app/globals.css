@@ -55,4 +55,35 @@ body {
   animation: slideUp 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+/* Animación de icono rodando desde la derecha */
+@keyframes rollInFromRight {
+  0% {
+    transform: translateX(200px) rotate(360deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes rollOutToRight {
+  0% {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(200px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.icon-roll-in {
+  animation: rollInFromRight 1.5s ease-out forwards;
+}
+
+.icon-roll-out {
+  animation: rollOutToRight 1.5s ease-out forwards;
+}
+
 
