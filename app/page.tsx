@@ -222,7 +222,8 @@ export default function Home() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setAgentsVisible(true);
-          } else if (!entry.isIntersecting) {
+          } else {
+            // Resetear cuando sale del viewport para que vuelva a animar
             setAgentsVisible(false);
           }
         });
@@ -279,16 +280,15 @@ export default function Home() {
     }
   }, [activationSectionVisible]);
 
-  // Intersection Observer para el icono de la sección de agentes
+  // Intersection Observer para el icono de la sección de agentes - permanece visible una vez mostrado
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setAgentsIconVisible(true);
-          } else {
-            setAgentsIconVisible(false);
           }
+          // No ocultar cuando sale del viewport, solo mostrar cuando entra
         });
       },
       { threshold: 0, rootMargin: '100px 0px 0px 0px' }
