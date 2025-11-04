@@ -446,7 +446,8 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 50% 0)' : 'inset(0 0 100% 0)',
-                      transition: 'clip-path 0.8s ease-out'
+                      transition: agentsVisible ? 'clip-path 0.8s ease-out' : 'none',
+                      opacity: agentsVisible ? 1 : 0
                     }}
                   />
                   {/* Icono WhatsApp flotante */}
@@ -475,8 +476,9 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 50% 0)' : 'inset(0 0 100% 0)',
-                      transition: 'clip-path 0.8s ease-out',
-                      animationDelay: '0.2s'
+                      transition: agentsVisible ? 'clip-path 0.8s ease-out' : 'none',
+                      animationDelay: '0.2s',
+                      opacity: agentsVisible ? 1 : 0
                     }}
                   />
                   {/* Icono Automatización flotante */}
@@ -506,8 +508,9 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 50% 0)' : 'inset(0 0 100% 0)',
-                      transition: 'clip-path 0.8s ease-out',
-                      animationDelay: '0.4s'
+                      transition: agentsVisible ? 'clip-path 0.8s ease-out' : 'none',
+                      animationDelay: '0.4s',
+                      opacity: agentsVisible ? 1 : 0
                     }}
                   />
                   {/* Icono Estadísticas flotante */}
