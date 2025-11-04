@@ -1,8 +1,132 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+
+// Componente ImageWithSkeleton
+function ImageWithSkeleton({ 
+  src, 
+  alt, 
+  className = '', 
+  style = {},
+  onLoad
+}: { 
+  src: string; 
+  alt: string; 
+  className?: string; 
+  style?: React.CSSProperties;
+  onLoad?: () => void;
+}) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    // Precargar imagen
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      setImageLoaded(true);
+      if (onLoad) onLoad();
+    };
+  }, [src, onLoad]);
+
+  const handleImageLoad = () => {
+    setShowSkeleton(false);
+  };
+
+  return (
+    <div className={`relative ${className}`} style={style}>
+      {showSkeleton && (
+        <div 
+          className="absolute inset-0 skeleton-shimmer rounded"
+          style={{ aspectRatio: 'auto' }}
+        />
+      )}
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        className={`${className} ${showSkeleton ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        style={style}
+        onLoad={handleImageLoad}
+        loading="eager"
+      />
+    </div>
+  );
+}
+
+// Componente VideoWithSkeleton
+function VideoWithSkeleton({ 
+  src, 
+  className = '', 
+  style = {},
+  autoPlay = false,
+  loop = false,
+  muted = false,
+  playsInline = false
+}: { 
+  src: string; 
+  className?: string; 
+  style?: React.CSSProperties;
+  autoPlay?: boolean;
+  loop?: boolean;
+  muted?: boolean;
+  playsInline?: boolean;
+}) {
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.load();
+    }
+  }, []);
+
+  const handleVideoLoadedData = () => {
+    setVideoLoaded(true);
+    setShowSkeleton(false);
+  };
+
+  return (
+    <div className={`relative ${className}`} style={style}>
+      {showSkeleton && (
+        <div 
+          className="absolute inset-0 skeleton-shimmer rounded"
+        />
+      )}
+      <video
+        ref={videoRef}
+        src={src}
+        className={`${className} ${showSkeleton ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        style={style}
+        autoPlay={autoPlay}
+        loop={loop}
+        muted={muted}
+        playsInline={playsInline}
+        onLoadedData={handleVideoLoadedData}
+        preload="auto"
+      />
+    </div>
+  );
+}
+
+// Componente SectionCTA
+function SectionCTA({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="flex justify-center mt-12 mb-8">
+      <button
+        onClick={onClick}
+        className="text-gray-900 px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md font-raleway"
+        style={{ backgroundColor: '#5DE1E5' }}
+      >
+        Contáctanos
+      </button>
+    </div>
+  );
+}
 
 export default function Home() {
   const { isAuthenticated, handleLogin } = useAuth();
@@ -12,6 +136,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'select' | 'configure' | 'describe'>('select');
   const [agentsVisible, setAgentsVisible] = useState(false);
@@ -19,6 +144,14 @@ export default function Home() {
   const [agentsIconVisible, setAgentsIconVisible] = useState(false);
   const [ctaIconVisible, setCtaIconVisible] = useState(false);
   const [footerWorkerVisible, setFooterWorkerVisible] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: ''
+  });
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactError, setContactError] = useState('');
 
   // Si está autenticado, redirigir al dashboard
   useEffect(() => {
@@ -244,6 +377,48 @@ export default function Home() {
     setLoading(false);
   };
 
+  // Validación del formulario de contacto
+  const validateContactForm = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!contactForm.name.trim()) {
+      setContactError('El nombre es requerido');
+      return false;
+    }
+    if (!contactForm.email.trim() || !emailRegex.test(contactForm.email)) {
+      setContactError('Ingresa un email válido');
+      return false;
+    }
+    if (!contactForm.phone.trim()) {
+      setContactError('El teléfono es requerido');
+      return false;
+    }
+    if (!contactForm.message.trim()) {
+      setContactError('El mensaje es requerido');
+      return false;
+    }
+    return true;
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactError('');
+    
+    if (!validateContactForm()) {
+      return;
+    }
+
+    setContactLoading(true);
+    // Aquí iría la lógica de envío cuando se implemente el backend
+    setTimeout(() => {
+      setContactLoading(false);
+      // Por ahora solo mostramos un mensaje de éxito simulado
+      alert('¡Gracias por contactarnos! Te responderemos pronto.');
+      setShowContactModal(false);
+      setContactForm({ name: '', email: '', phone: '', message: '' });
+    }, 1000);
+  };
+
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Header */}
@@ -251,9 +426,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
-              <img 
-                src="/public-img/logo-dworkers.png" 
-                alt="DWORKERS Zero Azul" 
+              <ImageWithSkeleton
+                src="/public-img/logo-dworkers.png"
+                alt="DWORKERS Zero Azul"
                 className="h-6 w-auto"
               />
             </div>
@@ -287,12 +462,12 @@ export default function Home() {
           {/* Left Side - Content */}
           <div className="space-y-8">
             <div className="space-y-4">
-              <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight">
+              <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight" data-animate="animate-fade-in-up">
                 Unlock The Power of <span className="underline decoration-4" style={{ textDecorationColor: '#5DE1E5' }}>DWORKERS</span> AI
                 <br />
                 Create Content Faster
               </h2>
-              <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
+              <p className="text-base sm:text-lg text-gray-600 leading-relaxed" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
                 Generate dynamic & compelling content effortlessly with our AI writing tool. 
                 Whether you need blog posts, social media captions, or product descriptions.
               </p>
@@ -300,7 +475,7 @@ export default function Home() {
 
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4" data-animate="animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <button 
                 onClick={() => setShowLoginModal(true)}
                 className="text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all text-center shadow-md"
@@ -319,19 +494,20 @@ export default function Home() {
               </button>
             </div>
           </div>
+          {/* CTA después del Hero */}
+          <SectionCTA onClick={() => setShowContactModal(true)} />
 
           {/* Right Side - Video */}
           <div className="hidden lg:block relative">
             <div className="relative bg-white rounded-3xl overflow-hidden h-full min-h-[500px] flex items-center justify-center">
-              <video
+              <VideoWithSkeleton
+                src="/public-img/worker1.mp4"
+                className="w-full h-full object-cover"
                 autoPlay
                 loop
                 muted
                 playsInline
-                className="w-full h-full object-cover"
-              >
-                <source src="/public-img/worker1.mp4" type="video/mp4" />
-              </video>
+              />
               {/* Overlay con gradiente difuminado en los bordes */}
               <div className="absolute inset-0 pointer-events-none"
                 style={{
@@ -361,10 +537,10 @@ export default function Home() {
               
               {/* Título */}
               <div className="text-center mb-8">
-                <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6">
+                <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6" data-animate="animate-fade-in-up">
                   Pocos pasos para activar tus agentes digitales
                 </h2>
-                <p className="font-raleway text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto mb-8">
+                <p className="font-raleway text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto mb-8" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
                   Antes de integrar un agente, es esencial definir qué área de tu negocio necesita apoyo. Considera sus procesos, flujos de trabajo y objetivos estratégicos. Tus agentes aprenderán y se adaptarán según esos parámetros.
                 </p>
               </div>
@@ -424,9 +600,9 @@ export default function Home() {
               <div className="bg-white rounded-2xl p-8 lg:p-12 lg:m-16 border border-gray-200 shadow-xl relative overflow-visible">
                 {/* Imagen worker2.png dentro del div (off canvas, mitad dentro mitad fuera) */}
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block" style={{ zIndex: 20, left: '-55px' }}>
-                  <img 
-                    src="/public-img/worker2.png" 
-                    alt="Worker" 
+                  <ImageWithSkeleton
+                    src="/public-img/worker2.png"
+                    alt="Worker"
                     className="h-[460px] w-auto object-contain float-slow opacity-90"
                   />
                 </div>
@@ -538,6 +714,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
+            {/* CTA después de Activation */}
+            <SectionCTA onClick={() => setShowContactModal(true)} />
           </section>
 
         {/* Sección 4: Tipos de Agentes Digitales */}
@@ -555,22 +733,22 @@ export default function Home() {
               </div>
             </div>
             <div className="text-center mb-12">
-              <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-4" data-animate="animate-fade-in-up">
                 Explora los agentes digitales favoritos de las empresas
               </h2>
-              <p className="font-raleway text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto pb-16">
+              <p className="font-raleway text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto pb-16" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
                 Nuestros agentes se adaptan a diferentes <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>necesidades</span>: comunicación, marketing, análisis o gestión. Cada uno está diseñado para cumplir funciones específicas con precisión y escalabilidad.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Agente 1 - worker3 */}
-              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative">
+              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative" data-animate="animate-fade-in-up">
                 {/* Contenedor de imagen - solo mitad superior visible */}
                 <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-80px' }}>
-                  <img 
-                    src="/public-img/worker3.png" 
-                    alt="Worker 3" 
+                  <ImageWithSkeleton
+                    src="/public-img/worker3.png"
+                    alt="Worker 3"
                     className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
                     style={{ 
                       objectPosition: 'center top', 
@@ -595,12 +773,12 @@ export default function Home() {
               </div>
 
               {/* Agente 2 - worker5 */}
-              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative">
+              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative" data-animate="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                 {/* Contenedor de imagen - solo mitad superior visible */}
                 <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-80px' }}>
-                  <img 
-                    src="/public-img/worker5.png" 
-                    alt="Worker 5" 
+                  <ImageWithSkeleton
+                    src="/public-img/worker5.png"
+                    alt="Worker 5"
                     className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
                     style={{ 
                       objectPosition: 'center top', 
@@ -627,12 +805,12 @@ export default function Home() {
               </div>
 
               {/* Agente 3 - worker4 */}
-              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative">
+              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative" data-animate="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                 {/* Contenedor de imagen - solo mitad superior visible */}
                 <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-80px' }}>
-                  <img 
-                    src="/public-img/worker4.png" 
-                    alt="Worker 4" 
+                  <ImageWithSkeleton
+                    src="/public-img/worker4.png"
+                    alt="Worker 4"
                     className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
                     style={{ 
                       objectPosition: 'center top', 
@@ -657,17 +835,19 @@ export default function Home() {
                 </p>
               </div>
             </div>
+            {/* CTA después de Agents-section */}
+            <SectionCTA onClick={() => setShowContactModal(true)} />
           </div>
         </section>
 
         {/* Sección 5: Preguntas Frecuentes (FAQ) */}
         <section id="faq" className="py-20 bg-white border-t border-gray-200">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-4" data-animate="animate-fade-in-up">
                 Preguntas frecuentes sobre DWORKERS
               </h2>
-              <p className="font-raleway text-lg text-gray-600 leading-relaxed">
+              <p className="font-raleway text-lg text-gray-600 leading-relaxed" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
                 Nuestro servicio de agentes digitales está diseñado para facilitar tareas repetitivas, generar resultados medibles y escalar sin fricción. Aquí respondemos lo más común:
               </p>
             </div>
@@ -715,6 +895,8 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            {/* CTA después de FAQ */}
+            <SectionCTA onClick={() => setShowContactModal(true)} />
           </div>
         </section>
 
@@ -732,10 +914,10 @@ export default function Home() {
                 </svg>
               </div>
             </div>
-            <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6">
+            <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6" data-animate="animate-fade-in-up">
               ¿Listo para conocer a tu primer agente digital?
             </h2>
-            <p className="font-raleway text-lg text-gray-800 mb-8 leading-relaxed">
+            <p className="font-raleway text-lg text-gray-800 mb-8 leading-relaxed" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
               Activa hoy mismo tu asistente digital y transforma la forma en que trabajas. Tu negocio puede operar 24/7 con inteligencia artificial personalizada.
             </p>
             <button
@@ -771,9 +953,9 @@ export default function Home() {
             {/* Worker2b.png - Tercera columna */}
             <div id="footer-worker" className="relative overflow-visible flex items-end">
               <div className="h-48 overflow-hidden mb-6 relative w-full" style={{ marginTop: '-80px' }}>
-                <img 
-                  src="/public-img/worker2b.png" 
-                  alt="Worker 2b" 
+                <ImageWithSkeleton
+                  src="/public-img/worker2b.png"
+                  alt="Worker 2b"
                   className={`w-full h-full object-cover object-top ${footerWorkerVisible ? 'slide-up' : ''}`}
                   style={{ 
                     objectPosition: 'center top', 
@@ -837,9 +1019,9 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowLoginModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={(e) => e.stopPropagation()}>
             {/* Imagen worker1b.png flotante */}
-            <img 
-              src="/public-img/worker1b.png" 
-              alt="Worker" 
+            <ImageWithSkeleton
+              src="/public-img/worker1b.png"
+              alt="Worker"
               className="absolute -top-12 w-48 h-48 object-contain float-slow"
               style={{ zIndex: 999, left: '-118px' }}
             />
@@ -912,6 +1094,131 @@ export default function Home() {
                   'Iniciar Sesión'
                 )}
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Contacto */}
+      {showContactModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowContactModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={(e) => e.stopPropagation()}>
+            {/* Imagen worker1b.png flotante - 20% más grande */}
+            <ImageWithSkeleton
+              src="/public-img/worker1b.png"
+              alt="Worker"
+              className="absolute -top-14 w-[192px] h-[192px] object-contain float-slow"
+              style={{ zIndex: 999, left: '-140px' }}
+            />
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Contáctanos</h3>
+              <button
+                onClick={() => {
+                  setShowContactModal(false);
+                  setContactError('');
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleContactSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="contact-name"
+                  name="name"
+                  type="text"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent focus:ring-[#5DE1E5]"
+                  placeholder="Tu nombre completo"
+                  value={contactForm.name}
+                  onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="contact-email"
+                  name="email"
+                  type="email"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent focus:ring-[#5DE1E5]"
+                  placeholder="tu@email.com"
+                  value={contactForm.email}
+                  onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Teléfono <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="contact-phone"
+                  name="phone"
+                  type="tel"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent focus:ring-[#5DE1E5]"
+                  placeholder="+57 300 123 4567"
+                  value={contactForm.phone}
+                  onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 mb-2">
+                  Mensaje <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="contact-message"
+                  name="message"
+                  required
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent focus:ring-[#5DE1E5] resize-none"
+                  placeholder="Cuéntanos sobre tu proyecto..."
+                  value={contactForm.message}
+                  onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                />
+              </div>
+
+              {contactError && (
+                <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                  {contactError}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowContactModal(false);
+                    setContactError('');
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-900 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="submit"
+                  disabled={contactLoading}
+                  className="flex-1 text-gray-900 py-3 px-6 rounded-lg font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  style={{ backgroundColor: '#5DE1E5' }}
+                >
+                  {contactLoading ? (
+                    <span className="flex items-center justify-center">
+                      <span className="inline-block animate-spin h-5 w-5 border-2 border-gray-900 border-t-transparent rounded-full mr-2"></span>
+                      Enviando...
+                    </span>
+                  ) : (
+                    'Enviar'
+                  )}
+                </button>
+              </div>
             </form>
           </div>
         </div>
