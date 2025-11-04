@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/components/AuthProvider';
 import {
   ChartBarIcon,
   BookOpenIcon,
@@ -10,6 +11,8 @@ import {
   UsersIcon,
   UserGroupIcon,
   Bars3Icon,
+  ArrowRightOnRectangleIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import SidebarItem from './SidebarItem';
 import settings from '@/settings.json';
@@ -29,7 +32,9 @@ interface SidebarProps {
 
 export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: SidebarProps) {
   const pathname = usePathname();
+  const { handleLogout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   // Cargar estado del sidebar desde localStorage
   useEffect(() => {
@@ -40,6 +45,25 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
       } else {
         // Por defecto: colapsado en móvil, expandido en desktop
         setIsCollapsed(window.innerWidth < 1024);
+      }
+    }
+  }, []);
+
+  // Cargar información del usuario
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const userStr = localStorage.getItem('admin-user');
+        if (userStr) {
+          try {
+            const parsed = JSON.parse(userStr);
+            setUser(parsed);
+          } catch {
+            setUser({ email: userStr });
+          }
+        }
+      } catch (e) {
+        console.error('Error loading user:', e);
       }
     }
   }, []);
@@ -127,7 +151,7 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
         </div>
 
         {/* Navegación */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1 sidebar-scrollbar">
           {navItems.map((item) => (
             <SidebarItem
               key={item.href}
@@ -138,6 +162,42 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
             />
           ))}
         </nav>
+
+        {/* Footer del Sidebar - Usuario y Logout */}
+        <div className="border-t border-gray-200 p-4 space-y-2">
+          {/* Información del usuario */}
+          {user && (
+            <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isCollapsed ? 'justify-center' : ''}`}>
+              <UserCircleIcon className="w-5 h-5 text-gray-600 flex-shrink-0" />
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {user?.name || user?.email || 'Usuario'}
+                  </p>
+                  {user?.email && user?.name && (
+                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Botón de cerrar sesión */}
+          <button
+            onClick={handleLogout}
+            className={`
+              w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
+              text-red-600 hover:bg-red-50 hover:text-red-700 font-medium
+              ${isCollapsed ? 'justify-center' : ''}
+            `}
+            title={isCollapsed ? 'Cerrar Sesión' : ''}
+          >
+            <ArrowRightOnRectangleIcon className="w-5 h-5 flex-shrink-0" />
+            {!isCollapsed && (
+              <span className="text-sm">Cerrar Sesión</span>
+            )}
+          </button>
+        </div>
       </aside>
     </>
   );
