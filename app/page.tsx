@@ -269,14 +269,16 @@ export default function Home() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setAgentsVisible(true);
-            // Esperar un momento antes de activar la animación
-            setTimeout(() => {
-              setAgentsAnimationReady(true);
-            }, 300);
+            // Esperar un momento antes de activar la animación solo si aún no se ha activado
+            if (!agentsAnimationReady) {
+              setTimeout(() => {
+                setAgentsAnimationReady(true);
+              }, 300);
+            }
           } else {
-            // Resetear cuando sale del viewport para que vuelva a animar
+            // Solo resetear el flag de visibilidad, pero mantener la animación lista
             setAgentsVisible(false);
-            setAgentsAnimationReady(false);
+            // No resetear agentsAnimationReady para que las imágenes permanezcan visibles
           }
         });
       },
@@ -293,7 +295,7 @@ export default function Home() {
         observer.unobserve(agentsSection);
       }
     };
-  }, []);
+  }, [agentsAnimationReady]);
 
   // Intersection Observer para la sección de activación - activa tabs y worker2
   useEffect(() => {
@@ -889,6 +891,7 @@ export default function Home() {
                     src="/public-img/worker3.png"
                     alt="Worker 3"
                     className="w-full h-full object-cover object-top"
+                    showWhenVisible={true}
                     animateWhenReady={agentsAnimationReady}
                     style={{ 
                       objectPosition: 'center top', 
@@ -921,6 +924,7 @@ export default function Home() {
                     src="/public-img/worker5.png"
                     alt="Worker 5"
                     className="w-full h-full object-cover object-top"
+                    showWhenVisible={true}
                     animateWhenReady={agentsAnimationReady}
                     style={{ 
                       objectPosition: 'center top', 
@@ -954,6 +958,7 @@ export default function Home() {
                     src="/public-img/worker4.png"
                     alt="Worker 4"
                     className="w-full h-full object-cover object-top"
+                    showWhenVisible={true}
                     animateWhenReady={agentsAnimationReady}
                     style={{ 
                       objectPosition: 'center top', 
