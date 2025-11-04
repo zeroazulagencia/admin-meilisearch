@@ -1186,7 +1186,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowLoginModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={(e) => e.stopPropagation()}>
             {/* Imagen worker1b.png flotante */}
-            <div className="absolute top-0 left-[-60px] w-48 h-48 float-slow" style={{ zIndex: 999 }}>
+            <div className="absolute w-48 h-48 float-slow" style={{ zIndex: 999, top: '30px', left: '-105px' }}>
               <ImageWithSkeleton
                 src="/public-img/worker1b.png"
                 alt="Worker"
