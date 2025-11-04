@@ -597,7 +597,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 mt-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             {/* Logo y Descripción */}
             <div className="col-span-1 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
@@ -609,26 +609,6 @@ export default function Home() {
               <p className="font-raleway text-sm text-gray-400 leading-relaxed">
                 Agencia de empleados digitales que integra inteligencia artificial y automatización para optimizar procesos empresariales.
               </p>
-            </div>
-
-            {/* Compañía */}
-            <div>
-              <h4 className="font-raleway font-semibold text-white mb-4">Compañía</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className="font-raleway text-sm text-gray-400 hover:text-white transition-colors">Sobre nosotros</a></li>
-                <li><a href="#faq" className="font-raleway text-sm text-gray-400 hover:text-white transition-colors">Contacto</a></li>
-                <li><a href="#faq" className="font-raleway text-sm text-gray-400 hover:text-white transition-colors">FAQ</a></li>
-              </ul>
-            </div>
-
-            {/* Páginas */}
-            <div>
-              <h4 className="font-raleway font-semibold text-white mb-4">Páginas</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className="font-raleway text-sm text-gray-400 hover:text-white transition-colors">Equipo</a></li>
-                <li><a href="#" className="font-raleway text-sm text-gray-400 hover:text-white transition-colors">Carreras</a></li>
-                <li><a href="#" className="font-raleway text-sm text-gray-400 hover:text-white transition-colors">Página 404</a></li>
-              </ul>
             </div>
 
             {/* Worker2b.png */}
