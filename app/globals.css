@@ -39,7 +39,7 @@ body {
   animation: floatSlow 4s ease-in-out infinite;
 }
 
-/* Animación slide arriba (como saliendo de un agujero) */
+/* Animación slide arriba (como saliendo de un agujero/máscara) */
 @keyframes slideUp {
   0% {
     transform: translateY(100%);
@@ -52,7 +52,7 @@ body {
 }
 
 .slide-up {
-  animation: slideUp 0.8s ease-out forwards;
+  animation: slideUp 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 
