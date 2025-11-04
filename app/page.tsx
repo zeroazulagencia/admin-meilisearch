@@ -25,6 +25,11 @@ function ImageWithSkeleton({
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
+    // Si showWhenVisible es false, no cargar hasta que sea true
+    if (showWhenVisible === false) {
+      return;
+    }
+    
     // Precargar imagen
     const img = new Image();
     img.src = src;
@@ -37,7 +42,7 @@ function ImageWithSkeleton({
       setImageLoaded(true);
       setShowSkeleton(false);
     };
-  }, [src, onLoad]);
+  }, [src, onLoad, showWhenVisible]);
 
   const handleImageLoad = () => {
     setShowSkeleton(false);
@@ -254,7 +259,7 @@ export default function Home() {
           }
         });
       },
-      { threshold: 0, rootMargin: '100px 0px 0px 0px' }
+      { threshold: 0, rootMargin: '200px 0px 200px 0px' }
     );
 
     const agentsSection = document.getElementById('agents-section');
@@ -663,6 +668,7 @@ export default function Home() {
                     src="/public-img/worker2.png"
                     alt="Worker"
                     className="h-[460px] w-auto object-contain"
+                    showWhenVisible={activationSectionVisible}
                     style={{ 
                       transition: activationSectionVisible ? 'opacity 0.5s ease-in' : 'none',
                       opacity: activationSectionVisible ? 1 : 0
