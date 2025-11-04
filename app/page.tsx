@@ -171,6 +171,7 @@ export default function Home() {
   const [agentsIconVisible, setAgentsIconVisible] = useState(false);
   const [ctaIconVisible, setCtaIconVisible] = useState(false);
   const [footerWorkerVisible, setFooterWorkerVisible] = useState(false);
+  const [activationSectionVisible, setActivationSectionVisible] = useState(false);
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -222,14 +223,14 @@ export default function Home() {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.2) {
+          if (entry.isIntersecting) {
             setAgentsVisible(true);
           } else if (!entry.isIntersecting) {
             setAgentsVisible(false);
           }
         });
       },
-      { threshold: 0.2, rootMargin: '0px' }
+      { threshold: 0, rootMargin: '100px 0px 0px 0px' }
     );
 
     const agentsSection = document.getElementById('agents-section');
@@ -244,15 +245,16 @@ export default function Home() {
     };
   }, []);
 
-  // Intersection Observer para el icono redondo - muestra cuando entra al viewport
+  // Intersection Observer para la sección de activación - activa tabs y worker2
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
+            setActivationSectionVisible(true);
             setIconVisible(true);
           } else {
-            // Resetear cuando sale del viewport para que vuelva a animar
+            setActivationSectionVisible(false);
             setIconVisible(false);
           }
         });
@@ -260,36 +262,39 @@ export default function Home() {
       { threshold: 0, rootMargin: '200px 0px 0px 0px' }
     );
 
-    const iconElement = document.getElementById('activation-icon');
-    if (iconElement) {
-      observer.observe(iconElement);
+    const activationSection = document.getElementById('activation');
+    if (activationSection) {
+      observer.observe(activationSection);
     }
 
     return () => {
-      if (iconElement) {
-        observer.unobserve(iconElement);
+      if (activationSection) {
+        observer.unobserve(activationSection);
       }
     };
   }, []);
 
-  // Intersection Observer para el icono de la sección de agentes - permanece visible una vez mostrado
+  // Intersection Observer para el icono redondo - se activa desde la sección
+  useEffect(() => {
+    // Ya se maneja desde activationSectionVisible, este observer es redundante pero se mantiene por si acaso
+    if (activationSectionVisible) {
+      setIconVisible(true);
+    }
+  }, [activationSectionVisible]);
+
+  // Intersection Observer para el icono de la sección de agentes
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const rect = entry.boundingClientRect;
-          const viewportHeight = window.innerHeight;
-          const centerY = viewportHeight / 2;
-          const elementCenterY = rect.top + rect.height / 2;
-          
-          // Verificar si el centro del elemento está cerca del centro del viewport (±100px)
-          if (entry.isIntersecting && Math.abs(elementCenterY - centerY) < 100) {
+          if (entry.isIntersecting) {
             setAgentsIconVisible(true);
+          } else {
+            setAgentsIconVisible(false);
           }
-          // No ocultar cuando sale del viewport, solo mostrar cuando entra
         });
       },
-      { threshold: [0, 0.1, 0.5, 1], rootMargin: '0px' }
+      { threshold: 0, rootMargin: '100px 0px 0px 0px' }
     );
 
     const agentsIconElement = document.getElementById('agents-icon');
@@ -304,24 +309,19 @@ export default function Home() {
     };
   }, []);
 
-  // Intersection Observer para el icono de la sección CTA - permanece visible una vez mostrado
+  // Intersection Observer para el icono de la sección CTA
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const rect = entry.boundingClientRect;
-          const viewportHeight = window.innerHeight;
-          const centerY = viewportHeight / 2;
-          const elementCenterY = rect.top + rect.height / 2;
-          
-          // Verificar si el centro del elemento está cerca del centro del viewport (±100px)
-          if (entry.isIntersecting && Math.abs(elementCenterY - centerY) < 100) {
+          if (entry.isIntersecting) {
             setCtaIconVisible(true);
+          } else {
+            setCtaIconVisible(false);
           }
-          // No ocultar cuando sale del viewport, solo mostrar cuando entra
         });
       },
-      { threshold: [0, 0.1, 0.5, 1], rootMargin: '0px' }
+      { threshold: 0, rootMargin: '100px 0px 0px 0px' }
     );
 
     const ctaIconElement = document.getElementById('cta-icon');
@@ -349,7 +349,7 @@ export default function Home() {
           }
         });
       },
-      { threshold: 0.1, rootMargin: '0px' }
+      { threshold: 0, rootMargin: '100px 0px 0px 0px' }
     );
 
     const footerWorkerElement = document.getElementById('footer-worker');
@@ -639,7 +639,11 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker2.png"
                     alt="Worker"
-                    className="h-[460px] w-auto object-contain float-slow"
+                    className={`h-[460px] w-auto object-contain float-slow ${activationSectionVisible ? 'animate-fade-in' : 'opacity-0'}`}
+                    style={{ 
+                      transition: activationSectionVisible ? 'opacity 0.5s ease-in' : 'none',
+                      opacity: activationSectionVisible ? 1 : 0
+                    }}
                   />
                 </div>
                 
