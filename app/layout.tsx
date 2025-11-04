@@ -6,6 +6,10 @@ import AuthProvider from '@/components/AuthProvider'
 export const metadata: Metadata = {
   title: 'DWORKERS Zero Azul',
   description: 'Panel de administración Zero Azul',
+  icons: {
+    icon: '/public-img/favicon.png',
+    apple: '/public-img/favicon.png',
+  },
 }
 
 export default function RootLayout({
