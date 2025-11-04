@@ -28,10 +28,10 @@ body {
 /* Animación de flotar muy lenta */
 @keyframes floatSlow {
   0%, 100% {
-    transform: translateY(0px);
+    transform: translateY(-50%) translateY(0px);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-50%) translateY(-10px);
   }
 }
 

@@ -210,6 +210,7 @@ export default function Home() {
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'select' | 'configure' | 'describe'>('select');
   const [agentsVisible, setAgentsVisible] = useState(false);
+  const [agentsAnimationReady, setAgentsAnimationReady] = useState(false);
   const [iconVisible, setIconVisible] = useState(false);
   const [agentsIconVisible, setAgentsIconVisible] = useState(false);
   const [ctaIconVisible, setCtaIconVisible] = useState(false);
@@ -268,9 +269,14 @@ export default function Home() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setAgentsVisible(true);
+            // Esperar un momento antes de activar la animación
+            setTimeout(() => {
+              setAgentsAnimationReady(true);
+            }, 300);
           } else {
             // Resetear cuando sale del viewport para que vuelva a animar
             setAgentsVisible(false);
+            setAgentsAnimationReady(false);
           }
         });
       },
@@ -714,7 +720,7 @@ export default function Home() {
               {/* Bloque de texto complementario - Moderno y llamativo - Solo mitad derecha */}
               <div className="bg-white rounded-2xl p-8 lg:p-12 lg:m-16 border border-gray-200 shadow-xl relative overflow-visible">
                 {/* Imagen worker2.png dentro del div (off canvas, mitad dentro mitad fuera) */}
-                <div className={`absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block float-slow ${activationSectionVisible ? 'animate-fade-in' : ''}`} style={{ zIndex: 20, left: '-55px', top: '50%', transform: 'translateY(-50%)', opacity: activationSectionVisible ? 1 : 0, transition: 'opacity 0.5s ease-in' }}>
+                <div className={`absolute left-0 top-1/2 hidden lg:block ${activationSectionVisible ? 'float-slow animate-fade-in' : ''}`} style={{ zIndex: 20, left: '-55px', top: '50%', transform: activationSectionVisible ? 'translateY(-50%)' : 'translateY(-50%)', opacity: activationSectionVisible ? 1 : 0, transition: 'opacity 0.8s ease-in' }}>
                   <ImageWithSkeleton
                     src="/public-img/worker2.png"
                     alt="Worker"
@@ -874,12 +880,12 @@ export default function Home() {
                     src="/public-img/worker3.png"
                     alt="Worker 3"
                     className="w-full h-full object-cover object-top"
-                    animateWhenReady={agentsVisible}
+                    animateWhenReady={agentsAnimationReady}
                     style={{ 
                       objectPosition: 'center top', 
-                      clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
+                      clipPath: agentsAnimationReady ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1) 0s, opacity 1s cubic-bezier(0.4, 0, 0.2, 1) 0s',
-                      opacity: agentsVisible ? 1 : 0,
+                      opacity: agentsAnimationReady ? 1 : 0,
                       transitionDelay: '0s'
                     }}
                   />
@@ -906,12 +912,12 @@ export default function Home() {
                     src="/public-img/worker5.png"
                     alt="Worker 5"
                     className="w-full h-full object-cover object-top"
-                    animateWhenReady={agentsVisible}
+                    animateWhenReady={agentsAnimationReady}
                     style={{ 
                       objectPosition: 'center top', 
-                      clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
+                      clipPath: agentsAnimationReady ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: 'clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s, opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s',
-                      opacity: agentsVisible ? 1 : 0,
+                      opacity: agentsAnimationReady ? 1 : 0,
                       transitionDelay: '0.3s'
                     }}
                   />
@@ -939,12 +945,12 @@ export default function Home() {
                     src="/public-img/worker4.png"
                     alt="Worker 4"
                     className="w-full h-full object-cover object-top"
-                    animateWhenReady={agentsVisible}
+                    animateWhenReady={agentsAnimationReady}
                     style={{ 
                       objectPosition: 'center top', 
-                      clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
+                      clipPath: agentsAnimationReady ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: 'clip-path 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.6s, opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.6s',
-                      opacity: agentsVisible ? 1 : 0,
+                      opacity: agentsAnimationReady ? 1 : 0,
                       transitionDelay: '0.6s'
                     }}
                   />
