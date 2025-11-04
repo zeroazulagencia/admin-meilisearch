@@ -721,7 +721,7 @@ export default function Home() {
               <div className="bg-white rounded-2xl p-8 lg:p-12 lg:m-16 border border-gray-200 shadow-xl relative overflow-visible">
                 {/* Imagen worker2.png dentro del div (off canvas, mitad dentro mitad fuera) */}
                 <div 
-                  className={`absolute left-0 top-1/2 hidden lg:block ${activationSectionVisible ? 'float-slow animate-fade-in' : ''}`} 
+                  className={`absolute left-0 top-1/2 hidden lg:block ${activationSectionVisible ? 'float-slow' : ''}`} 
                   style={{ 
                     zIndex: 20, 
                     left: '-55px', 
@@ -734,9 +734,9 @@ export default function Home() {
                     src="/public-img/worker2.png"
                     alt="Worker"
                     className="h-[460px] w-auto object-contain"
-                    showWhenVisible={activationSectionVisible}
+                    showWhenVisible={false}
                     style={{ 
-                      opacity: activationSectionVisible ? 1 : 0
+                      opacity: 1
                     }}
                   />
                 </div>
