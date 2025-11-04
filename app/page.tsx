@@ -409,12 +409,16 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Agente 1 */}
-              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow">
-                <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-6" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)' }}>
-                  <svg className="w-8 h-8" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
+              {/* Agente 1 - worker3 */}
+              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-hidden relative">
+                {/* Contenedor de imagen - solo mitad superior visible */}
+                <div className="h-48 overflow-hidden mb-6 relative">
+                  <img 
+                    src="/public-img/worker3.png" 
+                    alt="Worker 3" 
+                    className="w-full h-full object-cover object-top slide-up"
+                    style={{ objectPosition: 'center top', clipPath: 'inset(0 0 50% 0)' }}
+                  />
                 </div>
                 <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-3">
                   Agente de Contenido y Comunicación
@@ -424,12 +428,16 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Agente 2 */}
-              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow">
-                <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-6" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)' }}>
-                  <svg className="w-8 h-8" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
+              {/* Agente 2 - worker5 */}
+              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-hidden relative">
+                {/* Contenedor de imagen - solo mitad superior visible */}
+                <div className="h-48 overflow-hidden mb-6 relative">
+                  <img 
+                    src="/public-img/worker5.png" 
+                    alt="Worker 5" 
+                    className="w-full h-full object-cover object-top slide-up"
+                    style={{ objectPosition: 'center top', clipPath: 'inset(0 0 50% 0)', animationDelay: '0.2s' }}
+                  />
                 </div>
                 <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-3">
                   Agente de Marketing Automatizado
@@ -439,12 +447,16 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Agente 3 */}
-              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow">
-                <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-6" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)' }}>
-                  <svg className="w-8 h-8" style={{ color: '#5DE1E5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
+              {/* Agente 3 - worker4 */}
+              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-hidden relative">
+                {/* Contenedor de imagen - solo mitad superior visible */}
+                <div className="h-48 overflow-hidden mb-6 relative">
+                  <img 
+                    src="/public-img/worker4.png" 
+                    alt="Worker 4" 
+                    className="w-full h-full object-cover object-top slide-up"
+                    style={{ objectPosition: 'center top', clipPath: 'inset(0 0 50% 0)', animationDelay: '0.4s' }}
+                  />
                 </div>
                 <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-3">
                   Agente de Monitoreo y Reportes
