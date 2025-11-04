@@ -48,8 +48,25 @@ function ImageWithSkeleton({
   // Si showWhenVisible es false, aún mostramos la imagen pero respetamos el estilo inline para la animación
   const shouldShowImage = imageLoaded && !showSkeleton;
 
+  // Separar clases de posicionamiento del contenedor de las de la imagen
+  const containerClasses = className.includes('absolute') || className.includes('fixed') || className.includes('relative') 
+    ? className 
+    : `relative ${className}`;
+  
+  // Extraer solo las clases que no son de posicionamiento para la imagen
+  const imageClasses = className.split(' ').filter(cls => 
+    !cls.includes('absolute') && 
+    !cls.includes('fixed') && 
+    !cls.includes('relative') &&
+    !cls.includes('top-') &&
+    !cls.includes('left-') &&
+    !cls.includes('right-') &&
+    !cls.includes('bottom-') &&
+    !cls.includes('z-')
+  ).join(' ');
+
   return (
-    <div className={`relative ${className}`} style={style}>
+    <div className={containerClasses} style={style}>
       {showSkeleton && (
         <div 
           className="absolute inset-0 flex items-center justify-center z-10"
@@ -62,8 +79,8 @@ function ImageWithSkeleton({
         ref={imgRef}
         src={src}
         alt={alt}
-        className={`${className} ${shouldShowImage ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
-        style={style}
+        className={`${imageClasses} ${shouldShowImage ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+        style={{}}
         onLoad={handleImageLoad}
         loading="eager"
       />
