@@ -593,17 +593,31 @@ export default function Home() {
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">FAQ</a>
               <a href="#cta" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">Contacto</a>
               <button
-                onClick={() => setShowLoginModal(true)}
+                onClick={() => setShowContactModal(true)}
                 className="text-gray-900 px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md font-raleway"
                 style={{ backgroundColor: '#5DE1E5' }}
               >
-                Iniciar Sesión
+                Demo
+              </button>
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="text-gray-900 px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md font-raleway border-2 border-gray-900"
+                style={{ backgroundColor: 'transparent' }}
+              >
+                Login
               </button>
             </nav>
             <button
-              onClick={() => setShowLoginModal(true)}
-              className="md:hidden text-gray-900 px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md"
+              onClick={() => setShowContactModal(true)}
+              className="md:hidden text-gray-900 px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md mr-2"
               style={{ backgroundColor: '#5DE1E5' }}
+            >
+              Demo
+            </button>
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="md:hidden text-gray-900 px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-all border-2 border-gray-900"
+              style={{ backgroundColor: 'transparent' }}
             >
               Login
             </button>
@@ -617,14 +631,14 @@ export default function Home() {
           {/* Left Side - Content */}
           <div className="space-y-8">
             <div className="space-y-4">
-              <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight" data-animate="animate-fade-in-up">
-                Unlock The Power of <span className="underline decoration-4" style={{ textDecorationColor: '#5DE1E5' }}>DWORKERS</span> AI
-                <br />
-                Create Content Faster
-              </h2>
-              <p className="text-base sm:text-lg text-gray-600 leading-relaxed" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                Generate dynamic & compelling content effortlessly with our AI writing tool. 
-                Whether you need blog posts, social media captions, or product descriptions.
+              <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight" data-animate="animate-fade-in-up">
+                Agencia de <span className="underline decoration-4" style={{ textDecorationColor: '#5DE1E5' }}>empleados digitales</span>
+              </h1>
+              <p className="text-base sm:text-lg text-gray-600 leading-relaxed font-raleway" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                Con el poder de la <strong>Inteligencia artificial</strong> y <strong>RPA</strong> ofrecemos un equipo de trabajo infinito, eficiente y efectivo para tareas en tu empresa.
+              </p>
+              <p className="text-base sm:text-lg text-gray-700 leading-relaxed font-raleway font-medium" data-animate="animate-fade-in" style={{ animationDelay: '0.15s' }}>
+                Contrata un asistente o un equipo entero de <strong>multiagentes</strong>, asígnales tareas repetitivas, atiende tus clientes en horarios no laborales, recibe informes de gestión mientras tu equipo humano descansa o realiza tareas que generen valor.
               </p>
             </div>
 
@@ -633,17 +647,17 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4" data-animate="animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <button 
                 onClick={() => setShowContactModal(true)}
-                className="text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all text-center shadow-md"
+                className="text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all text-center shadow-md font-raleway"
                 style={{ backgroundColor: '#5DE1E5' }}
               >
-                Escríbenos
+                Agenda una DEMO
               </button>
               <button 
                 onClick={() => {
                   const activationSection = document.getElementById('activation');
                   activationSection?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="bg-gray-200 text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-center"
+                className="bg-gray-200 text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-center font-raleway"
               >
                 Ver Proceso
               </button>
@@ -691,10 +705,10 @@ export default function Home() {
               {/* Título */}
               <div className="text-center mb-8">
                 <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6" data-animate="animate-fade-in-up">
-                  Pocos pasos para activar tus agentes digitales
+                  Nuestros empleados digitales se encargan de todo
                 </h2>
                 <p className="font-raleway text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto mb-8" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                  Antes de integrar un agente, es esencial definir qué área de tu negocio necesita apoyo. Considera sus procesos, flujos de trabajo y objetivos estratégicos. Tus agentes aprenderán y se adaptarán según esos parámetros.
+                  Automatizamos tareas repetitivas y manuales, liberando a tu equipo humano para proyectos más estratégicos y creativos.
                 </p>
               </div>
 
@@ -713,7 +727,7 @@ export default function Home() {
                   <svg className={`w-6 h-6 flex-shrink-0 ${activeTab === 'select' ? 'text-gray-900' : ''}`} style={activeTab !== 'select' ? { color: '#5DE1E5' } : {}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span className={`font-raleway font-semibold ${activeTab === 'select' ? 'text-gray-900' : 'text-gray-900'}`}>Selecciona tu tipo de agente</span>
+                  <span className={`font-raleway font-semibold ${activeTab === 'select' ? 'text-gray-900' : 'text-gray-900'}`}>Análisis de necesidades</span>
                 </button>
 
                 {/* Tab 2 - Configurar (por defecto activo) */}
@@ -729,7 +743,7 @@ export default function Home() {
                   <svg className={`w-6 h-6 flex-shrink-0 ${activeTab === 'configure' ? 'text-gray-900' : ''}`} style={activeTab !== 'configure' ? { color: '#5DE1E5' } : {}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  <span className={`font-raleway font-semibold ${activeTab === 'configure' ? 'text-gray-900' : 'text-gray-900'}`}>Configura y genera tareas</span>
+                  <span className={`font-raleway font-semibold ${activeTab === 'configure' ? 'text-gray-900' : 'text-gray-900'}`}>Construcción a la medida</span>
                 </button>
 
                 {/* Tab 3 - Describir */}
@@ -745,7 +759,7 @@ export default function Home() {
                   <svg className={`w-6 h-6 flex-shrink-0 ${activeTab === 'describe' ? 'text-gray-900' : ''}`} style={activeTab !== 'describe' ? { color: '#5DE1E5' } : {}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
-                  <span className={`font-raleway font-semibold ${activeTab === 'describe' ? 'text-gray-900' : 'text-gray-900'}`}>Describe tus objetivos</span>
+                  <span className={`font-raleway font-semibold ${activeTab === 'describe' ? 'text-gray-900' : 'text-gray-900'}`}>Implementación y optimización</span>
                 </button>
               </div>
 
@@ -779,29 +793,29 @@ export default function Home() {
                     <div className="animate-fade-in">
                       <div className="px-4 lg:px-8">
                         <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
-                          Selecciona el tipo de agente que mejor se adapte a tu negocio
+                          Analizamos tu negocio para diseñar <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>agentes IA</span> personalizados
                         </h3>
                         <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
-                          Los agentes de <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>DWORKERS</span> están diseñados para resolver desafíos específicos. Elige entre agentes de atención al cliente, ventas automatizadas, operaciones o análisis de datos.
+                          Realizamos un <strong>análisis profundo</strong> de tus procesos, necesidades y objetivos. Identificamos áreas de automatización y diseñamos <strong>asistentes digitales</strong> que se integran perfectamente con tu operación.
                         </p>
                       </div>
                       <div className="space-y-3">
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
                           <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                            Agentes de atención al cliente para respuestas inmediatas 24/7
+                            Evaluación de procesos y flujos de trabajo actuales
                           </p>
                         </div>
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
                           <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                            Agentes de ventas para gestión de leads y conversiones
+                            Identificación de tareas repetitivas y oportunidades de automatización
                           </p>
                         </div>
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
                           <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                            Agentes operativos para automatización de procesos internos
+                            Definición de objetivos estratégicos y métricas de éxito
                           </p>
                         </div>
                       </div>
@@ -813,33 +827,29 @@ export default function Home() {
                     <div className="animate-fade-in">
                       <div className="px-4 lg:px-8">
                         <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
-                          Desbloquea las <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>funciones avanzadas</span> que redefinen tu{' '}
-                          <span className="relative">
-                            <span className="text-gray-900 font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>operación con IA</span>
-                            <span className="absolute bottom-0 left-0 right-0 h-2 bg-[#5DE1E5] opacity-20"></span>
-                          </span>
+                          Construimos <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>agentes IA</span> a la medida de tu empresa
                         </h3>
                         <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
-                          Los agentes de <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>DWORKERS</span> se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
+                          Desarrollamos <strong>multiagentes</strong> personalizados que se adaptan a tu operación. Cada <strong>asistente digital</strong> es diseñado específicamente para tus procesos, integrando <strong>inteligencia artificial</strong> y <strong>RPA</strong> de forma inteligente.
                         </p>
                       </div>
                       <div className="space-y-3">
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
                           <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                            Automatización sostenible y escalable
+                            Desarrollo de arquitectura de agentes multiagente específica
                           </p>
                         </div>
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
                           <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                            Coordinación inteligente entre equipos humanos y digitales
+                            Integración con tus sistemas existentes y APIs
                           </p>
                         </div>
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
                           <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                            Análisis predictivo para decisiones basadas en datos
+                            Configuración de personalidad, tono y reglas de negocio
                           </p>
                         </div>
                       </div>
@@ -851,29 +861,29 @@ export default function Home() {
                     <div className="animate-fade-in">
                       <div className="px-4 lg:px-8">
                         <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
-                          Define los <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>objetivos</span> y <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>personalidad</span> de tu agente digital
+                          Implementamos y optimizamos tus <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>agentes digitales</span>
                         </h3>
                         <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
-                          Los agentes de <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>DWORKERS</span> se adaptan al tono y metas de tu negocio. Personaliza su personalidad desde asistentes analíticos hasta creativos, cada uno aprende de tus datos y evoluciona con el uso.
+                          Desplegamos tus <strong>agentes IA</strong> en producción con acompañamiento continuo. Monitoreamos su rendimiento, ajustamos parámetros y optimizamos para garantizar máximo impacto en tu operación.
                         </p>
                       </div>
                       <div className="space-y-3">
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
                           <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                            Personalización del tono de comunicación según tu marca
+                            Despliegue seguro en tu infraestructura o cloud
                           </p>
                         </div>
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
                           <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                            Configuración de objetivos específicos por área de negocio
+                            Monitoreo continuo y ajustes de rendimiento
                           </p>
                         </div>
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
                           <p className="font-raleway text-lg text-gray-700 font-medium group-hover:text-[#5DE1E5] transition-colors">
-                            Aprendizaje continuo basado en interacciones y resultados
+                            Capacitación de tu equipo y documentación completa
                           </p>
                         </div>
                       </div>
@@ -905,10 +915,10 @@ export default function Home() {
             </div>
             <div className="text-center mb-12">
               <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-4" data-animate="animate-fade-in-up">
-                Explora los agentes digitales favoritos de las empresas
+                Tipos de <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>agentes digitales</span> disponibles
               </h2>
               <p className="font-raleway text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto pb-16" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                Nuestros agentes se adaptan a diferentes <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>necesidades</span>: comunicación, marketing, análisis o gestión. Cada uno está diseñado para cumplir funciones específicas con precisión y escalabilidad.
+                Ofrecemos tres tipos principales de <strong>agentes IA</strong>: un asistente de WhatsApp 24/7 con lenguaje natural, un sistema que automatiza todo en tu negocio incluyendo marketing, y un analizador de datos que genera tableros e informes. Todos trabajan como <strong>multiagentes</strong> coordinados.
               </p>
             </div>
 
@@ -939,10 +949,10 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-3">
-                  Agente de Contenido y Comunicación
+                  Asistente de WhatsApp 24/7
                 </h3>
                 <p className="font-raleway text-gray-600 leading-relaxed">
-                  Redacta textos, responde consultas y mantiene una comunicación coherente con tu marca en todos los canales. Ideal para blogs, atención al cliente o contenido publicitario.
+                  Atiende a tus clientes con <strong>lenguaje natural</strong> las 24 horas del día. Responde consultas, procesa pedidos y mantiene conversaciones fluidas en WhatsApp, usando <strong>inteligencia artificial</strong> para entender contexto y emociones.
                 </p>
               </div>
 
@@ -973,10 +983,10 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-3">
-                  Agente de Marketing Automatizado
+                  Sistema de Automatización Integral
                 </h3>
                 <p className="font-raleway text-gray-600 leading-relaxed">
-                  Gestiona campañas, segmenta audiencias y envía comunicaciones personalizadas. Su análisis predictivo optimiza la inversión y mejora la conversión.
+                  Automatiza <strong>todo en tu negocio</strong> incluyendo marketing, ventas, operaciones y más. Este <strong>agente IA</strong> coordina múltiples procesos simultáneamente, gestiona campañas, procesa pedidos y optimiza flujos de trabajo de forma autónoma.
                 </p>
               </div>
 
@@ -1006,10 +1016,10 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="font-raleway text-2xl font-bold text-gray-900 mb-3">
-                  Agente de Monitoreo y Reportes
+                  Analizador de Datos y Generador de Informes
                 </h3>
                 <p className="font-raleway text-gray-600 leading-relaxed">
-                  Supervisa indicadores clave y genera informes visuales automáticos. Te mantiene informado con métricas en tiempo real.
+                  Analiza datos de múltiples fuentes y genera <strong>tableros e informes</strong> automáticos. Identifica tendencias, patrones y oportunidades, presentando insights accionables para la toma de decisiones estratégicas.
                 </p>
               </div>
             </div>
@@ -1023,30 +1033,46 @@ export default function Home() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-4" data-animate="animate-fade-in-up">
-                Preguntas frecuentes sobre DWORKERS
+                Preguntas frecuentes sobre <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>agentes IA</span> y <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>asistentes digitales</span>
               </h2>
               <p className="font-raleway text-lg text-gray-600 leading-relaxed" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                Nuestro servicio de agentes digitales está diseñado para facilitar tareas repetitivas, generar resultados medibles y escalar sin fricción. Aquí respondemos lo más común:
+                Somos una <strong>agencia de inteligencia artificial</strong> especializada en <strong>multiagentes</strong> y <strong>automatización empresarial</strong>. Aquí respondemos las dudas más comunes sobre nuestros <strong>agentes digitales</strong>:
               </p>
             </div>
 
             <div className="space-y-4">
               {[
                 {
-                  q: '¿Puedo usar los agentes para proyectos con clientes?',
-                  a: 'Sí, pueden integrarse en flujos operativos de terceros o actuar como soporte B2B.'
+                  q: '¿Qué son los agentes IA y cómo funcionan?',
+                  a: 'Los agentes IA (agentes de inteligencia artificial) son sistemas autónomos que utilizan aprendizaje automático y procesamiento de lenguaje natural para realizar tareas específicas. Nuestros multiagentes trabajan coordinadamente, cada uno especializado en áreas como atención al cliente, automatización de procesos o análisis de datos, comunicándose entre sí para resolver tareas complejas.'
                 },
                 {
-                  q: '¿Dónde se desarrollan los agentes?',
-                  a: 'La arquitectura base se aloja en infraestructura cloud global, garantizando seguridad y cumplimiento normativo.'
+                  q: '¿Cuánto tiempo toma desarrollar un agente digital personalizado?',
+                  a: 'El tiempo varía según la complejidad, pero generalmente el proceso completo (análisis, construcción e implementación) toma entre 4 a 8 semanas. Incluye análisis de necesidades, diseño de arquitectura multiagente, desarrollo del asistente digital, pruebas e implementación gradual.'
                 },
                 {
-                  q: '¿Qué incluyen las actualizaciones gratuitas?',
-                  a: 'Mejoras de rendimiento, nuevos módulos de automatización y aprendizaje continuo de los agentes.'
+                  q: '¿Los agentes pueden integrarse con mis sistemas existentes?',
+                  a: 'Sí, nuestros asistentes digitales se integran con APIs, bases de datos, CRMs, ERPs y prácticamente cualquier sistema mediante conectores estándar. La integración es parte del proceso de construcción a la medida.'
                 },
                 {
-                  q: '¿Puedo usar DWORKERS en proyectos open source?',
-                  a: 'Sí, siempre que se respete la política de uso ético y los lineamientos de datos.'
+                  q: '¿Qué diferencia a DWORKERS de otras agencias de inteligencia artificial?',
+                  a: 'Somos especialistas en arquitecturas multiagente, donde varios agentes IA trabajan coordinados. No solo automatizamos tareas individuales, sino que creamos ecosistemas de agentes digitales que se comunican entre sí para resolver procesos complejos. Además, ofrecemos análisis profundo y construcción completamente personalizada.'
+                },
+                {
+                  q: '¿Los agentes aprenden y mejoran con el tiempo?',
+                  a: 'Sí, todos nuestros agentes IA incluyen capacidades de aprendizaje continuo. A medida que procesan más datos e interacciones, mejoran su precisión, entendimiento contextual y capacidad de respuesta. Aplicamos técnicas de fine-tuning y actualizaciones periódicas del modelo.'
+                },
+                {
+                  q: '¿Qué tipo de empresas pueden beneficiarse de agentes digitales?',
+                  a: 'Cualquier empresa que tenga tareas repetitivas, alto volumen de interacciones con clientes, necesidad de análisis de datos o procesos que requieran automatización. Desde startups hasta grandes corporaciones, e-commerce, servicios financieros, salud, educación y más.'
+                },
+                {
+                  q: '¿Cuál es el costo de implementar agentes IA en mi empresa?',
+                  a: 'El costo varía según la complejidad, número de agentes y alcance del proyecto. Ofrecemos paquetes desde asistente básico hasta ecosistemas multiagente completos. Agenda una demo gratuita para recibir una cotización personalizada basada en tus necesidades específicas.'
+                },
+                {
+                  q: '¿Qué seguridad y privacidad ofrecen los agentes digitales?',
+                  a: 'Implementamos encriptación end-to-end, cumplimiento con normativas de protección de datos (GDPR, LFPDPPP), acceso controlado por roles, y auditorías de seguridad regulares. Los datos permanecen bajo tu control y pueden almacenarse en tu infraestructura si lo prefieres.'
                 }
               ].map((faq, index) => (
                 <div key={index} className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
@@ -1093,16 +1119,16 @@ export default function Home() {
               </div>
             </div>
             <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6" data-animate="animate-fade-in-up">
-              ¿Listo para conocer a tu primer agente digital?
+              ¿Listo para contratar tus primeros <span className="font-bold italic underline" style={{ textDecorationColor: 'rgba(0,0,0,0.3)' }}>empleados digitales</span>?
             </h2>
             <p className="font-raleway text-lg text-gray-800 mb-8 leading-relaxed" data-animate="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              Activa hoy mismo tu asistente digital y transforma la forma en que trabajas. Tu negocio puede operar 24/7 con inteligencia artificial personalizada.
+              Agenda una <strong>demo gratuita</strong> y descubre cómo nuestros <strong>agentes IA</strong> pueden transformar tu operación. Contrata un asistente o un equipo entero de <strong>multiagentes</strong> diseñados específicamente para tu negocio.
             </p>
             <button
               onClick={() => setShowContactModal(true)}
               className="bg-gray-900 text-white px-8 py-4 rounded-lg font-raleway font-semibold text-lg hover:bg-gray-800 transition-colors shadow-lg"
             >
-              Agendemos una reunión
+              Agenda una DEMO
             </button>
           </div>
         </section>
@@ -1121,7 +1147,7 @@ export default function Home() {
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#5DE1E5' }}></span>
               </div>
               <p className="font-raleway text-sm text-gray-400 leading-relaxed">
-                Agencia de empleados digitales que integra inteligencia artificial y automatización para optimizar procesos empresariales.
+                <strong>Empleados digitales multiagente con inteligencia artificial</strong>. Automatizamos interacciones y optimizamos procesos empresariales. Maximiza beneficios con nuestra <strong>agencia de inteligencia artificial</strong> especializada en <strong>agentes IA</strong> y <strong>asistentes digitales</strong>.
               </p>
             </div>
 

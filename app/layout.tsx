@@ -4,11 +4,17 @@ import Navbar from '@/components/Navbar'
 import AuthProvider from '@/components/AuthProvider'
 
 export const metadata: Metadata = {
-  title: 'DWORKERS Zero Azul',
-  description: 'Panel de administración Zero Azul',
+  title: 'Empleados digitales :: DWORKERS | Agencia de Inteligencia Artificial',
+  description: 'Empleados digitales multiagente con inteligencia artificial, automatizar interacciones y optimizar procesos empresariales. Maximiza Beneficios con agentes IA, asistentes digitales y automatización RPA.',
+  keywords: 'agentes IA, agentes ai, asistentes digitales, agencia de inteligencia artificial, multiagentes, automatización empresarial, RPA, inteligencia artificial, agentes digitales, automatización con IA',
   icons: {
     icon: '/public-img/favicon.png',
     apple: '/public-img/favicon.png',
+  },
+  openGraph: {
+    title: 'Empleados digitales :: DWORKERS',
+    description: 'Con el poder la Inteligencia artificial y RPA ofrecemos un equipo de trabajo infinito de multiagentes, eficiente y efectivo para tareas en tu empresa.',
+    type: 'website',
   },
 }
 
