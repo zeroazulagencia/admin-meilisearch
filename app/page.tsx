@@ -10,13 +10,15 @@ function ImageWithSkeleton({
   alt, 
   className = '', 
   style = {},
-  onLoad
+  onLoad,
+  showWhenVisible = true
 }: { 
   src: string; 
   alt: string; 
   className?: string; 
   style?: React.CSSProperties;
   onLoad?: () => void;
+  showWhenVisible?: boolean;
 }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
@@ -42,6 +44,9 @@ function ImageWithSkeleton({
     setImageLoaded(true);
   };
 
+  // Determinar si la imagen debe mostrarse (cargada y visible si showWhenVisible es true)
+  const shouldShowImage = imageLoaded && !showSkeleton && (showWhenVisible !== false || showWhenVisible === undefined);
+
   return (
     <div className={`relative ${className}`} style={style}>
       {showSkeleton && (
@@ -56,7 +61,7 @@ function ImageWithSkeleton({
         ref={imgRef}
         src={src}
         alt={alt}
-        className={`${className} ${imageLoaded && !showSkeleton ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+        className={`${className} ${shouldShowImage ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
         style={style}
         onLoad={handleImageLoad}
         loading="eager"
@@ -770,12 +775,12 @@ export default function Home() {
                     src="/public-img/worker3.png"
                     alt="Worker 3"
                     className="w-full h-full object-cover object-top"
+                    showWhenVisible={agentsVisible}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-                      opacity: agentsVisible ? 1 : 0,
-                      visibility: agentsVisible ? 'visible' : 'hidden'
+                      opacity: agentsVisible ? 1 : 0
                     }}
                   />
                 </div>
@@ -801,13 +806,13 @@ export default function Home() {
                     src="/public-img/worker5.png"
                     alt="Worker 5"
                     className="w-full h-full object-cover object-top"
+                    showWhenVisible={agentsVisible}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
                       animationDelay: '0.2s',
-                      opacity: agentsVisible ? 1 : 0,
-                      visibility: agentsVisible ? 'visible' : 'hidden'
+                      opacity: agentsVisible ? 1 : 0
                     }}
                   />
                 </div>
@@ -834,13 +839,13 @@ export default function Home() {
                     src="/public-img/worker4.png"
                     alt="Worker 4"
                     className="w-full h-full object-cover object-top"
+                    showWhenVisible={agentsVisible}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
                       animationDelay: '0.4s',
-                      opacity: agentsVisible ? 1 : 0,
-                      visibility: agentsVisible ? 'visible' : 'hidden'
+                      opacity: agentsVisible ? 1 : 0
                     }}
                   />
                 </div>
