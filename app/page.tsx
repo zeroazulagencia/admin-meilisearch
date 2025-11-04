@@ -322,8 +322,8 @@ export default function Home() {
                   />
                 </div>
                 
-                {/* Contenedor que ocupa solo desde el centro hacia la derecha (75%) */}
-                <div className="w-full lg:w-[75%] lg:ml-auto relative z-10">
+                {/* Contenedor que ocupa solo desde el centro hacia la derecha (60%) */}
+                <div className="w-full lg:w-[60%] lg:ml-auto relative z-10">
                   {activeTab === 'select' && (
                     <>
                       <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
@@ -441,7 +441,7 @@ export default function Home() {
               {/* Agente 1 - worker3 */}
               <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative">
                 {/* Contenedor de imagen - solo mitad superior visible */}
-                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-50px' }}>
+                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-80px' }}>
                   <img 
                     src="/public-img/worker3.png" 
                     alt="Worker 3" 
@@ -471,7 +471,7 @@ export default function Home() {
               {/* Agente 2 - worker5 */}
               <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative">
                 {/* Contenedor de imagen - solo mitad superior visible */}
-                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-50px' }}>
+                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-80px' }}>
                   <img 
                     src="/public-img/worker5.png" 
                     alt="Worker 5" 
@@ -503,7 +503,7 @@ export default function Home() {
               {/* Agente 3 - worker4 */}
               <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative">
                 {/* Contenedor de imagen - solo mitad superior visible */}
-                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-50px' }}>
+                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-80px' }}>
                   <img 
                     src="/public-img/worker4.png" 
                     alt="Worker 4" 
