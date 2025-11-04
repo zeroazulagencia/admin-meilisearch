@@ -461,65 +461,65 @@ export default function Ejecuciones() {
 
   if (agentsLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
-      </div>
+      <ProtectedLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full border-[#5DE1E5]"></div>
+        </div>
+      </ProtectedLayout>
     );
   }
 
   return (
     <ProtectedLayout>
-      <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Ejecuciones n8n</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Ejecuciones n8n</h1>
 
-        {/* Selector de Agente */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Seleccionar Agente
-          </label>
-          <select
-            value={selectedAgent?.id || ''}
-            onChange={(e) => {
-              const agent = agents.find(a => a.id === parseInt(e.target.value));
-              setSelectedAgent(agent || null);
-              setSelectedWorkflow(null);
-            }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-            style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-          >
-            <option value="">Seleccionar agente...</option>
-            {agents.map((agent) => {
-              // Usar workflows ya normalizado del agente
-              const workflowIds = agent.workflows?.workflowIds || [];
-              const cnt = Array.isArray(workflowIds) ? workflowIds.length : 0;
-              return (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name} {cnt ? `(${cnt} flujos)` : '(sin flujos)'}
-                </option>
-              );
-            })}
-          </select>
-          {selectedAgent && selectedAgent.photo && (
-            <div className="mt-3 flex items-center gap-3">
-              <img
-                src={selectedAgent.photo}
-                alt={selectedAgent.name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-              />
-              <div>
-                <p className="font-medium text-gray-900">{selectedAgent.name}</p>
-                {selectedAgent.description && (
-                  <p className="text-sm text-gray-500">{selectedAgent.description}</p>
-                )}
-              </div>
+      {/* Selector de Agente */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Seleccionar Agente
+        </label>
+        <select
+          value={selectedAgent?.id || ''}
+          onChange={(e) => {
+            const agent = agents.find(a => a.id === parseInt(e.target.value));
+            setSelectedAgent(agent || null);
+            setSelectedWorkflow(null);
+          }}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+          style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+        >
+          <option value="">Seleccionar agente...</option>
+          {agents.map((agent) => {
+            // Usar workflows ya normalizado del agente
+            const workflowIds = agent.workflows?.workflowIds || [];
+            const cnt = Array.isArray(workflowIds) ? workflowIds.length : 0;
+            return (
+              <option key={agent.id} value={agent.id}>
+                {agent.name} {cnt ? `(${cnt} flujos)` : '(sin flujos)'}
+              </option>
+            );
+          })}
+        </select>
+        {selectedAgent && selectedAgent.photo && (
+          <div className="mt-3 flex items-center gap-3">
+            <img
+              src={selectedAgent.photo}
+              alt={selectedAgent.name}
+              className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+            />
+            <div>
+              <p className="font-medium text-gray-900">{selectedAgent.name}</p>
+              {selectedAgent.description && (
+                <p className="text-sm text-gray-500">{selectedAgent.description}</p>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
-        {selectedAgent && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Seleccionar Flujo</h2>
+      {selectedAgent && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Seleccionar Flujo</h2>
           <div className="relative" ref={dropdownRef}>
             <input
               type="text"
@@ -534,7 +534,7 @@ export default function Ejecuciones() {
             />
             
             {isOpen && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-sm max-h-60 overflow-auto">
                 {loading || workflows.length === 0 ? (
                   <div className="px-4 py-3 text-sm flex items-center gap-2" style={{ color: '#5DE1E5' }}>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent" style={{ borderColor: '#5DE1E5' }}></div>
@@ -579,31 +579,31 @@ export default function Ejecuciones() {
             </div>
           )}
         </div>
-        )}
+      )}
 
-        {!selectedAgent && (
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-500">
-              Por favor, selecciona un agente para ver sus flujos y ejecuciones.
-            </p>
-          </div>
-        )}
+      {!selectedAgent && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+          <p className="text-gray-500">
+            Por favor, selecciona un agente para ver sus flujos y ejecuciones.
+          </p>
+        </div>
+      )}
 
-        {selectedAgent && workflows.length === 0 && !loading && (
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-500">
-              {selectedAgent.name} no tiene flujos asociados. Configura sus flujos desde la página de Agentes.
-            </p>
-          </div>
-        )}
+      {selectedAgent && workflows.length === 0 && !loading && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+          <p className="text-gray-500">
+            {selectedAgent.name} no tiene flujos asociados. Configura sus flujos desde la página de Agentes.
+          </p>
+        </div>
+      )}
 
-        {selectedWorkflow && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  Ejecuciones de {selectedWorkflow.name} - HOY
-                </h2>
+      {selectedWorkflow && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Ejecuciones de {selectedWorkflow.name} - HOY
+              </h2>
                 <div className="flex gap-2 items-center">
                   <select
                     value={itemsPerPage}
@@ -916,7 +916,6 @@ export default function Ejecuciones() {
             </div>
           </div>
         )}
-      </div>
 
       {/* Modal de alertas */}
       <AlertModal
@@ -926,7 +925,6 @@ export default function Ejecuciones() {
         message={alertModal.message}
         type={alertModal.type}
       />
-    </div>
     </ProtectedLayout>
   );
 }

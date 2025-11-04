@@ -39,19 +39,17 @@ export default function ConsumoAPI() {
 
   return (
     <ProtectedLayout>
-      <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Consumo API</h1>
-        
-        <div className="mb-6 p-4 rounded-lg border rounded-lg" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)', borderColor: '#5DE1E5' }}>
-          <p className="text-sm" style={{ color: '#0369a1' }}>
-            <strong>Nota:</strong> Verifica regularmente el estado de créditos de cada servicio para asegurar su disponibilidad.
-          </p>
-        </div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Consumo API</h1>
+      
+      <div className="mb-6 p-4 rounded-xl border border-[#5DE1E5] bg-[rgba(93,225,229,0.1)]">
+        <p className="text-sm text-[#0369a1]">
+          <strong>Nota:</strong> Verifica regularmente el estado de créditos de cada servicio para asegurar su disponibilidad.
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((service, index) => (
-            <div key={index} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {services.map((service, index) => (
+          <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">{service.name}</h3>
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -78,19 +76,17 @@ export default function ConsumoAPI() {
               </a>
             </div>
           ))}
-        </div>
-
-        <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h4 className="font-semibold text-yellow-900 mb-2">Recomendaciones:</h4>
-          <ul className="text-sm text-yellow-800 space-y-1">
-            <li>• Monitorea regularmente el uso de cada API</li>
-            <li>• Configura alertas en los dashboards cuando sea posible</li>
-            <li>• Considera agregar fondos antes de que se agoten los créditos</li>
-            <li>• Verifica los dashboards oficiales para información detallada</li>
-          </ul>
-        </div>
       </div>
-    </div>
+
+      <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+        <h4 className="font-semibold text-yellow-900 mb-2">Recomendaciones:</h4>
+        <ul className="text-sm text-yellow-800 space-y-1">
+          <li>• Monitorea regularmente el uso de cada API</li>
+          <li>• Configura alertas en los dashboards cuando sea posible</li>
+          <li>• Considera agregar fondos antes de que se agoten los créditos</li>
+          <li>• Verifica los dashboards oficiales para información detallada</li>
+        </ul>
+      </div>
     </ProtectedLayout>
   );
 }

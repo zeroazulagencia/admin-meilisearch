@@ -15,6 +15,9 @@ body {
 /* Color primary personalizado */
 :root {
   --color-primary: #5DE1E5;
+  --sidebar-width: 16rem;
+  --sidebar-width-collapsed: 4rem;
+  --sidebar-transition: 300ms ease-in-out;
 }
 
 .focus\:ring-primary:focus {
@@ -23,6 +26,24 @@ body {
 
 .font-raleway {
   font-family: 'Raleway', sans-serif;
+}
+
+/* Scrollbar personalizado para sidebar */
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* Animación de flotar muy lenta */

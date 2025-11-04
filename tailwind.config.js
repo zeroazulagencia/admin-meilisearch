@@ -21,6 +21,34 @@ module.exports = {
           800: '#075985',
           900: '#0c4a6e',
         },
+        cyan: {
+          custom: '#5DE1E5',
+        },
+        sidebar: {
+          bg: '#ffffff',
+          border: '#e5e7eb',
+        },
+      },
+      spacing: {
+        'sidebar': '16rem',
+        'sidebar-collapsed': '4rem',
+      },
+      transitionDuration: {
+        'sidebar': '300ms',
+      },
+      keyframes: {
+        'sidebar-expand': {
+          '0%': { width: '4rem' },
+          '100%': { width: '16rem' },
+        },
+        'sidebar-collapse': {
+          '0%': { width: '16rem' },
+          '100%': { width: '4rem' },
+        },
+      },
+      animation: {
+        'sidebar-expand': 'sidebar-expand 300ms ease-in-out',
+        'sidebar-collapse': 'sidebar-collapse 300ms ease-in-out',
       },
     },
   },

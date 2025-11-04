@@ -358,12 +358,10 @@ export default function Conversaciones() {
 
   return (
     <ProtectedLayout>
-      <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Conversaciones</h1>
-        
-        {/* Selector de Agente de la Plataforma */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Conversaciones</h1>
+      
+      {/* Selector de Agente de la Plataforma */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Seleccionar Agente de la Plataforma
           </label>
@@ -422,7 +420,7 @@ export default function Conversaciones() {
         {selectedAgent !== 'all' && selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
           <>
             {/* Campo de Búsqueda */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Buscar por Palabras Clave
               </label>
@@ -445,7 +443,7 @@ export default function Conversaciones() {
             </div>
 
             {/* Filtro de Fechas */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Filtrar por Rango de Fechas
               </label>
@@ -574,7 +572,7 @@ export default function Conversaciones() {
             <p className="text-gray-500">No hay conversaciones disponibles</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ height: 'calc(100vh - 250px)' }}>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 250px)' }}>
             <div className="flex h-full">
               {/* Panel Izquierdo - Lista de Conversaciones */}
               <div className="w-1/3 border-r border-gray-200 flex flex-col">
@@ -677,8 +675,6 @@ export default function Conversaciones() {
             </div>
           </div>
         )}
-      </div>
-    </div>
     </ProtectedLayout>
   );
 }

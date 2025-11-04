@@ -64,38 +64,54 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
 
   const handleOpenEmbeddingModal = async () => {
     try {
-      // Cargar varios documentos para validar campos comunes
-      const documents = await meilisearchAPI.getDocuments(indexUid, 10, 0);
+      // Obtener estadísticas para saber cuántos documentos hay
+      const statsData = await meilisearchAPI.getIndexStats(indexUid);
+      const totalDocuments = statsData.numberOfDocuments || 0;
+      
       let commonFieldsArray: string[] = [];
       
-      if (documents.results.length > 0) {
-        const firstDoc = documents.results[0];
-        setLastDocument(firstDoc);
+      if (totalDocuments > 0) {
+        // Obtener TODOS los documentos en lotes para encontrar campos comunes
+        const limit = 1000; // Máximo permitido por Meilisearch
+        const allDocuments: any[] = [];
+        let offset = 0;
         
-        // Obtener campos que existen en TODOS los documentos
-        const allFields = new Set(Object.keys(firstDoc));
-        documents.results.forEach(doc => {
-          const docFields = new Set(Object.keys(doc));
-          // Mantener solo campos que existen en todos los documentos
-          allFields.forEach(field => {
-            if (!docFields.has(field)) {
-              allFields.delete(field);
-            }
+        // Obtener todos los documentos en lotes
+        while (allDocuments.length < totalDocuments) {
+          const batch = await meilisearchAPI.getDocuments(indexUid, limit, offset);
+          if (batch.results.length === 0) break;
+          allDocuments.push(...batch.results);
+          offset += limit;
+          if (batch.results.length < limit) break; // No hay más documentos
+        }
+        
+        if (allDocuments.length > 0) {
+          const firstDoc = allDocuments[0];
+          setLastDocument(firstDoc);
+          
+          // Obtener campos que existen en TODOS los documentos
+          const allFields = new Set(Object.keys(firstDoc));
+          allDocuments.forEach(doc => {
+            const docFields = new Set(Object.keys(doc));
+            // Mantener solo campos que existen en todos los documentos
+            allFields.forEach(field => {
+              if (!docFields.has(field)) {
+                allFields.delete(field);
+              }
+            });
           });
-        });
-        
-        commonFieldsArray = Array.from(allFields);
-        
-        // Generar template solo con campos que existen en todos los documentos
-        const template = commonFieldsArray.map(key => `{{doc.${key}}}`).join('\n');
-        setNewEmbedder({
-          ...newEmbedder,
-          documentTemplate: template
-        });
-        
-        console.log('✅ Campos comunes encontrados:', commonFieldsArray);
-        if (documents.results.length > 1) {
-          console.log(`✅ Validado contra ${documents.results.length} documentos`);
+          
+          commonFieldsArray = Array.from(allFields);
+          
+          // Generar template solo con campos que existen en todos los documentos
+          const template = commonFieldsArray.map(key => `{{doc.${key}}}`).join('\n');
+          setNewEmbedder({
+            ...newEmbedder,
+            documentTemplate: template
+          });
+          
+          console.log('✅ Campos comunes encontrados:', commonFieldsArray);
+          console.log(`✅ Validado contra ${allDocuments.length} documentos del índice`);
         }
       } else {
         // Si no hay documentos, usar campos de fieldDistribution si están disponibles
@@ -141,18 +157,39 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
         return { valid: false, missingFields: [], availableFields: [] };
       }
       
-      // Obtener varios documentos para validar campos comunes
-      const documents = await meilisearchAPI.getDocuments(indexUid, 50, 0);
+      // Obtener estadísticas del índice para saber cuántos documentos hay
+      const stats = await meilisearchAPI.getIndexStats(indexUid);
+      const totalDocuments = stats.numberOfDocuments || 0;
       
-      if (documents.results.length === 0) {
+      if (totalDocuments === 0) {
+        return { valid: true, missingFields: [], availableFields: [] };
+      }
+      
+      // Obtener TODOS los documentos en lotes para validar campos comunes
+      const limit = 1000; // Máximo permitido por Meilisearch
+      const allDocuments: any[] = [];
+      let offset = 0;
+      
+      // Obtener todos los documentos en lotes
+      while (allDocuments.length < totalDocuments) {
+        const batch = await meilisearchAPI.getDocuments(indexUid, limit, offset);
+        if (batch.results.length === 0) break;
+        allDocuments.push(...batch.results);
+        offset += limit;
+        if (batch.results.length < limit) break; // No hay más documentos
+      }
+      
+      console.log(`🔍 Validando contra ${allDocuments.length} documentos del índice`);
+      
+      if (allDocuments.length === 0) {
         return { valid: true, missingFields: [], availableFields: [] };
       }
       
       // Obtener campos que existen en TODOS los documentos
-      const firstDocFields = new Set(Object.keys(documents.results[0]));
+      const firstDocFields = new Set(Object.keys(allDocuments[0]));
       const commonFields = new Set(firstDocFields);
       
-      documents.results.forEach(doc => {
+      allDocuments.forEach((doc, index) => {
         const docFields = new Set(Object.keys(doc));
         commonFields.forEach(field => {
           if (!docFields.has(field)) {
@@ -160,6 +197,8 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
           }
         });
       });
+      
+      console.log(`✅ Campos comunes encontrados en todos los documentos:`, Array.from(commonFields));
       
       // Verificar qué campos del template faltan
       const missingFields = templateFields.filter(field => !commonFields.has(field));
