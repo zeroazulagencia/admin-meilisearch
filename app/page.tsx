@@ -763,7 +763,11 @@ export default function Home() {
             <div id="agents-icon" className="flex justify-center relative z-20 mb-4" style={{ marginTop: '-105px', paddingBottom: '20px' }}>
               <div 
                 className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${agentsIconVisible ? 'icon-roll-in' : ''}`}
-                style={{ backgroundColor: '#5DE1E5', opacity: agentsIconVisible ? 1 : 0 }}
+                style={{ 
+                  backgroundColor: '#5DE1E5', 
+                  opacity: agentsIconVisible ? 1 : 0,
+                  visibility: agentsIconVisible ? 'visible' : 'hidden'
+                }}
               >
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -791,7 +795,7 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                      transition: 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)',
                       opacity: agentsVisible ? 1 : 0,
                       transitionDelay: '0s'
                     }}
@@ -822,7 +826,7 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                      transition: 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)',
                       transitionDelay: '0.5s',
                       opacity: agentsVisible ? 1 : 0
                     }}
@@ -854,7 +858,7 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                      transition: 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)',
                       transitionDelay: '1s',
                       opacity: agentsVisible ? 1 : 0
                     }}
