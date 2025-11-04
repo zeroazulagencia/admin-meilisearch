@@ -525,37 +525,122 @@ export default function Reportes() {
       {/* Modal para mostrar el reporte */}
       {selectedReport && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800">Reporte</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  {selectedReport.type} - {formatDate(selectedReport.datetime)} - {selectedReport.agent}
-                </p>
+          <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            {/* Header del Modal */}
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="px-3 py-1.5 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                      {selectedReport.type}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {formatDateHuman(selectedReport.datetime)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    {formatDate(selectedReport.datetime)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleDownloadPDF}
+                    disabled={!reportHtml || loadingReportDetail}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Descargar PDF
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedReport(null);
+                      setReportHtml('');
+                    }}
+                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  setSelectedReport(null);
-                  setReportHtml('');
-                }}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-              >
-                ✕
-              </button>
+              
+              {/* Información del Agente */}
+              {(() => {
+                const agentInfo = allPlatformAgents.find(a => a.conversation_agent_name === selectedReport.agent);
+                const agentName = agentInfo?.name || selectedReport.agent;
+                return (
+                  <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
+                    {agentInfo?.photo ? (
+                      <img
+                        src={agentInfo.photo}
+                        alt={agentName}
+                        className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
+                        <span className="text-gray-500 font-semibold text-lg">
+                          {agentName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{agentName}</p>
+                      {agentInfo?.description && (
+                        <p className="text-xs text-gray-500">{agentInfo.description}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             
-            <div className="p-6 flex-1 overflow-auto">
+            {/* Contenido del Reporte */}
+            <div className="p-6 flex-1 overflow-auto bg-gray-50">
               {loadingReportDetail ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full border-[#5DE1E5]"></div>
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full border-[#5DE1E5]"></div>
+                  <p className="ml-3 text-gray-600">Cargando reporte...</p>
                 </div>
               ) : reportHtml ? (
-                <div 
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{ __html: reportHtml }}
-                />
+                <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-200">
+                  <div 
+                    className="prose max-w-none prose-headings:font-bold prose-p:text-gray-700 prose-li:text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: reportHtml }}
+                  />
+                  
+                  {/* Footer con información del creador */}
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    {(() => {
+                      const agentInfo = allPlatformAgents.find(a => a.conversation_agent_name === selectedReport.agent);
+                      const agentName = agentInfo?.name || selectedReport.agent;
+                      return (
+                        <div className="flex items-center gap-3">
+                          {agentInfo?.photo ? (
+                            <img
+                              src={agentInfo.photo}
+                              alt={agentName}
+                              className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
+                              <span className="text-gray-500 font-semibold">
+                                {agentName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <p className="text-sm text-gray-600">
+                            <span className="font-medium">Creado por:</span> {agentName}
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
               ) : (
-                <p className="text-gray-500">No hay contenido disponible para este reporte.</p>
+                <div className="bg-white rounded-lg p-8 text-center">
+                  <p className="text-gray-500">No hay contenido disponible para este reporte.</p>
+                </div>
               )}
             </div>
           </div>
