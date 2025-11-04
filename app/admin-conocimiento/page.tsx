@@ -1194,18 +1194,18 @@ export default function AdminConocimiento() {
         ) : selectedAgent && availableIndexes.length > 0 ? (
           <>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Seleccionar Índice
-                </label>
-                <select
-                  value={selectedIndex?.uid || ''}
-                  onChange={(e) => {
-                    const index = availableIndexes.find(i => i.uid === e.target.value);
-                    setSelectedIndex(index || null);
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-              style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                >
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Seleccionar Índice
+              </label>
+              <select
+                value={selectedIndex?.uid || ''}
+                onChange={(e) => {
+                  const index = availableIndexes.find(i => i.uid === e.target.value);
+                  setSelectedIndex(index || null);
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+              >
                   <option value="">Seleccionar índice...</option>
                   {availableIndexes.map((index) => (
                     <option key={index.uid} value={index.uid}>
@@ -1323,10 +1323,9 @@ export default function AdminConocimiento() {
               <p className="text-gray-500">
                 {selectedAgent?.name} no tiene índices asociados. Configura su conocimiento desde la página de Agentes.
               </p>
-        </div>
+            </div>
           ) : null}
       </div>
-    </div>
 
       {/* Modal para Cargar PDF */}
       {showPdfModal && (
