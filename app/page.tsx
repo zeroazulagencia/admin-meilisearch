@@ -303,8 +303,8 @@ export default function Home() {
                   />
                 </div>
                 
-                {/* Contenedor que ocupa solo desde el centro hacia la derecha (60%) - con max-width para limitar ancho total */}
-                <div className="w-full lg:max-w-[55%] lg:ml-auto relative z-10">
+                {/* Contenedor que ocupa solo desde el centro hacia la derecha (65%) - con max-width para limitar ancho total */}
+                <div className="w-full lg:max-w-[65%] lg:ml-auto relative z-10">
                   {activeTab === 'select' && (
                     <>
                       <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
