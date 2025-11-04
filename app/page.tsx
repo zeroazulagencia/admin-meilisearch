@@ -52,6 +52,9 @@ function ImageWithSkeleton({
   // Determinar si la imagen debe mostrarse (cargada y visible si showWhenVisible es true)
   // Si showWhenVisible es false, aún mostramos la imagen pero respetamos el estilo inline para la animación
   const shouldShowImage = imageLoaded && !showSkeleton;
+  
+  // Mostrar spinner si no está visible o si aún está cargando
+  const shouldShowSpinner = showWhenVisible === false || showSkeleton;
 
   // Separar clases de posicionamiento del contenedor de las de la imagen
   const containerClasses = className.includes('absolute') || className.includes('fixed') || className.includes('relative') 
@@ -72,7 +75,7 @@ function ImageWithSkeleton({
 
   return (
     <div className={containerClasses} style={style}>
-      {showSkeleton && (
+      {shouldShowSpinner && (
         <div 
           className="absolute inset-0 flex items-center justify-center z-10"
           style={{ aspectRatio: 'auto', backgroundColor: 'transparent' }}
@@ -80,15 +83,17 @@ function ImageWithSkeleton({
           <div className="inline-block animate-spin h-10 w-10 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5', borderRightColor: 'rgba(93, 225, 229, 0.3)', borderBottomColor: 'rgba(93, 225, 229, 0.3)', borderLeftColor: 'rgba(93, 225, 229, 0.3)' }}></div>
         </div>
       )}
-      <img
-        ref={imgRef}
-        src={src}
-        alt={alt}
-        className={`${imageClasses} ${shouldShowImage ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
-        style={{}}
-        onLoad={handleImageLoad}
-        loading="eager"
-      />
+      {showWhenVisible !== false && (
+        <img
+          ref={imgRef}
+          src={src}
+          alt={alt}
+          className={`${imageClasses} ${shouldShowImage ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+          style={{}}
+          onLoad={handleImageLoad}
+          loading="eager"
+        />
+      )}
     </div>
   );
 }
