@@ -662,7 +662,7 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker2.png"
                     alt="Worker"
-                    className={`h-[460px] w-auto object-contain float-slow ${activationSectionVisible ? 'animate-fade-in' : 'opacity-0'}`}
+                    className="h-[460px] w-auto object-contain float-slow"
                     style={{ 
                       transition: activationSectionVisible ? 'opacity 0.5s ease-in' : 'none',
                       opacity: activationSectionVisible ? 1 : 0
@@ -673,7 +673,7 @@ export default function Home() {
                 {/* Contenedor que ocupa solo desde el centro hacia la derecha (65%) - con max-width para limitar ancho total */}
                 <div className="w-full lg:max-w-[65%] lg:ml-auto relative z-10">
                   {activeTab === 'select' && (
-                    <>
+                    <div className="animate-fade-in">
                       <div className="px-4 lg:px-8">
                         <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
                           Selecciona el tipo de agente que mejor se adapte a tu negocio
@@ -703,11 +703,11 @@ export default function Home() {
                         </div>
                       </div>
                       <SectionCTA onClick={() => setShowContactModal(true)} text="Agendemos una asesoría" />
-                    </>
+                    </div>
                   )}
                   
                   {activeTab === 'configure' && (
-                    <>
+                    <div className="animate-fade-in">
                       <div className="px-4 lg:px-8">
                         <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
                           Desbloquea las <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>funciones avanzadas</span> que redefinen tu{' '}
@@ -741,11 +741,11 @@ export default function Home() {
                         </div>
                       </div>
                       <SectionCTA onClick={() => setShowContactModal(true)} text="Escríbenos" />
-                    </>
+                    </div>
                   )}
                   
                   {activeTab === 'describe' && (
-                    <>
+                    <div className="animate-fade-in">
                       <div className="px-4 lg:px-8">
                         <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
                           Define los <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>objetivos</span> y <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>personalidad</span> de tu agente digital
