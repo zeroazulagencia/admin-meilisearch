@@ -114,15 +114,15 @@ function VideoWithSkeleton({
 }
 
 // Componente SectionCTA
-function SectionCTA({ onClick }: { onClick: () => void }) {
+function SectionCTA({ onClick, text = 'Contáctanos' }: { onClick: () => void; text?: string }) {
   return (
-    <div className="flex justify-center mt-12 mb-8">
+    <div className="flex justify-center mt-8 mb-4">
       <button
         onClick={onClick}
         className="text-gray-900 px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md font-raleway"
         style={{ backgroundColor: '#5DE1E5' }}
       >
-        Contáctanos
+        {text}
       </button>
     </div>
   );
@@ -494,8 +494,6 @@ export default function Home() {
               </button>
             </div>
           </div>
-          {/* CTA después del Hero */}
-          <SectionCTA onClick={() => setShowContactModal(true)} />
 
           {/* Right Side - Video */}
           <div className="hidden lg:block relative">
@@ -639,6 +637,7 @@ export default function Home() {
                           </p>
                         </div>
                       </div>
+                      <SectionCTA onClick={() => setShowContactModal(true)} text="Agendemos una asesoría" />
                     </>
                   )}
                   
@@ -676,6 +675,7 @@ export default function Home() {
                           </p>
                         </div>
                       </div>
+                      <SectionCTA onClick={() => setShowContactModal(true)} text="Escríbenos" />
                     </>
                   )}
                   
@@ -709,13 +709,12 @@ export default function Home() {
                           </p>
                         </div>
                       </div>
+                      <SectionCTA onClick={() => setShowContactModal(true)} text="Comunícate con nosotros" />
                     </>
                   )}
                 </div>
               </div>
             </div>
-            {/* CTA después de Activation */}
-            <SectionCTA onClick={() => setShowContactModal(true)} />
           </section>
 
         {/* Sección 4: Tipos de Agentes Digitales */}
@@ -836,7 +835,7 @@ export default function Home() {
               </div>
             </div>
             {/* CTA después de Agents-section */}
-            <SectionCTA onClick={() => setShowContactModal(true)} />
+            <SectionCTA onClick={() => setShowContactModal(true)} text="Hablemos de tu proyecto" />
           </div>
         </section>
 
@@ -896,7 +895,7 @@ export default function Home() {
               ))}
             </div>
             {/* CTA después de FAQ */}
-            <SectionCTA onClick={() => setShowContactModal(true)} />
+            <SectionCTA onClick={() => setShowContactModal(true)} text="Tengo más preguntas" />
           </div>
         </section>
 
@@ -921,10 +920,11 @@ export default function Home() {
               Activa hoy mismo tu asistente digital y transforma la forma en que trabajas. Tu negocio puede operar 24/7 con inteligencia artificial personalizada.
             </p>
             <button
-              onClick={() => setShowLoginModal(true)}
-              className="bg-gray-900 text-white px-8 py-4 rounded-lg font-raleway font-semibold text-lg hover:bg-gray-800 transition-colors shadow-lg"
+              onClick={() => setShowContactModal(true)}
+              className="text-gray-900 px-8 py-4 rounded-lg font-raleway font-semibold text-lg hover:opacity-90 transition-all shadow-lg"
+              style={{ backgroundColor: '#5DE1E5' }}
             >
-              Comienza tu prueba gratuita
+              Agendemos una reunión
             </button>
           </div>
         </section>
