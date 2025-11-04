@@ -45,7 +45,8 @@ function ImageWithSkeleton({
   };
 
   // Determinar si la imagen debe mostrarse (cargada y visible si showWhenVisible es true)
-  const shouldShowImage = imageLoaded && !showSkeleton && (showWhenVisible !== false || showWhenVisible === undefined);
+  // Si showWhenVisible es false, aún mostramos la imagen pero respetamos el estilo inline para la animación
+  const shouldShowImage = imageLoaded && !showSkeleton;
 
   return (
     <div className={`relative ${className}`} style={style}>
@@ -775,11 +776,10 @@ export default function Home() {
                     src="/public-img/worker3.png"
                     alt="Worker 3"
                     className="w-full h-full object-cover object-top"
-                    showWhenVisible={agentsVisible}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
@@ -806,12 +806,11 @@ export default function Home() {
                     src="/public-img/worker5.png"
                     alt="Worker 5"
                     className="w-full h-full object-cover object-top"
-                    showWhenVisible={agentsVisible}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-                      animationDelay: '0.2s',
+                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                      transitionDelay: '0.2s',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
@@ -839,12 +838,11 @@ export default function Home() {
                     src="/public-img/worker4.png"
                     alt="Worker 4"
                     className="w-full h-full object-cover object-top"
-                    showWhenVisible={agentsVisible}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-                      animationDelay: '0.4s',
+                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                      transitionDelay: '0.4s',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
