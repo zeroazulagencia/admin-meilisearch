@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
-import AlertModal from '@/components/ui/AlertModal';
 
 interface ReportDocument {
   id: string;
@@ -201,6 +200,136 @@ export default function Reportes() {
     } catch {
       return dateStr;
     }
+  };
+
+  const formatDateHuman = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) {
+        return 'Hace unos momentos';
+      } else if (diffMins < 60) {
+        return `Hace ${diffMins} ${diffMins === 1 ? 'minuto' : 'minutos'}`;
+      } else if (diffHours < 24) {
+        return `Hace ${diffHours} ${diffHours === 1 ? 'hora' : 'horas'}`;
+      } else if (diffDays === 1) {
+        return 'Ayer';
+      } else if (diffDays < 7) {
+        return `Hace ${diffDays} días`;
+      } else {
+        return date.toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    if (!selectedReport || !reportHtml) return;
+
+    // Crear un nuevo documento HTML para el PDF
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const agentInfo = allPlatformAgents.find(a => a.conversation_agent_name === selectedReport.agent);
+    const agentName = agentInfo?.name || selectedReport.agent;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Reporte ${selectedReport.id}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 40px;
+              max-width: 800px;
+              margin: 0 auto;
+            }
+            .header {
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .type-badge {
+              display: inline-block;
+              padding: 6px 12px;
+              border-radius: 20px;
+              font-size: 14px;
+              font-weight: 600;
+              margin-bottom: 10px;
+              background-color: #3b82f6;
+              color: white;
+            }
+            .date {
+              color: #6b7280;
+              font-size: 14px;
+              margin-bottom: 10px;
+            }
+            .agent-info {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              margin-top: 20px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+            }
+            .agent-photo {
+              width: 50px;
+              height: 50px;
+              border-radius: 50%;
+              object-fit: cover;
+            }
+            .agent-name {
+              font-size: 14px;
+              color: #6b7280;
+            }
+            .content {
+              margin-top: 30px;
+            }
+            @media print {
+              body {
+                padding: 20px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="type-badge">${selectedReport.type}</div>
+            <div class="date">${formatDate(selectedReport.datetime)}</div>
+          </div>
+          <div class="content">
+            ${reportHtml}
+          </div>
+          <div class="agent-info">
+            ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" />` : ''}
+            <div>
+              <div class="agent-name"><strong>Creado por:</strong> ${agentName}</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    
+    // Esperar a que se cargue el contenido y luego imprimir/descargar PDF
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
   };
 
   return (
