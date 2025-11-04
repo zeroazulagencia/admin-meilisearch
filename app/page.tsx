@@ -70,19 +70,25 @@ export default function Home() {
     };
   }, []);
 
-  // Intersection Observer para el icono redondo
+  // Intersection Observer para el icono redondo - solo aparece en el centro vertical del viewport
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
+          const rect = entry.boundingClientRect;
+          const viewportHeight = window.innerHeight;
+          const centerY = viewportHeight / 2;
+          const elementCenterY = rect.top + rect.height / 2;
+          
+          // Verificar si el centro del elemento está cerca del centro del viewport (±100px)
+          if (entry.isIntersecting && Math.abs(elementCenterY - centerY) < 100) {
             setIconVisible(true);
           } else {
             setIconVisible(false);
           }
         });
       },
-      { threshold: 0.1, rootMargin: '0px' }
+      { threshold: [0, 0.1, 0.5, 1], rootMargin: '0px' }
     );
 
     const iconElement = document.getElementById('activation-icon');
@@ -97,19 +103,25 @@ export default function Home() {
     };
   }, []);
 
-  // Intersection Observer para el icono de la sección de agentes
+  // Intersection Observer para el icono de la sección de agentes - solo aparece en el centro vertical del viewport
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
+          const rect = entry.boundingClientRect;
+          const viewportHeight = window.innerHeight;
+          const centerY = viewportHeight / 2;
+          const elementCenterY = rect.top + rect.height / 2;
+          
+          // Verificar si el centro del elemento está cerca del centro del viewport (±100px)
+          if (entry.isIntersecting && Math.abs(elementCenterY - centerY) < 100) {
             setAgentsIconVisible(true);
           } else {
             setAgentsIconVisible(false);
           }
         });
       },
-      { threshold: 0.1, rootMargin: '0px' }
+      { threshold: [0, 0.1, 0.5, 1], rootMargin: '0px' }
     );
 
     const agentsIconElement = document.getElementById('agents-icon');
