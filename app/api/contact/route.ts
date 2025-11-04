@@ -6,19 +6,47 @@ const SENDGRID_TO_EMAIL = process.env.SENDGRID_TO_EMAIL || 'cristia.parada@zeroa
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[CONTACT API] Request recibida');
+    
+    // Validar SENDGRID_API_KEY al inicio
+    if (!SENDGRID_API_KEY || SENDGRID_API_KEY.trim() === '') {
+      console.error('[CONTACT API] ERROR: SENDGRID_API_KEY no está configurado');
+      return NextResponse.json(
+        { ok: false, error: 'Error de configuración del servidor. Por favor contacta al administrador.' },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
+    console.log('[CONTACT API] Body recibido:', {
+      name: body.name,
+      email: body.email,
+      phone: body.phone,
+      messageLength: body.message?.length,
+      honeypot: body.honeypot ? 'presente' : 'vacío',
+      browserData: body.browserData ? 'presente' : 'ausente'
+    });
+
     const { name, email, phone, message, honeypot, browserData } = body;
 
     // Validar honeypot - si tiene valor, es spam
     if (honeypot && honeypot.trim() !== '') {
-      console.log('Spam detectado por honeypot:', honeypot);
+      console.log('[CONTACT API] Spam detectado por honeypot:', honeypot);
       return NextResponse.json({ ok: false, error: 'Error al enviar el mensaje' }, { status: 400 });
     }
 
     // Validar campos requeridos
     if (!name || !email || !phone || !message) {
+      console.log('[CONTACT API] Campos faltantes:', {
+        name: !!name,
+        email: !!email,
+        phone: !!phone,
+        message: !!message
+      });
       return NextResponse.json({ ok: false, error: 'Todos los campos son requeridos' }, { status: 400 });
     }
+
+    console.log('[CONTACT API] Validación de campos exitosa');
 
     // Obtener IP del cliente
     const forwarded = request.headers.get('x-forwarded-for');
@@ -43,6 +71,14 @@ export async function POST(request: NextRequest) {
     // Preparar datos del navegador
     const browserInfo = browserData || {};
     const userAgent = request.headers.get('user-agent') || 'Desconocido';
+
+    console.log('[CONTACT API] Preparando email con datos:', {
+      from: SENDGRID_FROM_EMAIL,
+      to: SENDGRID_TO_EMAIL,
+      name,
+      email,
+      ip
+    });
 
     // Crear HTML del email con formato bonito
     const emailHtml = `
@@ -107,6 +143,7 @@ export async function POST(request: NextRequest) {
     `;
 
     // Enviar email con SendGrid
+    console.log('[CONTACT API] Enviando email a SendGrid...');
     const sendGridResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
@@ -130,18 +167,30 @@ export async function POST(request: NextRequest) {
       }),
     });
 
+    console.log('[CONTACT API] SendGrid response status:', sendGridResponse.status);
+    
     if (!sendGridResponse.ok) {
       const errorText = await sendGridResponse.text();
-      console.error('Error en SendGrid:', errorText);
+      console.error('[CONTACT API] Error en SendGrid:', {
+        status: sendGridResponse.status,
+        statusText: sendGridResponse.statusText,
+        error: errorText
+      });
       return NextResponse.json(
         { ok: false, error: 'Error al enviar el mensaje. Por favor intenta nuevamente.' },
         { status: 500 }
       );
     }
 
+    console.log('[CONTACT API] Email enviado exitosamente');
     return NextResponse.json({ ok: true, message: 'Mensaje enviado correctamente' });
   } catch (error: any) {
-    console.error('Error en API de contacto:', error);
+    console.error('[CONTACT API] Error en API de contacto:', error);
+    console.error('[CONTACT API] Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name
+    });
     return NextResponse.json(
       { ok: false, error: 'Error al procesar la solicitud' },
       { status: 500 }

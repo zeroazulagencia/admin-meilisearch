@@ -36,7 +36,7 @@ body {
 }
 
 .float-slow {
-  animation: floatSlow 4s ease-in-out infinite;
+  animation: floatSlow 3s ease-in-out infinite;
   transform: translateY(-50%);
 }
 

@@ -269,16 +269,14 @@ export default function Home() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setAgentsVisible(true);
-            // Esperar un momento antes de activar la animación solo si aún no se ha activado
-            if (!agentsAnimationReady) {
-              setTimeout(() => {
-                setAgentsAnimationReady(true);
-              }, 300);
-            }
+            // Esperar un momento antes de activar la animación
+            setTimeout(() => {
+              setAgentsAnimationReady(true);
+            }, 300);
           } else {
-            // Solo resetear el flag de visibilidad, pero mantener la animación lista
+            // Resetear ambos flags cuando sale del viewport para permitir animación repetible
             setAgentsVisible(false);
-            // No resetear agentsAnimationReady para que las imágenes permanezcan visibles
+            setAgentsAnimationReady(false);
           }
         });
       },
@@ -295,7 +293,7 @@ export default function Home() {
         observer.unobserve(agentsSection);
       }
     };
-  }, [agentsAnimationReady]);
+  }, []);
 
   // Intersection Observer para la sección de activación - activa tabs y worker2
   useEffect(() => {
@@ -512,33 +510,54 @@ export default function Home() {
         country: 'Desconocido' // Se detectará en el servidor por IP
       };
 
+      const requestBody = {
+        ...contactForm,
+        honeypot: (e.target as any).honeypot?.value || '',
+        browserData,
+      };
+
+      console.log('[CONTACT FORM] Enviando datos:', {
+        name: requestBody.name,
+        email: requestBody.email,
+        phone: requestBody.phone,
+        messageLength: requestBody.message?.length,
+        honeypot: requestBody.honeypot,
+        browserData: requestBody.browserData
+      });
+
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...contactForm,
-          honeypot: (e.target as any).honeypot?.value || '',
-          browserData,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('[CONTACT FORM] Response status:', response.status);
+      console.log('[CONTACT FORM] Response ok:', response.ok);
+
       const data = await response.json();
+      console.log('[CONTACT FORM] Response data:', data);
 
       if (!response.ok || !data.ok) {
+        console.error('[CONTACT FORM] Error en respuesta:', data.error);
         setContactError(data.error || 'Error al enviar el mensaje. Por favor intenta nuevamente.');
         setContactLoading(false);
         return;
       }
 
       // Éxito
+      console.log('[CONTACT FORM] Mensaje enviado exitosamente');
       alert('¡Gracias por contactarnos! Te responderemos pronto.');
       setShowContactModal(false);
       setContactForm({ name: '', email: '', phone: '', message: '' });
       setContactLoading(false);
     } catch (error) {
-      console.error('Error al enviar formulario:', error);
+      console.error('[CONTACT FORM] Error al enviar formulario:', error);
+      console.error('[CONTACT FORM] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       setContactError('Error al enviar el mensaje. Por favor intenta nuevamente.');
       setContactLoading(false);
     }
@@ -1167,7 +1186,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowLoginModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={(e) => e.stopPropagation()}>
             {/* Imagen worker1b.png flotante */}
-            <div className="absolute -top-12 left-[-118px] w-48 h-48 float-slow" style={{ zIndex: 999 }}>
+            <div className="absolute -top-12 left-[-60px] w-48 h-48 float-slow" style={{ zIndex: 999 }}>
               <ImageWithSkeleton
                 src="/public-img/worker1b.png"
                 alt="Worker"
@@ -1254,7 +1273,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setShowContactModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full my-8 relative" onClick={(e) => e.stopPropagation()}>
             {/* Imagen worker1b.png flotante - 20% más grande */}
-            <div className="absolute -top-14 left-[-140px] w-[260px] h-[260px] float-slow hidden lg:block" style={{ zIndex: 999 }}>
+            <div className="absolute -top-14 left-[-80px] w-[260px] h-[260px] float-slow hidden lg:block" style={{ zIndex: 999 }}>
               <ImageWithSkeleton
                 src="/public-img/worker1b.png"
                 alt="Worker"
