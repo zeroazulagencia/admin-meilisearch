@@ -720,7 +720,16 @@ export default function Home() {
               {/* Bloque de texto complementario - Moderno y llamativo - Solo mitad derecha */}
               <div className="bg-white rounded-2xl p-8 lg:p-12 lg:m-16 border border-gray-200 shadow-xl relative overflow-visible">
                 {/* Imagen worker2.png dentro del div (off canvas, mitad dentro mitad fuera) */}
-                <div className={`absolute left-0 top-1/2 hidden lg:block ${activationSectionVisible ? 'float-slow animate-fade-in' : ''}`} style={{ zIndex: 20, left: '-55px', top: '50%', transform: activationSectionVisible ? 'translateY(-50%)' : 'translateY(-50%)', opacity: activationSectionVisible ? 1 : 0, transition: 'opacity 0.8s ease-in' }}>
+                <div 
+                  className={`absolute left-0 top-1/2 hidden lg:block ${activationSectionVisible ? 'float-slow animate-fade-in' : ''}`} 
+                  style={{ 
+                    zIndex: 20, 
+                    left: '-55px', 
+                    top: '50%', 
+                    opacity: activationSectionVisible ? 1 : 0, 
+                    transition: 'opacity 0.8s ease-in'
+                  }}
+                >
                   <ImageWithSkeleton
                     src="/public-img/worker2.png"
                     alt="Worker"
