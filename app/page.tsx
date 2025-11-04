@@ -1167,12 +1167,14 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowLoginModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={(e) => e.stopPropagation()}>
             {/* Imagen worker1b.png flotante */}
-            <ImageWithSkeleton
-              src="/public-img/worker1b.png"
-              alt="Worker"
-              className="absolute -top-12 w-48 h-48 object-contain float-slow"
-              style={{ zIndex: 999, left: '-118px' }}
-            />
+            <div className="absolute -top-12 left-[-118px] w-48 h-48 float-slow" style={{ zIndex: 999 }}>
+              <ImageWithSkeleton
+                src="/public-img/worker1b.png"
+                alt="Worker"
+                className="w-full h-full object-contain"
+                showWhenVisible={true}
+              />
+            </div>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-gray-900">Iniciar Sesión</h3>
               <button
@@ -1252,12 +1254,14 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setShowContactModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full my-8 relative" onClick={(e) => e.stopPropagation()}>
             {/* Imagen worker1b.png flotante - 20% más grande */}
-            <ImageWithSkeleton
-              src="/public-img/worker1b.png"
-              alt="Worker"
-              className="absolute -top-14 w-[260px] h-[260px] object-contain float-slow hidden lg:block"
-              style={{ zIndex: 999, left: '-140px' }}
-            />
+            <div className="absolute -top-14 left-[-140px] w-[260px] h-[260px] float-slow hidden lg:block" style={{ zIndex: 999 }}>
+              <ImageWithSkeleton
+                src="/public-img/worker1b.png"
+                alt="Worker"
+                className="w-full h-full object-contain"
+                showWhenVisible={true}
+              />
+            </div>
             <div className="p-6 lg:p-8">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-bold text-gray-900 font-raleway">Contáctanos</h3>
