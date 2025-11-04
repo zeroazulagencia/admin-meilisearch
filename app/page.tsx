@@ -97,7 +97,7 @@ function VideoWithSkeleton({
     <div className={`relative ${className}`} style={style}>
       {showSpinner && (
         <div 
-          className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded z-10 transition-opacity duration-300"
+          className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded z-10 transition-opacity duration-500"
           style={{ opacity: showSpinner ? 1 : 0 }}
         >
           <div className="inline-block animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
@@ -106,8 +106,12 @@ function VideoWithSkeleton({
       <video
         ref={videoRef}
         src={src}
-        className={`${className} ${videoLoaded && !showSpinner ? 'opacity-100 animate-fade-in-up' : 'opacity-0'}`}
-        style={style}
+        className={`${className} ${videoLoaded && !showSpinner ? 'opacity-100' : 'opacity-0'}`}
+        style={{
+          ...style,
+          transition: videoLoaded && !showSpinner ? 'opacity 0.5s ease-out, transform 0.5s ease-out' : 'none',
+          transform: videoLoaded && !showSpinner ? 'translateY(0)' : 'translateY(20px)'
+        }}
         autoPlay={autoPlay}
         loop={loop}
         muted={muted}
