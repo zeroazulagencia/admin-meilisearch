@@ -312,7 +312,7 @@ export default function Home() {
               </div>
 
               {/* Bloque de texto complementario - Moderno y llamativo - Solo mitad derecha */}
-              <div className="bg-white rounded-2xl p-8 lg:p-12 border border-gray-200 shadow-xl relative overflow-visible">
+              <div className="bg-white rounded-2xl p-8 lg:p-12 lg:m-16 border border-gray-200 shadow-xl relative overflow-visible">
                 {/* Imagen worker2.png dentro del div (off canvas, mitad dentro mitad fuera) */}
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block" style={{ zIndex: 20, left: '-55px' }}>
                   <img 
@@ -625,12 +625,9 @@ export default function Home() {
                 </span>
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#5DE1E5' }}></span>
               </div>
-              <p className="font-raleway text-sm text-gray-400 leading-relaxed mb-2">
+              <p className="font-raleway text-sm text-gray-400 leading-relaxed">
                 Agencia de empleados digitales que integra inteligencia artificial y automatización para optimizar procesos empresariales.
               </p>
-              <a href="https://zeroazul.com/" target="_blank" rel="noopener noreferrer" className="font-raleway text-sm text-[#5DE1E5] hover:text-white transition-colors underline">
-                Zero Azul
-              </a>
             </div>
 
             {/* Compañía */}
@@ -672,7 +669,7 @@ export default function Home() {
           {/* Redes sociales */}
           <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="font-raleway text-sm text-gray-400 mb-4 md:mb-0">
-              © 2025 DWRKRS Zero Azul. Todos los derechos reservados.
+              © 2025 DWRKRS <a href="https://zeroazul.com/" target="_blank" rel="noopener noreferrer" className="text-[#5DE1E5] hover:text-white transition-colors underline">Zero Azul</a>. Todos los derechos reservados.
             </p>
             <div className="flex gap-4">
               <a href="https://www.facebook.com/zeroazulagencia" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#5DE1E5] transition-colors" aria-label="Facebook">
