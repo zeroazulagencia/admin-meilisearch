@@ -24,7 +24,14 @@ export default function Header({ onMenuClick, isMobileOpen }: HeaderProps) {
       try {
         const userStr = localStorage.getItem('admin-user');
         if (userStr) {
-          setUser(JSON.parse(userStr));
+          // Intentar parsear como JSON, si falla usar como string simple
+          try {
+            const parsed = JSON.parse(userStr);
+            setUser(parsed);
+          } catch {
+            // Si no es JSON válido, puede ser un string simple (email)
+            setUser({ email: userStr });
+          }
         }
       } catch (e) {
         console.error('Error loading user:', e);
