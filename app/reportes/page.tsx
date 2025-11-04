@@ -250,7 +250,7 @@ export default function Reportes() {
       <html>
         <head>
           <meta charset="UTF-8">
-          <title>Reporte ${selectedReport.id}</title>
+          <title>${selectedReport.type} - ${formatDate(selectedReport.datetime)}</title>
           <style>
             body {
               font-family: Arial, sans-serif;
