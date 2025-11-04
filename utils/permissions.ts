@@ -4,6 +4,7 @@ export const routePermissions: Record<string, string> = {
   '/admin-conocimiento': 'conocimiento',
   '/ejecuciones': 'ejecuciones',
   '/conversaciones': 'conversaciones',
+  '/reportes': 'reportes',
   '/consumo-api': 'consumoApi',
   '/clientes': 'clientes',
   '/agentes': 'agentes',

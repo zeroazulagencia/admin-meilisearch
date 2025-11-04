@@ -13,6 +13,7 @@ import {
   Bars3Icon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import SidebarItem from './SidebarItem';
 import settings from '@/settings.json';
@@ -85,6 +86,7 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     { href: '/admin-conocimiento', label: 'Admin Conocimiento', perm: 'conocimiento', icon: <BookOpenIcon className="w-5 h-5" /> },
     { href: '/ejecuciones', label: 'Ejecuciones', perm: 'ejecuciones', icon: <PlayIcon className="w-5 h-5" /> },
     { href: '/conversaciones', label: 'Conversaciones', perm: 'conversaciones', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
+    { href: '/reportes', label: 'Reportes', perm: 'reportes', icon: <DocumentTextIcon className="w-5 h-5" /> },
     { href: '/consumo-api', label: 'Consumo API', perm: 'consumoApi', icon: <ChartBarIcon className="w-5 h-5" /> },
     { href: '/clientes', label: 'Clientes', perm: 'clientes', icon: <UsersIcon className="w-5 h-5" /> },
     { href: '/agentes', label: 'Agentes', perm: 'agentes', icon: <UserGroupIcon className="w-5 h-5" /> },
