@@ -164,8 +164,11 @@ export default function Conversaciones() {
           allDocuments.push(...(searchResults.hits as Document[]));
           console.log(`Búsqueda encontrada: ${allDocuments.length} documentos`);
         } catch (err: any) {
-          console.error('Error en búsqueda de Meilisearch:', err);
-          console.error('Detalles del error:', err.response?.data);
+          // Si la búsqueda falla, solo registrar en modo debug sin mostrar error visible
+          // La aplicación continuará con la carga normal de documentos
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Búsqueda con filtros falló, usando carga normal:', err.message);
+          }
           searchFailed = true;
           // Continuar con carga normal si falla la búsqueda
         }
