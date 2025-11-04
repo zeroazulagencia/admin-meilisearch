@@ -202,6 +202,18 @@ export default function Home() {
     }
   }, [isAuthenticated, showLoginModal]);
 
+  // Auto-focus en el primer campo cuando se abre el modal de contacto
+  useEffect(() => {
+    if (showContactModal) {
+      setTimeout(() => {
+        const nameInput = document.getElementById('contact-name') as HTMLInputElement;
+        if (nameInput) {
+          nameInput.focus();
+        }
+      }, 100);
+    }
+  }, [showContactModal]);
+
   // Intersection Observer para activar animación cuando se hace scroll a la sección de agentes
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -1127,30 +1139,33 @@ export default function Home() {
 
       {/* Modal de Contacto */}
       {showContactModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowContactModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setShowContactModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full my-8 relative" onClick={(e) => e.stopPropagation()}>
             {/* Imagen worker1b.png flotante - 20% más grande */}
             <ImageWithSkeleton
               src="/public-img/worker1b.png"
               alt="Worker"
-              className="absolute -top-14 w-[192px] h-[192px] object-contain float-slow"
+              className="absolute -top-14 w-[192px] h-[192px] object-contain float-slow hidden lg:block"
               style={{ zIndex: 999, left: '-140px' }}
             />
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">Contáctanos</h3>
-              <button
-                onClick={() => {
-                  setShowContactModal(false);
-                  setContactError('');
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <form onSubmit={handleContactSubmit} className="space-y-4">
+            <div className="p-6 lg:p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 font-raleway">Contáctanos</h3>
+                <button
+                  onClick={() => {
+                    setShowContactModal(false);
+                    setContactError('');
+                    setContactForm({ name: '', email: '', phone: '', message: '' });
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                  aria-label="Cerrar modal"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <form onSubmit={handleContactSubmit} className="space-y-4">
               <div>
                 <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-2">
                   Nombre <span className="text-red-500">*</span>
@@ -1218,34 +1233,36 @@ export default function Home() {
                 </div>
               )}
 
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowContactModal(false);
-                    setContactError('');
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-900 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                >
-                  Cerrar
-                </button>
-                <button
-                  type="submit"
-                  disabled={contactLoading}
-                  className="flex-1 text-gray-900 py-3 px-6 rounded-lg font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  style={{ backgroundColor: '#5DE1E5' }}
-                >
-                  {contactLoading ? (
-                    <span className="flex items-center justify-center">
-                      <span className="inline-block animate-spin h-5 w-5 border-2 border-gray-900 border-t-transparent rounded-full mr-2"></span>
-                      Enviando...
-                    </span>
-                  ) : (
-                    'Enviar'
-                  )}
-                </button>
-              </div>
-            </form>
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowContactModal(false);
+                      setContactError('');
+                      setContactForm({ name: '', email: '', phone: '', message: '' });
+                    }}
+                    className="flex-1 bg-gray-200 text-gray-900 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 transition-colors font-raleway"
+                  >
+                    Cerrar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={contactLoading}
+                    className="flex-1 text-gray-900 py-3 px-6 rounded-lg font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-raleway"
+                    style={{ backgroundColor: '#5DE1E5' }}
+                  >
+                    {contactLoading ? (
+                      <span className="flex items-center justify-center">
+                        <span className="inline-block animate-spin h-5 w-5 border-2 border-gray-900 border-t-transparent rounded-full mr-2"></span>
+                        Enviando...
+                      </span>
+                    ) : (
+                      'Enviar'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
