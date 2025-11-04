@@ -14,7 +14,7 @@ export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [emailSub, setEmailSub] = useState('');
-  const [activeTab, setActiveTab] = useState<'select' | 'configure' | 'describe'>('configure');
+  const [activeTab, setActiveTab] = useState<'select' | 'configure' | 'describe'>('select');
 
   // Si está autenticado, redirigir al dashboard
   useEffect(() => {
@@ -285,7 +285,7 @@ export default function Home() {
               {/* Bloque de texto complementario - Moderno y llamativo - Solo mitad derecha */}
               <div className="bg-white rounded-2xl p-8 lg:p-12 border border-gray-200 shadow-xl relative overflow-visible">
                 {/* Imagen worker2.png dentro del div (off canvas, mitad dentro mitad fuera) */}
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block" style={{ zIndex: 20, left: '-150px' }}>
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block" style={{ zIndex: 20, left: '-100px' }}>
                   <img 
                     src="/public-img/worker2.png" 
                     alt="Worker" 
@@ -301,7 +301,7 @@ export default function Home() {
                         Selecciona el tipo de agente que mejor se adapte a tu negocio
                       </h3>
                       <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
-                        Los agentes de <span className="font-bold">DWRKRS</span> están diseñados para resolver desafíos específicos. Elige entre agentes de atención al cliente, ventas automatizadas, operaciones o análisis de datos.
+                        Los agentes de <span className="font-bold">DWORKERS</span> están diseñados para resolver desafíos específicos. Elige entre agentes de atención al cliente, ventas automatizadas, operaciones o análisis de datos.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start gap-3 group">
@@ -336,7 +336,7 @@ export default function Home() {
                         </span>
                       </h3>
                       <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
-                        Los agentes de <span className="font-bold">DWRKRS</span> se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
+                        Los agentes de <span className="font-bold">DWORKERS</span> se integran en decisiones críticas y tareas de alto impacto. A medida que aprenden, aumentan la transparencia operativa y reducen la fricción en tus procesos.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start gap-3 group">
@@ -367,7 +367,7 @@ export default function Home() {
                         Define los objetivos y personalidad de tu agente digital
                       </h3>
                       <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
-                        Los agentes de <span className="font-bold">DWRKRS</span> se adaptan al tono y metas de tu negocio. Personaliza su personalidad desde asistentes analíticos hasta creativos, cada uno aprende de tus datos y evoluciona con el uso.
+                        Los agentes de <span className="font-bold">DWORKERS</span> se adaptan al tono y metas de tu negocio. Personaliza su personalidad desde asistentes analíticos hasta creativos, cada uno aprende de tus datos y evoluciona con el uso.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start gap-3 group">
@@ -462,7 +462,7 @@ export default function Home() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-4">
-                Preguntas frecuentes sobre DWRKRS
+                Preguntas frecuentes sobre DWORKERS
               </h2>
               <p className="font-raleway text-lg text-gray-600 leading-relaxed">
                 Nuestro servicio de agentes digitales está diseñado para facilitar tareas repetitivas, generar resultados medibles y escalar sin fricción. Aquí respondemos lo más común:
@@ -484,7 +484,7 @@ export default function Home() {
                   a: 'Mejoras de rendimiento, nuevos módulos de automatización y aprendizaje continuo de los agentes.'
                 },
                 {
-                  q: '¿Puedo usar DWRKRS en proyectos open source?',
+                  q: '¿Puedo usar DWORKERS en proyectos open source?',
                   a: 'Sí, siempre que se respete la política de uso ético y los lineamientos de datos.'
                 }
               ].map((faq, index) => (
@@ -516,7 +516,7 @@ export default function Home() {
         </section>
 
         {/* Sección 6: Llamado a la Acción (CTA) */}
-        <section id="cta" className="py-20 border-t border-gray-200" style={{ backgroundColor: '#5DE1E5' }}>
+        <section id="cta" className="py-20 border-t border-gray-200 w-full" style={{ backgroundColor: '#5DE1E5', width: '100vw', marginLeft: 'calc(50% - 50vw)' }}>
           <div className="max-w-4xl mx-auto text-center px-4">
             <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-6">
               ¿Listo para conocer a tu primer agente digital?
@@ -530,24 +530,6 @@ export default function Home() {
             >
               Comienza tu prueba gratuita
             </button>
-            
-            {/* Ilustración simplificada */}
-            <div className="mt-12 flex justify-center">
-              <div className="relative">
-                <svg className="w-32 h-32" fill="none" viewBox="0 0 200 200">
-                  {/* Usuario */}
-                  <circle cx="100" cy="80" r="20" stroke="currentColor" strokeWidth="2" fill="none" style={{ color: '#0369a1' }} />
-                  <path d="M60 140 Q100 120 140 140" stroke="currentColor" strokeWidth="2" fill="none" style={{ color: '#0369a1' }} />
-                  {/* Sobre */}
-                  <rect x="140" y="60" width="40" height="30" stroke="currentColor" strokeWidth="2" fill="none" style={{ color: '#0369a1' }} />
-                  <path d="M140 60 L160 70 L180 60" stroke="currentColor" strokeWidth="2" fill="none" style={{ color: '#0369a1' }} />
-                  {/* Mensajes */}
-                  <circle cx="50" cy="80" r="8" fill="currentColor" style={{ color: '#0369a1' }} />
-                  <circle cx="50" cy="105" r="8" fill="currentColor" style={{ color: '#0369a1' }} />
-                  <circle cx="50" cy="130" r="8" fill="currentColor" style={{ color: '#0369a1' }} />
-                </svg>
-              </div>
-            </div>
           </div>
         </section>
       </main>
@@ -560,7 +542,7 @@ export default function Home() {
             <div className="col-span-1 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
                 <a href="https://zeroazul.com/" target="_blank" rel="noopener noreferrer" className="font-raleway text-2xl font-bold hover:text-[#5DE1E5] transition-colors">
-                  DWRKRS
+                  DWORKERS
                 </a>
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#5DE1E5' }}></span>
               </div>
