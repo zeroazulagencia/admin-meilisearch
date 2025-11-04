@@ -257,7 +257,7 @@ export default function Home() {
           }
         });
       },
-      { threshold: 0.1, rootMargin: '0px' }
+      { threshold: 0, rootMargin: '200px 0px 0px 0px' }
     );
 
     const iconElement = document.getElementById('activation-icon');
