@@ -702,14 +702,16 @@ export default function Home() {
 
             {/* Worker2b.png - Tercera columna */}
             <div className="relative overflow-visible flex items-end">
-              <div className="w-full relative" style={{ marginBottom: '0px' }}>
+              <div className="h-48 overflow-hidden mb-6 relative w-full" style={{ marginTop: '-80px' }}>
                 <img 
                   src="/public-img/worker2b.png" 
                   alt="Worker 2b" 
-                  className="w-full h-auto object-contain object-bottom"
+                  className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
                   style={{ 
-                    objectPosition: 'center bottom',
-                    maxHeight: '400px',
+                    objectPosition: 'center top', 
+                    clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
+                    transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                    opacity: agentsVisible ? 1 : 0
                   }}
                 />
               </div>
