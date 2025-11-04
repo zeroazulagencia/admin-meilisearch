@@ -157,6 +157,7 @@ export async function POST(request: NextRequest) {
           {
             to: [{ email: SENDGRID_TO_EMAIL }],
             subject: `Nuevo contacto desde DWORKERS - ${name}`,
+            reply_to: { email: email, name: name },
           },
         ],
         from: { email: SENDGRID_FROM_EMAIL, name: 'DWORKERS Zero Azul' },
