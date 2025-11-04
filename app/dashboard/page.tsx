@@ -51,8 +51,8 @@ export default function Dashboard() {
   if (loading) {
     return (
       <ProtectedLayout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full border-[#5DE1E5]"></div>
         </div>
       </ProtectedLayout>
     );
@@ -60,13 +60,11 @@ export default function Dashboard() {
 
   return (
     <ProtectedLayout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
-          
-          {/* Estadísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow p-6 border-l-4" style={{ borderLeftColor: '#5DE1E5' }}>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
+      
+      {/* Estadísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 border-l-4" style={{ borderLeftColor: '#5DE1E5' }}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Clientes</p>
@@ -80,7 +78,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 border-l-4 border-green-500">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Agentes</p>
@@ -94,7 +92,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 border-l-4 border-purple-500">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Conversaciones</p>
@@ -108,8 +106,6 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
     </ProtectedLayout>
   );
 }

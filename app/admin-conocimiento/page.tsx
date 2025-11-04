@@ -1132,7 +1132,7 @@ export default function AdminConocimiento() {
 
   if (agentsLoading) {
   return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
       </div>
     );
@@ -1140,13 +1140,13 @@ export default function AdminConocimiento() {
 
   return (
     <ProtectedLayout>
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Conocimiento</h1>
+    <div>
+      
+        <h1 className="text-2xl font-bold text-gray-900 mb-8">Admin Conocimiento</h1>
         
         <div className="space-y-6">
           {/* Selector de Agente */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Seleccionar Agente
             </label>
@@ -1193,7 +1193,7 @@ export default function AdminConocimiento() {
             </div>
           ) : selectedAgent && availableIndexes.length > 0 ? (
             <>
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Seleccionar Índice
                 </label>
@@ -1219,7 +1219,7 @@ export default function AdminConocimiento() {
             <>
                   {/* Mostrar progreso FUERA del modal si existe */}
                   {uploadProgress.length > 0 && !showPdfModal && (
-                    <div className="bg-white rounded-lg shadow p-6 mb-6 border-2" style={{ borderColor: '#5DE1E5' }}>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 border-2" style={{ borderColor: '#5DE1E5' }}>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-800">
                           📊 Progreso de Subida de PDF
@@ -1319,7 +1319,7 @@ export default function AdminConocimiento() {
           )}
             </>
           ) : selectedAgent && availableIndexes.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-6 text-center">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
               <p className="text-gray-500">
                 {selectedAgent?.name} no tiene índices asociados. Configura su conocimiento desde la página de Agentes.
               </p>

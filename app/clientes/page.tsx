@@ -141,11 +141,9 @@ export default function Clientes() {
   if (loading) {
     return (
       <ProtectedLayout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full border-[#5DE1E5]"></div>
         </div>
-
-        {/* Modal de alertas */}
         <AlertModal
           isOpen={alertModal.isOpen}
           onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
@@ -159,23 +157,21 @@ export default function Clientes() {
 
   return (
     <ProtectedLayout>
-      <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
-          <button
-            onClick={() => {
-              resetForm();
-              setShowForm(true);
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            + Nuevo Cliente
-          </button>
-        </div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
+        <button
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          + Nuevo Cliente
+        </button>
+      </div>
 
-        {showForm && (
-          <div className="mb-6 bg-white rounded-lg shadow p-6">
+      {showForm && (
+        <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold mb-4">
               {editingClient ? 'Editar Cliente' : 'Nuevo Cliente'}
             </h2>
@@ -277,7 +273,7 @@ export default function Clientes() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -356,8 +352,6 @@ export default function Clientes() {
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
     </ProtectedLayout>
   );
 }

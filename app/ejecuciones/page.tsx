@@ -461,7 +461,7 @@ export default function Ejecuciones() {
 
   if (agentsLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
       </div>
     );
@@ -469,12 +469,12 @@ export default function Ejecuciones() {
 
   return (
     <ProtectedLayout>
-      <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Ejecuciones n8n</h1>
+      <div>
+      
+        <h1 className="text-2xl font-bold text-gray-900 mb-8">Ejecuciones n8n</h1>
 
         {/* Selector de Agente */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Seleccionar Agente
           </label>
@@ -518,7 +518,7 @@ export default function Ejecuciones() {
         </div>
 
         {selectedAgent && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Seleccionar Flujo</h2>
           <div className="relative" ref={dropdownRef}>
             <input
@@ -534,7 +534,7 @@ export default function Ejecuciones() {
             />
             
             {isOpen && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-sm border border-gray-200-lg max-h-60 overflow-auto">
                 {loading || workflows.length === 0 ? (
                   <div className="px-4 py-3 text-sm flex items-center gap-2" style={{ color: '#5DE1E5' }}>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent" style={{ borderColor: '#5DE1E5' }}></div>
@@ -582,7 +582,7 @@ export default function Ejecuciones() {
         )}
 
         {!selectedAgent && (
-          <div className="bg-white rounded-lg shadow p-6 text-center">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
             <p className="text-gray-500">
               Por favor, selecciona un agente para ver sus flujos y ejecuciones.
             </p>
@@ -590,7 +590,7 @@ export default function Ejecuciones() {
         )}
 
         {selectedAgent && workflows.length === 0 && !loading && (
-          <div className="bg-white rounded-lg shadow p-6 text-center">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
             <p className="text-gray-500">
               {selectedAgent.name} no tiene flujos asociados. Configura sus flujos desde la página de Agentes.
             </p>
@@ -598,7 +598,7 @@ export default function Ejecuciones() {
         )}
 
         {selectedWorkflow && (
-          <div className="bg-white rounded-lg shadow">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-800">
