@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
-// IMPORTANTE: El email 'from' debe estar verificado en SendGrid
-// Si zero@zeroazul.com no está verificado, usar un email verificado o verificar el dominio
-const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'noreply@zeroazul.com';
+const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'zero@zeroazul.com';
 const SENDGRID_TO_EMAIL = process.env.SENDGRID_TO_EMAIL || 'cristia.parada@zeroazul.com';
 
 export async function POST(request: NextRequest) {
