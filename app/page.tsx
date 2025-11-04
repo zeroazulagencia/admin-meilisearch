@@ -292,25 +292,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Descripción de los pasos */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-              <div className="text-center">
-                <p className="font-raleway text-gray-600 text-sm">
-                  Elige entre agentes de atención, ventas, operaciones o análisis. Cada uno está diseñado para resolver desafíos específicos.
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="font-raleway text-gray-600 text-sm">
-                  Define las funciones clave que el agente debe ejecutar. En minutos podrás verlos trabajando en tu flujo operativo.
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="font-raleway text-gray-600 text-sm">
-                  Ajusta la personalidad y propósito de tu agente según el tono y metas de tu negocio. Cada uno aprende y evoluciona con el uso.
-                </p>
-              </div>
-              </div>
-
               {/* Bloque de texto complementario - Moderno y llamativo - Solo mitad derecha */}
               <div className="bg-white rounded-2xl p-8 lg:p-12 lg:m-16 border border-gray-200 shadow-xl relative overflow-visible">
                 {/* Imagen worker2.png dentro del div (off canvas, mitad dentro mitad fuera) */}
