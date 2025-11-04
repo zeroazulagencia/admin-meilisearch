@@ -15,6 +15,7 @@ export default function Home() {
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [emailSub, setEmailSub] = useState('');
   const [activeTab, setActiveTab] = useState<'select' | 'configure' | 'describe'>('select');
+  const [agentsVisible, setAgentsVisible] = useState(false);
 
   // Si está autenticado, redirigir al dashboard
   useEffect(() => {
@@ -422,7 +423,7 @@ export default function Home() {
           </section>
 
         {/* Sección 4: Tipos de Agentes Digitales */}
-        <section id="agents-types" className="py-20 bg-white border-t border-gray-200">
+        <section id="agents-section" className="py-20 bg-white border-t border-gray-200">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-4">
