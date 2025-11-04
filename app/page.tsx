@@ -808,13 +808,12 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker3.png"
                     alt="Worker 3"
-                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
+                    className="w-full h-full object-cover object-top"
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)',
-                      opacity: agentsVisible ? 1 : 0,
-                      transitionDelay: '0s'
+                      transition: agentsVisible ? 'clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0s, opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0s' : 'none',
+                      opacity: agentsVisible ? 1 : 0
                     }}
                   />
                 </div>
@@ -839,12 +838,11 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker5.png"
                     alt="Worker 5"
-                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
+                    className="w-full h-full object-cover object-top"
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)',
-                      transitionDelay: '0.5s',
+                      transition: agentsVisible ? 'clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s, opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s' : 'none',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
@@ -871,12 +869,11 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker4.png"
                     alt="Worker 4"
-                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
+                    className="w-full h-full object-cover object-top"
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)',
-                      transitionDelay: '1s',
+                      transition: agentsVisible ? 'clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.6s, opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.6s' : 'none',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
@@ -1167,8 +1164,8 @@ export default function Home() {
             <ImageWithSkeleton
               src="/public-img/worker1b.png"
               alt="Worker"
-              className="absolute -top-14 w-[192px] h-[192px] object-contain float-slow hidden lg:block"
-              style={{ zIndex: 999, left: '-140px' }}
+              className="absolute -top-14 w-[230px] h-[230px] object-contain float-slow hidden lg:block"
+              style={{ zIndex: 999, left: '-100px' }}
             />
             <div className="p-6 lg:p-8">
               <div className="flex justify-between items-center mb-6">
