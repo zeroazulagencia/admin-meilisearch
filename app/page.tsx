@@ -775,7 +775,7 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker3.png"
                     alt="Worker 3"
-                    className="w-full h-full object-cover object-top"
+                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
@@ -805,7 +805,7 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker5.png"
                     alt="Worker 5"
-                    className="w-full h-full object-cover object-top"
+                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
@@ -837,7 +837,7 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker4.png"
                     alt="Worker 4"
-                    className="w-full h-full object-cover object-top"
+                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
