@@ -53,9 +53,12 @@ function ImageWithSkeleton({
       {showSkeleton && (
         <div 
           className="absolute inset-0 skeleton-shimmer rounded flex items-center justify-center z-10"
-          style={{ aspectRatio: 'auto' }}
+          style={{ aspectRatio: 'auto', backgroundColor: 'rgba(255, 255, 255, 0.9)' }}
         >
-          <div className="inline-block animate-spin h-8 w-8 border-3 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+          <div className="flex flex-col items-center gap-2">
+            <div className="inline-block animate-spin h-10 w-10 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5', borderRightColor: 'rgba(93, 225, 229, 0.3)', borderBottomColor: 'rgba(93, 225, 229, 0.3)', borderLeftColor: 'rgba(93, 225, 229, 0.3)' }}></div>
+            <div className="text-xs text-gray-500 font-raleway">Cargando...</div>
+          </div>
         </div>
       )}
       <img
@@ -788,7 +791,8 @@ export default function Home() {
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-                      opacity: agentsVisible ? 1 : 0
+                      opacity: agentsVisible ? 1 : 0,
+                      transitionDelay: '0s'
                     }}
                   />
                 </div>
@@ -818,7 +822,7 @@ export default function Home() {
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-                      transitionDelay: '0.2s',
+                      transitionDelay: '0.5s',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
@@ -850,7 +854,7 @@ export default function Home() {
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-                      transitionDelay: '0.4s',
+                      transitionDelay: '1s',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
