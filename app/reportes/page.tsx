@@ -114,7 +114,11 @@ export default function Reportes() {
             { filter: filters.join(' AND ') }
           );
           
-          allDocuments.push(...(searchResults.hits as ReportDocument[]));
+          // Filtrar y validar que los documentos tengan los campos requeridos
+          const validReports = searchResults.hits.filter((doc: any): doc is ReportDocument => {
+            return doc.id && doc.type && doc.datetime && doc.agent;
+          });
+          allDocuments.push(...validReports);
         } catch (err: any) {
           searchFailed = true;
         }
@@ -129,7 +133,7 @@ export default function Reportes() {
         while (hasMore) {
           const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
           
-          const filtered = data.results.filter((doc: any) => {
+          const filtered = data.results.filter((doc: any): doc is ReportDocument => {
             const isAgent = doc.agent === selectedAgent;
             
             let isInDateRange = true;
@@ -140,7 +144,7 @@ export default function Reportes() {
               isInDateRange = docDate >= fromDate && docDate <= toDate;
             }
             
-            return isAgent && isInDateRange;
+            return isAgent && isInDateRange && doc.id && doc.type && doc.datetime;
           });
           
           allDocuments.push(...filtered);
