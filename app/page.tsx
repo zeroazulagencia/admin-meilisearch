@@ -129,9 +129,18 @@ function VideoWithSkeleton({
       {showSpinner && (
         <div 
           className="absolute inset-0 flex items-center justify-center z-10 transition-opacity duration-500"
-          style={{ opacity: showSpinner ? 1 : 0, backgroundColor: 'transparent' }}
+          style={{ opacity: showSpinner ? 1 : 0, backgroundColor: 'white' }}
         >
-          <div className="inline-block animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+          <div 
+            className="inline-block animate-spin rounded-full"
+            style={{ 
+              width: '48px',
+              height: '48px',
+              border: '4px solid rgba(93, 225, 229, 0.2)',
+              borderTopColor: '#5DE1E5',
+              borderRightColor: '#5DE1E5'
+            }}
+          ></div>
         </div>
       )}
       <video
