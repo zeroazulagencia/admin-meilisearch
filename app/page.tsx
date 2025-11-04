@@ -734,7 +734,7 @@ export default function Home() {
                     src="/public-img/worker2.png"
                     alt="Worker"
                     className="h-[460px] w-auto object-contain"
-                    showWhenVisible={false}
+                    showWhenVisible={true}
                     style={{ 
                       opacity: 1
                     }}
