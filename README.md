@@ -92,9 +92,37 @@ cd admin-dworkers
 # Instalar dependencias
 npm install
 
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus valores reales
+
 # Ejecutar en desarrollo
 npm run dev
 ```
+
+### ⚙️ Configuración de Variables de Entorno
+
+El proyecto utiliza variables de entorno para todas las credenciales y API keys. 
+
+**Archivo `.env.example`** contiene la plantilla con todas las variables necesarias:
+
+- `OPENAI_API_KEY`: API key de OpenAI para embeddings y estructuración de documentos
+- `SENDGRID_API_KEY`: API key de SendGrid para envío de emails
+- `SENDGRID_FROM_EMAIL`: Email remitente para SendGrid
+- `SENDGRID_TO_EMAIL`: Email destinatario para SendGrid
+- `MYSQL_HOST`: Host de MySQL (default: localhost)
+- `MYSQL_USER`: Usuario de MySQL (default: root)
+- `MYSQL_PASSWORD`: Contraseña de MySQL
+- `MYSQL_DATABASE`: Nombre de la base de datos (default: admin_dworkers)
+- `MEILISEARCH_URL`: URL del servidor Meilisearch
+- `MEILISEARCH_API_KEY`: API key de Meilisearch
+- `N8N_URL`: URL del servidor N8N
+- `N8N_API_KEY`: API key de N8N
+
+**IMPORTANTE**: 
+- Nunca subas el archivo `.env` al repositorio
+- El archivo `.env` está en `.gitignore` y no se versiona
+- Copia `.env.example` a `.env` y completa con tus valores reales
 
 ### Scripts Disponibles
 ```bash
@@ -159,6 +187,108 @@ npm run lint         # Linter
 - Manejo seguro de errores de API
 - Honeypot en formulario de contacto
 
+## 🔐 Parte Privada / Administración
+
+### 🗄️ Base de Datos
+
+**Sistema de Base de Datos**: MySQL
+
+**Nombre de la Base de Datos**: `admin_dworkers`
+
+**Configuración**:
+- Host: Configurado mediante variable de entorno `MYSQL_HOST` (default: localhost)
+- Usuario: Configurado mediante variable de entorno `MYSQL_USER` (default: root)
+- Contraseña: Configurado mediante variable de entorno `MYSQL_PASSWORD`
+- Base de datos: Configurado mediante variable de entorno `MYSQL_DATABASE` (default: admin_dworkers)
+- Charset: utf8mb4_unicode_ci
+- Motor: InnoDB
+
+**Ubicación del Schema**: `/database/schema.sql`
+
+#### Estructura de Tablas
+
+**Tabla: `clients`**
+- **Propósito**: Almacena información de clientes del sistema
+- **Campos principales**:
+  - `id`: ID único autoincremental (PRIMARY KEY)
+  - `name`: Nombre del cliente (VARCHAR 255)
+  - `email`: Email único del cliente (VARCHAR 255, UNIQUE)
+  - `phone`: Teléfono del cliente (VARCHAR 50)
+  - `company`: Nombre de la empresa (VARCHAR 255)
+  - `clave`: Clave de acceso (VARCHAR 255)
+  - `permissions`: Permisos en formato JSON
+  - `status`: Estado del cliente (ENUM: 'active', 'inactive', 'pending')
+  - `created_at`: Fecha de creación (TIMESTAMP)
+  - `updated_at`: Fecha de actualización (TIMESTAMP)
+- **Índices**: status, name, email
+
+**Tabla: `agents`**
+- **Propósito**: Almacena información de agentes IA asociados a clientes
+- **Relación**: 1:N con `clients` (FOREIGN KEY: client_id)
+- **Campos principales**:
+  - `id`: ID único autoincremental (PRIMARY KEY)
+  - `client_id`: ID del cliente asociado (FOREIGN KEY, NOT NULL)
+  - `name`: Nombre del agente (VARCHAR 255)
+  - `email`: Email del agente (VARCHAR 255)
+  - `phone`: Teléfono del agente (VARCHAR 50)
+  - `agent_code`: Código único del agente (VARCHAR 100, UNIQUE)
+  - `status`: Estado del agente (ENUM: 'active', 'inactive', 'pending')
+  - `created_at`: Fecha de creación (TIMESTAMP)
+  - `updated_at`: Fecha de actualización (TIMESTAMP)
+- **Índices**: client_id, status, agent_code
+- **Cascada**: ON DELETE CASCADE, ON UPDATE CASCADE
+
+### 🌐 Servicios Externos Consumidos
+
+#### 1. **Meilisearch** - Motor de Búsqueda
+- **URL**: `https://server-search.zeroazul.com/`
+- **API Key**: Configurada en `settings.json` y `utils/constants.ts`
+- **Propósito**: 
+  - Gestión de índices de búsqueda
+  - Búsqueda semántica y vectorial
+  - Configuración de embedders y embeddings
+  - CRUD de documentos
+- **Ruta API**: `/api/meilisearch/[...path]`
+- **Utilidad**: `utils/meilisearch.ts`
+
+#### 2. **N8N** - Automatización de Workflows
+- **URL**: `https://automation.zeroazul.com/`
+- **API Key**: Configurada en `app/api/n8n/[...path]/route.ts`
+- **Propósito**:
+  - Gestión de workflows de automatización
+  - Consulta de ejecuciones de workflows
+  - Monitoreo de ejecuciones en tiempo real
+- **Ruta API**: `/api/n8n/[...path]`
+- **Utilidad**: `utils/n8n.ts`
+
+#### 3. **OpenAI** - Inteligencia Artificial
+- **URL**: `https://api.openai.com/v1/`
+- **API Key**: Configurada mediante variable de entorno `OPENAI_API_KEY`
+- **Propósito**:
+  - Explicación de errores y ejecuciones de n8n (`/api/openai/explain`)
+  - Estructuración de chunks de documentos PDF (`/api/openai/structure-chunk`)
+  - Generación de embeddings (usado por Meilisearch)
+- **Modelos utilizados**: `gpt-3.5-turbo`
+- **Rutas API**: `/api/openai/explain`, `/api/openai/structure-chunk`
+
+#### 4. **SendGrid** - Envío de Emails
+- **URL**: `https://api.sendgrid.com/v3/mail/send`
+- **API Key**: Configurada mediante variable de entorno `SENDGRID_API_KEY`
+- **Propósito**:
+  - Envío de emails del formulario de contacto
+  - Notificaciones del sistema
+- **Configuración**:
+  - `SENDGRID_FROM_EMAIL`: Email remitente (default: zero@zeroazul.com)
+  - `SENDGRID_TO_EMAIL`: Email destinatario (default: cristia.parada@zeroazul.com)
+- **Ruta API**: `/api/contact`
+
+#### 5. **ipapi.co** - Geolocalización por IP
+- **URL**: `https://ipapi.co/`
+- **Propósito**: 
+  - Detección de país del usuario en formulario de contacto
+  - Información técnica adicional para análisis
+- **Uso**: Llamada directa desde `/api/contact/route.ts`
+
 ## 📞 Contacto
 
 ### WhatsApp
@@ -173,9 +303,17 @@ npm run lint         # Linter
 
 ## Versión
 
-v22.0
+v23.1
 
 ### Cambios recientes:
+- 🔒 Migración de API keys a variables de entorno para mayor seguridad (v23.1)
+- 🔑 Removido campo de API Key de OpenAI del formulario de embedder (v23.1)
+- ⚙️ API keys ahora se obtienen automáticamente desde variables de entorno del servidor (v23.1)
+- 📝 Creado archivo .env.example con todas las variables de entorno necesarias (v23.1)
+- 🛡️ Actualizado código para usar MEILISEARCH_API_KEY y N8N_API_KEY desde variables de entorno (v23.1)
+- 📚 Documentación de servicios externos y base de datos agregada al README (v23.0)
+- 🗄️ Especificación completa de estructura MySQL (tablas clients y agents) (v23.0)
+- 🌐 Documentación de servicios: Meilisearch, N8N, OpenAI, SendGrid, ipapi.co (v23.0)
 - 🎨 Landing Page DWORKERS - Agencia de Inteligencia Artificial especialista en agentes IA (v22.0)
 - 🎨 Botón login con fondo negro y texto blanco para mejor contraste (v22.0)
 - 📱 Botón flotante de WhatsApp agregado (número: 573195947797) (v22.0)

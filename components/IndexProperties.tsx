@@ -16,10 +16,10 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
   const [showEmbeddingModal, setShowEmbeddingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true); // Cerrado por defecto
   const [lastDocument, setLastDocument] = useState<any>(null);
+  const [availableFields, setAvailableFields] = useState<string[]>([]);
   const [newEmbedder, setNewEmbedder] = useState({
     name: 'openai',
     source: 'openAi',
-    apiKey: '',
     model: 'text-embedding-3-small',
     dimensions: 1536,
     documentTemplate: '',
@@ -64,22 +64,114 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
 
   const handleOpenEmbeddingModal = async () => {
     try {
-      // Cargar el último documento para obtener el template
-      const documents = await meilisearchAPI.getDocuments(indexUid, 1, 0);
+      // Cargar varios documentos para validar campos comunes
+      const documents = await meilisearchAPI.getDocuments(indexUid, 10, 0);
+      let commonFieldsArray: string[] = [];
+      
       if (documents.results.length > 0) {
-        const doc = documents.results[0];
-        setLastDocument(doc);
-        // Generar template a partir del documento
-        const template = Object.keys(doc).map(key => `{{doc.${key}}}`).join('\n');
+        const firstDoc = documents.results[0];
+        setLastDocument(firstDoc);
+        
+        // Obtener campos que existen en TODOS los documentos
+        const allFields = new Set(Object.keys(firstDoc));
+        documents.results.forEach(doc => {
+          const docFields = new Set(Object.keys(doc));
+          // Mantener solo campos que existen en todos los documentos
+          allFields.forEach(field => {
+            if (!docFields.has(field)) {
+              allFields.delete(field);
+            }
+          });
+        });
+        
+        commonFieldsArray = Array.from(allFields);
+        
+        // Generar template solo con campos que existen en todos los documentos
+        const template = commonFieldsArray.map(key => `{{doc.${key}}}`).join('\n');
         setNewEmbedder({
           ...newEmbedder,
           documentTemplate: template
         });
+        
+        console.log('✅ Campos comunes encontrados:', commonFieldsArray);
+        if (documents.results.length > 1) {
+          console.log(`✅ Validado contra ${documents.results.length} documentos`);
+        }
+      } else {
+        // Si no hay documentos, usar campos de fieldDistribution si están disponibles
+        if (stats && stats.fieldDistribution) {
+          commonFieldsArray = Object.keys(stats.fieldDistribution);
+          const template = commonFieldsArray.map(key => `{{doc.${key}}}`).join('\n');
+          setNewEmbedder({
+            ...newEmbedder,
+            documentTemplate: template
+          });
+          console.log('⚠️ No hay documentos, usando campos de fieldDistribution:', commonFieldsArray);
+        }
       }
+      
+      // Guardar campos disponibles para mostrarlos en el modal
+      setAvailableFields(commonFieldsArray);
       setShowEmbeddingModal(true);
     } catch (err) {
-      console.error('Error loading last document:', err);
+      console.error('Error loading documents:', err);
+      // Intentar usar campos de fieldDistribution como fallback
+      if (stats && stats.fieldDistribution) {
+        const fieldsFromStats = Object.keys(stats.fieldDistribution);
+        setAvailableFields(fieldsFromStats);
+        const template = fieldsFromStats.map(key => `{{doc.${key}}}`).join('\n');
+        setNewEmbedder({
+          ...newEmbedder,
+          documentTemplate: template
+        });
+        console.log('⚠️ Error cargando documentos, usando campos de fieldDistribution:', fieldsFromStats);
+      }
       setShowEmbeddingModal(true);
+    }
+  };
+
+  // Validar que los campos del template existan en todos los documentos
+  const validateTemplateFields = async (template: string): Promise<{ valid: boolean; missingFields: string[]; availableFields: string[] }> => {
+    try {
+      // Extraer campos del template
+      const templateFields = (template.match(/\{\{doc\.(\w+)\}\}/g) || [])
+        .map(match => match.replace(/\{\{doc\.|\}\}/g, ''));
+      
+      if (templateFields.length === 0) {
+        return { valid: false, missingFields: [], availableFields: [] };
+      }
+      
+      // Obtener varios documentos para validar campos comunes
+      const documents = await meilisearchAPI.getDocuments(indexUid, 50, 0);
+      
+      if (documents.results.length === 0) {
+        return { valid: true, missingFields: [], availableFields: [] };
+      }
+      
+      // Obtener campos que existen en TODOS los documentos
+      const firstDocFields = new Set(Object.keys(documents.results[0]));
+      const commonFields = new Set(firstDocFields);
+      
+      documents.results.forEach(doc => {
+        const docFields = new Set(Object.keys(doc));
+        commonFields.forEach(field => {
+          if (!docFields.has(field)) {
+            commonFields.delete(field);
+          }
+        });
+      });
+      
+      // Verificar qué campos del template faltan
+      const missingFields = templateFields.filter(field => !commonFields.has(field));
+      
+      return {
+        valid: missingFields.length === 0,
+        missingFields,
+        availableFields: Array.from(commonFields)
+      };
+    } catch (err) {
+      console.error('Error validando campos:', err);
+      return { valid: false, missingFields: [], availableFields: [] };
     }
   };
 
@@ -88,14 +180,40 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
       console.log('=== INICIO CONFIGURACIÓN EMBEDDING ===');
       console.log('1. Índice:', indexUid);
       
+      // Validar campos del template ANTES de enviar
+      if (newEmbedder.documentTemplate) {
+        console.log('1.1. Validando campos del template...');
+        const validation = await validateTemplateFields(newEmbedder.documentTemplate);
+        
+        if (!validation.valid) {
+          console.error('❌ Validación fallida. Campos faltantes:', validation.missingFields);
+          console.log('✅ Campos disponibles:', validation.availableFields);
+          
+          const missingFieldsText = validation.missingFields.join(', ');
+          const availableFieldsText = validation.availableFields.length > 0 
+            ? validation.availableFields.join(', ')
+            : 'ninguno';
+          
+          setAlertModal({
+            isOpen: true,
+            title: 'Error de Validación',
+            message: `El template incluye campos que no existen en todos los documentos:\n\n❌ Campos faltantes: ${missingFieldsText}\n\n✅ Campos disponibles: ${availableFieldsText}\n\nPor favor, ajusta el template para usar solo campos que existan en todos los documentos.`,
+            type: 'error',
+          });
+          return;
+        }
+        console.log('✅ Validación exitosa. Todos los campos existen en los documentos.');
+      }
+      
       const currentEmbedders = settings?.embedders || {};
       console.log('2. Embedders actuales:', currentEmbedders);
       
+      // Preparar embedders sin API key (el servidor la agregará automáticamente)
       const updatedEmbedders = {
         ...currentEmbedders,
         [newEmbedder.name]: {
           source: newEmbedder.source,
-          ...(newEmbedder.apiKey && { apiKey: newEmbedder.apiKey }),
+          // No incluir apiKey aquí, el servidor la agregará desde variables de entorno
           model: newEmbedder.model,
           dimensions: newEmbedder.dimensions,
           ...(newEmbedder.documentTemplate && { documentTemplate: newEmbedder.documentTemplate }),
@@ -103,9 +221,16 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
         }
       };
 
-      console.log('3. Enviando embedders:', JSON.stringify(updatedEmbedders, null, 2));
+      console.log('3. Enviando embedders (sin API key, se agregará en servidor):', JSON.stringify(updatedEmbedders, null, 2));
       
-      const result = await meilisearchAPI.updateEmbedders(indexUid, updatedEmbedders);
+      // Usar API route del servidor que agregará automáticamente la API key desde variables de entorno
+      const result = await fetch(`/api/meilisearch/indexes/${indexUid}/settings/embedders`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedEmbedders)
+      }).then(res => res.json());
       console.log('4. Respuesta de actualización:', result);
       
       setShowEmbeddingModal(false);
@@ -116,7 +241,8 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
       if (result.taskUid) {
         let taskStatus = 'enqueued';
         let attempts = 0;
-        while (taskStatus !== 'succeeded' && attempts < 10) {
+        let lastError: any = null;
+        while (taskStatus !== 'succeeded' && taskStatus !== 'failed' && attempts < 30) {
           await new Promise(resolve => setTimeout(resolve, 500));
           attempts++;
           try {
@@ -124,15 +250,49 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
             const taskData = await taskResponse.json();
             taskStatus = taskData.status;
             console.log(`   Intento ${attempts}: Estado de la tarea:`, taskStatus);
+            
             if (taskStatus === 'failed') {
+              lastError = taskData.error || taskData;
               console.error('   ❌ La tarea falló:', taskData);
-              console.error('   Detalles del error:', taskData.error);
+              console.error('   Detalles del error:', lastError);
+              
+              // Si falló, mostrar error inmediatamente y salir del loop
+              break;
             }
           } catch (err) {
             console.error('   Error verificando tarea:', err);
           }
         }
+        
         console.log('7. Tarea completada con estado:', taskStatus);
+        
+        if (taskStatus === 'failed') {
+          // Extraer mensaje de error más detallado
+          let errorMessage = 'Error desconocido al configurar el embedding';
+          
+          if (lastError) {
+            if (lastError.message) {
+              errorMessage = lastError.message;
+            } else if (typeof lastError === 'string') {
+              errorMessage = lastError;
+            } else {
+              errorMessage = JSON.stringify(lastError);
+            }
+          }
+          
+          // Si el error menciona campos faltantes, mostrar mensaje más claro
+          if (errorMessage.includes('missing field') || errorMessage.includes('invalid_document_fields')) {
+            errorMessage = `Error: El template incluye campos que no existen en todos los documentos.\n\n${errorMessage}\n\nPor favor, ajusta el template para usar solo campos que existan en todos los documentos.`;
+          }
+          
+          setAlertModal({
+            isOpen: true,
+            title: 'Error al Configurar Embedding',
+            message: errorMessage,
+            type: 'error',
+          });
+          return;
+        }
       }
       
       console.log('8. Recargando propiedades...');
@@ -154,10 +314,18 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
       console.error('=== ERROR EN CONFIGURACIÓN EMBEDDING ===');
       console.error('Error:', err);
       console.error('Detalles del error:', err.response?.data);
+      
+      let errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
+      
+      // Mejorar mensaje de error si es sobre campos faltantes
+      if (errorMessage.includes('missing field') || errorMessage.includes('invalid_document_fields')) {
+        errorMessage = `Error: El template incluye campos que no existen en todos los documentos.\n\n${errorMessage}\n\nPor favor, ajusta el template para usar solo campos que existan en todos los documentos.`;
+      }
+      
       setAlertModal({
         isOpen: true,
         title: 'Error',
-        message: `Error al configurar el embedding: ${err.response?.data?.message || err.message}`,
+        message: `Error al configurar el embedding: ${errorMessage}`,
         type: 'error',
       });
     }
@@ -369,18 +537,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
                 <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600">
                   OpenAI
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">API Key de OpenAI</label>
-                <input
-                  type="password"
-                  value={newEmbedder.apiKey}
-                  onChange={(e) => setNewEmbedder({ ...newEmbedder, apiKey: e.target.value })}
-                  placeholder="sk-..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-mono text-xs"
-                />
-                <p className="text-xs text-gray-500 mt-1">Necesaria para generar embeddings</p>
+                <p className="text-xs text-gray-500 mt-1">La API Key se obtiene automáticamente desde las variables de entorno del servidor</p>
               </div>
 
               <div>
@@ -406,7 +563,20 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
                   rows={5}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-mono text-xs"
                 />
-                <p className="text-xs text-gray-500 mt-1">Generado automáticamente desde el último documento del índice</p>
+                <p className="text-xs text-gray-500 mt-1">Generado automáticamente desde campos comunes del índice</p>
+                {availableFields.length > 0 && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                    <p className="text-xs font-semibold text-blue-800 mb-1">Campos disponibles:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {availableFields.map(field => (
+                        <span key={field} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-mono">
+                          {field}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-blue-600 mt-2">💡 Solo usa campos que existan en todos los documentos del índice</p>
+                  </div>
+                )}
               </div>
 
               <div>

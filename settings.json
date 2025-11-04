@@ -1,13 +1,13 @@
 {
   "proyecto": {
     "nombre": "Admin Meilisearch",
-    "version": "v22.0",
+    "version": "v23.0",
     "modo": "local",
     "debug": true
   },
   "meilisearch": {
     "url": "https://server-search.zeroazul.com/",
-    "apiKey": "Seph1rot*.*Cloud"
+    "apiKey": "Configurado en variables de entorno MEILISEARCH_API_KEY"
   },
   "estructura": {
     "configuracion": [

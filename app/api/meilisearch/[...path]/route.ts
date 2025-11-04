@@ -73,6 +73,22 @@ export async function PATCH(
     const path = params.path.join('/');
     const body = await request.json();
     
+    // Si estamos actualizando embedders, agregar automáticamente la API key de OpenAI desde variables de entorno
+    if (path.includes('/settings/embedders') && body && typeof body === 'object') {
+      const embedders = body;
+      const openaiApiKey = process.env.OPENAI_API_KEY || '';
+      
+      // Si hay un embedder de OpenAI sin API key o con API key vacía, agregarla
+      Object.keys(embedders).forEach(key => {
+        const embedder = embedders[key];
+        if (embedder && (embedder.source === 'openAi' || embedder.source === 'openai')) {
+          if (!embedder.apiKey || embedder.apiKey === '') {
+            embedder.apiKey = openaiApiKey;
+          }
+        }
+      });
+    }
+    
     // Para settings usar PATCH, para documentos usar PUT
     const isSettingsPath = path.includes('/settings');
     const method = isSettingsPath ? 'patch' : 'put';

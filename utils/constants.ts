@@ -1,6 +1,6 @@
 export const MEILISEARCH_CONFIG = {
-  url: 'https://server-search.zeroazul.com/',
-  apiKey: 'Seph1rot*.*Cloud'
+  url: process.env.MEILISEARCH_URL || 'https://server-search.zeroazul.com/',
+  apiKey: process.env.MEILISEARCH_API_KEY || ''
 };
 
 export const FIELD_TYPES = {

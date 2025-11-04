@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const N8N_CONFIG = {
-  url: 'https://automation.zeroazul.com/',
-  apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MTg1NjI0Yy1hNTRhLTQ4ZGItYTUwYS0wM2JjYzQ1MmY1ZjYiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzYxMzExNTQzfQ.RoRE5QTzrE-K_e0FKov5apD7We_9TN4eH2Wed72PCvA'
+  url: process.env.N8N_URL || 'https://automation.zeroazul.com/',
+  apiKey: process.env.N8N_API_KEY || ''
 };
 
 const api = axios.create({
