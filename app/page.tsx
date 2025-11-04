@@ -132,11 +132,14 @@ export default function Home() {
               />
             </div>
             <nav className="hidden md:flex space-x-8 items-center">
-              <a href="#activation" className="text-gray-600 hover:text-gray-900 transition-colors">Proceso</a>
-              <a href="#about" className="text-gray-600 hover:text-gray-900 transition-colors">Acerca de</a>
+              <a href="#activation" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">Proceso</a>
+              <a href="#agents-section" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">Agentes</a>
+              <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">FAQ</a>
+              <a href="#cta" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">Contacto</a>
+              <a href="https://zeroazul.com/" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">Zero Azul</a>
               <button
                 onClick={() => setShowLoginModal(true)}
-                className="text-gray-900 px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md"
+                className="text-gray-900 px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md font-raleway"
                 style={{ backgroundColor: '#5DE1E5' }}
               >
                 Iniciar Sesión
@@ -438,7 +441,7 @@ export default function Home() {
               {/* Agente 1 - worker3 */}
               <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative">
                 {/* Contenedor de imagen - solo mitad superior visible */}
-                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-30px' }}>
+                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-50px' }}>
                   <img 
                     src="/public-img/worker3.png" 
                     alt="Worker 3" 
@@ -468,7 +471,7 @@ export default function Home() {
               {/* Agente 2 - worker5 */}
               <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative">
                 {/* Contenedor de imagen - solo mitad superior visible */}
-                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-30px' }}>
+                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-50px' }}>
                   <img 
                     src="/public-img/worker5.png" 
                     alt="Worker 5" 
@@ -500,7 +503,7 @@ export default function Home() {
               {/* Agente 3 - worker4 */}
               <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-visible relative">
                 {/* Contenedor de imagen - solo mitad superior visible */}
-                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-30px' }}>
+                <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-50px' }}>
                   <img 
                     src="/public-img/worker4.png" 
                     alt="Worker 4" 
