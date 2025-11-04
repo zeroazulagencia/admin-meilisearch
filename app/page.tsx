@@ -33,11 +33,16 @@ function ImageWithSkeleton({
       return;
     }
     
+    // Resetear estados al cambiar src
+    setImageLoaded(false);
+    setShowSkeleton(true);
+    
     // Precargar imagen
     const img = new Image();
     img.src = src;
     img.onload = () => {
       setImageLoaded(true);
+      setShowSkeleton(false);
       if (onLoad) onLoad();
     };
     img.onerror = () => {
@@ -99,14 +104,18 @@ function ImageWithSkeleton({
           <div className="inline-block animate-spin h-10 w-10 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5', borderRightColor: 'rgba(93, 225, 229, 0.3)', borderBottomColor: 'rgba(93, 225, 229, 0.3)', borderLeftColor: 'rgba(93, 225, 229, 0.3)' }}></div>
         </div>
       )}
-      {showWhenVisible !== false && shouldShowImage && (
+      {(showWhenVisible !== false || imageLoaded) && (
         <img
           ref={imgRef}
           src={src}
           alt={alt}
-          className={`${finalImageClasses} transition-opacity duration-300`}
+          className={`${finalImageClasses} transition-opacity duration-300 ${shouldShowImage ? 'opacity-100' : 'opacity-0'}`}
           style={imageStyle}
           onLoad={handleImageLoad}
+          onError={() => {
+            setShowSkeleton(false);
+            setImageLoaded(true);
+          }}
           loading="eager"
         />
       )}
