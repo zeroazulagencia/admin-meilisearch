@@ -11,7 +11,8 @@ function ImageWithSkeleton({
   className = '', 
   style = {},
   onLoad,
-  showWhenVisible = true
+  showWhenVisible = true,
+  animateWhenReady = false
 }: { 
   src: string; 
   alt: string; 
@@ -19,6 +20,7 @@ function ImageWithSkeleton({
   style?: React.CSSProperties;
   onLoad?: () => void;
   showWhenVisible?: boolean;
+  animateWhenReady?: boolean;
 }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
@@ -55,6 +57,9 @@ function ImageWithSkeleton({
   
   // Mostrar spinner si no está visible o si aún está cargando
   const shouldShowSpinner = showWhenVisible === false || showSkeleton;
+  
+  // Determinar si debe aplicar animación: solo cuando está lista para animar Y la imagen está cargada
+  const shouldAnimate = animateWhenReady && shouldShowImage;
 
   // Separar clases de posicionamiento del contenedor de las de la imagen
   const containerClasses = className.includes('absolute') || className.includes('fixed') || className.includes('relative') 
@@ -62,6 +67,7 @@ function ImageWithSkeleton({
     : `relative ${className}`;
   
   // Extraer solo las clases que no son de posicionamiento para la imagen
+  // También extraer 'slide-up' para controlarlo manualmente
   const imageClasses = className.split(' ').filter(cls => 
     !cls.includes('absolute') && 
     !cls.includes('fixed') && 
@@ -70,8 +76,12 @@ function ImageWithSkeleton({
     !cls.includes('left-') &&
     !cls.includes('right-') &&
     !cls.includes('bottom-') &&
-    !cls.includes('z-')
+    !cls.includes('z-') &&
+    cls !== 'slide-up'
   ).join(' ');
+  
+  // Agregar slide-up solo cuando shouldAnimate es true
+  const finalImageClasses = `${imageClasses} ${shouldAnimate ? 'slide-up' : ''}`.trim();
 
   return (
     <div className={containerClasses} style={style}>
@@ -88,7 +98,7 @@ function ImageWithSkeleton({
           ref={imgRef}
           src={src}
           alt={alt}
-          className={`${imageClasses} ${shouldShowImage ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+          className={`${finalImageClasses} ${shouldShowImage ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
           style={{}}
           onLoad={handleImageLoad}
           loading="eager"
@@ -480,14 +490,50 @@ export default function Home() {
     }
 
     setContactLoading(true);
-    // Aquí iría la lógica de envío cuando se implemente el backend
-    setTimeout(() => {
-      setContactLoading(false);
-      // Por ahora solo mostramos un mensaje de éxito simulado
+
+    try {
+      // Capturar datos del navegador
+      const browserData = {
+        browser: navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+                 navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+                 navigator.userAgent.includes('Safari') ? 'Safari' : 
+                 navigator.userAgent.includes('Edge') ? 'Edge' : 'Otro',
+        os: navigator.platform,
+        screen: `${window.screen.width}x${window.screen.height}`,
+        language: navigator.language,
+        country: 'Desconocido' // Se detectará en el servidor por IP
+      };
+
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...contactForm,
+          honeypot: (e.target as any).honeypot?.value || '',
+          browserData,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        setContactError(data.error || 'Error al enviar el mensaje. Por favor intenta nuevamente.');
+        setContactLoading(false);
+        return;
+      }
+
+      // Éxito
       alert('¡Gracias por contactarnos! Te responderemos pronto.');
       setShowContactModal(false);
       setContactForm({ name: '', email: '', phone: '', message: '' });
-    }, 1000);
+      setContactLoading(false);
+    } catch (error) {
+      console.error('Error al enviar formulario:', error);
+      setContactError('Error al enviar el mensaje. Por favor intenta nuevamente.');
+      setContactLoading(false);
+    }
   };
 
   return (
@@ -668,14 +714,13 @@ export default function Home() {
               {/* Bloque de texto complementario - Moderno y llamativo - Solo mitad derecha */}
               <div className="bg-white rounded-2xl p-8 lg:p-12 lg:m-16 border border-gray-200 shadow-xl relative overflow-visible">
                 {/* Imagen worker2.png dentro del div (off canvas, mitad dentro mitad fuera) */}
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block float-slow" style={{ zIndex: 20, left: '-55px', top: '50%', transform: 'translateY(-50%)' }}>
+                <div className={`absolute left-0 top-1/2 -translate-y-1/2 hidden lg:block float-slow ${activationSectionVisible ? 'animate-fade-in' : ''}`} style={{ zIndex: 20, left: '-55px', top: '50%', transform: 'translateY(-50%)', opacity: activationSectionVisible ? 1 : 0, transition: 'opacity 0.5s ease-in' }}>
                   <ImageWithSkeleton
                     src="/public-img/worker2.png"
                     alt="Worker"
                     className="h-[460px] w-auto object-contain"
                     showWhenVisible={activationSectionVisible}
                     style={{ 
-                      transition: activationSectionVisible ? 'opacity 0.5s ease-in' : 'none',
                       opacity: activationSectionVisible ? 1 : 0
                     }}
                   />
@@ -828,7 +873,8 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker3.png"
                     alt="Worker 3"
-                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
+                    className="w-full h-full object-cover object-top"
+                    animateWhenReady={agentsVisible}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
@@ -859,7 +905,8 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker5.png"
                     alt="Worker 5"
-                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
+                    className="w-full h-full object-cover object-top"
+                    animateWhenReady={agentsVisible}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
@@ -891,7 +938,8 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker4.png"
                     alt="Worker 4"
-                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
+                    className="w-full h-full object-cover object-top"
+                    animateWhenReady={agentsVisible}
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
@@ -1208,6 +1256,18 @@ export default function Home() {
                 </button>
               </div>
               <form onSubmit={handleContactSubmit} className="space-y-4">
+              {/* Campo honeypot (oculto para usuarios reales, visible para bots) */}
+              <div style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}>
+                <label htmlFor="honeypot">No llenar este campo</label>
+                <input
+                  id="honeypot"
+                  name="honeypot"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+              </div>
+              
               <div>
                 <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-2">
                   Nombre <span className="text-red-500">*</span>
