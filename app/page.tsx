@@ -17,6 +17,7 @@ export default function Home() {
   const [agentsVisible, setAgentsVisible] = useState(false);
   const [iconVisible, setIconVisible] = useState(false);
   const [agentsIconVisible, setAgentsIconVisible] = useState(false);
+  const [ctaIconVisible, setCtaIconVisible] = useState(false);
 
   // Si está autenticado, redirigir al dashboard
   useEffect(() => {
@@ -132,6 +133,39 @@ export default function Home() {
     return () => {
       if (agentsIconElement) {
         observer.unobserve(agentsIconElement);
+      }
+    };
+  }, []);
+
+  // Intersection Observer para el icono de la sección CTA - solo aparece en el centro vertical del viewport
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const rect = entry.boundingClientRect;
+          const viewportHeight = window.innerHeight;
+          const centerY = viewportHeight / 2;
+          const elementCenterY = rect.top + rect.height / 2;
+          
+          // Verificar si el centro del elemento está cerca del centro del viewport (±100px)
+          if (entry.isIntersecting && Math.abs(elementCenterY - centerY) < 100) {
+            setCtaIconVisible(true);
+          } else {
+            setCtaIconVisible(false);
+          }
+        });
+      },
+      { threshold: [0, 0.1, 0.5, 1], rootMargin: '0px' }
+    );
+
+    const ctaIconElement = document.getElementById('cta-icon');
+    if (ctaIconElement) {
+      observer.observe(ctaIconElement);
+    }
+
+    return () => {
+      if (ctaIconElement) {
+        observer.unobserve(ctaIconElement);
       }
     };
   }, []);
@@ -486,6 +520,17 @@ export default function Home() {
         {/* Sección 4: Tipos de Agentes Digitales */}
         <section id="agents-section" className="py-20 bg-white border-t border-gray-200">
           <div className="max-w-6xl mx-auto">
+            {/* Icono redondo encima del título */}
+            <div id="agents-icon" className="flex justify-center relative z-20 mb-4" style={{ marginTop: '-105px', paddingBottom: '20px' }}>
+              <div 
+                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${agentsIconVisible ? 'icon-roll-in' : 'icon-roll-out'}`}
+                style={{ backgroundColor: '#5DE1E5' }}
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            </div>
             <div className="text-center mb-12">
               <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-4">
                 Explora los agentes digitales favoritos de las empresas
@@ -654,9 +699,9 @@ export default function Home() {
         <section id="cta" className="py-20 border-t border-gray-200 w-full" style={{ backgroundColor: '#5DE1E5', width: '100vw', marginLeft: 'calc(50% - 50vw)' }}>
           <div className="max-w-4xl mx-auto text-center px-4">
             {/* Icono redondo encima del título */}
-            <div id="agents-icon" className="flex justify-center relative z-20 mb-4" style={{ marginTop: '-105px', paddingBottom: '20px' }}>
+            <div id="cta-icon" className="flex justify-center relative z-20 mb-4" style={{ marginTop: '-105px', paddingBottom: '20px' }}>
               <div 
-                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${agentsIconVisible ? 'icon-roll-in' : 'icon-roll-out'}`}
+                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${ctaIconVisible ? 'icon-roll-in' : 'icon-roll-out'}`}
                 style={{ backgroundColor: '#5DE1E5', border: '5px solid white' }}
               >
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
