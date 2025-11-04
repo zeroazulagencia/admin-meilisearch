@@ -30,25 +30,33 @@ function ImageWithSkeleton({
       setImageLoaded(true);
       if (onLoad) onLoad();
     };
+    img.onerror = () => {
+      // Si hay error al cargar, ocultar skeleton de todas formas
+      setImageLoaded(true);
+      setShowSkeleton(false);
+    };
   }, [src, onLoad]);
 
   const handleImageLoad = () => {
     setShowSkeleton(false);
+    setImageLoaded(true);
   };
 
   return (
     <div className={`relative ${className}`} style={style}>
       {showSkeleton && (
         <div 
-          className="absolute inset-0 skeleton-shimmer rounded"
+          className="absolute inset-0 skeleton-shimmer rounded flex items-center justify-center z-10"
           style={{ aspectRatio: 'auto' }}
-        />
+        >
+          <div className="inline-block animate-spin h-8 w-8 border-3 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+        </div>
       )}
       <img
         ref={imgRef}
         src={src}
         alt={alt}
-        className={`${className} ${showSkeleton ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        className={`${className} ${imageLoaded && !showSkeleton ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
         style={style}
         onLoad={handleImageLoad}
         loading="eager"
@@ -97,7 +105,7 @@ function VideoWithSkeleton({
     <div className={`relative ${className}`} style={style}>
       {showSpinner && (
         <div 
-          className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded z-10 transition-opacity duration-500"
+          className="absolute inset-0 flex items-center justify-center bg-white rounded z-10 transition-opacity duration-500"
           style={{ opacity: showSpinner ? 1 : 0 }}
         >
           <div className="inline-block animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
@@ -614,7 +622,7 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker2.png"
                     alt="Worker"
-                    className="h-[460px] w-auto object-contain float-slow opacity-90"
+                    className="h-[460px] w-auto object-contain float-slow"
                   />
                 </div>
                 
@@ -761,12 +769,13 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker3.png"
                     alt="Worker 3"
-                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
+                    className="w-full h-full object-cover object-top"
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-                      opacity: agentsVisible ? 1 : 0
+                      opacity: agentsVisible ? 1 : 0,
+                      visibility: agentsVisible ? 'visible' : 'hidden'
                     }}
                   />
                 </div>
@@ -791,13 +800,14 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker5.png"
                     alt="Worker 5"
-                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
+                    className="w-full h-full object-cover object-top"
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
                       animationDelay: '0.2s',
-                      opacity: agentsVisible ? 1 : 0
+                      opacity: agentsVisible ? 1 : 0,
+                      visibility: agentsVisible ? 'visible' : 'hidden'
                     }}
                   />
                 </div>
@@ -823,13 +833,14 @@ export default function Home() {
                   <ImageWithSkeleton
                     src="/public-img/worker4.png"
                     alt="Worker 4"
-                    className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
+                    className="w-full h-full object-cover object-top"
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
                       transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
                       animationDelay: '0.4s',
-                      opacity: agentsVisible ? 1 : 0
+                      opacity: agentsVisible ? 1 : 0,
+                      visibility: agentsVisible ? 'visible' : 'hidden'
                     }}
                   />
                 </div>
