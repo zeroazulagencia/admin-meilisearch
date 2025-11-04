@@ -378,12 +378,14 @@ export default function Home() {
                 <div className="w-full lg:max-w-[65%] lg:ml-auto relative z-10">
                   {activeTab === 'select' && (
                     <>
-                      <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
-                        Selecciona el tipo de agente que mejor se adapte a tu negocio
-                      </h3>
-                      <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
-                        Los agentes de <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>DWORKERS</span> están diseñados para resolver desafíos específicos. Elige entre agentes de atención al cliente, ventas automatizadas, operaciones o análisis de datos.
-                      </p>
+                      <div className="px-4 lg:px-8">
+                        <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+                          Selecciona el tipo de agente que mejor se adapte a tu negocio
+                        </h3>
+                        <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
+                          Los agentes de <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>DWORKERS</span> están diseñados para resolver desafíos específicos. Elige entre agentes de atención al cliente, ventas automatizadas, operaciones o análisis de datos.
+                        </p>
+                      </div>
                       <div className="space-y-3">
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
@@ -446,12 +448,14 @@ export default function Home() {
                   
                   {activeTab === 'describe' && (
                     <>
-                      <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6 px-4 lg:px-8">
-                        Define los <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>objetivos</span> y <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>personalidad</span> de tu agente digital
-                      </h3>
-                      <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8 px-4 lg:px-8">
-                        Los agentes de <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>DWORKERS</span> se adaptan al tono y metas de tu negocio. Personaliza su personalidad desde asistentes analíticos hasta creativos, cada uno aprende de tus datos y evoluciona con el uso.
-                      </p>
+                      <div className="px-4 lg:px-8">
+                        <h3 className="font-raleway text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+                          Define los <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>objetivos</span> y <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>personalidad</span> de tu agente digital
+                        </h3>
+                        <p className="font-raleway text-xl text-gray-700 leading-relaxed mb-8">
+                          Los agentes de <span className="font-bold italic underline" style={{ textDecorationColor: '#5DE1E5' }}>DWORKERS</span> se adaptan al tono y metas de tu negocio. Personaliza su personalidad desde asistentes analíticos hasta creativos, cada uno aprende de tus datos y evoluciona con el uso.
+                        </p>
+                      </div>
                       <div className="space-y-3">
                         <div className="flex items-start gap-3 group">
                           <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#5DE1E5]"></div>
