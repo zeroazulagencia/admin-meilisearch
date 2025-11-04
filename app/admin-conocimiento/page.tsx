@@ -1131,69 +1131,69 @@ export default function AdminConocimiento() {
   }, [selectedAgent]);
 
   if (agentsLoading) {
-  return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
-      </div>
+    return (
+      <ProtectedLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full border-[#5DE1E5]"></div>
+        </div>
+      </ProtectedLayout>
     );
   }
 
   return (
     <ProtectedLayout>
-    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Conocimiento</h1>
       
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">Admin Conocimiento</h1>
-        
-        <div className="space-y-6">
-          {/* Selector de Agente */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Seleccionar Agente
-            </label>
-            <select
-              value={selectedAgent?.id || ''}
-              onChange={(e) => {
-                const agent = agents.find(a => a.id === parseInt(e.target.value));
-                setSelectedAgent(agent || null);
-                setSelectedIndex(null);
-              }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-              style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-            >
-              <option value="">Seleccionar agente...</option>
-              {agents.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name} {(() => { try { const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {}); return k.indexes?.length ? `(${k.indexes.length} índices)` : '(sin índices)'; } catch { return '(sin índices)'; } })()}
-                </option>
-              ))}
-            </select>
-            {selectedAgent && (
-              <div className="mt-3 flex items-center gap-3">
-                {selectedAgent.photo && (
-                  <img
-                    src={selectedAgent.photo}
-                    alt={selectedAgent.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                  />
+      <div className="space-y-6">
+        {/* Selector de Agente */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Seleccionar Agente
+          </label>
+          <select
+            value={selectedAgent?.id || ''}
+            onChange={(e) => {
+              const agent = agents.find(a => a.id === parseInt(e.target.value));
+              setSelectedAgent(agent || null);
+              setSelectedIndex(null);
+            }}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+            style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+          >
+            <option value="">Seleccionar agente...</option>
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name} {(() => { try { const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {}); return k.indexes?.length ? `(${k.indexes.length} índices)` : '(sin índices)'; } catch { return '(sin índices)'; } })()}
+              </option>
+            ))}
+          </select>
+          {selectedAgent && (
+            <div className="mt-3 flex items-center gap-3">
+              {selectedAgent.photo && (
+                <img
+                  src={selectedAgent.photo}
+                  alt={selectedAgent.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                />
+              )}
+              <div>
+                <p className="font-medium text-gray-900">{selectedAgent.name}</p>
+                {selectedAgent.description && (
+                  <p className="text-sm text-gray-500">{selectedAgent.description}</p>
                 )}
-                <div>
-                  <p className="font-medium text-gray-900">{selectedAgent.name}</p>
-                  {selectedAgent.description && (
-                    <p className="text-sm text-gray-500">{selectedAgent.description}</p>
-                  )}
-                </div>
               </div>
-            )}
-          </div>
-
-          {/* Lista de Índices del Agente */}
-          {loadingIndexes ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
             </div>
-          ) : selectedAgent && availableIndexes.length > 0 ? (
-            <>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          )}
+        </div>
+
+        {/* Lista de Índices del Agente */}
+        {loadingIndexes ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+          </div>
+        ) : selectedAgent && availableIndexes.length > 0 ? (
+          <>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Seleccionar Índice
                 </label>
@@ -2044,7 +2044,6 @@ export default function AdminConocimiento() {
         message={alertModal.message}
         type={alertModal.type}
       />
-    </div>
     </ProtectedLayout>
   );
 }

@@ -185,12 +185,10 @@ export default function EditarCliente() {
 
   return (
     <ProtectedLayout>
-      <div>
-      
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Editar Cliente</h1>
-          <p className="mt-2 text-gray-600">Actualiza la información del cliente</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Editar Cliente</h1>
+        <p className="mt-2 text-gray-600">Actualiza la información del cliente</p>
+      </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Información del Cliente */}
@@ -462,8 +460,6 @@ export default function EditarCliente() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
     </ProtectedLayout>
   );
 }
