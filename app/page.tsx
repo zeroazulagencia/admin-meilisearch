@@ -821,7 +821,7 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0s, opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0s' : 'none',
+                      transition: 'clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0s, opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0s',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
@@ -851,7 +851,7 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s, opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s' : 'none',
+                      transition: 'clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s, opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
@@ -882,7 +882,7 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.6s, opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.6s' : 'none',
+                      transition: 'clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.6s, opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.6s',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
@@ -1173,8 +1173,8 @@ export default function Home() {
             <ImageWithSkeleton
               src="/public-img/worker1b.png"
               alt="Worker"
-              className="absolute -top-14 w-[230px] h-[230px] object-contain float-slow hidden lg:block"
-              style={{ zIndex: 999, left: '-100px' }}
+              className="absolute -top-14 w-[260px] h-[260px] object-contain float-slow hidden lg:block"
+              style={{ zIndex: 999, left: '-140px' }}
             />
             <div className="p-6 lg:p-8">
               <div className="flex justify-between items-center mb-6">

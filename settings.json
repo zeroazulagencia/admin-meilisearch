@@ -1,7 +1,7 @@
 {
   "proyecto": {
     "nombre": "Admin Meilisearch",
-    "version": "v21.11",
+    "version": "v21.12",
     "modo": "local",
     "debug": true
   },
