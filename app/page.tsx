@@ -952,7 +952,7 @@ export default function Home() {
 
             {/* Worker2b.png - Tercera columna */}
             <div id="footer-worker" className="relative overflow-visible flex items-end">
-              <div className="h-48 overflow-hidden mb-6 relative w-full" style={{ marginTop: '-80px' }}>
+              <div className="overflow-hidden relative w-full" style={{ marginTop: '-80px', marginBottom: '-30px', height: '15rem' }}>
                 <ImageWithSkeleton
                   src="/public-img/worker2b.png"
                   alt="Worker 2b"
