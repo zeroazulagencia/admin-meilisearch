@@ -241,24 +241,20 @@ export default function Home() {
     };
   }, []);
 
-  // Intersection Observer para el icono redondo - permanece visible una vez mostrado
+  // Intersection Observer para el icono redondo - muestra cuando entra al viewport
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const rect = entry.boundingClientRect;
-          const viewportHeight = window.innerHeight;
-          const centerY = viewportHeight / 2;
-          const elementCenterY = rect.top + rect.height / 2;
-          
-          // Verificar si el centro del elemento está cerca del centro del viewport (±100px)
-          if (entry.isIntersecting && Math.abs(elementCenterY - centerY) < 100) {
+          if (entry.isIntersecting) {
             setIconVisible(true);
+          } else {
+            // Resetear cuando sale del viewport para que vuelva a animar
+            setIconVisible(false);
           }
-          // No ocultar cuando sale del viewport, solo mostrar cuando entra
         });
       },
-      { threshold: [0, 0.1, 0.5, 1], rootMargin: '0px' }
+      { threshold: 0.1, rootMargin: '0px' }
     );
 
     const iconElement = document.getElementById('activation-icon');
