@@ -52,13 +52,10 @@ function ImageWithSkeleton({
     <div className={`relative ${className}`} style={style}>
       {showSkeleton && (
         <div 
-          className="absolute inset-0 skeleton-shimmer rounded flex items-center justify-center z-10"
-          style={{ aspectRatio: 'auto', backgroundColor: 'rgba(255, 255, 255, 0.9)' }}
+          className="absolute inset-0 flex items-center justify-center z-10"
+          style={{ aspectRatio: 'auto', backgroundColor: 'transparent' }}
         >
-          <div className="flex flex-col items-center gap-2">
-            <div className="inline-block animate-spin h-10 w-10 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5', borderRightColor: 'rgba(93, 225, 229, 0.3)', borderBottomColor: 'rgba(93, 225, 229, 0.3)', borderLeftColor: 'rgba(93, 225, 229, 0.3)' }}></div>
-            <div className="text-xs text-gray-500 font-raleway">Cargando...</div>
-          </div>
+          <div className="inline-block animate-spin h-10 w-10 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5', borderRightColor: 'rgba(93, 225, 229, 0.3)', borderBottomColor: 'rgba(93, 225, 229, 0.3)', borderLeftColor: 'rgba(93, 225, 229, 0.3)' }}></div>
         </div>
       )}
       <img
@@ -114,8 +111,8 @@ function VideoWithSkeleton({
     <div className={`relative ${className}`} style={style}>
       {showSpinner && (
         <div 
-          className="absolute inset-0 flex items-center justify-center bg-white rounded z-10 transition-opacity duration-500"
-          style={{ opacity: showSpinner ? 1 : 0 }}
+          className="absolute inset-0 flex items-center justify-center z-10 transition-opacity duration-500"
+          style={{ opacity: showSpinner ? 1 : 0, backgroundColor: 'transparent' }}
         >
           <div className="inline-block animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
         </div>
