@@ -779,7 +779,7 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
                       opacity: agentsVisible ? 1 : 0
                     }}
                   />
@@ -809,7 +809,7 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
                       transitionDelay: '0.2s',
                       opacity: agentsVisible ? 1 : 0
                     }}
@@ -841,7 +841,7 @@ export default function Home() {
                     style={{ 
                       objectPosition: 'center top', 
                       clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                      transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
                       transitionDelay: '0.4s',
                       opacity: agentsVisible ? 1 : 0
                     }}
