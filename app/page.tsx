@@ -76,7 +76,7 @@ function VideoWithSkeleton({
   playsInline?: boolean;
 }) {
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [showSkeleton, setShowSkeleton] = useState(true);
+  const [showSpinner, setShowSpinner] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -87,20 +87,26 @@ function VideoWithSkeleton({
 
   const handleVideoLoadedData = () => {
     setVideoLoaded(true);
-    setShowSkeleton(false);
+    // Desvanecer spinner y mostrar video con fade in slide up
+    setTimeout(() => {
+      setShowSpinner(false);
+    }, 300);
   };
 
   return (
     <div className={`relative ${className}`} style={style}>
-      {showSkeleton && (
+      {showSpinner && (
         <div 
-          className="absolute inset-0 skeleton-shimmer rounded"
-        />
+          className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded z-10 transition-opacity duration-300"
+          style={{ opacity: showSpinner ? 1 : 0 }}
+        >
+          <div className="inline-block animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+        </div>
       )}
       <video
         ref={videoRef}
         src={src}
-        className={`${className} ${showSkeleton ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        className={`${className} ${videoLoaded && !showSpinner ? 'opacity-100 animate-fade-in-up' : 'opacity-0'}`}
         style={style}
         autoPlay={autoPlay}
         loop={loop}
@@ -301,13 +307,16 @@ export default function Home() {
     };
   }, []);
 
-  // Intersection Observer para el worker del footer
+  // Intersection Observer para el worker del footer - resetea cuando sale del viewport
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setFooterWorkerVisible(true);
+          } else {
+            // Resetear cuando sale del viewport para que vuelva a animar
+            setFooterWorkerVisible(false);
           }
         });
       },
@@ -477,11 +486,11 @@ export default function Home() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4" data-animate="animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <button 
-                onClick={() => setShowLoginModal(true)}
+                onClick={() => setShowContactModal(true)}
                 className="text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all text-center shadow-md"
                 style={{ backgroundColor: '#5DE1E5' }}
               >
-                Comenzar Gratis
+                Escríbenos
               </button>
               <button 
                 onClick={() => {
@@ -921,8 +930,7 @@ export default function Home() {
             </p>
             <button
               onClick={() => setShowContactModal(true)}
-              className="text-gray-900 px-8 py-4 rounded-lg font-raleway font-semibold text-lg hover:opacity-90 transition-all shadow-lg"
-              style={{ backgroundColor: '#5DE1E5' }}
+              className="bg-gray-900 text-white px-8 py-4 rounded-lg font-raleway font-semibold text-lg hover:bg-gray-800 transition-colors shadow-lg"
             >
               Agendemos una reunión
             </button>
