@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { meilisearchAPI, Index } from '@/utils/meilisearch';
 import { n8nAPI, Workflow } from '@/utils/n8n';
 import ProtectedLayout from '@/components/ProtectedLayout';
+import AlertModal from '@/components/ui/AlertModal';
 
 interface Client {
   id: number;
@@ -52,6 +53,11 @@ export default function EditarAgente() {
   const [availableConversationAgents, setAvailableConversationAgents] = useState<string[]>([]);
   const [loadingConversationAgents, setLoadingConversationAgents] = useState(false);
   const [selectedConversationAgent, setSelectedConversationAgent] = useState<string>('');
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
 
   useEffect(() => {
     // Cargar clientes desde MySQL
@@ -211,7 +217,12 @@ export default function EditarAgente() {
       if (!data.ok) throw new Error(data.error || 'Error al actualizar');
       router.push('/agentes');
     } catch (err: any) {
-      alert(err.message || 'Error al guardar cambios');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: err.message || 'Error al guardar cambios',
+        type: 'error',
+      });
     }
   };
 
@@ -296,10 +307,15 @@ export default function EditarAgente() {
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      if (file.size > 1 * 1024 * 1024) {
-                        alert('La imagen no puede ser mayor a 1 MB');
-                        return;
-                      }
+                        if (file.size > 1 * 1024 * 1024) {
+                          setAlertModal({
+                            isOpen: true,
+                            title: 'Validación',
+                            message: 'La imagen no puede ser mayor a 1 MB',
+                            type: 'warning',
+                          });
+                          return;
+                        }
 
                       setUploading(true);
                       try {
@@ -316,11 +332,21 @@ export default function EditarAgente() {
                         if (response.ok) {
                           setFormData({ ...formData, photo: data.url });
                         } else {
-                          alert(data.error || 'Error al subir la imagen');
+                          setAlertModal({
+                            isOpen: true,
+                            title: 'Error',
+                            message: data.error || 'Error al subir la imagen',
+                            type: 'error',
+                          });
                         }
                       } catch (error) {
                         console.error('Error uploading image:', error);
-                        alert('Error al subir la imagen');
+                        setAlertModal({
+                          isOpen: true,
+                          title: 'Error',
+                          message: 'Error al subir la imagen',
+                          type: 'error',
+                        });
                       } finally {
                         setUploading(false);
                       }
@@ -587,9 +613,18 @@ export default function EditarAgente() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
-    </ProtectedLayout>
-  );
-}
+          </div>
+        </div>
+
+        {/* Modal de alertas */}
+        <AlertModal
+          isOpen={alertModal.isOpen}
+          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+          title={alertModal.title}
+          message={alertModal.message}
+          type={alertModal.type}
+        />
+      </ProtectedLayout>
+    );
+  }
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { n8nAPI, Workflow, Execution } from '@/utils/n8n';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
+import AlertModal from '@/components/ui/AlertModal';
 
 type FilterStatus = 'all' | 'success' | 'error' | 'running';
 
@@ -91,6 +92,11 @@ export default function Ejecuciones() {
   const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [itemsPerPage, setItemsPerPage] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -151,7 +157,12 @@ export default function Ejecuciones() {
       setAllWorkflows(data);
     } catch (err: any) {
       console.error('Error loading workflows:', err);
-      alert('Error al cargar los flujos de n8n. Verifica que el servidor esté disponible.');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al cargar los flujos de n8n. Verifica que el servidor esté disponible.',
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -906,6 +917,15 @@ export default function Ejecuciones() {
           </div>
         )}
       </div>
+
+      {/* Modal de alertas */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
     </ProtectedLayout>
   );

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
+import AlertModal from '@/components/ui/AlertModal';
 
 interface Client {
   id: number;
@@ -28,6 +29,11 @@ export default function EditarCliente() {
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [associatedAgents, setAssociatedAgents] = useState<any[]>([]);
   const [permissions, setPermissions] = useState<any>({});
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -101,10 +107,20 @@ export default function EditarCliente() {
       if (data.ok) {
         router.push('/clientes');
       } else {
-        alert('Error al actualizar: ' + (data.error || 'Desconocido'));
+        setAlertModal({
+          isOpen: true,
+          title: 'Error',
+          message: 'Error al actualizar: ' + (data.error || 'Desconocido'),
+          type: 'error',
+        });
       }
     } catch (err) {
-      alert('Error al actualizar cliente');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al actualizar cliente',
+        type: 'error',
+      });
     }
   };
 
@@ -154,6 +170,15 @@ export default function EditarCliente() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
         </div>
+
+        {/* Modal de alertas */}
+        <AlertModal
+          isOpen={alertModal.isOpen}
+          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+          title={alertModal.title}
+          message={alertModal.message}
+          type={alertModal.type}
+        />
       </ProtectedLayout>
     );
   }

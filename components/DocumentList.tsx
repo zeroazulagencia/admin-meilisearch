@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import DocumentEditor from './DocumentEditor';
+import AlertModal from './ui/AlertModal';
 
 interface DocumentListProps {
   indexUid: string;
@@ -26,6 +27,11 @@ export default function DocumentList({ indexUid, onLoadPdf, uploadProgressCount 
   const [deleting, setDeleting] = useState(false);
   const [useAI, setUseAI] = useState(false);
   const [detectedEmbedderName, setDetectedEmbedderName] = useState<string>('openai');
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
   const [searchParams, setSearchParams] = useState({
     matchingStrategy: 'all',
     rankingScoreThreshold: 0.1, // Threshold más bajo para mostrar más resultados
@@ -193,7 +199,12 @@ export default function DocumentList({ indexUid, onLoadPdf, uploadProgressCount 
       }
     } catch (err) {
       console.error('Error saving document:', err);
-      alert('Error al guardar el documento');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al guardar el documento',
+        type: 'error',
+      });
     } finally {
       setSaving(false);
     }
@@ -215,7 +226,12 @@ export default function DocumentList({ indexUid, onLoadPdf, uploadProgressCount 
       }
     } catch (err) {
       console.error('Error deleting document:', err);
-      alert('Error al eliminar el documento');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al eliminar el documento',
+        type: 'error',
+      });
     } finally {
       setDeleting(false);
     }
@@ -238,7 +254,12 @@ export default function DocumentList({ indexUid, onLoadPdf, uploadProgressCount 
       }
     } catch (err) {
       console.error('Error deleting documents:', err);
-      alert('Error al eliminar los documentos');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al eliminar los documentos',
+        type: 'error',
+      });
     } finally {
       setDeleting(false);
     }
@@ -568,6 +589,15 @@ export default function DocumentList({ indexUid, onLoadPdf, uploadProgressCount 
           </div>
         </div>
       )}
+
+      {/* Modal de alertas */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </>
   );
 }

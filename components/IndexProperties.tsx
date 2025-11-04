@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { meilisearchAPI, Index, IndexStats, IndexSettings } from '@/utils/meilisearch';
+import AlertModal from './ui/AlertModal';
 
 interface IndexPropertiesProps {
   indexUid: string;
@@ -23,6 +24,11 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
     dimensions: 1536,
     documentTemplate: '',
     documentTemplateMaxBytes: 51200
+  });
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
   });
 
   useEffect(() => {
@@ -137,13 +143,23 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
       console.log('10. Settings obtenidos:', verifySettings);
       console.log('11. Embedders en settings:', verifySettings.embedders);
       
-      alert('Embedding configurado correctamente');
+      setAlertModal({
+        isOpen: true,
+        title: 'Éxito',
+        message: 'Embedding configurado correctamente',
+        type: 'success',
+      });
       console.log('=== FIN CONFIGURACIÓN EMBEDDING ===');
     } catch (err: any) {
       console.error('=== ERROR EN CONFIGURACIÓN EMBEDDING ===');
       console.error('Error:', err);
       console.error('Detalles del error:', err.response?.data);
-      alert(`Error al configurar el embedding: ${err.response?.data?.message || err.message}`);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: `Error al configurar el embedding: ${err.response?.data?.message || err.message}`,
+        type: 'error',
+      });
     }
   };
 
@@ -418,6 +434,15 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
           </div>
         </div>
       )}
+
+      {/* Modal de alertas */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 }

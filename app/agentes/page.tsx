@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import settings from '../../settings.json';
 import ProtectedLayout from '@/components/ProtectedLayout';
+import AlertModal from '@/components/ui/AlertModal';
 
 interface AgentDB {
   id: number;
@@ -93,6 +94,11 @@ export default function Agentes() {
     client_id: 0
   });
   const [uploading, setUploading] = useState(false);
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,7 +148,12 @@ export default function Agentes() {
 
       resetForm();
     } catch (err: any) {
-      alert(err.message || 'Error al guardar el agente');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: err.message || 'Error al guardar el agente',
+        type: 'error',
+      });
     }
   };
 
@@ -165,7 +176,12 @@ export default function Agentes() {
       if (!data.ok) throw new Error(data.error || 'Error al eliminar agente');
       setAgents(prev => prev.filter(a => a.id !== id));
     } catch (err: any) {
-      alert(err.message || 'Error al eliminar');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: err.message || 'Error al eliminar',
+        type: 'error',
+      });
     }
   };
 
@@ -262,7 +278,12 @@ export default function Agentes() {
                       if (file) {
                         // Validar tamaño (1 MB)
                         if (file.size > 1 * 1024 * 1024) {
-                          alert('La imagen no puede ser mayor a 1 MB');
+                          setAlertModal({
+                            isOpen: true,
+                            title: 'Validación',
+                            message: 'La imagen no puede ser mayor a 1 MB',
+                            type: 'warning',
+                          });
                           return;
                         }
                         
@@ -283,11 +304,21 @@ export default function Agentes() {
                           if (response.ok) {
                             setFormData({ ...formData, photo: data.url });
                           } else {
-                            alert(data.error || 'Error al subir la imagen');
+                            setAlertModal({
+                              isOpen: true,
+                              title: 'Error',
+                              message: data.error || 'Error al subir la imagen',
+                              type: 'error',
+                            });
                           }
                         } catch (error) {
                           console.error('Error uploading image:', error);
-                          alert('Error al subir la imagen');
+                          setAlertModal({
+                            isOpen: true,
+                            title: 'Error',
+                            message: 'Error al subir la imagen',
+                            type: 'error',
+                          });
                         } finally {
                           setUploading(false);
                         }
@@ -372,8 +403,17 @@ export default function Agentes() {
           ))}
         </div>
       </div>
-    </div>
-    </ProtectedLayout>
-  );
-}
+        </div>
+
+        {/* Modal de alertas */}
+        <AlertModal
+          isOpen={alertModal.isOpen}
+          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+          title={alertModal.title}
+          message={alertModal.message}
+          type={alertModal.type}
+        />
+      </ProtectedLayout>
+    );
+  }
 

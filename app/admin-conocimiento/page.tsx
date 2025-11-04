@@ -5,6 +5,7 @@ import { Index, meilisearchAPI } from '@/utils/meilisearch';
 import IndexProperties from '@/components/IndexProperties';
 import DocumentList from '@/components/DocumentList';
 import ProtectedLayout from '@/components/ProtectedLayout';
+import AlertModal from '@/components/ui/AlertModal';
 
 interface AgentDB {
   id: number;
@@ -47,6 +48,11 @@ export default function AdminConocimiento() {
   const [chunkFields, setChunkFields] = useState<Record<number, Record<string, any>>>({});
   const [structuringChunks, setStructuringChunks] = useState(false);
   const [structuringProgress, setStructuringProgress] = useState<Record<number, { status: 'pending' | 'processing' | 'succeeded' | 'failed'; message?: string }>>({});
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
   
   // Calcular cantidad de chunks basado en el símbolo [separador]
   const calculateChunks = (text: string): number => {
@@ -402,7 +408,12 @@ export default function AdminConocimiento() {
     
     if (!fields || fields.length === 0) {
       console.error('[PDF-UPLOAD] prepareChunks: ERROR - No se recibieron campos!');
-      alert('Error: No se pudieron cargar los campos del índice. Por favor intenta de nuevo.');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error: No se pudieron cargar los campos del índice. Por favor intenta de nuevo.',
+        type: 'error',
+      });
       return;
     }
     
@@ -604,7 +615,12 @@ export default function AdminConocimiento() {
     
     if (allIndexFields.length === 0) {
       console.error('[PDF-UPLOAD] ERROR: No hay campos disponibles para subir');
-      alert('Error: No hay campos disponibles. Por favor vuelve al paso anterior y reintenta.');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error: No hay campos disponibles. Por favor vuelve al paso anterior y reintenta.',
+        type: 'error',
+      });
       return;
     }
 
@@ -1961,7 +1977,12 @@ export default function AdminConocimiento() {
                       if (pdfStep === 'text') {
                         // Validar prefijo del ID
                         if (!pdfIdPrefix || pdfIdPrefix.trim() === '') {
-                          alert('El prefijo del ID es obligatorio');
+                          setAlertModal({
+                            isOpen: true,
+                            title: 'Validación',
+                            message: 'El prefijo del ID es obligatorio',
+                            type: 'warning',
+                          });
                           return;
                         }
                         console.log('[PDF-UPLOAD] Validación: allIndexFields tiene', allIndexFields.length, 'campos antes de preparar');
@@ -1974,7 +1995,12 @@ export default function AdminConocimiento() {
                         
                         if (!fields || fields.length === 0) {
                           console.error('[PDF-UPLOAD] ERROR: No se pudieron cargar los campos del índice');
-                          alert('Error: No se pudieron cargar los campos del índice. Por favor intenta de nuevo.');
+                          setAlertModal({
+                            isOpen: true,
+                            title: 'Error',
+                            message: 'Error: No se pudieron cargar los campos del índice. Por favor intenta de nuevo.',
+                            type: 'error',
+                          });
                           return;
                         }
                         
@@ -2009,6 +2035,15 @@ export default function AdminConocimiento() {
           </div>
         </div>
       )}
+
+      {/* Modal de alertas */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
     </ProtectedLayout>
   );

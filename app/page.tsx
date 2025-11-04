@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import AlertModal from '@/components/ui/AlertModal';
 
 // Componente ImageWithSkeleton
 function ImageWithSkeleton({ 
@@ -224,6 +225,11 @@ export default function Home() {
   });
   const [contactLoading, setContactLoading] = useState(false);
   const [contactError, setContactError] = useState('');
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
 
   // Si está autenticado, redirigir al dashboard
   useEffect(() => {
@@ -548,10 +554,15 @@ export default function Home() {
 
       // Éxito
       console.log('[CONTACT FORM] Mensaje enviado exitosamente');
-      alert('¡Gracias por contactarnos! Te responderemos pronto.');
       setShowContactModal(false);
       setContactForm({ name: '', email: '', phone: '', message: '' });
       setContactLoading(false);
+      setAlertModal({
+        isOpen: true,
+        title: 'Mensaje enviado',
+        message: '¡Gracias por contactarnos! Te responderemos pronto.',
+        type: 'success',
+      });
     } catch (error) {
       console.error('[CONTACT FORM] Error al enviar formulario:', error);
       console.error('[CONTACT FORM] Error details:', {
@@ -1411,6 +1422,15 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Modal de alertas */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 }

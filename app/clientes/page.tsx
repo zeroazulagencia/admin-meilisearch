@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
+import AlertModal from '@/components/ui/AlertModal';
 
 interface ClientDB {
   id: number;
@@ -28,6 +29,11 @@ export default function Clientes() {
     email: '',
     phone: ''
   });
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,10 +54,20 @@ export default function Clientes() {
           // Recargar página para ver el nuevo cliente
           window.location.reload();
         } else {
-          alert('Error al crear cliente: ' + (data.error || 'Desconocido'));
+          setAlertModal({
+            isOpen: true,
+            title: 'Error',
+            message: 'Error al crear cliente: ' + (data.error || 'Desconocido'),
+            type: 'error',
+          });
         }
       } catch (err) {
-        alert('Error al crear cliente');
+        setAlertModal({
+          isOpen: true,
+          title: 'Error',
+          message: 'Error al crear cliente',
+          type: 'error',
+        });
       }
     }
     
@@ -77,10 +93,20 @@ export default function Clientes() {
             setClients(data2.clients);
           }
         } else {
-          alert('Error al eliminar cliente');
+          setAlertModal({
+            isOpen: true,
+            title: 'Error',
+            message: 'Error al eliminar cliente',
+            type: 'error',
+          });
         }
       } catch (err) {
-        alert('Error al eliminar cliente');
+        setAlertModal({
+          isOpen: true,
+          title: 'Error',
+          message: 'Error al eliminar cliente',
+          type: 'error',
+        });
       }
     }
   };
@@ -118,6 +144,15 @@ export default function Clientes() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
         </div>
+
+        {/* Modal de alertas */}
+        <AlertModal
+          isOpen={alertModal.isOpen}
+          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+          title={alertModal.title}
+          message={alertModal.message}
+          type={alertModal.type}
+        />
       </ProtectedLayout>
     );
   }
