@@ -18,6 +18,7 @@ export default function Home() {
   const [iconVisible, setIconVisible] = useState(false);
   const [agentsIconVisible, setAgentsIconVisible] = useState(false);
   const [ctaIconVisible, setCtaIconVisible] = useState(false);
+  const [footerWorkerVisible, setFooterWorkerVisible] = useState(false);
 
   // Si está autenticado, redirigir al dashboard
   useEffect(() => {
@@ -71,7 +72,7 @@ export default function Home() {
     };
   }, []);
 
-  // Intersection Observer para el icono redondo - solo aparece en el centro vertical del viewport
+  // Intersection Observer para el icono redondo - permanece visible una vez mostrado
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -84,9 +85,8 @@ export default function Home() {
           // Verificar si el centro del elemento está cerca del centro del viewport (±100px)
           if (entry.isIntersecting && Math.abs(elementCenterY - centerY) < 100) {
             setIconVisible(true);
-          } else {
-            setIconVisible(false);
           }
+          // No ocultar cuando sale del viewport, solo mostrar cuando entra
         });
       },
       { threshold: [0, 0.1, 0.5, 1], rootMargin: '0px' }
@@ -104,7 +104,7 @@ export default function Home() {
     };
   }, []);
 
-  // Intersection Observer para el icono de la sección de agentes - solo aparece en el centro vertical del viewport
+  // Intersection Observer para el icono de la sección de agentes - permanece visible una vez mostrado
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -117,9 +117,8 @@ export default function Home() {
           // Verificar si el centro del elemento está cerca del centro del viewport (±100px)
           if (entry.isIntersecting && Math.abs(elementCenterY - centerY) < 100) {
             setAgentsIconVisible(true);
-          } else {
-            setAgentsIconVisible(false);
           }
+          // No ocultar cuando sale del viewport, solo mostrar cuando entra
         });
       },
       { threshold: [0, 0.1, 0.5, 1], rootMargin: '0px' }
@@ -137,7 +136,7 @@ export default function Home() {
     };
   }, []);
 
-  // Intersection Observer para el icono de la sección CTA - solo aparece en el centro vertical del viewport
+  // Intersection Observer para el icono de la sección CTA - permanece visible una vez mostrado
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -150,9 +149,8 @@ export default function Home() {
           // Verificar si el centro del elemento está cerca del centro del viewport (±100px)
           if (entry.isIntersecting && Math.abs(elementCenterY - centerY) < 100) {
             setCtaIconVisible(true);
-          } else {
-            setCtaIconVisible(false);
           }
+          // No ocultar cuando sale del viewport, solo mostrar cuando entra
         });
       },
       { threshold: [0, 0.1, 0.5, 1], rootMargin: '0px' }
@@ -166,6 +164,31 @@ export default function Home() {
     return () => {
       if (ctaIconElement) {
         observer.unobserve(ctaIconElement);
+      }
+    };
+  }, []);
+
+  // Intersection Observer para el worker del footer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setFooterWorkerVisible(true);
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px' }
+    );
+
+    const footerWorkerElement = document.getElementById('footer-worker');
+    if (footerWorkerElement) {
+      observer.observe(footerWorkerElement);
+    }
+
+    return () => {
+      if (footerWorkerElement) {
+        observer.unobserve(footerWorkerElement);
       }
     };
   }, []);
@@ -327,8 +350,8 @@ export default function Home() {
               {/* Icono redondo sobre fondo primary - mitad dentro mitad fuera */}
               <div id="activation-icon" className="flex justify-center relative z-20" style={{ marginTop: '-105px', paddingBottom: '60px' }}>
                 <div 
-                  className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${iconVisible ? 'icon-roll-in' : 'icon-roll-out'}`}
-                  style={{ backgroundColor: '#5DE1E5' }}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${iconVisible ? 'icon-roll-in' : ''}`}
+                  style={{ backgroundColor: '#5DE1E5', opacity: iconVisible ? 1 : 0 }}
                 >
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -523,8 +546,8 @@ export default function Home() {
             {/* Icono redondo encima del título */}
             <div id="agents-icon" className="flex justify-center relative z-20 mb-4" style={{ marginTop: '-105px', paddingBottom: '20px' }}>
               <div 
-                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${agentsIconVisible ? 'icon-roll-in' : 'icon-roll-out'}`}
-                style={{ backgroundColor: '#5DE1E5' }}
+                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${agentsIconVisible ? 'icon-roll-in' : ''}`}
+                style={{ backgroundColor: '#5DE1E5', opacity: agentsIconVisible ? 1 : 0 }}
               >
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -701,8 +724,8 @@ export default function Home() {
             {/* Icono redondo encima del título */}
             <div id="cta-icon" className="flex justify-center relative z-20 mb-4" style={{ marginTop: '-105px', paddingBottom: '20px' }}>
               <div 
-                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${ctaIconVisible ? 'icon-roll-in' : 'icon-roll-out'}`}
-                style={{ backgroundColor: '#5DE1E5', border: '5px solid white' }}
+                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${ctaIconVisible ? 'icon-roll-in' : ''}`}
+                style={{ backgroundColor: '#5DE1E5', border: '5px solid white', opacity: ctaIconVisible ? 1 : 0 }}
               >
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -746,17 +769,17 @@ export default function Home() {
             <div></div>
 
             {/* Worker2b.png - Tercera columna */}
-            <div className="relative overflow-visible flex items-end">
+            <div id="footer-worker" className="relative overflow-visible flex items-end">
               <div className="h-48 overflow-hidden mb-6 relative w-full" style={{ marginTop: '-80px' }}>
                 <img 
                   src="/public-img/worker2b.png" 
                   alt="Worker 2b" 
-                  className={`w-full h-full object-cover object-top ${agentsVisible ? 'slide-up' : ''}`}
+                  className={`w-full h-full object-cover object-top ${footerWorkerVisible ? 'slide-up' : ''}`}
                   style={{ 
                     objectPosition: 'center top', 
-                    clipPath: agentsVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
-                    transition: agentsVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-                    opacity: agentsVisible ? 1 : 0
+                    clipPath: footerWorkerVisible ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
+                    transition: footerWorkerVisible ? 'clip-path 1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                    opacity: footerWorkerVisible ? 1 : 0
                   }}
                 />
               </div>
