@@ -1273,7 +1273,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setShowContactModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full my-8 relative" onClick={(e) => e.stopPropagation()}>
             {/* Imagen worker1b.png flotante - 20% más grande */}
-            <div className="absolute top-0 left-[-80px] w-[260px] h-[260px] float-slow hidden lg:block" style={{ zIndex: 999 }}>
+            <div className="absolute w-[260px] h-[260px] float-slow hidden lg:block" style={{ zIndex: 999, top: '65px', left: '-157px' }}>
               <ImageWithSkeleton
                 src="/public-img/worker1b.png"
                 alt="Worker"
