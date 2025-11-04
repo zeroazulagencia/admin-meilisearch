@@ -16,6 +16,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'select' | 'configure' | 'describe'>('select');
   const [agentsVisible, setAgentsVisible] = useState(false);
   const [iconVisible, setIconVisible] = useState(false);
+  const [agentsIconVisible, setAgentsIconVisible] = useState(false);
 
   // Si está autenticado, redirigir al dashboard
   useEffect(() => {
@@ -92,6 +93,33 @@ export default function Home() {
     return () => {
       if (iconElement) {
         observer.unobserve(iconElement);
+      }
+    };
+  }, []);
+
+  // Intersection Observer para el icono de la sección de agentes
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setAgentsIconVisible(true);
+          } else {
+            setAgentsIconVisible(false);
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px' }
+    );
+
+    const agentsIconElement = document.getElementById('agents-icon');
+    if (agentsIconElement) {
+      observer.observe(agentsIconElement);
+    }
+
+    return () => {
+      if (agentsIconElement) {
+        observer.unobserve(agentsIconElement);
       }
     };
   }, []);
@@ -251,7 +279,7 @@ export default function Home() {
           {/* Contenedor principal del contenido */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
               {/* Icono redondo sobre fondo primary - mitad dentro mitad fuera */}
-              <div id="activation-icon" className="flex justify-center relative z-20" style={{ marginTop: '-120px', paddingBottom: '60px' }}>
+              <div id="activation-icon" className="flex justify-center relative z-20" style={{ marginTop: '-105px', paddingBottom: '60px' }}>
                 <div 
                   className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${iconVisible ? 'icon-roll-in' : 'icon-roll-out'}`}
                   style={{ backgroundColor: '#5DE1E5' }}
@@ -442,6 +470,17 @@ export default function Home() {
         {/* Sección 4: Tipos de Agentes Digitales */}
         <section id="agents-section" className="py-20 bg-white border-t border-gray-200">
           <div className="max-w-6xl mx-auto">
+            {/* Icono redondo encima del título */}
+            <div id="agents-icon" className="flex justify-center relative z-20 mb-4" style={{ marginTop: '-105px', paddingBottom: '20px' }}>
+              <div 
+                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-1000 ease-out ${agentsIconVisible ? 'icon-roll-in' : 'icon-roll-out'}`}
+                style={{ backgroundColor: '#5DE1E5' }}
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            </div>
             <div className="text-center mb-12">
               <h2 className="font-raleway text-4xl font-bold text-gray-900 mb-4">
                 Explora los agentes digitales favoritos de las empresas
@@ -642,16 +681,19 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Worker2b.png */}
-            <div className="relative overflow-visible">
-              <div className="h-48 overflow-hidden mb-6 relative" style={{ marginTop: '-80px' }}>
+            {/* Columna vacía 2 */}
+            <div></div>
+
+            {/* Worker2b.png - Tercera columna */}
+            <div className="relative overflow-visible flex items-end">
+              <div className="w-full relative" style={{ marginBottom: '0px' }}>
                 <img 
                   src="/public-img/worker2b.png" 
                   alt="Worker 2b" 
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-auto object-contain object-bottom"
                   style={{ 
-                    objectPosition: 'center top', 
-                    clipPath: 'inset(0 0 0% 0)',
+                    objectPosition: 'center bottom',
+                    maxHeight: '400px',
                   }}
                 />
               </div>
