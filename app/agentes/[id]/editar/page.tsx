@@ -27,6 +27,7 @@ interface AgentDB {
   knowledge?: any;
   workflows?: any;
   conversation_agent_name?: string;
+  reports_agent_name?: string;
 }
 
 export default function EditarAgente() {
@@ -53,6 +54,9 @@ export default function EditarAgente() {
   const [availableConversationAgents, setAvailableConversationAgents] = useState<string[]>([]);
   const [loadingConversationAgents, setLoadingConversationAgents] = useState(false);
   const [selectedConversationAgent, setSelectedConversationAgent] = useState<string>('');
+  const [availableReportAgents, setAvailableReportAgents] = useState<string[]>([]);
+  const [loadingReportAgents, setLoadingReportAgents] = useState(false);
+  const [selectedReportAgent, setSelectedReportAgent] = useState<string>('');
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
@@ -103,6 +107,7 @@ export default function EditarAgente() {
             setSelectedWorkflows([]);
           }
           setSelectedConversationAgent(agent.conversation_agent_name || '');
+          setSelectedReportAgent(agent.reports_agent_name || '');
         } else {
           router.push('/agentes');
         }
@@ -118,7 +123,40 @@ export default function EditarAgente() {
     loadIndexes();
     loadWorkflows();
     loadConversationAgents();
+    loadReportAgents();
   }, []);
+
+  const loadReportAgents = async () => {
+    setLoadingReportAgents(true);
+    try {
+      const INDEX_UID = 'bd_reports_dworkers';
+      const uniqueAgents = new Set<string>();
+      let currentOffset = 0;
+      const batchLimit = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
+        data.results.forEach((doc: any) => {
+          if (doc.agent && typeof doc.agent === 'string') {
+            uniqueAgents.add(doc.agent);
+          }
+        });
+        if (data.results.length < batchLimit) {
+          hasMore = false;
+        } else {
+          currentOffset += batchLimit;
+        }
+      }
+      
+      const sortedAgents = Array.from(uniqueAgents).sort();
+      setAvailableReportAgents(sortedAgents);
+    } catch (error) {
+      console.error('Error loading report agents:', error);
+    } finally {
+      setLoadingReportAgents(false);
+    }
+  };
 
   const loadConversationAgents = async () => {
     setLoadingConversationAgents(true);
@@ -210,7 +248,8 @@ export default function EditarAgente() {
           photo: formData.photo,
           knowledge: { indexes: selectedIndexes },
           workflows: { workflowIds: selectedWorkflows },
-          conversation_agent_name: selectedConversationAgent || null
+          conversation_agent_name: selectedConversationAgent || null,
+          reports_agent_name: selectedReportAgent || null
         })
       });
       const data = await res.json();
@@ -403,6 +442,41 @@ export default function EditarAgente() {
                 {selectedConversationAgent && (
                   <p className="mt-2 text-sm text-gray-500">
                     Este agente se asociará con las conversaciones del agente &quot;<strong>{selectedConversationAgent}</strong>&quot; en la base de datos.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Identificador de Informes */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Identificador de Informes</h2>
+            
+            {loadingReportAgents ? (
+              <div className="flex items-center gap-2 text-gray-600">
+                <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                <p>Cargando agentes de informes...</p>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Agente para Informes
+                </label>
+                <select
+                  value={selectedReportAgent}
+                  onChange={(e) => setSelectedReportAgent(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Seleccionar agente de informes...</option>
+                  {availableReportAgents.map((agent) => (
+                    <option key={agent} value={agent}>
+                      {agent}
+                    </option>
+                  ))}
+                </select>
+                {selectedReportAgent && (
+                  <p className="mt-2 text-sm text-gray-500">
+                    Este agente se asociará con los informes del agente &quot;<strong>{selectedReportAgent}</strong>&quot; en la base de datos.
                   </p>
                 )}
               </div>

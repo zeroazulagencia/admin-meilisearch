@@ -1,5 +1,5 @@
 -- Admin Dworkers - Base de Datos MySQL
--- Versión: v18.7
+-- Versión: v18.8
 
 -- Crear base de datos si no existe
 CREATE DATABASE IF NOT EXISTS admin_dworkers CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -32,12 +32,20 @@ CREATE TABLE IF NOT EXISTS agents (
     phone VARCHAR(50),
     agent_code VARCHAR(100) UNIQUE,
     status ENUM('active', 'inactive', 'pending') DEFAULT 'active',
+    description TEXT,
+    photo VARCHAR(500),
+    knowledge JSON,
+    workflows JSON,
+    conversation_agent_name VARCHAR(255),
+    reports_agent_name VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE,
     INDEX idx_client_id (client_id),
     INDEX idx_status (status),
-    INDEX idx_agent_code (agent_code)
+    INDEX idx_agent_code (agent_code),
+    INDEX idx_conversation_agent_name (conversation_agent_name),
+    INDEX idx_reports_agent_name (reports_agent_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insertar datos de ejemplo (opcional)

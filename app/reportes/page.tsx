@@ -20,6 +20,7 @@ interface AgentDB {
   description?: string;
   photo?: string;
   conversation_agent_name?: string;
+  reports_agent_name?: string;
 }
 
 export default function Reportes() {
@@ -49,8 +50,8 @@ export default function Reportes() {
   useEffect(() => {
     if (selectedPlatformAgent !== 'all' && selectedPlatformAgent) {
       const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
-      if (agent?.conversation_agent_name) {
-        setSelectedAgent(agent.conversation_agent_name);
+      if (agent?.reports_agent_name) {
+        setSelectedAgent(agent.reports_agent_name);
       }
     } else {
       setSelectedAgent('all');
@@ -242,7 +243,7 @@ export default function Reportes() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const agentInfo = allPlatformAgents.find(a => a.conversation_agent_name === selectedReport.agent);
+    const agentInfo = allPlatformAgents.find(a => a.reports_agent_name === selectedReport.agent);
     const agentName = agentInfo?.name || selectedReport.agent;
 
     printWindow.document.write(`
@@ -357,7 +358,7 @@ export default function Reportes() {
               <option value="all">Todos los agentes</option>
               {allPlatformAgents.map((agent) => (
                 <option key={agent.id} value={agent.id.toString()}>
-                  {agent.name} {agent.conversation_agent_name ? `(${agent.conversation_agent_name})` : '(sin identificar)'}
+                  {agent.name} {agent.reports_agent_name ? `(${agent.reports_agent_name})` : '(sin identificar)'}
                 </option>
               ))}
             </select>
@@ -379,8 +380,8 @@ export default function Reportes() {
                         {agent.description && (
                           <p className="text-sm text-gray-500">{agent.description}</p>
                         )}
-                        {agent.conversation_agent_name && (
-                          <p className="text-xs text-gray-400">ID: {agent.conversation_agent_name}</p>
+                        {agent.reports_agent_name && (
+                          <p className="text-xs text-gray-400">ID: {agent.reports_agent_name}</p>
                         )}
                       </div>
                     </>
@@ -567,7 +568,7 @@ export default function Reportes() {
               
               {/* Información del Agente */}
               {(() => {
-                const agentInfo = allPlatformAgents.find(a => a.conversation_agent_name === selectedReport.agent);
+                const agentInfo = allPlatformAgents.find(a => a.reports_agent_name === selectedReport.agent);
                 const agentName = agentInfo?.name || selectedReport.agent;
                 return (
                   <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
@@ -612,7 +613,7 @@ export default function Reportes() {
                   {/* Footer con información del creador */}
                   <div className="mt-8 pt-6 border-t border-gray-200">
                     {(() => {
-                      const agentInfo = allPlatformAgents.find(a => a.conversation_agent_name === selectedReport.agent);
+                      const agentInfo = allPlatformAgents.find(a => a.reports_agent_name === selectedReport.agent);
                       const agentName = agentInfo?.name || selectedReport.agent;
                       return (
                         <div className="flex items-center gap-3">

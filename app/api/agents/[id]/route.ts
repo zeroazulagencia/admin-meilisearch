@@ -6,7 +6,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const [rows] = await query<any>(
-      'SELECT id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name FROM agents WHERE id = ? LIMIT 1',
+      'SELECT id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name, reports_agent_name FROM agents WHERE id = ? LIMIT 1',
       [id]
     );
     if (!rows || rows.length === 0) {
@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const body = await req.json();
     await query(
-      'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, email = ?, phone = ?, agent_code = ?, knowledge = ?, workflows = ?, conversation_agent_name = ? WHERE id = ?',
+      'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, email = ?, phone = ?, agent_code = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ? WHERE id = ?',
       [
         body.client_id,
         body.name,
@@ -36,6 +36,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         JSON.stringify(body.knowledge || {}),
         JSON.stringify(body.workflows || {}),
         body.conversation_agent_name || null,
+        body.reports_agent_name || null,
         id
       ]
     );

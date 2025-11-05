@@ -5,7 +5,7 @@ import { query } from '@/utils/db';
 export async function GET() {
   try {
     const [rows] = await query<any>(
-      'SELECT id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name FROM agents ORDER BY id'
+      'SELECT id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name, reports_agent_name FROM agents ORDER BY id'
     );
     return NextResponse.json({ ok: true, agents: rows });
   } catch (e: any) {
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const [result] = await query<any>(
-      'INSERT INTO agents (client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO agents (client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name, reports_agent_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         body.client_id,
         body.name,
@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
         'active',
         JSON.stringify(body.knowledge || {}),
         JSON.stringify(body.workflows || {}),
-        body.conversation_agent_name || null
+        body.conversation_agent_name || null,
+        body.reports_agent_name || null
       ]
     );
     const insertResult = result as any;
