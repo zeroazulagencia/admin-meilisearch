@@ -6,6 +6,7 @@ export const routePermissions: Record<string, string> = {
   '/conversaciones': 'conversaciones',
   '/reportes': 'reportes',
   '/whatsapp-manager': 'whatsappManager',
+  '/facturacion': 'facturacion',
   '/consumo-api': 'consumoApi',
   '/clientes': 'clientes',
   '/agentes': 'agentes',

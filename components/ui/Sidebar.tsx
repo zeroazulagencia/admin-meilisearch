@@ -14,6 +14,7 @@ import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   DocumentTextIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 import SidebarItem from './SidebarItem';
 import settings from '@/settings.json';
@@ -88,6 +89,7 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     { href: '/conversaciones', label: 'Conversaciones', perm: 'conversaciones', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
     { href: '/reportes', label: 'Reportes', perm: 'reportes', icon: <DocumentTextIcon className="w-5 h-5" /> },
     { href: '/whatsapp-manager', label: 'WhatsApp Manager', perm: 'whatsappManager', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
+    { href: '/facturacion', label: 'Facturación', perm: 'facturacion', icon: <CurrencyDollarIcon className="w-5 h-5" /> },
     { href: '/consumo-api', label: 'Consumo API', perm: 'consumoApi', icon: <ChartBarIcon className="w-5 h-5" /> },
     { href: '/clientes', label: 'Clientes', perm: 'clientes', icon: <UsersIcon className="w-5 h-5" /> },
     { href: '/agentes', label: 'Agentes', perm: 'agentes', icon: <UserGroupIcon className="w-5 h-5" /> },
