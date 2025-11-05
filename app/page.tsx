@@ -26,6 +26,7 @@ function ImageWithSkeleton({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
   const imgRef = useRef<HTMLImageElement>(null);
+  const hasLoadedRef = useRef(false); // Ref para rastrear si la imagen ya se cargó exitosamente
 
   useEffect(() => {
     // Si showWhenVisible es false, no cargar hasta que sea true
@@ -33,14 +34,24 @@ function ImageWithSkeleton({
       return;
     }
     
-    // Resetear estados al cambiar src
-    setImageLoaded(false);
-    setShowSkeleton(true);
+    // Si la imagen ya se cargó exitosamente antes, no resetear el estado
+    if (hasLoadedRef.current) {
+      setImageLoaded(true);
+      setShowSkeleton(false);
+      return;
+    }
+    
+    // Solo resetear estados si la imagen aún no se ha cargado
+    if (!hasLoadedRef.current) {
+      setImageLoaded(false);
+      setShowSkeleton(true);
+    }
     
     // Precargar imagen
     const img = new Image();
     img.src = src;
     img.onload = () => {
+      hasLoadedRef.current = true; // Marcar que la imagen ya se cargó
       setImageLoaded(true);
       setShowSkeleton(false);
       if (onLoad) onLoad();
@@ -53,6 +64,7 @@ function ImageWithSkeleton({
   }, [src, onLoad, showWhenVisible]);
 
   const handleImageLoad = () => {
+    hasLoadedRef.current = true; // Marcar que la imagen ya se cargó
     setShowSkeleton(false);
     setImageLoaded(true);
   };
