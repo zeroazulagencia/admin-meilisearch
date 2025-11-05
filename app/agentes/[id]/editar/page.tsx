@@ -238,6 +238,7 @@ export default function EditarAgente() {
     e.preventDefault();
     if (!currentAgent) return;
     try {
+      console.log('[EDIT AGENT] Submitting with reports_agent_name:', selectedReportAgent);
       const res = await fetch(`/api/agents/${currentAgent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -253,9 +254,24 @@ export default function EditarAgente() {
         })
       });
       const data = await res.json();
+      console.log('[EDIT AGENT] Response:', data);
       if (!data.ok) throw new Error(data.error || 'Error al actualizar');
+      
+      // Mostrar warning si existe
+      if (data.warning) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Advertencia',
+          message: data.warning,
+          type: 'warning',
+        });
+        // No redirigir si hay warning, para que el usuario pueda ver el mensaje
+        return;
+      }
+      
       router.push('/agentes');
     } catch (err: any) {
+      console.error('[EDIT AGENT] Error:', err);
       setAlertModal({
         isOpen: true,
         title: 'Error',

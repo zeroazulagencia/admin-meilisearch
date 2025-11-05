@@ -39,6 +39,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const body = await req.json();
+    console.log('[API AGENTS] PUT request body:', JSON.stringify(body, null, 2));
+    console.log('[API AGENTS] reports_agent_name value:', body.reports_agent_name);
+    
     // Primero intentar con reports_agent_name, si falla intentar sin él
     try {
       await query(
@@ -58,10 +61,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           id
         ]
       );
+      console.log('[API AGENTS] Successfully updated with reports_agent_name');
       return NextResponse.json({ ok: true });
     } catch (e: any) {
       // Si falla, probablemente la columna reports_agent_name no existe, intentar sin ella
       console.log('[API AGENTS] Error updating with reports_agent_name, trying without it:', e?.message);
+      console.log('[API AGENTS] WARNING: reports_agent_name will not be saved because column does not exist');
+      
+      // Intentar actualizar sin reports_agent_name
       await query(
         'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, email = ?, phone = ?, agent_code = ?, knowledge = ?, workflows = ?, conversation_agent_name = ? WHERE id = ?',
         [
@@ -78,7 +85,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           id
         ]
       );
-      return NextResponse.json({ ok: true });
+      
+      // Retornar un warning pero éxito, para que el usuario sepa que necesita ejecutar la migración
+      return NextResponse.json({ 
+        ok: true, 
+        warning: 'La columna reports_agent_name no existe en la base de datos. Ejecuta la migración SQL para habilitar esta funcionalidad.' 
+      });
     }
   } catch (e: any) {
     console.error('[API AGENTS] Error updating agent:', e?.message || e);
