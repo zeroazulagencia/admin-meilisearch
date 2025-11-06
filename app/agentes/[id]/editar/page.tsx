@@ -369,9 +369,9 @@ export default function EditarAgente() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="space-y-12">
+        <div className="space-y-16">
           {/* Información del Agente */}
-          <div className="border-b border-gray-900/10 pb-12">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
             <h2 className="text-base/7 font-semibold text-gray-900">Información General</h2>
             <p className="mt-1 text-sm/6 text-gray-600">
               Información básica del agente que será visible en el sistema.
@@ -474,7 +474,7 @@ export default function EditarAgente() {
           </div>
 
           {/* Identificadores */}
-          <div className="border-b border-gray-900/10 pb-12">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
             <h2 className="text-base/7 font-semibold text-gray-900">Identificadores</h2>
             <p className="mt-1 text-sm/6 text-gray-600">
               Configura los identificadores para asociar conversaciones e informes con este agente.
@@ -554,7 +554,7 @@ export default function EditarAgente() {
           </div>
 
           {/* Conocimiento y Flujos */}
-          <div className="border-b border-gray-900/10 pb-12">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
             <h2 className="text-base/7 font-semibold text-gray-900">Conocimiento y Flujos</h2>
             <p className="mt-1 text-sm/6 text-gray-600">
               Configura los índices de conocimiento y los flujos de n8n disponibles para este agente.
@@ -750,7 +750,7 @@ export default function EditarAgente() {
           </div>
 
           {/* WhatsApp */}
-          <div className="border-b border-gray-900/10 pb-12">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
             <h2 className="text-base/7 font-semibold text-gray-900">WhatsApp Business API</h2>
             <p className="mt-1 text-sm/6 text-gray-600">
               Configuración para interactuar con la API de Meta WhatsApp Business.
