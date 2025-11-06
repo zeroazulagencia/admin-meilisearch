@@ -112,11 +112,20 @@ export default function EditarCliente() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    if (!currentClient) return;
+    console.log('[EDITAR CLIENTE] handleSubmit llamado');
+    console.log('[EDITAR CLIENTE] currentClient:', currentClient);
+    console.log('[EDITAR CLIENTE] formData:', formData);
+    
+    if (!currentClient) {
+      console.error('[EDITAR CLIENTE] No hay currentClient');
+      return;
+    }
 
     // Validar email
     if (formData.email && !validateEmail(formData.email)) {
+      console.log('[EDITAR CLIENTE] Email inválido:', formData.email);
       setEmailError('Por favor ingresa un email válido');
       setAlertModal({
         isOpen: true,
@@ -127,6 +136,8 @@ export default function EditarCliente() {
       return;
     }
     setEmailError('');
+    
+    console.log('[EDITAR CLIENTE] Validación pasada, procediendo a enviar');
 
     try {
       console.log('[EDITAR CLIENTE] Enviando datos:', {
