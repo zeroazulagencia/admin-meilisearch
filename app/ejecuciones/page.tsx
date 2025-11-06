@@ -471,7 +471,20 @@ export default function Ejecuciones() {
 
   return (
     <ProtectedLayout>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Ejecuciones n8n</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Ejecuciones</h1>
+        <a
+          href="https://automation.zeroazul.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+          title="Abrir automation.zeroazul.com"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+        </a>
+      </div>
 
       {/* Selector de Agente */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
