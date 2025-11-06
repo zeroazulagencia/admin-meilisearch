@@ -255,12 +255,12 @@ export default function Reportes() {
       const agentInfo = allPlatformAgents.find(a => a.reports_agent_name === selectedReport.agent);
       const agentName = agentInfo?.name || selectedReport.agent;
 
-    // Procesar el HTML para convertir degradados y estilos incompatibles
-    let processedHtml = reportHtml;
-    
-    // Crear un parser DOM temporal para procesar el HTML correctamente
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(reportHtml, 'text/html');
+      // Procesar el HTML para convertir degradados y estilos incompatibles
+      let processedHtml = reportHtml;
+      
+      // Crear un parser DOM temporal para procesar el HTML correctamente
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(reportHtml, 'text/html');
     
     // Función para extraer el primer color de un gradiente
     const getFirstColorFromGradient = (gradient: string): string => {
@@ -340,55 +340,54 @@ export default function Reportes() {
       }
     });
     
-    // Obtener el HTML procesado
-    processedHtml = doc.body.innerHTML;
+      // Obtener el HTML procesado
+      processedHtml = doc.body.innerHTML;
 
-    // Crear un elemento temporal fuera de la vista para renderizar el PDF
-    const pdfContainer = document.createElement('div');
-    pdfContainer.style.position = 'absolute';
-    pdfContainer.style.left = '-9999px';
-    pdfContainer.style.top = '0';
-    // Tamaño carta: 8.5 x 11 pulgadas = 816 x 1056 píxeles a 96dpi
-    // Usamos un ancho más eficiente para el contenido
-    pdfContainer.style.width = '816px';
-    pdfContainer.style.backgroundColor = '#f5f5f5';
-    pdfContainer.style.padding = '0';
-    pdfContainer.style.margin = '0';
-    pdfContainer.innerHTML = `
-      <div class="pdf-container" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin: 0; width: 100%; max-width: 100%; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif; color: #1f2937;">
-        <div class="pdf-header" style="margin-top: 0; padding-top: 0; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
-          <img src="${window.location.origin}/public-img/logo-dworkers.png" alt="DWORKERS" style="max-width: 180px; height: auto; margin-top: 0; margin-bottom: 12px; display: block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
-          <div style="display: none; font-size: 24px; font-weight: bold; color: #111827; margin-top: 0;">DWORKERS</div>
-        </div>
-        <div class="content" style="margin-top: 0; padding-top: 0; line-height: 1.6; width: 100%; max-width: 100%; box-sizing: border-box;">
-          ${processedHtml}
-        </div>
-        <div class="agent-info" style="margin-top: 30px; padding-top: 25px; border-top: 2px solid #e5e7eb; display: flex; align-items: flex-start; gap: 20px; background: #f9fafb; padding: 20px; border-radius: 8px;">
-          ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex-shrink: 0;" />` : `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; width: 80px; height: 80px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold; flex-shrink: 0;">${agentName.charAt(0).toUpperCase()}</div>`}
-          <div style="flex: 1;">
-            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;">Generado por</div>
-            <div style="font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 12px; line-height: 1.3;">${agentName}</div>
-            ${agentInfo?.description ? `<div style="font-size: 13px; color: #4b5563; line-height: 1.6; margin-bottom: 15px;">${agentInfo.description}</div>` : ''}
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
-              <div style="font-size: 12px; color: #6b7280; line-height: 1.5; margin-bottom: 5px;">
-                Este reporte fue generado automáticamente por un agente de inteligencia artificial.
-              </div>
-              <div style="font-size: 12px; color: #6b7280; line-height: 1.5; margin-bottom: 5px;">
-                Para más información, visita: 
-                <span style="color: #3b82f6; font-weight: 500;">dworkers.zeroazul.com</span>
-              </div>
-              <div style="font-size: 11px; color: #9ca3af; margin-top: 8px; font-style: italic;">
-                DWORKERS - Empleados Digitales con Inteligencia Artificial
+      // Crear un elemento temporal fuera de la vista para renderizar el PDF
+      const pdfContainer = document.createElement('div');
+      pdfContainer.style.position = 'absolute';
+      pdfContainer.style.left = '-9999px';
+      pdfContainer.style.top = '0';
+      // Tamaño carta: 8.5 x 11 pulgadas = 816 x 1056 píxeles a 96dpi
+      // Usamos un ancho más eficiente para el contenido
+      pdfContainer.style.width = '816px';
+      pdfContainer.style.backgroundColor = '#f5f5f5';
+      pdfContainer.style.padding = '0';
+      pdfContainer.style.margin = '0';
+      pdfContainer.innerHTML = `
+        <div class="pdf-container" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin: 0; width: 100%; max-width: 100%; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif; color: #1f2937;">
+          <div class="pdf-header" style="margin-top: 0; padding-top: 0; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
+            <img src="${window.location.origin}/public-img/logo-dworkers.png" alt="DWORKERS" style="max-width: 180px; height: auto; margin-top: 0; margin-bottom: 12px; display: block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+            <div style="display: none; font-size: 24px; font-weight: bold; color: #111827; margin-top: 0;">DWORKERS</div>
+          </div>
+          <div class="content" style="margin-top: 0; padding-top: 0; line-height: 1.6; width: 100%; max-width: 100%; box-sizing: border-box;">
+            ${processedHtml}
+          </div>
+          <div class="agent-info" style="margin-top: 30px; padding-top: 25px; border-top: 2px solid #e5e7eb; display: flex; align-items: flex-start; gap: 20px; background: #f9fafb; padding: 20px; border-radius: 8px;">
+            ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex-shrink: 0;" />` : `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; width: 80px; height: 80px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold; flex-shrink: 0;">${agentName.charAt(0).toUpperCase()}</div>`}
+            <div style="flex: 1;">
+              <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;">Generado por</div>
+              <div style="font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 12px; line-height: 1.3;">${agentName}</div>
+              ${agentInfo?.description ? `<div style="font-size: 13px; color: #4b5563; line-height: 1.6; margin-bottom: 15px;">${agentInfo.description}</div>` : ''}
+              <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+                <div style="font-size: 12px; color: #6b7280; line-height: 1.5; margin-bottom: 5px;">
+                  Este reporte fue generado automáticamente por un agente de inteligencia artificial.
+                </div>
+                <div style="font-size: 12px; color: #6b7280; line-height: 1.5; margin-bottom: 5px;">
+                  Para más información, visita: 
+                  <span style="color: #3b82f6; font-weight: 500;">dworkers.zeroazul.com</span>
+                </div>
+                <div style="font-size: 11px; color: #9ca3af; margin-top: 8px; font-style: italic;">
+                  DWORKERS - Empleados Digitales con Inteligencia Artificial
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    `;
-    
-    document.body.appendChild(pdfContainer);
+      `;
+      
+      document.body.appendChild(pdfContainer);
 
-    try {
       // Esperar a que las imágenes se carguen
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -405,7 +404,6 @@ export default function Reportes() {
       });
 
       // Crear PDF con jsPDF en tamaño carta (letter)
-      const imgData = canvas.toDataURL('image/jpeg', 0.85); // JPEG con calidad 85% para reducir peso
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -419,14 +417,13 @@ export default function Reportes() {
       
       // Calcular ratio para que el contenido use todo el ancho de la página
       const widthRatio = pdfWidth / imgWidth;
-      const heightRatio = pdfHeight / imgHeight;
-      const ratio = Math.min(widthRatio, heightRatio);
+      const ratio = widthRatio; // Usar solo el ratio de ancho para mantener proporciones
       
       const imgScaledWidth = imgWidth * ratio;
       const imgScaledHeight = imgHeight * ratio;
 
-      // Convertir altura de página a píxeles (considerando el ratio)
-      const pageHeightInPixels = pdfHeight / ratio;
+      // Convertir altura de página a píxeles del canvas original (sin escalar)
+      const pageHeightInOriginalPixels = pdfHeight / ratio;
       
       // Dividir la imagen en páginas
       let yPosition = 0;
@@ -439,7 +436,7 @@ export default function Reportes() {
 
         // Calcular cuánto de la imagen cabe en esta página
         const remainingHeight = imgHeight - yPosition;
-        const heightForThisPage = Math.min(pageHeightInPixels, remainingHeight);
+        const heightForThisPage = Math.min(pageHeightInOriginalPixels, remainingHeight);
         
         // Crear un canvas temporal para esta porción de la imagen
         const pageCanvas = document.createElement('canvas');
@@ -463,7 +460,7 @@ export default function Reportes() {
           pdf.addImage(pageImgData, 'JPEG', 0, 0, imgScaledWidth, pageScaledHeight);
         }
         
-        yPosition += pageHeightInPixels;
+        yPosition += pageHeightInOriginalPixels;
         pageNumber++;
       }
 
