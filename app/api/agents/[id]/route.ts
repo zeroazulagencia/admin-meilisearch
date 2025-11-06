@@ -8,7 +8,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Primero intentar con reports_agent_name, si falla intentar sin él
     try {
       const [rows] = await query<any>(
-        'SELECT id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name, reports_agent_name FROM agents WHERE id = ? LIMIT 1',
+        'SELECT id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name, reports_agent_name, whatsapp_business_account_id, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret FROM agents WHERE id = ? LIMIT 1',
         [id]
       );
       if (!rows || rows.length === 0) {
@@ -25,8 +25,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       if (!rows || rows.length === 0) {
         return NextResponse.json({ ok: false, error: 'Agente no encontrado' }, { status: 404 });
       }
-      // Agregar reports_agent_name como null para compatibilidad
-      return NextResponse.json({ ok: true, agent: { ...rows[0], reports_agent_name: null } });
+      // Agregar campos faltantes como null para compatibilidad
+      return NextResponse.json({ 
+        ok: true, 
+        agent: { 
+          ...rows[0], 
+          reports_agent_name: null,
+          whatsapp_business_account_id: null,
+          whatsapp_phone_number_id: null,
+          whatsapp_access_token: null,
+          whatsapp_webhook_verify_token: null,
+          whatsapp_app_secret: null
+        } 
+      });
     }
   } catch (e: any) {
     console.error('[API AGENTS] Error loading agent:', e?.message || e);
@@ -45,7 +56,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Primero intentar con reports_agent_name, si falla intentar sin él
     try {
       await query(
-        'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, email = ?, phone = ?, agent_code = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ? WHERE id = ?',
+        'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, email = ?, phone = ?, agent_code = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ?, whatsapp_business_account_id = ?, whatsapp_phone_number_id = ?, whatsapp_access_token = ?, whatsapp_webhook_verify_token = ?, whatsapp_app_secret = ? WHERE id = ?',
         [
           body.client_id,
           body.name,
@@ -58,6 +69,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           JSON.stringify(body.workflows || {}),
           body.conversation_agent_name || null,
           body.reports_agent_name || null,
+          body.whatsapp_business_account_id || null,
+          body.whatsapp_phone_number_id || null,
+          body.whatsapp_access_token || null,
+          body.whatsapp_webhook_verify_token || null,
+          body.whatsapp_app_secret || null,
           id
         ]
       );

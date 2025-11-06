@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { meilisearchAPI, Index } from '@/utils/meilisearch';
 import { n8nAPI, Workflow } from '@/utils/n8n';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AlertModal from '@/components/ui/AlertModal';
 import AgentSelector from '@/components/ui/AgentSelector';
+import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
+import { ChevronDownIcon } from '@heroicons/react/16/solid';
 
 interface Client {
   id: number;
@@ -29,6 +31,11 @@ interface AgentDB {
   workflows?: any;
   conversation_agent_name?: string;
   reports_agent_name?: string;
+  whatsapp_business_account_id?: string;
+  whatsapp_phone_number_id?: string;
+  whatsapp_access_token?: string;
+  whatsapp_webhook_verify_token?: string;
+  whatsapp_app_secret?: string;
 }
 
 export default function EditarAgente() {
@@ -40,9 +47,18 @@ export default function EditarAgente() {
     name: '',
     description: '',
     photo: '',
-    client_id: 0
+    client_id: 0,
+    email: '',
+    phone: '',
+    agent_code: '',
+    whatsapp_business_account_id: '',
+    whatsapp_phone_number_id: '',
+    whatsapp_access_token: '',
+    whatsapp_webhook_verify_token: '',
+    whatsapp_app_secret: ''
   });
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [availableIndexes, setAvailableIndexes] = useState<Index[]>([]);
   const [loadingIndexes, setLoadingIndexes] = useState(false);
   const [selectedIndexes, setSelectedIndexes] = useState<string[]>([]);
@@ -93,7 +109,15 @@ export default function EditarAgente() {
             name: agent.name,
             description: agent.description || '',
             photo: agent.photo || '',
-            client_id: agent.client_id
+            client_id: agent.client_id,
+            email: agent.email || '',
+            phone: agent.phone || '',
+            agent_code: agent.agent_code || '',
+            whatsapp_business_account_id: agent.whatsapp_business_account_id || '',
+            whatsapp_phone_number_id: agent.whatsapp_phone_number_id || '',
+            whatsapp_access_token: agent.whatsapp_access_token || '',
+            whatsapp_webhook_verify_token: agent.whatsapp_webhook_verify_token || '',
+            whatsapp_app_secret: agent.whatsapp_app_secret || ''
           });
           try {
             const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {});
@@ -225,6 +249,52 @@ export default function EditarAgente() {
     }
   };
 
+  const handleImageUpload = async (file: File) => {
+    if (file.size > 1 * 1024 * 1024) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Validación',
+        message: 'La imagen no puede ser mayor a 1 MB',
+        type: 'warning',
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      const response = await fetch('/api/upload-agent-avatar', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setFormData({ ...formData, photo: data.url });
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error',
+          message: data.error || 'Error al subir la imagen',
+          type: 'error',
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al subir la imagen',
+        type: 'error',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleToggleIndex = (indexId: string) => {
     setSelectedIndexes(prev => {
       if (prev.includes(indexId)) {
@@ -248,10 +318,18 @@ export default function EditarAgente() {
           name: formData.name,
           description: formData.description,
           photo: formData.photo,
+          email: formData.email || null,
+          phone: formData.phone || null,
+          agent_code: formData.agent_code || null,
           knowledge: { indexes: selectedIndexes },
           workflows: { workflowIds: selectedWorkflows },
           conversation_agent_name: selectedConversationAgent || null,
-          reports_agent_name: selectedReportAgent || null
+          reports_agent_name: selectedReportAgent || null,
+          whatsapp_business_account_id: formData.whatsapp_business_account_id || null,
+          whatsapp_phone_number_id: formData.whatsapp_phone_number_id || null,
+          whatsapp_access_token: formData.whatsapp_access_token || null,
+          whatsapp_webhook_verify_token: formData.whatsapp_webhook_verify_token || null,
+          whatsapp_app_secret: formData.whatsapp_app_secret || null
         })
       });
       const data = await res.json();
@@ -299,210 +377,250 @@ export default function EditarAgente() {
         <p className="mt-2 text-gray-600">Actualiza la información del agente y configura su conocimiento</p>
       </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-12">
           {/* Información del Agente */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Información General</h2>
+          <div className="border-b border-gray-900/10 pb-12">
+            <h2 className="text-base/7 font-semibold text-gray-900">Información General</h2>
+            <p className="mt-1 text-sm/6 text-gray-600">
+              Información básica del agente que será visible en el sistema.
+            </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+              <div className="sm:col-span-4">
+                <label htmlFor="name" className="block text-sm/6 font-medium text-gray-900">
                   Nombre *
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                />
+                <div className="mt-2">
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="sm:col-span-3">
+                <label htmlFor="client_id" className="block text-sm/6 font-medium text-gray-900">
                   Cliente *
                 </label>
-                <select
-                  required
-                  value={formData.client_id}
-                  onChange={(e) => setFormData({ ...formData, client_id: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                >
-                  <option value={0}>Seleccionar cliente</option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-2 grid grid-cols-1">
+                  <select
+                    id="client_id"
+                    name="client_id"
+                    required
+                    value={formData.client_id}
+                    onChange={(e) => setFormData({ ...formData, client_id: parseInt(e.target.value) })}
+                    className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                  >
+                    <option value={0}>Seleccionar cliente</option>
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDownIcon
+                    aria-hidden="true"
+                    className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4"
+                  />
+                </div>
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="col-span-full">
+                <label htmlFor="description" className="block text-sm/6 font-medium text-gray-900">
                   Descripción
                 </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                />
+                <div className="mt-2">
+                  <textarea
+                    id="description"
+                    name="description"
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                  />
+                </div>
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="col-span-full">
+                <label htmlFor="photo" className="block text-sm/6 font-medium text-gray-900">
                   Foto
                 </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  disabled={uploading}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                        if (file.size > 1 * 1024 * 1024) {
-                          setAlertModal({
-                            isOpen: true,
-                            title: 'Validación',
-                            message: 'La imagen no puede ser mayor a 1 MB',
-                            type: 'warning',
-                          });
-                          return;
-                        }
-
-                      setUploading(true);
-                      try {
-                        const uploadFormData = new FormData();
-                        uploadFormData.append('file', file);
-
-                        const response = await fetch('/api/upload-agent-avatar', {
-                          method: 'POST',
-                          body: uploadFormData
-                        });
-
-                        const data = await response.json();
-
-                        if (response.ok) {
-                          setFormData({ ...formData, photo: data.url });
-                        } else {
-                          setAlertModal({
-                            isOpen: true,
-                            title: 'Error',
-                            message: data.error || 'Error al subir la imagen',
-                            type: 'error',
-                          });
-                        }
-                      } catch (error) {
-                        console.error('Error uploading image:', error);
-                        setAlertModal({
-                          isOpen: true,
-                          title: 'Error',
-                          message: 'Error al subir la imagen',
-                          type: 'error',
-                        });
-                      } finally {
-                        setUploading(false);
+                <div className="mt-2 flex items-center gap-x-3">
+                  {formData.photo ? (
+                    <img src={formData.photo} alt="Avatar" className="size-12 rounded-full object-cover" />
+                  ) : (
+                    <UserCircleIcon aria-hidden="true" className="size-12 text-gray-300" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {uploading ? 'Subiendo...' : formData.photo ? 'Cambiar' : 'Subir'}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleImageUpload(file);
                       }
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                />
-                {formData.photo && (
-                  <div className="mt-2">
-                    <img
-                      src={formData.photo}
-                      alt="Preview"
-                      className="w-32 h-32 object-cover rounded-lg border border-gray-200"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Preview de la imagen</p>
-                  </div>
-                )}
-                {uploading && (
-                  <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
-                    <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                    Subiendo imagen...
-                  </div>
-                )}
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label htmlFor="email" className="block text-sm/6 font-medium text-gray-900">
+                  Email
+                </label>
+                <div className="mt-2">
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label htmlFor="phone" className="block text-sm/6 font-medium text-gray-900">
+                  Teléfono
+                </label>
+                <div className="mt-2">
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label htmlFor="agent_code" className="block text-sm/6 font-medium text-gray-900">
+                  Código de Agente
+                </label>
+                <div className="mt-2">
+                  <input
+                    id="agent_code"
+                    name="agent_code"
+                    type="text"
+                    value={formData.agent_code}
+                    onChange={(e) => setFormData({ ...formData, agent_code: e.target.value })}
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Identificador de Conversaciones */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Identificador de Conversaciones</h2>
+          {/* Identificadores */}
+          <div className="border-b border-gray-900/10 pb-12">
+            <h2 className="text-base/7 font-semibold text-gray-900">Identificadores</h2>
+            <p className="mt-1 text-sm/6 text-gray-600">
+              Configura los identificadores para asociar conversaciones e informes con este agente.
+            </p>
             
-            {loadingConversationAgents ? (
-              <div className="flex items-center gap-2 text-gray-600">
-                <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                <p>Cargando agentes de conversaciones...</p>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+              <div className="sm:col-span-3">
+                <label htmlFor="conversation_agent_name" className="block text-sm/6 font-medium text-gray-900">
                   Agente para Conversaciones
                 </label>
-                <select
-                  value={selectedConversationAgent}
-                  onChange={(e) => setSelectedConversationAgent(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Seleccionar agente de conversaciones...</option>
-                  {availableConversationAgents.map((agent) => (
-                    <option key={agent} value={agent}>
-                      {agent}
-                    </option>
-                  ))}
-                </select>
-                {selectedConversationAgent && (
-                  <p className="mt-2 text-sm text-gray-500">
-                    Este agente se asociará con las conversaciones del agente &quot;<strong>{selectedConversationAgent}</strong>&quot; en la base de datos.
-                  </p>
-                )}
+                <div className="mt-2 grid grid-cols-1">
+                  {loadingConversationAgents ? (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <div className="animate-spin h-5 w-5 border-2 border-gray-300 border-t-transparent rounded-full"></div>
+                      <p className="text-sm">Cargando...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <select
+                        id="conversation_agent_name"
+                        name="conversation_agent_name"
+                        value={selectedConversationAgent}
+                        onChange={(e) => setSelectedConversationAgent(e.target.value)}
+                        className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                      >
+                        <option value="">Seleccionar agente...</option>
+                        {availableConversationAgents.map((agent) => (
+                          <option key={agent} value={agent}>
+                            {agent}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon
+                        aria-hidden="true"
+                        className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4"
+                      />
+                    </>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Identificador de Informes */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Identificador de Informes</h2>
-            
-            {loadingReportAgents ? (
-              <div className="flex items-center gap-2 text-gray-600">
-                <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                <p>Cargando agentes de informes...</p>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="sm:col-span-3">
+                <label htmlFor="reports_agent_name" className="block text-sm/6 font-medium text-gray-900">
                   Agente para Informes
                 </label>
-                <select
-                  value={selectedReportAgent}
-                  onChange={(e) => setSelectedReportAgent(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Seleccionar agente de informes...</option>
-                  {availableReportAgents.map((agent) => (
-                    <option key={agent} value={agent}>
-                      {agent}
-                    </option>
-                  ))}
-                </select>
-                {selectedReportAgent && (
-                  <p className="mt-2 text-sm text-gray-500">
-                    Este agente se asociará con los informes del agente &quot;<strong>{selectedReportAgent}</strong>&quot; en la base de datos.
-                  </p>
-                )}
+                <div className="mt-2 grid grid-cols-1">
+                  {loadingReportAgents ? (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <div className="animate-spin h-5 w-5 border-2 border-gray-300 border-t-transparent rounded-full"></div>
+                      <p className="text-sm">Cargando...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <select
+                        id="reports_agent_name"
+                        name="reports_agent_name"
+                        value={selectedReportAgent}
+                        onChange={(e) => setSelectedReportAgent(e.target.value)}
+                        className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                      >
+                        <option value="">Seleccionar agente...</option>
+                        {availableReportAgents.map((agent) => (
+                          <option key={agent} value={agent}>
+                            {agent}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon
+                        aria-hidden="true"
+                        className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4"
+                      />
+                    </>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Configuración de Conocimiento */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Conocimiento del Agente</h2>
+          {/* Conocimiento y Flujos */}
+          <div className="border-b border-gray-900/10 pb-12">
+            <h2 className="text-base/7 font-semibold text-gray-900">Conocimiento y Flujos</h2>
+            <p className="mt-1 text-sm/6 text-gray-600">
+              Configura los índices de conocimiento y los flujos de n8n disponibles para este agente.
+            </p>
+            
+            <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2">
+              {/* Configuración de Conocimiento */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">Conocimiento del Agente</h3>
             
             {loadingIndexes ? (
               <div className="flex justify-center items-center py-8">
@@ -520,7 +638,7 @@ export default function EditarAgente() {
                     placeholder="Buscar índice..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
                   />
                 </div>
                 
@@ -591,11 +709,11 @@ export default function EditarAgente() {
                 )}
               </>
             )}
-          </div>
+              </div>
 
-          {/* Configuración de Flujos n8n */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Flujos n8n del Agente</h2>
+              {/* Configuración de Flujos n8n */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">Flujos n8n del Agente</h3>
             
             {loadingWorkflows ? (
               <div className="flex justify-center items-center py-8">
@@ -613,7 +731,7 @@ export default function EditarAgente() {
                     placeholder="Buscar flujo..."
                     value={workflowSearchQuery}
                     onChange={(e) => setWorkflowSearchQuery(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
                   />
                 </div>
                 
@@ -684,25 +802,121 @@ export default function EditarAgente() {
                 )}
               </>
             )}
+              </div>
+            </div>
           </div>
 
-          {/* Botones */}
-          <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => router.push('/agentes')}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
-              style={{ backgroundColor: '#5DE1E5' }}
-            >
-              Guardar Cambios
-            </button>
+          {/* WhatsApp */}
+          <div className="border-b border-gray-900/10 pb-12">
+            <h2 className="text-base/7 font-semibold text-gray-900">WhatsApp Business API</h2>
+            <p className="mt-1 text-sm/6 text-gray-600">
+              Configuración para interactuar con la API de Meta WhatsApp Business.
+            </p>
+            
+            <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+              <div className="sm:col-span-3">
+                <label htmlFor="whatsapp_business_account_id" className="block text-sm/6 font-medium text-gray-900">
+                  Business Account ID
+                </label>
+                <div className="mt-2">
+                  <input
+                    id="whatsapp_business_account_id"
+                    name="whatsapp_business_account_id"
+                    type="text"
+                    value={formData.whatsapp_business_account_id}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_business_account_id: e.target.value })}
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    placeholder="123456789"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label htmlFor="whatsapp_phone_number_id" className="block text-sm/6 font-medium text-gray-900">
+                  Phone Number ID
+                </label>
+                <div className="mt-2">
+                  <input
+                    id="whatsapp_phone_number_id"
+                    name="whatsapp_phone_number_id"
+                    type="text"
+                    value={formData.whatsapp_phone_number_id}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_phone_number_id: e.target.value })}
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    placeholder="1234567890"
+                  />
+                </div>
+              </div>
+
+              <div className="col-span-full">
+                <label htmlFor="whatsapp_access_token" className="block text-sm/6 font-medium text-gray-900">
+                  Access Token
+                </label>
+                <div className="mt-2">
+                  <textarea
+                    id="whatsapp_access_token"
+                    name="whatsapp_access_token"
+                    rows={3}
+                    value={formData.whatsapp_access_token}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_access_token: e.target.value })}
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    placeholder="EAA..."
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label htmlFor="whatsapp_webhook_verify_token" className="block text-sm/6 font-medium text-gray-900">
+                  Webhook Verify Token
+                </label>
+                <div className="mt-2">
+                  <input
+                    id="whatsapp_webhook_verify_token"
+                    name="whatsapp_webhook_verify_token"
+                    type="text"
+                    value={formData.whatsapp_webhook_verify_token}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_webhook_verify_token: e.target.value })}
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    placeholder="mi_token_secreto"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label htmlFor="whatsapp_app_secret" className="block text-sm/6 font-medium text-gray-900">
+                  App Secret
+                </label>
+                <div className="mt-2">
+                  <input
+                    id="whatsapp_app_secret"
+                    name="whatsapp_app_secret"
+                    type="text"
+                    value={formData.whatsapp_app_secret}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_app_secret: e.target.value })}
+                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    placeholder="abc123..."
+                  />
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-end gap-x-6">
+          <button
+            type="button"
+            onClick={() => router.push('/agentes')}
+            className="text-sm/6 font-semibold text-gray-900"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="rounded-md bg-[#5DE1E5] px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5]"
+          >
+            Guardar
+          </button>
+        </div>
         </form>
 
         {/* Modal de alertas */}
