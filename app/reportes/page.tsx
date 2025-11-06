@@ -367,10 +367,10 @@ export default function Reportes() {
               </div>
             </div>
           </div>
-          <div class="content" style="margin-top: 0; padding-top: 0; line-height: 1.6; width: 100%; max-width: 100%; box-sizing: border-box;">
+          <div class="content" style="margin-top: 0; padding-top: 0; line-height: 1.6; width: 100%; max-width: 100%; box-sizing: border-box; position: relative; z-index: 0;">
             ${processedHtml}
           </div>
-          <div class="agent-info" style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #e5e7eb; display: flex; align-items: flex-start; gap: 20px; background: #f9fafb; padding: 25px; border-radius: 8px; position: relative; z-index: 1;">
+          <div class="agent-info" style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #e5e7eb; display: flex; align-items: flex-start; gap: 20px; background: #f9fafb; padding: 25px; border-radius: 8px; position: relative; z-index: 10; overflow: visible;">
             ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex-shrink: 0;" />` : `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; width: 80px; height: 80px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold; flex-shrink: 0;">${agentName.charAt(0).toUpperCase()}</div>`}
             <div style="flex: 1;">
               <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;">Generado por</div>
