@@ -37,6 +37,11 @@ export default function Reportes() {
   const [reportHtml, setReportHtml] = useState<string>('');
   const [loadingReportDetail, setLoadingReportDetail] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
+  const [deletingReport, setDeletingReport] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ isOpen: boolean; reportId: string | null }>({
+    isOpen: false,
+    reportId: null,
+  });
 
   const INDEX_UID = 'bd_reports_dworkers';
 
@@ -206,6 +211,35 @@ export default function Reportes() {
       }
     } catch {
       return dateStr;
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (!confirm('¿Está seguro de eliminar este reporte? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    setDeletingReport(reportId);
+    try {
+      await meilisearchAPI.deleteDocument(INDEX_UID, reportId);
+      
+      // Esperar un momento para que Meilisearch procese la eliminación
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Recargar la lista de reportes
+      await loadReports();
+      
+      // Si el reporte eliminado estaba abierto, cerrar el modal
+      if (selectedReport?.id === reportId) {
+        setSelectedReport(null);
+        setReportHtml('');
+      }
+    } catch (err) {
+      console.error('Error eliminando reporte:', err);
+      alert('Error al eliminar el reporte. Por favor, intenta nuevamente.');
+    } finally {
+      setDeletingReport(null);
+      setShowDeleteConfirm({ isOpen: false, reportId: null });
     }
   };
 
