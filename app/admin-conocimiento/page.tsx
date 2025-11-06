@@ -1172,8 +1172,13 @@ export default function AdminConocimiento() {
             agents={agents}
             selectedAgent={selectedAgent}
             onChange={(agent) => {
-              setSelectedAgent(agent);
-              setSelectedIndex(null);
+              if (agent && typeof agent !== 'string') {
+                setSelectedAgent(agent);
+                setSelectedIndex(null);
+              } else {
+                setSelectedAgent(null);
+                setSelectedIndex(null);
+              }
             }}
             placeholder="Seleccionar agente..."
             getDisplayText={(agent) => {

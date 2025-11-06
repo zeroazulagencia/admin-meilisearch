@@ -494,8 +494,13 @@ export default function Ejecuciones() {
           agents={agents}
           selectedAgent={selectedAgent}
           onChange={(agent) => {
-            setSelectedAgent(agent);
-            setSelectedWorkflow(null);
+            if (agent && typeof agent !== 'string') {
+              setSelectedAgent(agent);
+              setSelectedWorkflow(null);
+            } else {
+              setSelectedAgent(null);
+              setSelectedWorkflow(null);
+            }
           }}
           placeholder="Seleccionar agente..."
           getDisplayText={(agent) => {
