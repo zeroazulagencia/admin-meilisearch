@@ -28,6 +28,7 @@ export default function AdminConocimiento() {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfIdPrefix, setPdfIdPrefix] = useState<string>('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   
   // Estados para los pasos del modal PDF
   const [pdfStep, setPdfStep] = useState<'text' | 'review'>('text');
@@ -1538,61 +1539,53 @@ export default function AdminConocimiento() {
                       Cada <code className="bg-gray-100 px-1 py-0.5 rounded">[separador]</code> indica un punto de división entre chunks.
                     </p>
                     <div className="relative">
-                      <textarea
-                        ref={textareaRef}
-                        value={pdfText}
-                        onChange={(e) => setPdfText(e.target.value)}
-                        className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500 relative z-10"
-                        style={{ 
-                          position: 'relative',
-                          zIndex: 10
-                        }}
-                      />
-                      {/* Vista previa con separadores resaltados - overlay invisible */}
+                      {/* Overlay de fondo con separadores resaltados */}
                       <div 
-                        className="absolute inset-0 pointer-events-none px-4 py-2 text-sm font-mono whitespace-pre-wrap break-words overflow-auto border border-transparent rounded-lg"
+                        ref={overlayRef}
+                        className="absolute inset-0 pointer-events-none px-4 py-2 text-sm font-mono whitespace-pre-wrap break-words overflow-auto border border-gray-300 rounded-lg"
                         style={{ 
                           zIndex: 1,
-                          color: 'transparent',
-                          userSelect: 'none'
+                          background: 'white',
+                          minHeight: '384px'
                         }}
                         aria-hidden="true"
                       >
-                        {pdfText.split('[separador]').map((part, index, array) => (
+                        {pdfText ? pdfText.split('[separador]').map((part, index, array) => (
                           <React.Fragment key={index}>
-                            {part}
+                            <span style={{ color: 'transparent' }}>{part}</span>
                             {index < array.length - 1 && (
-                              <span className="bg-blue-500 text-white font-bold px-1 rounded" style={{ color: 'transparent' }}>
+                              <span className="bg-blue-500 text-white font-bold px-1 rounded" style={{ 
+                                background: '#3B82F6',
+                                color: 'white',
+                                display: 'inline-block'
+                              }}>
                                 [separador]
                               </span>
                             )}
                           </React.Fragment>
-                        ))}
+                        )) : <span style={{ color: 'transparent' }}>&nbsp;</span>}
                       </div>
-                      {/* Overlay con separadores visibles */}
-                      <div 
-                        className="absolute inset-0 pointer-events-none px-4 py-2 text-sm font-mono whitespace-pre-wrap break-words overflow-auto border border-transparent rounded-lg"
-                        style={{ 
-                          zIndex: 2,
-                          background: 'transparent'
+                      {/* Textarea transparente para edición */}
+                      <textarea
+                        ref={textareaRef}
+                        value={pdfText}
+                        onChange={(e) => {
+                          setPdfText(e.target.value);
                         }}
-                        aria-hidden="true"
-                      >
-                        {pdfText.split('[separador]').map((part, index, array) => {
-                          // Calcular posición del texto para alinearlo con el textarea
-                          const textBefore = array.slice(0, index).join('[separador]') + part;
-                          return (
-                            <React.Fragment key={index}>
-                              <span style={{ visibility: 'hidden' }}>{part}</span>
-                              {index < array.length - 1 && (
-                                <span className="bg-blue-500 text-white font-bold px-1 rounded" style={{ visibility: 'visible' }}>
-                                  [separador]
-                                </span>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </div>
+                        onScroll={(e) => {
+                          if (overlayRef.current) {
+                            overlayRef.current.scrollTop = e.currentTarget.scrollTop;
+                            overlayRef.current.scrollLeft = e.currentTarget.scrollLeft;
+                          }
+                        }}
+                        className="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg bg-transparent text-sm font-mono overflow-auto focus:ring-2 focus:ring-blue-500 focus:border-blue-500 relative z-10"
+                        style={{ 
+                          position: 'relative',
+                          zIndex: 10,
+                          color: pdfText ? 'transparent' : '#374151',
+                          caretColor: '#374151'
+                        }}
+                      />
                     </div>
                     {/* Indicador visual de separadores */}
                     <div className="mt-2 text-xs text-gray-500">
