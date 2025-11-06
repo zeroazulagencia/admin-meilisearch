@@ -316,16 +316,17 @@ export default function Reportes() {
             
             body {
               font-family: Arial, sans-serif;
-              padding: 40px;
-              max-width: 800px;
-              margin: 0 auto;
+              padding: 0;
+              margin: 0;
+              max-width: 100%;
               background: white;
               color: #1f2937;
             }
             
             .header {
-              margin-bottom: 30px;
-              padding-bottom: 20px;
+              margin-bottom: 20px;
+              padding-bottom: 15px;
+              padding-top: 10px;
               border-bottom: 2px solid #e5e7eb;
             }
             
@@ -370,7 +371,7 @@ export default function Reportes() {
             }
             
             .content {
-              margin-top: 30px;
+              margin-top: 10px;
               line-height: 1.6;
             }
             
@@ -484,17 +485,25 @@ export default function Reportes() {
             
             @media print {
               @page {
-                margin: 1.5cm;
+                margin: 0.5cm 1cm;
                 size: A4;
               }
               
               body {
                 padding: 0;
+                margin: 0;
                 background: white;
               }
               
               .header {
+                padding-top: 0;
+                margin-top: 0;
+                margin-bottom: 10px;
                 page-break-after: avoid;
+              }
+              
+              .content {
+                margin-top: 5px;
               }
               
               .content {
