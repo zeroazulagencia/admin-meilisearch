@@ -118,7 +118,11 @@ export default function DBManager() {
     const initialData: any = {};
     if (tableData?.columns) {
       tableData.columns.forEach(col => {
-        if (col.COLUMN_NAME !== 'id') {
+        // Excluir campos automáticos: id, created_at, updated_at
+        if (col.COLUMN_NAME !== 'id' && 
+            col.COLUMN_NAME !== 'created_at' && 
+            col.COLUMN_NAME !== 'updated_at' &&
+            col.COLUMN_KEY !== 'PRI') {
           initialData[col.COLUMN_NAME] = col.COLUMN_DEFAULT || '';
         }
       });
@@ -131,12 +135,24 @@ export default function DBManager() {
     try {
       const url = `/api/db-manager/tables/${selectedTable}`;
       const method = editingRecord ? 'PUT' : 'POST';
+      
+      // Filtrar campos automáticos y vacíos
+      const filteredData: any = {};
+      const autoFields = ['created_at', 'updated_at'];
+      
+      for (const key in formData) {
+        // Excluir campos automáticos y solo incluir campos que fueron modificados
+        if (!autoFields.includes(key)) {
+          filteredData[key] = formData[key];
+        }
+      }
+      
       // Encontrar la clave primaria
       const primaryKey = tableData?.columns.find(col => col.COLUMN_KEY === 'PRI');
       const pkColumn = primaryKey?.COLUMN_NAME || 'id';
       const pkValue = editingRecord ? editingRecord[pkColumn] : null;
       
-      const body = editingRecord ? { ...formData, [pkColumn]: pkValue } : formData;
+      const body = editingRecord ? { ...filteredData, [pkColumn]: pkValue } : filteredData;
 
       const res = await fetch(url, {
         method,
@@ -319,7 +335,12 @@ export default function DBManager() {
           title={`Editar Registro - ${selectedTable}`}
         >
           <div className="space-y-4">
-            {tableData?.columns.filter(col => col.COLUMN_NAME !== 'id' && col.COLUMN_KEY !== 'PRI').map(column => (
+            {tableData?.columns.filter(col => 
+              col.COLUMN_NAME !== 'id' && 
+              col.COLUMN_KEY !== 'PRI' &&
+              col.COLUMN_NAME !== 'created_at' &&
+              col.COLUMN_NAME !== 'updated_at'
+            ).map(column => (
               <div key={column.COLUMN_NAME}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {column.COLUMN_NAME}
@@ -379,7 +400,12 @@ export default function DBManager() {
           title={`Nuevo Registro - ${selectedTable}`}
         >
           <div className="space-y-4">
-            {tableData?.columns.filter(col => col.COLUMN_NAME !== 'id' && col.COLUMN_KEY !== 'PRI').map(column => (
+            {tableData?.columns.filter(col => 
+              col.COLUMN_NAME !== 'id' && 
+              col.COLUMN_KEY !== 'PRI' &&
+              col.COLUMN_NAME !== 'created_at' &&
+              col.COLUMN_NAME !== 'updated_at'
+            ).map(column => (
               <div key={column.COLUMN_NAME}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {column.COLUMN_NAME}

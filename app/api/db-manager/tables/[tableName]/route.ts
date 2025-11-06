@@ -88,11 +88,15 @@ export async function POST(
     );
 
     // Filtrar solo las columnas que existen en la tabla
+    // Excluir campos automáticos: created_at, updated_at
+    const autoFields = ['created_at', 'updated_at'];
     const validColumns = columns.map((col: any) => col.COLUMN_NAME);
     const filteredData: any = {};
     
     for (const key in body) {
-      if (validColumns.includes(key) && key !== 'id') {
+      if (validColumns.includes(key) && 
+          key !== 'id' && 
+          !autoFields.includes(key)) {
         filteredData[key] = body[key];
       }
     }
@@ -155,12 +159,15 @@ export async function PUT(
       return NextResponse.json({ ok: false, error: `Se requiere el valor de la clave primaria (${pkColumn})` }, { status: 400 });
     }
 
-    // Filtrar solo las columnas que existen en la tabla (excluir clave primaria)
+    // Filtrar solo las columnas que existen en la tabla (excluir clave primaria y campos automáticos)
+    const autoFields = ['created_at', 'updated_at'];
     const validColumns = columns.map((col: any) => col.COLUMN_NAME);
     const filteredData: any = {};
     
     for (const key in body) {
-      if (validColumns.includes(key) && key !== pkColumn) {
+      if (validColumns.includes(key) && 
+          key !== pkColumn && 
+          !autoFields.includes(key)) {
         filteredData[key] = body[key];
       }
     }
