@@ -289,6 +289,59 @@ export default function EditarAgente() {
     }
   };
 
+  const handleVerifyWhatsApp = async () => {
+    if (!formData.whatsapp_business_account_id || !formData.whatsapp_phone_number_id || !formData.whatsapp_access_token) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Validación',
+        message: 'Por favor completa Business Account ID, Phone Number ID y Access Token para verificar la conexión',
+        type: 'warning',
+      });
+      return;
+    }
+
+    setVerifyingWhatsApp(true);
+    try {
+      const response = await fetch(`/api/whatsapp/verify-connection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_account_id: formData.whatsapp_business_account_id,
+          phone_number_id: formData.whatsapp_phone_number_id,
+          access_token: formData.whatsapp_access_token
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.ok) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Conexión Exitosa',
+          message: data.message || 'La conexión con WhatsApp Business API es correcta. Los datos están funcionando.',
+          type: 'success',
+        });
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error de Conexión',
+          message: data.error || 'No se pudo verificar la conexión. Revisa los datos proporcionados.',
+          type: 'error',
+        });
+      }
+    } catch (error: any) {
+      console.error('Error verificando WhatsApp:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al verificar la conexión: ' + (error.message || 'Error desconocido'),
+        type: 'error',
+      });
+    } finally {
+      setVerifyingWhatsApp(false);
+    }
+  };
+
   const handleToggleIndex = (indexId: string) => {
     setSelectedIndexes(prev => {
       if (prev.includes(indexId)) {
@@ -422,7 +475,7 @@ export default function EditarAgente() {
                 </div>
               </div>
 
-              <div className="col-span-full">
+              <div className="sm:col-span-4">
                 <label htmlFor="description" className="block text-sm/6 font-medium text-gray-900">
                   Descripción
                 </label>
@@ -438,11 +491,11 @@ export default function EditarAgente() {
                 </div>
               </div>
 
-              <div className="col-span-full">
+              <div className="sm:col-span-2">
                 <label htmlFor="photo" className="block text-sm/6 font-medium text-gray-900">
                   Foto
                 </label>
-                <div className="mt-2 flex items-center gap-x-3">
+                <div className="mt-2 flex flex-col items-center gap-3">
                   {formData.photo ? (
                     <img src={formData.photo} alt="Avatar" className="size-32 rounded-full object-cover" />
                   ) : (
@@ -751,10 +804,34 @@ export default function EditarAgente() {
 
           {/* WhatsApp */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
-            <h2 className="text-base/7 font-semibold text-gray-900">WhatsApp Business API</h2>
-            <p className="mt-1 text-sm/6 text-gray-600">
-              Configuración para interactuar con la API de Meta WhatsApp Business.
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base/7 font-semibold text-gray-900">WhatsApp Business API</h2>
+                <p className="mt-1 text-sm/6 text-gray-600">
+                  Configuración para interactuar con la API de Meta WhatsApp Business.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleVerifyWhatsApp}
+                disabled={verifyingWhatsApp || !formData.whatsapp_business_account_id || !formData.whatsapp_phone_number_id || !formData.whatsapp_access_token}
+                className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-green-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {verifyingWhatsApp ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <span>Verificando...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Verificar Conexión</span>
+                  </>
+                )}
+              </button>
+            </div>
             
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
               <div className="sm:col-span-3">
