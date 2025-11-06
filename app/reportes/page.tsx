@@ -278,7 +278,14 @@ export default function Reportes() {
     const allElements = doc.querySelectorAll('*');
     allElements.forEach((el: Element) => {
       const htmlEl = el as HTMLElement;
+      
+      // Eliminar márgenes y padding superiores de todos los elementos
       if (htmlEl.style) {
+        // Eliminar márgenes y padding superiores
+        htmlEl.style.marginTop = '0';
+        htmlEl.style.paddingTop = '0';
+        
+        // Procesar gradientes
         const bg = htmlEl.style.background || htmlEl.style.backgroundColor;
         if (bg && bg.includes('gradient')) {
           const solidColor = getFirstColorFromGradient(bg);
@@ -288,13 +295,46 @@ export default function Reportes() {
       }
       
       // Procesar atributos style
-      const styleAttr = htmlEl.getAttribute('style');
-      if (styleAttr && styleAttr.includes('gradient')) {
-        const newStyle = styleAttr.replace(/background[^;]*linear-gradient[^;()]*\([^)]*\)[^;]*;?/gi, (match) => {
-          const solidColor = getFirstColorFromGradient(match);
-          return `background: ${solidColor} !important;`;
+      let styleAttr = htmlEl.getAttribute('style');
+      if (styleAttr) {
+        // Eliminar margin-top y padding-top del style attribute
+        styleAttr = styleAttr.replace(/margin-top\s*:\s*[^;]+;?/gi, '');
+        styleAttr = styleAttr.replace(/padding-top\s*:\s*[^;]+;?/gi, '');
+        styleAttr = styleAttr.replace(/margin\s*:\s*[^;]+;?/gi, (match) => {
+          // Si es margin completo, mantener solo los lados que no sean top
+          return match.replace(/margin\s*:\s*([^;]+)/i, (m, values) => {
+            const parts = values.trim().split(/\s+/);
+            if (parts.length === 4) {
+              // margin: top right bottom left -> margin: 0 right bottom left
+              return `margin: 0 ${parts[1]} ${parts[2]} ${parts[3]}`;
+            } else if (parts.length === 2) {
+              // margin: top/bottom left/right -> margin: 0 left/right
+              return `margin: 0 ${parts[1]}`;
+            }
+            return m;
+          });
         });
-        htmlEl.setAttribute('style', newStyle);
+        
+        // Agregar margin-top y padding-top explícitos a 0
+        if (!styleAttr.includes('margin-top')) {
+          styleAttr += ' margin-top: 0;';
+        }
+        if (!styleAttr.includes('padding-top')) {
+          styleAttr += ' padding-top: 0;';
+        }
+        
+        // Procesar gradientes
+        if (styleAttr.includes('gradient')) {
+          styleAttr = styleAttr.replace(/background[^;]*linear-gradient[^;()]*\([^)]*\)[^;]*;?/gi, (match) => {
+            const solidColor = getFirstColorFromGradient(match);
+            return `background: ${solidColor} !important;`;
+          });
+        }
+        
+        htmlEl.setAttribute('style', styleAttr);
+      } else {
+        // Si no tiene style, agregar uno para eliminar márgenes superiores
+        htmlEl.setAttribute('style', 'margin-top: 0; padding-top: 0;');
       }
     });
     
