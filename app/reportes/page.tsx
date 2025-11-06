@@ -344,21 +344,23 @@ export default function Reportes() {
     pdfContainer.style.position = 'absolute';
     pdfContainer.style.left = '-9999px';
     pdfContainer.style.top = '0';
-    pdfContainer.style.width = '794px'; // Ancho A4 en píxeles (210mm a 96dpi)
+    // Tamaño carta: 8.5 x 11 pulgadas = 816 x 1056 píxeles a 96dpi
+    // Usamos un ancho más eficiente para el contenido
+    pdfContainer.style.width = '816px';
     pdfContainer.style.backgroundColor = '#f5f5f5';
     pdfContainer.style.padding = '0';
     pdfContainer.style.margin = '0';
     pdfContainer.innerHTML = `
-      <div class="pdf-container" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 25px; margin: 0; width: 100%; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif; color: #1f2937;">
-        <div class="pdf-header" style="margin-top: 0; padding-top: 0; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
-          <img src="${window.location.origin}/public-img/logo-dworkers.png" alt="DWORKERS" style="max-width: 200px; height: auto; margin-top: 0; margin-bottom: 15px; display: block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+      <div class="pdf-container" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin: 0; width: 100%; max-width: 100%; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif; color: #1f2937;">
+        <div class="pdf-header" style="margin-top: 0; padding-top: 0; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
+          <img src="${window.location.origin}/public-img/logo-dworkers.png" alt="DWORKERS" style="max-width: 180px; height: auto; margin-top: 0; margin-bottom: 12px; display: block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
           <div style="display: none; font-size: 24px; font-weight: bold; color: #111827; margin-top: 0;">DWORKERS</div>
         </div>
-        <div class="content" style="margin-top: 0; padding-top: 0; line-height: 1.6;">
+        <div class="content" style="margin-top: 0; padding-top: 0; line-height: 1.6; width: 100%; max-width: 100%; box-sizing: border-box;">
           ${processedHtml}
         </div>
-        <div class="agent-info" style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #e5e7eb; display: flex; align-items: flex-start; gap: 25px; background: #f9fafb; padding: 25px; border-radius: 8px;">
-          ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" style="width: 90px; height: 90px; border-radius: 10px; object-fit: cover; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex-shrink: 0;" />` : `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 36px; width: 90px; height: 90px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold; flex-shrink: 0;">${agentName.charAt(0).toUpperCase()}</div>`}
+        <div class="agent-info" style="margin-top: 30px; padding-top: 25px; border-top: 2px solid #e5e7eb; display: flex; align-items: flex-start; gap: 20px; background: #f9fafb; padding: 20px; border-radius: 8px;">
+          ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex-shrink: 0;" />` : `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; width: 80px; height: 80px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold; flex-shrink: 0;">${agentName.charAt(0).toUpperCase()}</div>`}
           <div style="flex: 1;">
             <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;">Generado por</div>
             <div style="font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 12px; line-height: 1.3;">${agentName}</div>
@@ -386,29 +388,36 @@ export default function Reportes() {
       // Esperar a que las imágenes se carguen
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Capturar el elemento con html2canvas
+      // Capturar el elemento con html2canvas - escala reducida para optimizar peso
       const canvas = await html2canvas(pdfContainer, {
         backgroundColor: '#f5f5f5',
-        scale: 2,
+        scale: 1.5, // Reducido de 2 a 1.5 para optimizar peso
         useCORS: true,
         logging: false,
         width: pdfContainer.offsetWidth,
         height: pdfContainer.offsetHeight,
+        windowWidth: pdfContainer.offsetWidth,
+        windowHeight: pdfContainer.offsetHeight,
       });
 
-      // Crear PDF con jsPDF
-      const imgData = canvas.toDataURL('image/png');
+      // Crear PDF con jsPDF en tamaño carta (letter)
+      const imgData = canvas.toDataURL('image/jpeg', 0.85); // JPEG con calidad 85% para reducir peso
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4',
+        format: 'letter', // Tamaño carta: 8.5 x 11 pulgadas
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      
+      // Calcular ratio para que el contenido use todo el ancho de la página
+      const widthRatio = pdfWidth / imgWidth;
+      const heightRatio = pdfHeight / imgHeight;
+      const ratio = Math.min(widthRatio, heightRatio);
+      
       const imgScaledWidth = imgWidth * ratio;
       const imgScaledHeight = imgHeight * ratio;
 
@@ -417,13 +426,13 @@ export default function Reportes() {
       let heightLeft = imgScaledHeight;
       let position = 0;
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgScaledWidth, imgScaledHeight);
+      pdf.addImage(imgData, 'JPEG', 0, position, imgScaledWidth, imgScaledHeight);
       heightLeft -= pageHeight;
 
       while (heightLeft > 0) {
         position = heightLeft - imgScaledHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgScaledWidth, imgScaledHeight);
+        pdf.addImage(imgData, 'JPEG', 0, position, imgScaledWidth, imgScaledHeight);
         heightLeft -= pageHeight;
       }
 
@@ -434,7 +443,9 @@ export default function Reportes() {
       document.body.removeChild(pdfContainer);
     } catch (error) {
       console.error('Error generando PDF:', error);
-      document.body.removeChild(pdfContainer);
+      if (document.body.contains(pdfContainer)) {
+        document.body.removeChild(pdfContainer);
+      }
       alert('Error al generar el PDF. Por favor, intenta nuevamente.');
     }
   };
