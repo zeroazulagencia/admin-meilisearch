@@ -621,47 +621,86 @@ export default function Reportes() {
               
               .agent-info {
                 page-break-inside: avoid;
-                margin-top: 40px;
+                margin-top: 50px;
                 padding-top: 30px;
-                border-top: 1px solid #e5e7eb;
+                border-top: 2px solid #e5e7eb;
                 display: flex;
                 align-items: flex-start;
-                gap: 20px;
+                gap: 25px;
+                background: #f9fafb;
+                padding: 25px;
+                border-radius: 8px;
+                margin-left: -5px;
+                margin-right: -5px;
               }
               
               .agent-photo {
-                width: 80px;
-                height: 80px;
-                border-radius: 8px;
+                width: 90px;
+                height: 90px;
+                border-radius: 10px;
                 object-fit: cover;
-                border: 2px solid #e5e7eb;
+                border: 3px solid #e5e7eb;
                 flex-shrink: 0;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
               }
               
               .agent-details {
                 flex: 1;
               }
               
-              .agent-name {
-                font-size: 16px;
-                font-weight: 600;
-                color: #111827;
+              .agent-label {
+                font-size: 11px;
+                color: #6b7280;
+                text-transform: uppercase;
+                letter-spacing: 1px;
                 margin-bottom: 8px;
+                font-weight: 600;
+              }
+              
+              .agent-name {
+                font-size: 18px;
+                font-weight: 700;
+                color: #111827;
+                margin-bottom: 12px;
+                line-height: 1.3;
               }
               
               .agent-description {
-                font-size: 14px;
-                color: #6b7280;
+                font-size: 13px;
+                color: #4b5563;
                 line-height: 1.6;
-                margin-top: 8px;
+                margin-bottom: 15px;
               }
               
-              .agent-label {
+              .agent-footer {
+                margin-top: 15px;
+                padding-top: 15px;
+                border-top: 1px solid #e5e7eb;
+              }
+              
+              .agent-footer-text {
                 font-size: 12px;
+                color: #6b7280;
+                line-height: 1.5;
+                margin-bottom: 5px;
+              }
+              
+              .agent-footer-link {
+                font-size: 12px;
+                color: #3b82f6;
+                text-decoration: none;
+                font-weight: 500;
+              }
+              
+              .agent-footer-link:hover {
+                text-decoration: underline;
+              }
+              
+              .agent-footer-company {
+                font-size: 11px;
                 color: #9ca3af;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                margin-bottom: 4px;
+                margin-top: 8px;
+                font-style: italic;
               }
               
               /* Ocultar elementos que no deben imprimirse */
@@ -696,11 +735,23 @@ export default function Reportes() {
               ${processedHtml}
             </div>
             <div class="agent-info" style="margin-top: 30px; padding-top: 25px;">
-              ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" />` : '<div class="agent-photo" style="background: #e5e7eb; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 24px; width: 80px; height: 80px; border-radius: 8px; border: 2px solid #e5e7eb;">👤</div>'}
+              ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" />` : '<div class="agent-photo" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 36px; width: 90px; height: 90px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold;">${agentName.charAt(0).toUpperCase()}</div>'}
               <div class="agent-details">
-                <div class="agent-label">Creado por</div>
+                <div class="agent-label">Generado por</div>
                 <div class="agent-name">${agentName}</div>
                 ${agentInfo?.description ? `<div class="agent-description">${agentInfo.description}</div>` : ''}
+                <div class="agent-footer">
+                  <div class="agent-footer-text">
+                    Este reporte fue generado automáticamente por un agente de inteligencia artificial.
+                  </div>
+                  <div class="agent-footer-text">
+                    Para más información, visita: 
+                    <a href="https://dworkers.zeroazul.com" class="agent-footer-link">dworkers.zeroazul.com</a>
+                  </div>
+                  <div class="agent-footer-company">
+                    DWORKERS - Empleados Digitales con Inteligencia Artificial
+                  </div>
+                </div>
               </div>
             </div>
           </div>
