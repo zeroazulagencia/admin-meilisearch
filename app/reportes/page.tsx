@@ -324,9 +324,10 @@ export default function Reportes() {
             }
             
             .header {
-              margin-bottom: 20px;
-              padding-bottom: 15px;
-              padding-top: 10px;
+              margin-bottom: 15px;
+              padding-bottom: 10px;
+              padding-top: 0;
+              margin-top: 0;
               border-bottom: 2px solid #e5e7eb;
             }
             
@@ -485,25 +486,37 @@ export default function Reportes() {
             
             @media print {
               @page {
-                margin: 0.5cm 1cm;
+                margin: 0.3cm 1cm 1cm 1cm;
                 size: A4;
               }
               
               body {
-                padding: 0;
-                margin: 0;
+                padding: 0 !important;
+                margin: 0 !important;
                 background: white;
               }
               
               .header {
-                padding-top: 0;
-                margin-top: 0;
-                margin-bottom: 10px;
+                padding-top: 0 !important;
+                margin-top: 0 !important;
+                margin-bottom: 8px !important;
+                padding-bottom: 8px !important;
                 page-break-after: avoid;
               }
               
               .content {
-                margin-top: 5px;
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+              }
+              
+              .type-badge {
+                margin-top: 0 !important;
+                margin-bottom: 5px !important;
+              }
+              
+              .date {
+                margin-top: 0 !important;
+                margin-bottom: 5px !important;
               }
               
               .content {
