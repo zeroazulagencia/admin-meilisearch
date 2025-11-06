@@ -1,6 +1,6 @@
 'use client';
 
-import { Label, Listbox, ListboxButton, ListboxOption, ListboxOptions } from '@headlessui/react';
+import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from '@headlessui/react';
 import { ChevronUpDownIcon } from '@heroicons/react/16/solid';
 import { CheckIcon } from '@heroicons/react/20/solid';
 
@@ -62,7 +62,7 @@ export default function AgentSelector({
   if (loading) {
     return (
       <div className={className}>
-        <Label className="block text-sm/6 font-medium text-gray-900 mb-2">{label}</Label>
+        <label className="block text-sm/6 font-medium text-gray-900 mb-2">{label}</label>
         <div className="text-sm flex items-center gap-2 text-[#5DE1E5]">
           <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent border-[#5DE1E5]"></div>
           Cargando agentes...
@@ -73,7 +73,7 @@ export default function AgentSelector({
 
   return (
     <div className={className}>
-      <Label className="block text-sm/6 font-medium text-gray-900 mb-2">{label}</Label>
+      <label className="block text-sm/6 font-medium text-gray-900 mb-2">{label}</label>
       <Listbox
         value={currentSelected}
         onChange={(agent) => {
