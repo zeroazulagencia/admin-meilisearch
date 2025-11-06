@@ -7,6 +7,7 @@ export const routePermissions: Record<string, string> = {
   '/reportes': 'reportes',
   '/whatsapp-manager': 'whatsappManager',
   '/facturacion': 'facturacion',
+  '/db-manager': 'dbManager',
   '/consumo-api': 'consumoApi',
   '/clientes': 'clientes',
   '/agentes': 'agentes',
