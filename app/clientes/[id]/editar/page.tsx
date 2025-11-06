@@ -526,6 +526,11 @@ export default function EditarCliente() {
             </button>
             <button
               type="submit"
+              onClick={(e) => {
+                console.log('[EDITAR CLIENTE] Botón Guardar Cambios clickeado');
+                e.preventDefault();
+                handleSubmit(e as any);
+              }}
               className="px-6 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
               style={{ backgroundColor: '#5DE1E5' }}
             >
