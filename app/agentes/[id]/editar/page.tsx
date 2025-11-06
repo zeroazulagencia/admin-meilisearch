@@ -523,10 +523,11 @@ export default function EditarAgente() {
                   <textarea
                     id="description"
                     name="description"
-                    rows={3}
+                    rows={8}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                    style={{ height: '152px' }}
                   />
                 </div>
               </div>
@@ -535,26 +536,28 @@ export default function EditarAgente() {
                 <label htmlFor="photo" className="block text-sm/6 font-medium text-gray-900">
                   Foto
                 </label>
-                <div className="mt-2 flex flex-col items-center gap-3">
-                  <div className="relative">
-                    {formData.photo ? (
-                      <div className="bg-white rounded-lg border-2 border-gray-200 shadow-sm p-2">
-                        <img src={formData.photo} alt="Avatar" className="size-32 rounded-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="bg-white rounded-lg border-2 border-gray-200 shadow-sm p-2">
-                        <UserCircleIcon aria-hidden="true" className="size-32 text-gray-300" />
-                      </div>
-                    )}
+                <div className="mt-2 flex flex-col gap-3" style={{ height: '152px' }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="relative">
+                      {formData.photo ? (
+                        <div className="bg-white rounded-lg border-2 border-gray-200 shadow-sm p-2">
+                          <img src={formData.photo} alt="Avatar" className="size-32 rounded-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="bg-white rounded-lg border-2 border-gray-200 shadow-sm p-2">
+                          <UserCircleIcon aria-hidden="true" className="size-32 text-gray-300" />
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-gray-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] h-fit"
+                    >
+                      {uploading ? 'Subiendo...' : formData.photo ? 'Cambiar' : 'Subir'}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-gray-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5]"
-                  >
-                    {uploading ? 'Subiendo...' : formData.photo ? 'Cambiar' : 'Subir'}
-                  </button>
                   <input
                     ref={fileInputRef}
                     type="file"
