@@ -539,13 +539,14 @@ export default function Reportes() {
             
             @media print {
               @page {
-                margin: 1.5cm;
+                margin: 0;
                 size: A4;
               }
               
               html {
                 margin: 0 !important;
                 padding: 0 !important;
+                height: 100%;
               }
               
               body {
@@ -554,28 +555,34 @@ export default function Reportes() {
                 background: #f5f5f5;
                 position: relative;
                 top: 0;
+                height: 100%;
               }
               
               .pdf-container {
                 background: white;
                 border: 1px solid #e5e7eb;
                 border-radius: 12px;
-                padding: 30px;
-                margin: 0 auto;
-                max-width: 100%;
+                padding: 20px;
+                margin: 1.5cm;
+                max-width: calc(100% - 3cm);
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                page-break-inside: avoid;
               }
               
               .pdf-header {
-                margin-bottom: 30px;
-                padding-bottom: 20px;
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+                margin-bottom: 25px;
+                padding-bottom: 15px;
                 border-bottom: 1px solid #e5e7eb;
               }
               
               .pdf-logo {
-                max-width: 200px;
+                max-width: 180px;
                 height: auto;
-                margin-bottom: 15px;
+                margin-top: 0 !important;
+                margin-bottom: 10px;
+                display: block;
               }
               
               .header {
@@ -680,16 +687,16 @@ export default function Reportes() {
             }
           </style>
         </head>
-        <body style="margin: 0; padding: 0;">
-          <div class="pdf-container">
-            <div class="pdf-header">
-              <img src="/public-img/logo-dworkers.png" alt="DWORKERS" class="pdf-logo" onerror="this.style.display='none'" />
+        <body style="margin: 0; padding: 0; position: relative; top: 0;">
+          <div class="pdf-container" style="margin-top: 0; padding-top: 0;">
+            <div class="pdf-header" style="margin-top: 0; padding-top: 0;">
+              <img src="/public-img/logo-dworkers.png" alt="DWORKERS" class="pdf-logo" style="margin-top: 0; padding-top: 0;" onerror="this.style.display='none'" />
             </div>
             <div class="content" style="margin-top: 0; padding-top: 0;">
               ${processedHtml}
             </div>
-            <div class="agent-info">
-              ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" />` : '<div class="agent-photo" style="background: #e5e7eb; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 24px;">👤</div>'}
+            <div class="agent-info" style="margin-top: 30px; padding-top: 25px;">
+              ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" />` : '<div class="agent-photo" style="background: #e5e7eb; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 24px; width: 80px; height: 80px; border-radius: 8px; border: 2px solid #e5e7eb;">👤</div>'}
               <div class="agent-details">
                 <div class="agent-label">Creado por</div>
                 <div class="agent-name">${agentName}</div>
