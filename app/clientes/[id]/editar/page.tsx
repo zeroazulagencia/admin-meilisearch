@@ -161,6 +161,9 @@ export default function EditarCliente() {
         id: currentClient.id,
         name: formData.name,
         email: formData.email,
+        phone: formData.phone,
+        company: formData.company,
+        nit: formData.nit,
         permissions
       });
       
