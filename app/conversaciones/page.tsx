@@ -36,6 +36,7 @@ export default function Conversaciones() {
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showCodeModal, setShowCodeModal] = useState(false);
 
   const INDEX_UID = 'bd_conversations_dworkers';
 
@@ -73,6 +74,8 @@ export default function Conversaciones() {
         if (permissions && userId && permissions.type !== 'admin' && !permissions.conversaciones?.viewAll) {
           list = list.filter(a => a.client_id === parseInt(userId));
         }
+        // Filtrar solo agentes que tienen conversation_agent_name asociado
+        list = list.filter(a => a.conversation_agent_name && a.conversation_agent_name.trim() !== '');
         setAllPlatformAgents(list);
       } catch (e) {
         console.error('Error cargando agentes:', e);
@@ -359,7 +362,18 @@ export default function Conversaciones() {
 
   return (
     <ProtectedLayout>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Conversaciones</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Conversaciones</h1>
+        <button
+          onClick={() => setShowCodeModal(true)}
+          className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+          title="Ver instrucciones de inserción"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+        </button>
+      </div>
       
       {/* Selector de Agente de la Plataforma */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
