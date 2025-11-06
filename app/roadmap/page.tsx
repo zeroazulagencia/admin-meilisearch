@@ -24,6 +24,18 @@ export default function Roadmap() {
   const roadmapItems: RoadmapItem[] = [
     {
       date: todayFormatted,
+      title: 'Mejoras en generación de PDFs',
+      description: 'Implementación de indicador de carga, corrección de división de páginas, mejora del header con logo y corrección de superposición de elementos',
+      completed: true,
+    },
+    {
+      date: todayFormatted,
+      title: 'Actualización de URL y branding',
+      description: 'Cambio de URL a workers.zeroazul.com y mejora del header del PDF con logo DWORKERS',
+      completed: true,
+    },
+    {
+      date: todayFormatted,
       title: 'Implementación de selectores de agentes con Headless UI',
       description: 'Actualización de todos los selectores de agentes en el sistema para usar el componente moderno con Headless UI',
       completed: true,
