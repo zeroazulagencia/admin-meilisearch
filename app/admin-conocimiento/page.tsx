@@ -1173,7 +1173,7 @@ export default function AdminConocimiento() {
             selectedAgent={selectedAgent}
             onChange={(agent) => {
               if (agent && typeof agent !== 'string') {
-                setSelectedAgent(agent);
+                setSelectedAgent(agent as AgentDB);
                 setSelectedIndex(null);
               } else {
                 setSelectedAgent(null);

@@ -9,6 +9,7 @@ interface Agent {
   name: string;
   photo?: string | null;
   description?: string | null;
+  client_id?: number;
   [key: string]: any; // Para campos adicionales
 }
 

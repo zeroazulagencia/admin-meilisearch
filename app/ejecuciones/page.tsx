@@ -495,7 +495,7 @@ export default function Ejecuciones() {
           selectedAgent={selectedAgent}
           onChange={(agent) => {
             if (agent && typeof agent !== 'string') {
-              setSelectedAgent(agent);
+              setSelectedAgent(agent as AgentDB);
               setSelectedWorkflow(null);
             } else {
               setSelectedAgent(null);
