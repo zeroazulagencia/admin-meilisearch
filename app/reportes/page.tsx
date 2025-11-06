@@ -256,25 +256,50 @@ export default function Reportes() {
     // Procesar el HTML para convertir degradados y estilos incompatibles
     let processedHtml = reportHtml;
     
-    // Convertir degradados a colores sólidos usando regex
-    // Buscar y reemplazar gradientes lineales comunes
-    processedHtml = processedHtml.replace(/background:\s*linear-gradient\([^)]+\)/gi, (match) => {
-      // Extraer el primer color del gradiente o usar un color por defecto
-      const colorMatch = match.match(/#[0-9a-fA-F]{6}|rgb\([^)]+\)|rgba\([^)]+\)/);
+    // Crear un parser DOM temporal para procesar el HTML correctamente
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(reportHtml, 'text/html');
+    
+    // Función para extraer el primer color de un gradiente
+    const getFirstColorFromGradient = (gradient: string): string => {
+      // Buscar colores en formato hex, rgb, rgba
+      const colorMatch = gradient.match(/#[0-9a-fA-F]{3,6}|rgb\([^)]+\)|rgba\([^)]+\)/i);
       if (colorMatch) {
-        return `background: ${colorMatch[0]}`;
+        return colorMatch[0];
       }
-      return 'background: #f3f4f6'; // Color gris por defecto
+      // Si no encuentra color, usar azul por defecto para elementos azules
+      if (gradient.includes('blue') || gradient.includes('#3b82f6') || gradient.includes('#2563eb')) {
+        return '#3b82f6';
+      }
+      return '#f3f4f6'; // Color gris por defecto
+    };
+    
+    // Procesar todos los elementos con estilos inline
+    const allElements = doc.querySelectorAll('*');
+    allElements.forEach((el: Element) => {
+      const htmlEl = el as HTMLElement;
+      if (htmlEl.style) {
+        const bg = htmlEl.style.background || htmlEl.style.backgroundColor;
+        if (bg && bg.includes('gradient')) {
+          const solidColor = getFirstColorFromGradient(bg);
+          htmlEl.style.background = solidColor;
+          htmlEl.style.backgroundColor = solidColor;
+        }
+      }
+      
+      // Procesar atributos style
+      const styleAttr = htmlEl.getAttribute('style');
+      if (styleAttr && styleAttr.includes('gradient')) {
+        const newStyle = styleAttr.replace(/background[^;]*linear-gradient[^;()]*\([^)]*\)[^;]*;?/gi, (match) => {
+          const solidColor = getFirstColorFromGradient(match);
+          return `background: ${solidColor} !important;`;
+        });
+        htmlEl.setAttribute('style', newStyle);
+      }
     });
     
-    // Convertir gradientes en style attributes
-    processedHtml = processedHtml.replace(/style="[^"]*background[^"]*linear-gradient[^"]*"/gi, (match) => {
-      const colorMatch = match.match(/#[0-9a-fA-F]{6}|rgb\([^)]+\)|rgba\([^)]+\)/);
-      if (colorMatch) {
-        return match.replace(/background[^;]*linear-gradient[^;]*;?/gi, `background: ${colorMatch[0]};`);
-      }
-      return match.replace(/background[^;]*linear-gradient[^;]*;?/gi, 'background: #f3f4f6;');
-    });
+    // Obtener el HTML procesado
+    processedHtml = doc.body.innerHTML;
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -420,15 +445,41 @@ export default function Reportes() {
               color: #6b7280;
             }
             
-            /* Convertir todos los gradientes a colores sólidos */
+            /* Convertir todos los gradientes restantes a colores sólidos */
             [style*="gradient"] {
-              background: #f3f4f6 !important;
+              background: #3b82f6 !important;
             }
             
             /* Asegurar que los colores de fondo se impriman */
-            [style*="background"] {
+            * {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            
+            /* Preservar contenido visible - asegurar que el texto sea negro */
+            .content * {
+              color: #1f2937 !important;
+            }
+            
+            /* Asegurar que los elementos con fondo azul tengan texto blanco */
+            [style*="background"][style*="#3b82f6"],
+            [style*="background"][style*="#2563eb"],
+            [style*="background"][style*="blue"] {
+              color: white !important;
+            }
+            
+            /* Asegurar visibilidad de texto en todos los elementos */
+            div, span, p, h1, h2, h3, h4, h5, h6, table, tr, td, th, li, ul, ol {
+              color: #1f2937 !important;
+            }
+            
+            /* Elementos con fondo azul deben tener texto blanco */
+            div[style*="background"][style*="#3b82f6"],
+            div[style*="background"][style*="#2563eb"],
+            span[style*="background"][style*="#3b82f6"],
+            span[style*="background"][style*="#2563eb"] {
+              color: white !important;
             }
             
             @media print {
