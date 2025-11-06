@@ -47,10 +47,14 @@ export default function EditarCliente() {
     // Cargar cliente desde MySQL
     const loadClient = async () => {
       try {
+        console.log('[EDITAR CLIENTE] Cargando cliente con ID:', clientId);
         const res = await fetch(`/api/clients/${clientId}`);
         const data = await res.json();
+        console.log('[EDITAR CLIENTE] Respuesta del API:', data);
+        
         if (data.ok && data.client) {
           const client = data.client;
+          console.log('[EDITAR CLIENTE] Cliente cargado:', client);
           setCurrentClient(client);
           setFormData({
             name: client.name,
@@ -93,11 +97,24 @@ export default function EditarCliente() {
             console.error('Error cargando agentes del cliente:', e);
           }
         } else {
-          router.push('/clientes');
+          console.error('[EDITAR CLIENTE] Cliente no encontrado o respuesta inválida:', data);
+          // NO redirigir automáticamente, mostrar error
+          setAlertModal({
+            isOpen: true,
+            title: 'Error',
+            message: 'Cliente no encontrado: ' + (data.error || 'Desconocido'),
+            type: 'error',
+          });
         }
       } catch (err) {
-        console.error('Error cargando cliente:', err);
-        router.push('/clientes');
+        console.error('[EDITAR CLIENTE] Error cargando cliente:', err);
+        // NO redirigir automáticamente, mostrar error
+        setAlertModal({
+          isOpen: true,
+          title: 'Error',
+          message: 'Error al cargar el cliente: ' + (err instanceof Error ? err.message : 'Desconocido'),
+          type: 'error',
+        });
       }
     };
     
