@@ -236,6 +236,24 @@ export default function EditarCliente() {
     );
   }
 
+  // Verificar permisos del usuario actual
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const userPerms = localStorage.getItem('admin-permissions');
+        if (userPerms) {
+          const perms = JSON.parse(userPerms);
+          console.log('[EDITAR CLIENTE] Permisos del usuario:', perms);
+          if (perms.type === 'admin') {
+            console.log('[EDITAR CLIENTE] Usuario es admin, debe tener acceso completo');
+          }
+        }
+      } catch (e) {
+        console.error('[EDITAR CLIENTE] Error cargando permisos:', e);
+      }
+    }
+  }, []);
+
   return (
     <ProtectedLayout>
       <div className="mb-6">
@@ -243,7 +261,7 @@ export default function EditarCliente() {
         <p className="mt-2 text-gray-600">Actualiza la información del cliente</p>
       </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           {/* Información del Cliente */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Información General</h2>
