@@ -690,6 +690,133 @@ export default function Conversaciones() {
             </div>
           </div>
         )}
+
+      {/* Modal de Instrucciones de Código */}
+      {showCodeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            {/* Header del Modal */}
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Insertar Conversación en Meilisearch</h2>
+                    <p className="text-sm text-gray-500">Instrucciones usando curl</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCodeModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            {/* Contenido del Modal */}
+            <div className="p-6 flex-1 overflow-auto bg-gray-50">
+              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div className="space-y-6">
+                  {/* Información del Endpoint */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Endpoint</h3>
+                    <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                      <div className="text-green-400">POST</div>
+                      <div className="mt-1">https://server-search.zeroazul.com/indexes/{INDEX_UID}/documents</div>
+                    </div>
+                  </div>
+
+                  {/* Ejemplo de curl */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Ejemplo con curl</h3>
+                    <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                      <pre className="whitespace-pre-wrap">{`curl -X POST 'https://server-search.zeroazul.com/indexes/bd_conversations_dworkers/documents' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer YOUR_MEILISEARCH_API_KEY' \\
+  -d '{
+    "id": "conv-001",
+    "type": "agent",
+    "datetime": "2024-01-15T10:30:00Z",
+    "agent": "nombre-del-agente",
+    "iduser": "user-123",
+    "phone_number_id": "+573001234567",
+    "message-Human": "Hola, ¿cómo estás?",
+    "message-AI": "Hola, estoy bien, ¿en qué puedo ayudarte?"
+  }'`}</pre>
+                    </div>
+                  </div>
+
+                  {/* Estructura del Documento */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Estructura del Documento</h3>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <div className="space-y-2 text-sm font-mono text-gray-700">
+                        <div><span className="text-blue-600">id</span>: <span className="text-gray-600">string (requerido) - Identificador único del mensaje</span></div>
+                        <div><span className="text-blue-600">type</span>: <span className="text-gray-600">string (requerido) - Debe ser &quot;agent&quot;</span></div>
+                        <div><span className="text-blue-600">datetime</span>: <span className="text-gray-600">string ISO 8601 (requerido) - Fecha y hora del mensaje</span></div>
+                        <div><span className="text-blue-600">agent</span>: <span className="text-gray-600">string (requerido) - Nombre del agente (debe coincidir con conversation_agent_name)</span></div>
+                        <div><span className="text-blue-600">iduser</span>: <span className="text-gray-600">string (requerido) - ID del usuario en la conversación</span></div>
+                        <div><span className="text-blue-600">phone_number_id</span>: <span className="text-gray-600">string (opcional) - Número de teléfono o ID de WhatsApp</span></div>
+                        <div><span className="text-blue-600">message-Human</span>: <span className="text-gray-600">string (opcional) - Mensaje del usuario/humano</span></div>
+                        <div><span className="text-blue-600">message-AI</span>: <span className="text-gray-600">string (opcional) - Respuesta del agente/AI</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notas Importantes */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Notas Importantes</h3>
+                    <ul className="space-y-2 text-sm text-gray-700 list-disc list-inside">
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">type</code> debe ser exactamente <code className="bg-gray-200 px-1 rounded">&quot;agent&quot;</code></li>
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">agent</code> debe coincidir exactamente con el <code className="bg-gray-200 px-1 rounded">conversation_agent_name</code> configurado en el agente</li>
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">datetime</code> debe estar en formato ISO 8601 (ejemplo: 2024-01-15T10:30:00Z)</li>
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">id</code> debe ser único para cada mensaje</li>
+                      <li>Al menos uno de los campos <code className="bg-gray-200 px-1 rounded">message-Human</code> o <code className="bg-gray-200 px-1 rounded">message-AI</code> debe estar presente</li>
+                      <li>Las conversaciones se agrupan automáticamente por <code className="bg-gray-200 px-1 rounded">iduser</code></li>
+                      <li>Necesitarás tu API Key de Meilisearch para autenticación</li>
+                    </ul>
+                  </div>
+
+                  {/* Ejemplo con múltiples documentos */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Insertar múltiples mensajes</h3>
+                    <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                      <pre className="whitespace-pre-wrap">{`curl -X POST 'https://server-search.zeroazul.com/indexes/bd_conversations_dworkers/documents' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer YOUR_MEILISEARCH_API_KEY' \\
+  -d '[
+    {
+      "id": "conv-001",
+      "type": "agent",
+      "datetime": "2024-01-15T10:30:00Z",
+      "agent": "nombre-del-agente",
+      "iduser": "user-123",
+      "phone_number_id": "+573001234567",
+      "message-Human": "Hola"
+    },
+    {
+      "id": "conv-002",
+      "type": "agent",
+      "datetime": "2024-01-15T10:31:00Z",
+      "agent": "nombre-del-agente",
+      "iduser": "user-123",
+      "phone_number_id": "+573001234567",
+      "message-AI": "Hola, ¿en qué puedo ayudarte?"
+    }
+  ]'`}</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedLayout>
   );
 }
