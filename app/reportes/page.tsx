@@ -351,7 +351,7 @@ export default function Reportes() {
       // Asegurar que no haya z-index muy altos en el contenido
       processedHtml = processedHtml.replace(/z-index\s*:\s*\d+/gi, 'z-index: 0');
       // Eliminar cualquier overlay o elemento que pueda estar causando problemas
-      processedHtml = processedHtml.replace(/<div[^>]*class="[^"]*overlay[^"]*"[^>]*>.*?<\/div>/gis, '');
+      processedHtml = processedHtml.replace(/<div[^>]*class="[^"]*overlay[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '');
 
       // Crear un elemento temporal fuera de la vista para renderizar el PDF
       pdfContainer = document.createElement('div');
