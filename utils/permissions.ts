@@ -21,9 +21,9 @@ export function hasAccessToRoute(route: string, permissions: any): boolean {
     return false;
   }
   
-  // Admin tiene acceso a todo
+  // Admin tiene acceso a TODO sin restricciones
   if (permissions.type === 'admin') {
-    console.log('[PERMISSIONS] Admin user, allowing access');
+    console.log('[PERMISSIONS] Admin user, allowing access to:', route);
     return true;
   }
   
@@ -33,14 +33,24 @@ export function hasAccessToRoute(route: string, permissions: any): boolean {
     return false;
   }
   
+  // Normalizar la ruta para manejar rutas dinámicas
+  // Ejemplo: /clientes/1/editar -> /clientes
+  let normalizedRoute = route;
+  for (const [baseRoute] of Object.entries(routePermissions)) {
+    if (route.startsWith(baseRoute)) {
+      normalizedRoute = baseRoute;
+      break;
+    }
+  }
+  
   // Obtener el permiso requerido para la ruta
-  const requiredPerm = routePermissions[route];
+  const requiredPerm = routePermissions[normalizedRoute];
   if (!requiredPerm) {
-    console.log('[PERMISSIONS] No mapping for route:', route);
+    console.log('[PERMISSIONS] No mapping for route:', route, 'normalized:', normalizedRoute);
     return true; // Si no hay mapeo, permitir acceso
   }
   
-  console.log('[PERMISSIONS] Checking route:', route, 'requiring perm:', requiredPerm);
+  console.log('[PERMISSIONS] Checking route:', route, 'normalized:', normalizedRoute, 'requiring perm:', requiredPerm);
   
   // Verificar permisos del módulo (nuevo sistema simplificado)
   const modulePerms = permissions[requiredPerm];
