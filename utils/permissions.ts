@@ -21,6 +21,12 @@ export function hasAccessToRoute(route: string, permissions: any): boolean {
     return false;
   }
   
+  // Admin tiene acceso a todo
+  if (permissions.type === 'admin') {
+    console.log('[PERMISSIONS] Admin user, allowing access');
+    return true;
+  }
+  
   // Verificar si puede hacer login
   if (permissions.canLogin === false) {
     console.log('[PERMISSIONS] Login disabled');

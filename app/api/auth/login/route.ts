@@ -6,18 +6,18 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     console.log('[LOGIN API] Body:', body);
-    const email = (body.email || '').trim().toLowerCase();
+    const usernameOrEmail = (body.email || body.username || '').trim();
     const clave = String(body.password || body.clave || '').trim();
 
-    if (!email || !clave) {
+    if (!usernameOrEmail || !clave) {
       return NextResponse.json({ ok: false, error: 'Faltan credenciales' }, { status: 400 });
     }
 
-    // Consultar credenciales desde MySQL
+    // Consultar credenciales desde MySQL - buscar por email o por name (usuario)
     console.log('[LOGIN API] Consultando MySQL...');
     const [rows] = await query<any>(
-      'SELECT id, name, email, company, phone, clave, permissions FROM clients WHERE LOWER(email) = LOWER(?) LIMIT 1',
-      [email]
+      'SELECT id, name, email, company, phone, clave, permissions FROM clients WHERE LOWER(email) = LOWER(?) OR LOWER(name) = LOWER(?) LIMIT 1',
+      [usernameOrEmail, usernameOrEmail]
     );
 
     if (!rows || rows.length === 0) {

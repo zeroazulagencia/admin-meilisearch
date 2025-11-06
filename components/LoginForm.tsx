@@ -15,21 +15,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const router = useRouter();
   
   
-  // Limpiar auto-fill al cargar - deshabilitar completamente
-  useEffect(() => {
-    setTimeout(() => {
-      const usernameInput = document.getElementById('username') as HTMLInputElement;
-      const passwordInput = document.getElementById('password') as HTMLInputElement;
-      if (usernameInput) {
-        usernameInput.value = '';
-        usernameInput.setAttribute('autocomplete', 'off');
-      }
-      if (passwordInput) {
-        passwordInput.value = '';
-        passwordInput.setAttribute('autocomplete', 'new-password');
-      }
-    }, 100);
-  }, []);
+  // Ya no limpiamos el autocomplete para que el navegador pueda guardar el usuario
 
   useEffect(() => {
     // Verificar si ya hay una sesión activa
@@ -105,16 +91,16 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="username" className="sr-only">
-                Correo
+                Usuario o correo
               </label>
               <input
                 id="username"
                 name="username"
                 type="text"
                 required
-                autoComplete="off"
+                autoComplete="username"
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Correo"
+                placeholder="Usuario o correo"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
@@ -128,7 +114,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 name="password"
                 type="password"
                 required
-                autoComplete="new-password"
+                autoComplete="current-password"
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Contraseña"
                 value={password}
