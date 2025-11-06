@@ -668,7 +668,7 @@ export default function Reportes() {
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                       <div className="space-y-2 text-sm font-mono text-gray-700">
                         <div><span className="text-blue-600">id</span>: <span className="text-gray-600">string (requerido) - Identificador único del reporte</span></div>
-                        <div><span className="text-blue-600">type</span>: <span className="text-gray-600">string (requerido) - Tipo de reporte: "Agent" o "RPA"</span></div>
+                        <div><span className="text-blue-600">type</span>: <span className="text-gray-600">string (requerido) - Tipo de reporte: &quot;Agent&quot; o &quot;RPA&quot;</span></div>
                         <div><span className="text-blue-600">datetime</span>: <span className="text-gray-600">string ISO 8601 (requerido) - Fecha y hora del reporte</span></div>
                         <div><span className="text-blue-600">agent</span>: <span className="text-gray-600">string (requerido) - Nombre del agente (debe coincidir con reports_agent_name)</span></div>
                         <div><span className="text-blue-600">report</span>: <span className="text-gray-600">string HTML (opcional) - Contenido del reporte en formato HTML</span></div>
@@ -680,7 +680,7 @@ export default function Reportes() {
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900 mb-2">Notas Importantes</h3>
                     <ul className="space-y-2 text-sm text-gray-700 list-disc list-inside">
-                      <li>El campo <code className="bg-gray-200 px-1 rounded">type</code> solo puede ser <code className="bg-gray-200 px-1 rounded">"Agent"</code> o <code className="bg-gray-200 px-1 rounded">"RPA"</code></li>
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">type</code> solo puede ser <code className="bg-gray-200 px-1 rounded">&quot;Agent&quot;</code> o <code className="bg-gray-200 px-1 rounded">&quot;RPA&quot;</code></li>
                       <li>El campo <code className="bg-gray-200 px-1 rounded">agent</code> debe coincidir exactamente con el <code className="bg-gray-200 px-1 rounded">reports_agent_name</code> configurado en el agente</li>
                       <li>El campo <code className="bg-gray-200 px-1 rounded">datetime</code> debe estar en formato ISO 8601 (ejemplo: 2024-01-15T10:30:00Z)</li>
                       <li>El campo <code className="bg-gray-200 px-1 rounded">id</code> debe ser único para cada reporte</li>
