@@ -53,6 +53,7 @@ export default function AdminConocimiento() {
     message: '',
     type: 'info',
   });
+  const [showCodeModal, setShowCodeModal] = useState(false);
   
   // Calcular cantidad de chunks basado en el símbolo [separador]
   const calculateChunks = (text: string): number => {
@@ -1110,9 +1111,15 @@ export default function AdminConocimiento() {
             if (!Array.isArray(knowledge.indexes)) knowledge.indexes = [];
             return { ...a, knowledge } as AgentDB;
           });
+          // Filtrar solo agentes con índices asociados
+          const agentsWithIndexes = normalized.filter((a: AgentDB) => {
+            const indexes = a.knowledge?.indexes || [];
+            return indexes.length > 0;
+          });
           console.log('[ADMIN-CONOCIMIENTO] Agents loaded:', normalized.length);
-          console.log('[ADMIN-CONOCIMIENTO] Sample agent indexes:', normalized.slice(0, 3).map((x: any) => ({ id: x.id, indexes: x.knowledge?.indexes })));
-          setAgents(normalized);
+          console.log('[ADMIN-CONOCIMIENTO] Agents with indexes:', agentsWithIndexes.length);
+          console.log('[ADMIN-CONOCIMIENTO] Sample agent indexes:', agentsWithIndexes.slice(0, 3).map((x: any) => ({ id: x.id, indexes: x.knowledge?.indexes })));
+          setAgents(agentsWithIndexes);
         }
       } catch (e) {
         console.error('Error cargando agentes:', e);
@@ -1142,7 +1149,18 @@ export default function AdminConocimiento() {
 
   return (
     <ProtectedLayout>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Conocimiento</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Admin Conocimiento</h1>
+        <button
+          onClick={() => setShowCodeModal(true)}
+          className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+          title="Ver instrucciones de creación de índices"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+        </button>
+      </div>
       
       <div className="space-y-6">
         {/* Selector de Agente */}
@@ -1161,11 +1179,14 @@ export default function AdminConocimiento() {
             style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
           >
             <option value="">Seleccionar agente...</option>
-            {agents.map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {agent.name} {(() => { try { const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {}); return k.indexes?.length ? `(${k.indexes.length} índices)` : '(sin índices)'; } catch { return '(sin índices)'; } })()}
-              </option>
-            ))}
+            {agents.map((agent) => {
+              const indexes = agent.knowledge?.indexes || [];
+              return (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name} ({indexes.length} índice{indexes.length !== 1 ? 's' : ''})
+                </option>
+              );
+            })}
           </select>
           {selectedAgent && (
             <div className="mt-3 flex items-center gap-3">
@@ -2043,6 +2064,142 @@ export default function AdminConocimiento() {
         message={alertModal.message}
         type={alertModal.type}
       />
+
+      {/* Modal de Instrucciones de Código */}
+      {showCodeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-800">Crear Índice de Conocimiento</h2>
+              <button
+                onClick={() => setShowCodeModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                {/* Endpoint */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Endpoint de Creación</h3>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-sm font-mono">
+                      <div className="text-green-400">POST</div>
+                      <div className="mt-1">https://server-search.zeroazul.com/indexes</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ejemplo de curl */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Ejemplo con curl</h3>
+                  <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                    <pre className="whitespace-pre-wrap">{`curl -X POST 'https://server-search.zeroazul.com/indexes' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer YOUR_MEILISEARCH_API_KEY' \\
+  -d '{
+    "uid": "guia_miagente_productos",
+    "primaryKey": "id"
+  }'`}</pre>
+                  </div>
+                </div>
+
+                {/* Convención de Nombres */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Convención de Nombres</h3>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-700 mb-2">
+                      El nombre del índice debe seguir esta convención:
+                    </p>
+                    <code className="block bg-white p-2 rounded text-sm font-mono text-gray-900 mb-2">
+                      guia_nombreagente_temadeconocimiento
+                    </code>
+                    <p className="text-sm text-gray-700">
+                      Ejemplos:
+                    </p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 mt-2 space-y-1">
+                      <li><code className="bg-gray-100 px-1 rounded">guia_miagente_productos</code></li>
+                      <li><code className="bg-gray-100 px-1 rounded">guia_agente123_manuales</code></li>
+                      <li><code className="bg-gray-100 px-1 rounded">guia_soporte_faq</code></li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Estructura del Documento */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Estructura del Documento</h3>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-700 mb-3">
+                      Los documentos deben tener como mínimo estos campos:
+                    </p>
+                    <div className="space-y-2 text-sm font-mono text-gray-700">
+                      <div><span className="text-blue-600">id</span>: <span className="text-gray-600">string (requerido) - Identificador único del documento</span></div>
+                      <div><span className="text-blue-600">titulo</span>: <span className="text-gray-600">string (requerido) - Título del documento</span></div>
+                      <div><span className="text-blue-600">contenido</span>: <span className="text-gray-600">string (requerido) - Contenido del documento</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ejemplo de Inserción */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Insertar Documento</h3>
+                  <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                    <pre className="whitespace-pre-wrap">{`curl -X POST 'https://server-search.zeroazul.com/indexes/guia_miagente_productos/documents' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer YOUR_MEILISEARCH_API_KEY' \\
+  -d '{
+    "id": "doc-001",
+    "titulo": "Guía de Productos Premium",
+    "contenido": "Esta es una guía completa sobre nuestros productos premium..."
+  }'`}</pre>
+                  </div>
+                </div>
+
+                {/* Importante: Embedder */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">⚠️ Importante: Configurar Embedder</h3>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-700 mb-2">
+                      Después de crear el índice y agregar documentos, <strong>debes configurar el embedder desde esta misma página</strong>:
+                    </p>
+                    <ol className="list-decimal list-inside text-sm text-gray-700 space-y-1 ml-2">
+                      <li>Selecciona el agente que contiene el índice</li>
+                      <li>Selecciona el índice que acabas de crear</li>
+                      <li>Ve a la sección &quot;Configuración del Embedder&quot;</li>
+                      <li>Configura el embedder según tus necesidades</li>
+                    </ol>
+                    <p className="text-sm text-gray-700 mt-3 font-medium">
+                      El embedder es esencial para que Meilisearch pueda generar las representaciones vectoriales de tus documentos.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Notas Importantes */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Notas Importantes</h3>
+                  <ul className="space-y-2 text-sm text-gray-700 list-disc list-inside">
+                    <li>El campo <code className="bg-gray-200 px-1 rounded">uid</code> del índice debe seguir la convención <code className="bg-gray-200 px-1 rounded">guia_nombreagente_temadeconocimiento</code></li>
+                    <li>Los campos <code className="bg-gray-200 px-1 rounded">titulo</code> y <code className="bg-gray-200 px-1 rounded">contenido</code> son obligatorios en cada documento</li>
+                    <li>Puedes agregar más campos adicionales según tus necesidades</li>
+                    <li>Después de crear el índice, asegúrate de agregar el embedder desde esta página</li>
+                    <li>El índice debe estar asociado al agente en la base de datos para aparecer en el listado</li>
+                    <li>Necesitarás tu API Key de Meilisearch para autenticación</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowCodeModal(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedLayout>
   );
 }
