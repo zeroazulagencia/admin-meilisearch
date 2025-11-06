@@ -272,7 +272,14 @@ export default function EditarCliente() {
         <p className="mt-2 text-gray-600">Actualiza la información del cliente</p>
       </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        <form 
+          onSubmit={(e) => {
+            console.log('[EDITAR CLIENTE] Form onSubmit llamado');
+            handleSubmit(e);
+          }} 
+          className="space-y-6" 
+          noValidate
+        >
           {/* Información del Cliente */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Información General</h2>
@@ -527,11 +534,13 @@ export default function EditarCliente() {
             <button
               type="submit"
               onClick={(e) => {
-                console.log('[EDITAR CLIENTE] Botón Guardar Cambios clickeado');
-                e.preventDefault();
-                handleSubmit(e as any);
+                console.log('[EDITAR CLIENTE] Botón Guardar Cambios clickeado', e);
+                // No prevenir default aquí, dejar que el form maneje el submit
               }}
-              className="px-6 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
+              onMouseDown={(e) => {
+                console.log('[EDITAR CLIENTE] Botón mouseDown');
+              }}
+              className="px-6 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all cursor-pointer"
               style={{ backgroundColor: '#5DE1E5' }}
             >
               Guardar Cambios
