@@ -539,7 +539,7 @@ export default function Reportes() {
             
             @media print {
               @page {
-                margin: 0 1cm 1cm 1cm;
+                margin: 1.5cm;
                 size: A4;
               }
               
@@ -551,14 +551,31 @@ export default function Reportes() {
               body {
                 padding: 0 !important;
                 margin: 0 !important;
-                background: white;
+                background: #f5f5f5;
                 position: relative;
                 top: 0;
               }
               
-              body > *:first-child {
-                margin-top: 0 !important;
-                padding-top: 0 !important;
+              .pdf-container {
+                background: white;
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                padding: 30px;
+                margin: 0 auto;
+                max-width: 100%;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+              }
+              
+              .pdf-header {
+                margin-bottom: 30px;
+                padding-bottom: 20px;
+                border-bottom: 1px solid #e5e7eb;
+              }
+              
+              .pdf-logo {
+                max-width: 200px;
+                height: auto;
+                margin-bottom: 15px;
               }
               
               .header {
@@ -598,6 +615,46 @@ export default function Reportes() {
               .agent-info {
                 page-break-inside: avoid;
                 margin-top: 40px;
+                padding-top: 30px;
+                border-top: 1px solid #e5e7eb;
+                display: flex;
+                align-items: flex-start;
+                gap: 20px;
+              }
+              
+              .agent-photo {
+                width: 80px;
+                height: 80px;
+                border-radius: 8px;
+                object-fit: cover;
+                border: 2px solid #e5e7eb;
+                flex-shrink: 0;
+              }
+              
+              .agent-details {
+                flex: 1;
+              }
+              
+              .agent-name {
+                font-size: 16px;
+                font-weight: 600;
+                color: #111827;
+                margin-bottom: 8px;
+              }
+              
+              .agent-description {
+                font-size: 14px;
+                color: #6b7280;
+                line-height: 1.6;
+                margin-top: 8px;
+              }
+              
+              .agent-label {
+                font-size: 12px;
+                color: #9ca3af;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 4px;
               }
               
               /* Ocultar elementos que no deben imprimirse */
@@ -624,16 +681,20 @@ export default function Reportes() {
           </style>
         </head>
         <body style="margin: 0; padding: 0;">
-          <div class="header" style="margin-top: 0; padding-top: 0; display: none;">
-            <div class="date" style="margin-top: 0;">${formatDate(selectedReport.datetime)}</div>
-          </div>
-          <div class="content" style="margin-top: 0; padding-top: 0;">
-            ${processedHtml}
-          </div>
-          <div class="agent-info">
-            ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" />` : ''}
-            <div>
-              <div class="agent-name"><strong>Creado por:</strong> ${agentName}</div>
+          <div class="pdf-container">
+            <div class="pdf-header">
+              <img src="/public-img/logo-dworkers.png" alt="DWORKERS" class="pdf-logo" onerror="this.style.display='none'" />
+            </div>
+            <div class="content" style="margin-top: 0; padding-top: 0;">
+              ${processedHtml}
+            </div>
+            <div class="agent-info">
+              ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" />` : '<div class="agent-photo" style="background: #e5e7eb; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 24px;">👤</div>'}
+              <div class="agent-details">
+                <div class="agent-label">Creado por</div>
+                <div class="agent-name">${agentName}</div>
+                ${agentInfo?.description ? `<div class="agent-description">${agentInfo.description}</div>` : ''}
+              </div>
             </div>
           </div>
         </body>
