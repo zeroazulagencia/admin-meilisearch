@@ -34,6 +34,16 @@ export default function ConsumoAPI() {
       name: 'Open Router',
       status: 'Activo',
       dashboardUrl: 'https://openrouter.ai/activity'
+    },
+    {
+      name: 'AWS Lightsail',
+      status: 'Activo',
+      dashboardUrl: 'https://lightsail.aws.amazon.com/ls/webapp/home/instances'
+    },
+    {
+      name: 'AWS Billing',
+      status: 'Activo',
+      dashboardUrl: 'https://us-east-1.console.aws.amazon.com/billing/home#/'
     }
   ];
 
