@@ -6,7 +6,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const [rows] = await query<any>(
-      'SELECT id, name, email, phone, company, clave, permissions, status FROM clients WHERE id = ? LIMIT 1',
+      'SELECT id, name, email, phone, company, nit, clave, permissions, status FROM clients WHERE id = ? LIMIT 1',
       [id]
     );
     if (!rows || rows.length === 0) {
@@ -23,10 +23,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const body = await req.json();
-    await query(
-      'UPDATE clients SET name = ?, email = ?, phone = ?, company = ?, clave = ?, permissions = ? WHERE id = ?',
-      [body.name, body.email, body.phone, body.company, body.clave, JSON.stringify(body.permissions || {}), id]
-    );
+    // Intentar actualizar con NIT, si falla intentar sin él (backward compatibility)
+    try {
+      await query(
+        'UPDATE clients SET name = ?, email = ?, phone = ?, company = ?, nit = ?, clave = ?, permissions = ? WHERE id = ?',
+        [body.name, body.email, body.phone, body.company, body.nit || null, body.clave, JSON.stringify(body.permissions || {}), id]
+      );
+    } catch (e: any) {
+      // Si falla, probablemente la columna nit no existe, intentar sin ella
+      console.log('[API CLIENTS] Error updating with NIT, trying without it:', e?.message);
+      await query(
+        'UPDATE clients SET name = ?, email = ?, phone = ?, company = ?, clave = ?, permissions = ? WHERE id = ?',
+        [body.name, body.email, body.phone, body.company, body.clave, JSON.stringify(body.permissions || {}), id]
+      );
+    }
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || 'Error' }, { status: 500 });

@@ -282,7 +282,7 @@ export default function EditarAgente() {
   };
 
   const handleImageUpload = async (file: File) => {
-    if (file.size > 1 * 1024 * 1024) {
+                        if (file.size > 1 * 1024 * 1024) {
                           setAlertModal({
                             isOpen: true,
                             title: 'Validación',
@@ -615,7 +615,7 @@ export default function EditarAgente() {
                         className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4"
                       />
                     </>
-                  )}
+                )}
                 </div>
               </div>
 
@@ -970,7 +970,7 @@ export default function EditarAgente() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
 
         <div className="mt-6 flex items-center justify-end gap-x-6">
             <button

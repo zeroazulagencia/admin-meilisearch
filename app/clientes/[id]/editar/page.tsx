@@ -11,6 +11,7 @@ interface Client {
   email?: string;
   phone?: string;
   company?: string;
+  nit?: string;
   clave?: string;
   permissions?: any;
 }
@@ -24,8 +25,10 @@ export default function EditarCliente() {
     email: '',
     phone: '',
     company: '',
+    nit: '',
     clave: ''
   });
+  const [emailError, setEmailError] = useState('');
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [associatedAgents, setAssociatedAgents] = useState<any[]>([]);
   const [permissions, setPermissions] = useState<any>({});
@@ -54,6 +57,7 @@ export default function EditarCliente() {
             email: client.email || '',
             phone: client.phone || '',
             company: client.company || '',
+            nit: client.nit || '',
             clave: client.clave || ''
           });
           try {
@@ -85,10 +89,29 @@ export default function EditarCliente() {
     loadClient();
   }, [params?.id, router]);
 
+  const validateEmail = (email: string): boolean => {
+    if (!email) return true; // Email es opcional
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!currentClient) return;
+
+    // Validar email
+    if (formData.email && !validateEmail(formData.email)) {
+      setEmailError('Por favor ingresa un email válido');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error de validación',
+        message: 'Por favor ingresa un email válido',
+        type: 'error',
+      });
+      return;
+    }
+    setEmailError('');
 
     try {
       const res = await fetch(`/api/clients/${currentClient.id}`, {
@@ -99,6 +122,7 @@ export default function EditarCliente() {
           email: formData.email,
           phone: formData.phone,
           company: formData.company,
+          nit: formData.nit,
           clave: formData.clave,
           permissions
         })
@@ -217,10 +241,29 @@ export default function EditarCliente() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+                  onChange={(e) => {
+                    setFormData({ ...formData, email: e.target.value });
+                    if (e.target.value && !validateEmail(e.target.value)) {
+                      setEmailError('Email inválido');
+                    } else {
+                      setEmailError('');
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value && !validateEmail(e.target.value)) {
+                      setEmailError('Email inválido');
+                    } else {
+                      setEmailError('');
+                    }
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+                    emailError ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  style={{ '--tw-ring-color': emailError ? '#ef4444' : '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
                 />
+                {emailError && (
+                  <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                )}
               </div>
 
               <div>
@@ -246,6 +289,20 @@ export default function EditarCliente() {
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                   style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  NIT
+                </label>
+                <input
+                  type="text"
+                  value={formData.nit}
+                  onChange={(e) => setFormData({ ...formData, nit: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+                  placeholder="123456789-0"
                 />
               </div>
 
