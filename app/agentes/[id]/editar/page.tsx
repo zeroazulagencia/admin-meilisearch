@@ -153,14 +153,17 @@ export default function EditarAgente() {
         const k = typeof currentAgent.knowledge === 'string' ? JSON.parse(currentAgent.knowledge) : (currentAgent.knowledge || {});
         const savedIndexes = k.indexes || [];
         // Solo actualizar si hay diferencias para evitar loops infinitos
-        if (JSON.stringify(savedIndexes.sort()) !== JSON.stringify(selectedIndexes.sort())) {
+        const currentSorted = [...selectedIndexes].sort();
+        const savedSorted = [...savedIndexes].sort();
+        if (JSON.stringify(currentSorted) !== JSON.stringify(savedSorted)) {
           setSelectedIndexes(savedIndexes);
         }
       } catch {
-        setSelectedIndexes([]);
+        // Ignorar errores de parsing
       }
     }
-  }, [currentAgent, availableIndexes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentAgent?.id, availableIndexes.length]);
 
   useEffect(() => {
     if (currentAgent && availableWorkflows.length > 0) {
@@ -168,14 +171,17 @@ export default function EditarAgente() {
         const w = typeof currentAgent.workflows === 'string' ? JSON.parse(currentAgent.workflows) : (currentAgent.workflows || {});
         const savedWorkflows = w.workflowIds || [];
         // Solo actualizar si hay diferencias para evitar loops infinitos
-        if (JSON.stringify(savedWorkflows.sort()) !== JSON.stringify(selectedWorkflows.sort())) {
+        const currentSorted = [...selectedWorkflows].sort();
+        const savedSorted = [...savedWorkflows].sort();
+        if (JSON.stringify(currentSorted) !== JSON.stringify(savedSorted)) {
           setSelectedWorkflows(savedWorkflows);
         }
       } catch {
-        setSelectedWorkflows([]);
+        // Ignorar errores de parsing
       }
     }
-  }, [currentAgent, availableWorkflows]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentAgent?.id, availableWorkflows.length]);
 
   const loadReportAgents = async () => {
     setLoadingReportAgents(true);
