@@ -73,6 +73,8 @@ export default function Reportes() {
         if (permissions && userId && permissions.type !== 'admin' && !permissions.reportes?.viewAll) {
           list = list.filter(a => a.client_id === parseInt(userId));
         }
+        // Filtrar solo agentes que tienen reports_agent_name asociado
+        list = list.filter(a => a.reports_agent_name && a.reports_agent_name.trim() !== '');
         setAllPlatformAgents(list);
       } catch (e) {
         console.error('Error cargando agentes:', e);
