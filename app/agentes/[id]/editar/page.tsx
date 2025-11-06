@@ -48,9 +48,6 @@ export default function EditarAgente() {
     description: '',
     photo: '',
     client_id: 0,
-    email: '',
-    phone: '',
-    agent_code: '',
     whatsapp_business_account_id: '',
     whatsapp_phone_number_id: '',
     whatsapp_access_token: '',
@@ -110,9 +107,6 @@ export default function EditarAgente() {
             description: agent.description || '',
             photo: agent.photo || '',
             client_id: agent.client_id,
-            email: agent.email || '',
-            phone: agent.phone || '',
-            agent_code: agent.agent_code || '',
             whatsapp_business_account_id: agent.whatsapp_business_account_id || '',
             whatsapp_phone_number_id: agent.whatsapp_phone_number_id || '',
             whatsapp_access_token: agent.whatsapp_access_token || '',
@@ -318,9 +312,6 @@ export default function EditarAgente() {
           name: formData.name,
           description: formData.description,
           photo: formData.photo,
-          email: formData.email || null,
-          phone: formData.phone || null,
-          agent_code: formData.agent_code || null,
           knowledge: { indexes: selectedIndexes },
           workflows: { workflowIds: selectedWorkflows },
           conversation_agent_name: selectedConversationAgent || null,
@@ -387,7 +378,7 @@ export default function EditarAgente() {
             </p>
             
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-3">
                 <label htmlFor="name" className="block text-sm/6 font-medium text-gray-900">
                   Nombre *
                 </label>
@@ -453,9 +444,9 @@ export default function EditarAgente() {
                 </label>
                 <div className="mt-2 flex items-center gap-x-3">
                   {formData.photo ? (
-                    <img src={formData.photo} alt="Avatar" className="size-12 rounded-full object-cover" />
+                    <img src={formData.photo} alt="Avatar" className="size-32 rounded-full object-cover" />
                   ) : (
-                    <UserCircleIcon aria-hidden="true" className="size-12 text-gray-300" />
+                    <UserCircleIcon aria-hidden="true" className="size-32 text-gray-300" />
                   )}
                   <button
                     type="button"
@@ -476,54 +467,6 @@ export default function EditarAgente() {
                         handleImageUpload(file);
                       }
                     }}
-                  />
-                </div>
-              </div>
-
-              <div className="sm:col-span-3">
-                <label htmlFor="email" className="block text-sm/6 font-medium text-gray-900">
-                  Email
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
-                  />
-                </div>
-              </div>
-
-              <div className="sm:col-span-3">
-                <label htmlFor="phone" className="block text-sm/6 font-medium text-gray-900">
-                  Teléfono
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
-                  />
-                </div>
-              </div>
-
-              <div className="sm:col-span-3">
-                <label htmlFor="agent_code" className="block text-sm/6 font-medium text-gray-900">
-                  Código de Agente
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="agent_code"
-                    name="agent_code"
-                    type="text"
-                    value={formData.agent_code}
-                    onChange={(e) => setFormData({ ...formData, agent_code: e.target.value })}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
                   />
                 </div>
               </div>
