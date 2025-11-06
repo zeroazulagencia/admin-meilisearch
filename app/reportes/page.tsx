@@ -539,14 +539,26 @@ export default function Reportes() {
             
             @media print {
               @page {
-                margin: 0.3cm 1cm 1cm 1cm;
+                margin: 0 1cm 1cm 1cm;
                 size: A4;
+              }
+              
+              html {
+                margin: 0 !important;
+                padding: 0 !important;
               }
               
               body {
                 padding: 0 !important;
                 margin: 0 !important;
                 background: white;
+                position: relative;
+                top: 0;
+              }
+              
+              body > *:first-child {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
               }
               
               .header {
@@ -557,6 +569,11 @@ export default function Reportes() {
                 page-break-after: avoid;
               }
               
+              .header > *:first-child {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+              }
+              
               .content {
                 margin-top: 0 !important;
                 padding-top: 0 !important;
@@ -565,6 +582,8 @@ export default function Reportes() {
               .type-badge {
                 margin-top: 0 !important;
                 margin-bottom: 5px !important;
+                padding-top: 6px !important;
+                display: inline-block;
               }
               
               .date {
