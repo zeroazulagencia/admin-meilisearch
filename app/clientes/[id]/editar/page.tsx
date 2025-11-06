@@ -129,6 +129,13 @@ export default function EditarCliente() {
     setEmailError('');
 
     try {
+      console.log('[EDITAR CLIENTE] Enviando datos:', {
+        id: currentClient.id,
+        name: formData.name,
+        email: formData.email,
+        permissions
+      });
+      
       const res = await fetch(`/api/clients/${currentClient.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -142,10 +149,22 @@ export default function EditarCliente() {
           permissions
         })
       });
+      
       const data = await res.json();
+      console.log('[EDITAR CLIENTE] Respuesta del servidor:', data);
+      
       if (data.ok) {
-        router.push('/clientes');
+        setAlertModal({
+          isOpen: true,
+          title: 'Éxito',
+          message: 'Cliente actualizado correctamente',
+          type: 'success',
+        });
+        setTimeout(() => {
+          router.push('/clientes');
+        }, 1000);
       } else {
+        console.error('[EDITAR CLIENTE] Error en respuesta:', data.error);
         setAlertModal({
           isOpen: true,
           title: 'Error',
@@ -153,11 +172,12 @@ export default function EditarCliente() {
           type: 'error',
         });
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[EDITAR CLIENTE] Error en catch:', err);
       setAlertModal({
         isOpen: true,
         title: 'Error',
-        message: 'Error al actualizar cliente',
+        message: 'Error al actualizar cliente: ' + (err?.message || 'Error de red'),
         type: 'error',
       });
     }
