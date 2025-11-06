@@ -38,6 +38,7 @@ export default function Reportes() {
   const [selectedReport, setSelectedReport] = useState<ReportDocument | null>(null);
   const [reportHtml, setReportHtml] = useState<string>('');
   const [loadingReportDetail, setLoadingReportDetail] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [deletingReport, setDeletingReport] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ isOpen: boolean; reportId: string | null }>({
@@ -248,8 +249,11 @@ export default function Reportes() {
   const handleDownloadPDF = async () => {
     if (!selectedReport || !reportHtml) return;
 
-    const agentInfo = allPlatformAgents.find(a => a.reports_agent_name === selectedReport.agent);
-    const agentName = agentInfo?.name || selectedReport.agent;
+    setGeneratingPDF(true);
+
+    try {
+      const agentInfo = allPlatformAgents.find(a => a.reports_agent_name === selectedReport.agent);
+      const agentName = agentInfo?.name || selectedReport.agent;
 
     // Procesar el HTML para convertir degradados y estilos incompatibles
     let processedHtml = reportHtml;
@@ -421,19 +425,46 @@ export default function Reportes() {
       const imgScaledWidth = imgWidth * ratio;
       const imgScaledHeight = imgHeight * ratio;
 
-      // Si el contenido es más alto que una página, dividirlo en múltiples páginas
-      const pageHeight = pdfHeight;
-      let heightLeft = imgScaledHeight;
-      let position = 0;
+      // Convertir altura de página a píxeles (considerando el ratio)
+      const pageHeightInPixels = pdfHeight / ratio;
+      
+      // Dividir la imagen en páginas
+      let yPosition = 0;
+      let pageNumber = 0;
 
-      pdf.addImage(imgData, 'JPEG', 0, position, imgScaledWidth, imgScaledHeight);
-      heightLeft -= pageHeight;
+      while (yPosition < imgHeight) {
+        if (pageNumber > 0) {
+          pdf.addPage();
+        }
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgScaledHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgScaledWidth, imgScaledHeight);
-        heightLeft -= pageHeight;
+        // Calcular cuánto de la imagen cabe en esta página
+        const remainingHeight = imgHeight - yPosition;
+        const heightForThisPage = Math.min(pageHeightInPixels, remainingHeight);
+        
+        // Crear un canvas temporal para esta porción de la imagen
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = imgWidth;
+        pageCanvas.height = heightForThisPage;
+        const pageCtx = pageCanvas.getContext('2d');
+        
+        if (pageCtx) {
+          // Dibujar solo la porción de la imagen que corresponde a esta página
+          pageCtx.drawImage(
+            canvas,
+            0, yPosition,           // Coordenadas de origen en la imagen original
+            imgWidth, heightForThisPage,  // Dimensiones a copiar
+            0, 0,                    // Coordenadas de destino en el nuevo canvas
+            imgWidth, heightForThisPage   // Dimensiones en el nuevo canvas
+          );
+          
+          const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.85);
+          const pageScaledHeight = heightForThisPage * ratio;
+          
+          pdf.addImage(pageImgData, 'JPEG', 0, 0, imgScaledWidth, pageScaledHeight);
+        }
+        
+        yPosition += pageHeightInPixels;
+        pageNumber++;
       }
 
       // Descargar el PDF
@@ -447,6 +478,8 @@ export default function Reportes() {
         document.body.removeChild(pdfContainer);
       }
       alert('Error al generar el PDF. Por favor, intenta nuevamente.');
+    } finally {
+      setGeneratingPDF(false);
     }
   };
 
