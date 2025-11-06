@@ -543,30 +543,48 @@ export default function Reportes() {
                 size: A4;
               }
               
+              * {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+              }
+              
               html {
                 margin: 0 !important;
                 padding: 0 !important;
                 height: 100%;
+                overflow: visible;
               }
               
               body {
                 padding: 0 !important;
                 margin: 0 !important;
                 background: #f5f5f5;
-                position: relative;
+                position: absolute;
                 top: 0;
-                height: 100%;
+                left: 0;
+                width: 100%;
+                min-height: 100%;
+                overflow: visible;
+              }
+              
+              body::before {
+                content: none !important;
+                display: none !important;
               }
               
               .pdf-container {
                 background: white;
                 border: 1px solid #e5e7eb;
                 border-radius: 12px;
-                padding: 20px;
-                margin: 1.5cm;
+                padding: 25px;
+                margin: 1.5cm auto;
                 max-width: calc(100% - 3cm);
+                width: calc(100% - 3cm);
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
                 page-break-inside: avoid;
+                position: relative;
+                top: 0;
+                left: 0;
               }
               
               .pdf-header {
@@ -575,14 +593,18 @@ export default function Reportes() {
                 margin-bottom: 25px;
                 padding-bottom: 15px;
                 border-bottom: 1px solid #e5e7eb;
+                display: block;
               }
               
               .pdf-logo {
-                max-width: 180px;
+                max-width: 200px;
                 height: auto;
                 margin-top: 0 !important;
-                margin-bottom: 10px;
+                margin-bottom: 0 !important;
+                padding-top: 0 !important;
+                padding-bottom: 0 !important;
                 display: block;
+                vertical-align: top;
               }
               
               .header {
@@ -726,16 +748,17 @@ export default function Reportes() {
             }
           </style>
         </head>
-        <body style="margin: 0; padding: 0; position: relative; top: 0;">
-          <div class="pdf-container" style="margin-top: 0; padding-top: 0;">
-            <div class="pdf-header" style="margin-top: 0; padding-top: 0;">
-              <img src="/public-img/logo-dworkers.png" alt="DWORKERS" class="pdf-logo" style="margin-top: 0; padding-top: 0;" onerror="this.style.display='none'" />
+        <body style="margin: 0 !important; padding: 0 !important; position: absolute; top: 0; left: 0; width: 100%;">
+          <div class="pdf-container" style="margin-top: 0 !important; padding-top: 0 !important;">
+            <div class="pdf-header" style="margin-top: 0 !important; padding-top: 0 !important;">
+              <img src="${window.location.origin}/public-img/logo-dworkers.png" alt="DWORKERS" class="pdf-logo" style="margin-top: 0 !important; padding-top: 0 !important; margin-bottom: 15px !important;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+              <div style="display: none; font-size: 24px; font-weight: bold; color: #111827; margin-top: 0 !important; padding-top: 0 !important;">DWORKERS</div>
             </div>
-            <div class="content" style="margin-top: 0; padding-top: 0;">
+            <div class="content" style="margin-top: 0 !important; padding-top: 0 !important;">
               ${processedHtml}
             </div>
-            <div class="agent-info" style="margin-top: 30px; padding-top: 25px;">
-              ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" />` : '<div class="agent-photo" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 36px; width: 90px; height: 90px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold;">${agentName.charAt(0).toUpperCase()}</div>'}
+            <div class="agent-info" style="margin-top: 40px !important; padding-top: 30px !important;">
+              ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" style="display: block;" />` : `<div class="agent-photo" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 36px; width: 90px; height: 90px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold;">${agentName.charAt(0).toUpperCase()}</div>`}
               <div class="agent-details">
                 <div class="agent-label">Generado por</div>
                 <div class="agent-name">${agentName}</div>
