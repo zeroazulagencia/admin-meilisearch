@@ -311,13 +311,12 @@ export default function Reportes() {
         <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
         <button
           onClick={() => setShowCodeModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
           title="Ver instrucciones de inserción"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
           </svg>
-          <span className="text-sm font-medium">Código</span>
         </button>
       </div>
       
@@ -655,7 +654,7 @@ export default function Reportes() {
   -H 'Authorization: Bearer YOUR_MEILISEARCH_API_KEY' \\
   -d '{
     "id": "report-001",
-    "type": "Informe Mensual",
+    "type": "Agent",
     "datetime": "2024-01-15T10:30:00Z",
     "agent": "nombre-del-agente",
     "report": "<h1>Contenido del Reporte</h1><p>Aquí va el contenido HTML del reporte...</p>"
@@ -669,7 +668,7 @@ export default function Reportes() {
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                       <div className="space-y-2 text-sm font-mono text-gray-700">
                         <div><span className="text-blue-600">id</span>: <span className="text-gray-600">string (requerido) - Identificador único del reporte</span></div>
-                        <div><span className="text-blue-600">type</span>: <span className="text-gray-600">string (requerido) - Tipo de reporte</span></div>
+                        <div><span className="text-blue-600">type</span>: <span className="text-gray-600">string (requerido) - Tipo de reporte: "Agent" o "RPA"</span></div>
                         <div><span className="text-blue-600">datetime</span>: <span className="text-gray-600">string ISO 8601 (requerido) - Fecha y hora del reporte</span></div>
                         <div><span className="text-blue-600">agent</span>: <span className="text-gray-600">string (requerido) - Nombre del agente (debe coincidir con reports_agent_name)</span></div>
                         <div><span className="text-blue-600">report</span>: <span className="text-gray-600">string HTML (opcional) - Contenido del reporte en formato HTML</span></div>
@@ -681,6 +680,7 @@ export default function Reportes() {
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900 mb-2">Notas Importantes</h3>
                     <ul className="space-y-2 text-sm text-gray-700 list-disc list-inside">
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">type</code> solo puede ser <code className="bg-gray-200 px-1 rounded">"Agent"</code> o <code className="bg-gray-200 px-1 rounded">"RPA"</code></li>
                       <li>El campo <code className="bg-gray-200 px-1 rounded">agent</code> debe coincidir exactamente con el <code className="bg-gray-200 px-1 rounded">reports_agent_name</code> configurado en el agente</li>
                       <li>El campo <code className="bg-gray-200 px-1 rounded">datetime</code> debe estar en formato ISO 8601 (ejemplo: 2024-01-15T10:30:00Z)</li>
                       <li>El campo <code className="bg-gray-200 px-1 rounded">id</code> debe ser único para cada reporte</li>
@@ -699,14 +699,14 @@ export default function Reportes() {
   -d '[
     {
       "id": "report-001",
-      "type": "Informe Mensual",
+      "type": "Agent",
       "datetime": "2024-01-15T10:30:00Z",
       "agent": "nombre-del-agente",
       "report": "<h1>Reporte 1</h1>"
     },
     {
       "id": "report-002",
-      "type": "Informe Semanal",
+      "type": "RPA",
       "datetime": "2024-01-16T10:30:00Z",
       "agent": "nombre-del-agente",
       "report": "<h1>Reporte 2</h1>"
