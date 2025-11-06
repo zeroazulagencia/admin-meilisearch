@@ -352,15 +352,26 @@ export default function Reportes() {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               color-adjust: exact !important;
+              margin-top: 0 !important;
+              padding-top: 0 !important;
             }
             
-            body {
+            html, body {
               font-family: Arial, sans-serif;
-              padding: 0;
-              margin: 0;
+              padding: 0 !important;
+              margin: 0 !important;
               max-width: 100%;
               background: white;
               color: #1f2937;
+            }
+            
+            /* Eliminar espacio superior de todos los elementos, especialmente type-badge */
+            .type-badge,
+            [class*="type-badge"],
+            div[class*="badge"],
+            div:first-child {
+              margin-top: 0 !important;
+              padding-top: 0 !important;
             }
             
             .header {
@@ -377,7 +388,9 @@ export default function Reportes() {
               border-radius: 4px;
               font-size: 14px;
               font-weight: 600;
+              margin-top: 0 !important;
               margin-bottom: 10px;
+              padding-top: 6px !important;
               background-color: #3b82f6 !important;
               color: white !important;
               border: 1px solid #2563eb;
