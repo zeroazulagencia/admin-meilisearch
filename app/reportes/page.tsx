@@ -760,9 +760,34 @@ export default function Reportes() {
               ) : reportHtml ? (
                 <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-200">
                   <div 
-                    className="prose max-w-none prose-headings:font-bold prose-p:text-gray-700 prose-li:text-gray-700"
+                    className="report-content"
+                    style={{
+                      all: 'initial',
+                      display: 'block',
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      fontSize: '14px',
+                      lineHeight: '1.5',
+                      color: '#111827',
+                    }}
                     dangerouslySetInnerHTML={{ __html: reportHtml }}
                   />
+                  <style jsx global>{`
+                    .report-content * {
+                      box-sizing: border-box;
+                    }
+                    .report-content img {
+                      max-width: 100%;
+                      height: auto;
+                    }
+                    .report-content table {
+                      width: 100%;
+                      border-collapse: collapse;
+                    }
+                    .report-content a {
+                      color: #2563eb;
+                      text-decoration: underline;
+                    }
+                  `}</style>
                   
                   {/* Footer con información del creador */}
                   <div className="mt-8 pt-6 border-t border-gray-200">
