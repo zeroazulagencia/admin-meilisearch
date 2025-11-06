@@ -44,6 +44,11 @@ export default function ConsumoAPI() {
       name: 'AWS Billing',
       status: 'Activo',
       dashboardUrl: 'https://us-east-1.console.aws.amazon.com/billing/home#/'
+    },
+    {
+      name: 'RapidAPI',
+      status: 'Activo',
+      dashboardUrl: 'https://rapidapi.com/org/11034001/transactions/subscribed'
     }
   ];
 
