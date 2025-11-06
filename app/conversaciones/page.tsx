@@ -743,8 +743,8 @@ export default function Conversaciones() {
     "type": "agent",
     "datetime": "2024-01-15T10:30:00Z",
     "agent": "nombre-del-agente",
-    "iduser": "user-123",
-    "phone_number_id": "+573001234567",
+    "user_id": "user-123",
+    "phone_id": "+573001234567",
     "message-Human": "Hola, ¿cómo estás?",
     "message-AI": "Hola, estoy bien, ¿en qué puedo ayudarte?"
   }'`}</pre>
@@ -760,10 +760,10 @@ export default function Conversaciones() {
                         <div><span className="text-blue-600">type</span>: <span className="text-gray-600">string (requerido) - Debe ser &quot;agent&quot;</span></div>
                         <div><span className="text-blue-600">datetime</span>: <span className="text-gray-600">string ISO 8601 (requerido) - Fecha y hora del mensaje</span></div>
                         <div><span className="text-blue-600">agent</span>: <span className="text-gray-600">string (requerido) - Nombre del agente (debe coincidir con conversation_agent_name)</span></div>
-                        <div><span className="text-blue-600">iduser</span>: <span className="text-gray-600">string (requerido) - ID del usuario en la conversación</span></div>
-                        <div><span className="text-blue-600">phone_number_id</span>: <span className="text-gray-600">string (opcional) - Número de teléfono o ID de WhatsApp</span></div>
-                        <div><span className="text-blue-600">message-Human</span>: <span className="text-gray-600">string (opcional) - Mensaje del usuario/humano</span></div>
-                        <div><span className="text-blue-600">message-AI</span>: <span className="text-gray-600">string (opcional) - Respuesta del agente/AI</span></div>
+                        <div><span className="text-blue-600">user_id</span>: <span className="text-gray-600">string (requerido) - ID de sesión o teléfono para agrupar conversaciones</span></div>
+                        <div><span className="text-blue-600">phone_id</span>: <span className="text-gray-600">string (opcional) - Número de teléfono para WhatsApp o Telegram (solo si aplica)</span></div>
+                        <div><span className="text-blue-600">message-Human</span>: <span className="text-gray-600">string (requerido) - Mensaje del usuario/humano</span></div>
+                        <div><span className="text-blue-600">message-AI</span>: <span className="text-gray-600">string (requerido) - Respuesta del agente/AI</span></div>
                       </div>
                     </div>
                   </div>
@@ -776,8 +776,10 @@ export default function Conversaciones() {
                       <li>El campo <code className="bg-gray-200 px-1 rounded">agent</code> debe coincidir exactamente con el <code className="bg-gray-200 px-1 rounded">conversation_agent_name</code> configurado en el agente</li>
                       <li>El campo <code className="bg-gray-200 px-1 rounded">datetime</code> debe estar en formato ISO 8601 (ejemplo: 2024-01-15T10:30:00Z)</li>
                       <li>El campo <code className="bg-gray-200 px-1 rounded">id</code> debe ser único para cada mensaje</li>
-                      <li>Al menos uno de los campos <code className="bg-gray-200 px-1 rounded">message-Human</code> o <code className="bg-gray-200 px-1 rounded">message-AI</code> debe estar presente</li>
-                      <li>Las conversaciones se agrupan automáticamente por <code className="bg-gray-200 px-1 rounded">iduser</code></li>
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">user_id</code> es el ID de sesión o teléfono usado para agrupar conversaciones</li>
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">phone_id</code> solo se incluye cuando es WhatsApp o Telegram, debe ser el número completo</li>
+                      <li>Los campos <code className="bg-gray-200 px-1 rounded">message-Human</code> y <code className="bg-gray-200 px-1 rounded">message-AI</code> son ambos obligatorios en cada inserción</li>
+                      <li>Las conversaciones se agrupan automáticamente por <code className="bg-gray-200 px-1 rounded">user_id</code></li>
                       <li>Necesitarás tu API Key de Meilisearch para autenticación</li>
                     </ul>
                   </div>
@@ -795,18 +797,19 @@ export default function Conversaciones() {
       "type": "agent",
       "datetime": "2024-01-15T10:30:00Z",
       "agent": "nombre-del-agente",
-      "iduser": "user-123",
-      "phone_number_id": "+573001234567",
-      "message-Human": "Hola"
+      "user_id": "user-123",
+      "phone_id": "+573001234567",
+      "message-Human": "Hola",
+      "message-AI": "Hola, ¿en qué puedo ayudarte?"
     },
     {
       "id": "conv-002",
       "type": "agent",
       "datetime": "2024-01-15T10:31:00Z",
       "agent": "nombre-del-agente",
-      "iduser": "user-123",
-      "phone_number_id": "+573001234567",
-      "message-AI": "Hola, ¿en qué puedo ayudarte?"
+      "user_id": "user-123",
+      "message-Human": "Quiero información",
+      "message-AI": "Claro, aquí tienes la información que solicitas"
     }
   ]'`}</pre>
                     </div>
