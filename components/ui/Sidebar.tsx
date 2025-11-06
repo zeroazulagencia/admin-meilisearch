@@ -16,6 +16,7 @@ import {
   DocumentTextIcon,
   CurrencyDollarIcon,
   CircleStackIcon,
+  MapIcon,
 } from '@heroicons/react/24/outline';
 import SidebarItem from './SidebarItem';
 import settings from '@/settings.json';
@@ -89,6 +90,7 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     { href: '/ejecuciones', label: 'Ejecuciones', perm: 'ejecuciones', icon: <PlayIcon className="w-5 h-5" /> },
     { href: '/conversaciones', label: 'Conversaciones', perm: 'conversaciones', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
     { href: '/reportes', label: 'Reportes', perm: 'reportes', icon: <DocumentTextIcon className="w-5 h-5" /> },
+    { href: '/roadmap', label: 'Roadmap', perm: 'roadmap', icon: <MapIcon className="w-5 h-5" /> },
     { href: '/whatsapp-manager', label: 'WhatsApp Manager', perm: 'whatsappManager', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
     { href: '/facturacion', label: 'Facturación', perm: 'facturacion', icon: <CurrencyDollarIcon className="w-5 h-5" /> },
     { href: '/db-manager', label: 'DB Manager', perm: 'dbManager', icon: <CircleStackIcon className="w-5 h-5" /> },
