@@ -358,14 +358,19 @@ export default function Reportes() {
       pdfContainer.style.margin = '0';
       pdfContainer.innerHTML = `
         <div class="pdf-container" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin: 0; width: 100%; max-width: 100%; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif; color: #1f2937;">
-          <div class="pdf-header" style="margin-top: 0; padding-top: 0; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
-            <img src="${window.location.origin}/public-img/logo-dworkers.png" alt="DWORKERS" style="max-width: 180px; height: auto; margin-top: 0; margin-bottom: 12px; display: block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
-            <div style="display: none; font-size: 24px; font-weight: bold; color: #111827; margin-top: 0;">DWORKERS</div>
+          <div class="pdf-header" style="margin-top: 0; padding-top: 0; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb;">
+            <div style="margin-top: 0; padding-top: 0; margin-bottom: 8px;">
+              <div style="font-size: 22px; font-weight: 700; color: #111827; margin-top: 0; padding-top: 0; margin-bottom: 4px;">DWORKERS - Agentes IA</div>
+              <div style="font-size: 14px; font-weight: 500; color: #6b7280; margin-top: 0; padding-top: 0; margin-bottom: 6px;">By Zero Azul</div>
+              <div style="font-size: 12px; color: #3b82f6; margin-top: 0; padding-top: 0;">
+                <a href="https://dworkers.zeroazul.com" style="color: #3b82f6; text-decoration: none;">dworkers.zeroazul.com</a>
+              </div>
+            </div>
           </div>
           <div class="content" style="margin-top: 0; padding-top: 0; line-height: 1.6; width: 100%; max-width: 100%; box-sizing: border-box;">
             ${processedHtml}
           </div>
-          <div class="agent-info" style="margin-top: 30px; padding-top: 25px; border-top: 2px solid #e5e7eb; display: flex; align-items: flex-start; gap: 20px; background: #f9fafb; padding: 20px; border-radius: 8px;">
+          <div class="agent-info" style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #e5e7eb; display: flex; align-items: flex-start; gap: 20px; background: #f9fafb; padding: 25px; border-radius: 8px; position: relative; z-index: 1;">
             ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex-shrink: 0;" />` : `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; width: 80px; height: 80px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold; flex-shrink: 0;">${agentName.charAt(0).toUpperCase()}</div>`}
             <div style="flex: 1;">
               <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;">Generado por</div>
