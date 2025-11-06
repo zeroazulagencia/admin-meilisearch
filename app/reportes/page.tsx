@@ -339,453 +339,104 @@ export default function Reportes() {
     // Obtener el HTML procesado
     processedHtml = doc.body.innerHTML;
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>${selectedReport.type} - ${formatDate(selectedReport.datetime)}</title>
-          <style>
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              color-adjust: exact !important;
-              margin-top: 0 !important;
-              padding-top: 0 !important;
-            }
-            
-            html, body {
-              font-family: Arial, sans-serif;
-              padding: 0 !important;
-              margin: 0 !important;
-              max-width: 100%;
-              background: white;
-              color: #1f2937;
-            }
-            
-            /* Eliminar espacio superior de todos los elementos, especialmente type-badge */
-            .type-badge,
-            [class*="type-badge"],
-            div[class*="badge"],
-            div:first-child {
-              margin-top: 0 !important;
-              padding-top: 0 !important;
-            }
-            
-            .header {
-              margin-bottom: 15px;
-              padding-bottom: 10px;
-              padding-top: 0;
-              margin-top: 0;
-              border-bottom: 2px solid #e5e7eb;
-            }
-            
-            .type-badge {
-              display: inline-block;
-              padding: 6px 12px;
-              border-radius: 4px;
-              font-size: 14px;
-              font-weight: 600;
-              margin-top: 0 !important;
-              margin-bottom: 10px;
-              padding-top: 6px !important;
-              background-color: #3b82f6 !important;
-              color: white !important;
-              border: 1px solid #2563eb;
-            }
-            
-            .date {
-              color: #6b7280;
-              font-size: 14px;
-              margin-bottom: 10px;
-            }
-            
-            .agent-info {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              margin-top: 30px;
-              padding-top: 20px;
-              border-top: 2px solid #e5e7eb;
-            }
-            
-            .agent-photo {
-              width: 50px;
-              height: 50px;
-              border-radius: 50%;
-              object-fit: cover;
-              border: 2px solid #e5e7eb;
-            }
-            
-            .agent-name {
-              font-size: 14px;
-              color: #6b7280;
-            }
-            
-            .content {
-              margin-top: 10px;
-              line-height: 1.6;
-            }
-            
-            .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {
-              color: #1f2937;
-              margin-top: 24px;
-              margin-bottom: 12px;
-              font-weight: 600;
-            }
-            
-            .content p {
-              margin-bottom: 12px;
-              color: #374151;
-            }
-            
-            .content ul, .content ol {
-              margin-bottom: 12px;
-              padding-left: 24px;
-            }
-            
-            .content li {
-              margin-bottom: 6px;
-              color: #374151;
-            }
-            
-            .content img {
-              max-width: 100%;
-              height: auto;
-              border: 1px solid #e5e7eb;
-              margin: 12px 0;
-            }
-            
-            .content table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 16px 0;
-            }
-            
-            .content table th,
-            .content table td {
-              border: 1px solid #e5e7eb;
-              padding: 8px 12px;
-              text-align: left;
-            }
-            
-            .content table th {
-              background-color: #f9fafb !important;
-              font-weight: 600;
-              color: #1f2937;
-            }
-            
-            .content code {
-              background-color: #f3f4f6;
-              padding: 2px 6px;
-              border-radius: 3px;
-              font-family: 'Courier New', monospace;
-              font-size: 0.9em;
-            }
-            
-            .content pre {
-              background-color: #f9fafb;
-              border: 1px solid #e5e7eb;
-              padding: 12px;
-              border-radius: 4px;
-              overflow-x: auto;
-            }
-            
-            .content blockquote {
-              border-left: 4px solid #3b82f6;
-              padding-left: 16px;
-              margin: 16px 0;
-              color: #6b7280;
-            }
-            
-            /* Convertir todos los gradientes restantes a colores sólidos */
-            [style*="gradient"] {
-              background: #3b82f6 !important;
-            }
-            
-            /* Asegurar que los colores de fondo se impriman */
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              color-adjust: exact !important;
-            }
-            
-            /* Preservar contenido visible - asegurar que el texto sea negro */
-            .content * {
-              color: #1f2937 !important;
-            }
-            
-            /* Asegurar que los elementos con fondo azul tengan texto blanco */
-            [style*="background"][style*="#3b82f6"],
-            [style*="background"][style*="#2563eb"],
-            [style*="background"][style*="blue"] {
-              color: white !important;
-            }
-            
-            /* Asegurar visibilidad de texto en todos los elementos */
-            div, span, p, h1, h2, h3, h4, h5, h6, table, tr, td, th, li, ul, ol {
-              color: #1f2937 !important;
-            }
-            
-            /* Elementos con fondo azul deben tener texto blanco */
-            div[style*="background"][style*="#3b82f6"],
-            div[style*="background"][style*="#2563eb"],
-            span[style*="background"][style*="#3b82f6"],
-            span[style*="background"][style*="#2563eb"] {
-              color: white !important;
-            }
-            
-            @media print {
-              @page {
-                margin: 0;
-                size: A4;
-              }
-              
-              * {
-                margin-top: 0 !important;
-                padding-top: 0 !important;
-              }
-              
-              html {
-                margin: 0 !important;
-                padding: 0 !important;
-                height: 100%;
-                overflow: visible;
-              }
-              
-              body {
-                padding: 0 !important;
-                margin: 0 !important;
-                background: #f5f5f5;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                min-height: 100%;
-                overflow: visible;
-              }
-              
-              body::before {
-                content: none !important;
-                display: none !important;
-              }
-              
-              .pdf-container {
-                background: white;
-                border: 1px solid #e5e7eb;
-                border-radius: 12px;
-                padding: 25px;
-                margin: 1.5cm auto;
-                max-width: calc(100% - 3cm);
-                width: calc(100% - 3cm);
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                page-break-inside: avoid;
-                position: relative;
-                top: 0;
-                left: 0;
-              }
-              
-              .pdf-header {
-                margin-top: 0 !important;
-                padding-top: 0 !important;
-                margin-bottom: 25px;
-                padding-bottom: 15px;
-                border-bottom: 1px solid #e5e7eb;
-                display: block;
-              }
-              
-              .pdf-logo {
-                max-width: 200px;
-                height: auto;
-                margin-top: 0 !important;
-                margin-bottom: 0 !important;
-                padding-top: 0 !important;
-                padding-bottom: 0 !important;
-                display: block;
-                vertical-align: top;
-              }
-              
-              .header {
-                padding-top: 0 !important;
-                margin-top: 0 !important;
-                margin-bottom: 8px !important;
-                padding-bottom: 8px !important;
-                page-break-after: avoid;
-              }
-              
-              .header > *:first-child {
-                margin-top: 0 !important;
-                padding-top: 0 !important;
-              }
-              
-              .content {
-                margin-top: 0 !important;
-                padding-top: 0 !important;
-              }
-              
-              .type-badge {
-                margin-top: 0 !important;
-                margin-bottom: 5px !important;
-                padding-top: 6px !important;
-                display: inline-block;
-              }
-              
-              .date {
-                margin-top: 0 !important;
-                margin-bottom: 5px !important;
-              }
-              
-              .content {
-                page-break-inside: avoid;
-              }
-              
-              .agent-info {
-                page-break-inside: avoid;
-                margin-top: 50px;
-                padding-top: 30px;
-                border-top: 2px solid #e5e7eb;
-                display: flex;
-                align-items: flex-start;
-                gap: 25px;
-                background: #f9fafb;
-                padding: 25px;
-                border-radius: 8px;
-                margin-left: -5px;
-                margin-right: -5px;
-              }
-              
-              .agent-photo {
-                width: 90px;
-                height: 90px;
-                border-radius: 10px;
-                object-fit: cover;
-                border: 3px solid #e5e7eb;
-                flex-shrink: 0;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-              }
-              
-              .agent-details {
-                flex: 1;
-              }
-              
-              .agent-label {
-                font-size: 11px;
-                color: #6b7280;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                margin-bottom: 8px;
-                font-weight: 600;
-              }
-              
-              .agent-name {
-                font-size: 18px;
-                font-weight: 700;
-                color: #111827;
-                margin-bottom: 12px;
-                line-height: 1.3;
-              }
-              
-              .agent-description {
-                font-size: 13px;
-                color: #4b5563;
-                line-height: 1.6;
-                margin-bottom: 15px;
-              }
-              
-              .agent-footer {
-                margin-top: 15px;
-                padding-top: 15px;
-                border-top: 1px solid #e5e7eb;
-              }
-              
-              .agent-footer-text {
-                font-size: 12px;
-                color: #6b7280;
-                line-height: 1.5;
-                margin-bottom: 5px;
-              }
-              
-              .agent-footer-link {
-                font-size: 12px;
-                color: #3b82f6;
-                text-decoration: none;
-                font-weight: 500;
-              }
-              
-              .agent-footer-link:hover {
-                text-decoration: underline;
-              }
-              
-              .agent-footer-company {
-                font-size: 11px;
-                color: #9ca3af;
-                margin-top: 8px;
-                font-style: italic;
-              }
-              
-              /* Ocultar elementos que no deben imprimirse */
-              .no-print {
-                display: none !important;
-              }
-              
-              /* Asegurar que las imágenes se impriman */
-              img {
-                max-width: 100% !important;
-                page-break-inside: avoid;
-              }
-              
-              /* Evitar cortes de página en elementos importantes */
-              h1, h2, h3, h4, h5, h6 {
-                page-break-after: avoid;
-              }
-              
-              p, li {
-                orphans: 3;
-                widows: 3;
-              }
-            }
-          </style>
-        </head>
-        <body style="margin: 0 !important; padding: 0 !important; position: absolute; top: 0; left: 0; width: 100%;">
-          <div class="pdf-container" style="margin-top: 0 !important; padding-top: 0 !important;">
-            <div class="pdf-header" style="margin-top: 0 !important; padding-top: 0 !important;">
-              <img src="${window.location.origin}/public-img/logo-dworkers.png" alt="DWORKERS" class="pdf-logo" style="margin-top: 0 !important; padding-top: 0 !important; margin-bottom: 15px !important;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
-              <div style="display: none; font-size: 24px; font-weight: bold; color: #111827; margin-top: 0 !important; padding-top: 0 !important;">DWORKERS</div>
-            </div>
-            <div class="content" style="margin-top: 0 !important; padding-top: 0 !important;">
-              ${processedHtml}
-            </div>
-            <div class="agent-info" style="margin-top: 40px !important; padding-top: 30px !important;">
-              ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" style="display: block;" />` : `<div class="agent-photo" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 36px; width: 90px; height: 90px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold;">${agentName.charAt(0).toUpperCase()}</div>`}
-              <div class="agent-details">
-                <div class="agent-label">Generado por</div>
-                <div class="agent-name">${agentName}</div>
-                ${agentInfo?.description ? `<div class="agent-description">${agentInfo.description}</div>` : ''}
-                <div class="agent-footer">
-                  <div class="agent-footer-text">
-                    Este reporte fue generado automáticamente por un agente de inteligencia artificial.
-                  </div>
-                  <div class="agent-footer-text">
-                    Para más información, visita: 
-                    <a href="https://dworkers.zeroazul.com" class="agent-footer-link">dworkers.zeroazul.com</a>
-                  </div>
-                  <div class="agent-footer-company">
-                    DWORKERS - Empleados Digitales con Inteligencia Artificial
-                  </div>
-                </div>
+    // Crear un elemento temporal fuera de la vista para renderizar el PDF
+    const pdfContainer = document.createElement('div');
+    pdfContainer.style.position = 'absolute';
+    pdfContainer.style.left = '-9999px';
+    pdfContainer.style.top = '0';
+    pdfContainer.style.width = '794px'; // Ancho A4 en píxeles (210mm a 96dpi)
+    pdfContainer.style.backgroundColor = '#f5f5f5';
+    pdfContainer.style.padding = '0';
+    pdfContainer.style.margin = '0';
+    pdfContainer.innerHTML = `
+      <div class="pdf-container" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 25px; margin: 0; width: 100%; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif; color: #1f2937;">
+        <div class="pdf-header" style="margin-top: 0; padding-top: 0; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
+          <img src="${window.location.origin}/public-img/logo-dworkers.png" alt="DWORKERS" style="max-width: 200px; height: auto; margin-top: 0; margin-bottom: 15px; display: block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+          <div style="display: none; font-size: 24px; font-weight: bold; color: #111827; margin-top: 0;">DWORKERS</div>
+        </div>
+        <div class="content" style="margin-top: 0; padding-top: 0; line-height: 1.6;">
+          ${processedHtml}
+        </div>
+        <div class="agent-info" style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #e5e7eb; display: flex; align-items: flex-start; gap: 25px; background: #f9fafb; padding: 25px; border-radius: 8px;">
+          ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" style="width: 90px; height: 90px; border-radius: 10px; object-fit: cover; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex-shrink: 0;" />` : `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 36px; width: 90px; height: 90px; border-radius: 10px; border: 3px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); font-weight: bold; flex-shrink: 0;">${agentName.charAt(0).toUpperCase()}</div>`}
+          <div style="flex: 1;">
+            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;">Generado por</div>
+            <div style="font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 12px; line-height: 1.3;">${agentName}</div>
+            ${agentInfo?.description ? `<div style="font-size: 13px; color: #4b5563; line-height: 1.6; margin-bottom: 15px;">${agentInfo.description}</div>` : ''}
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+              <div style="font-size: 12px; color: #6b7280; line-height: 1.5; margin-bottom: 5px;">
+                Este reporte fue generado automáticamente por un agente de inteligencia artificial.
+              </div>
+              <div style="font-size: 12px; color: #6b7280; line-height: 1.5; margin-bottom: 5px;">
+                Para más información, visita: 
+                <span style="color: #3b82f6; font-weight: 500;">dworkers.zeroazul.com</span>
+              </div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 8px; font-style: italic;">
+                DWORKERS - Empleados Digitales con Inteligencia Artificial
               </div>
             </div>
           </div>
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
+        </div>
+      </div>
+    `;
     
-    // Esperar a que se cargue el contenido y luego imprimir/descargar PDF
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
+    document.body.appendChild(pdfContainer);
+
+    try {
+      // Esperar a que las imágenes se carguen
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Capturar el elemento con html2canvas
+      const canvas = await html2canvas(pdfContainer, {
+        backgroundColor: '#f5f5f5',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: pdfContainer.offsetWidth,
+        height: pdfContainer.offsetHeight,
+      });
+
+      // Crear PDF con jsPDF
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+
+      // Si el contenido es más alto que una página, dividirlo en múltiples páginas
+      const pageHeight = pdfHeight;
+      let heightLeft = imgScaledHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgScaledWidth, imgScaledHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgScaledHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgScaledWidth, imgScaledHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Descargar el PDF
+      pdf.save(`reporte-${selectedReport.type}-${formatDate(selectedReport.datetime).replace(/\//g, '-')}.pdf`);
+
+      // Limpiar el elemento temporal
+      document.body.removeChild(pdfContainer);
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      document.body.removeChild(pdfContainer);
+      alert('Error al generar el PDF. Por favor, intenta nuevamente.');
+    }
   };
 
   return (
