@@ -76,6 +76,7 @@ export default function EditarAgente() {
     message: '',
     type: 'info',
   });
+  const [verifyingWhatsApp, setVerifyingWhatsApp] = useState(false);
 
   useEffect(() => {
     // Cargar clientes desde MySQL
