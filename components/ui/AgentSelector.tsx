@@ -90,16 +90,16 @@ export default function AgentSelector({
         }}
       >
         <div className="relative mt-2">
-          <ListboxButton className="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pr-2 pl-3 text-left text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#5DE1E5] sm:text-sm/6 border border-gray-300">
-            <span className="col-start-1 row-start-1 flex items-center gap-3 pr-6">
+          <ListboxButton className="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-2 pr-3 pl-3 text-left text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#5DE1E5] sm:text-sm/6 border border-gray-300">
+            <span className="col-start-1 row-start-1 flex items-center gap-3 pr-7">
               {currentSelected?.photo ? (
                 <img
                   alt=""
                   src={currentSelected.photo}
-                  className="size-5 shrink-0 rounded-full bg-gray-100 object-cover"
+                  className="size-8 shrink-0 rounded-full bg-gray-100 object-cover"
                 />
               ) : (
-                <div className="size-5 shrink-0 rounded-full bg-gray-100"></div>
+                <div className="size-8 shrink-0 rounded-full bg-gray-100"></div>
               )}
               <span className="block truncate">
                 {currentSelected ? getAgentDisplayText(currentSelected) : placeholder}
@@ -130,10 +130,10 @@ export default function AgentSelector({
                           <img
                             alt=""
                             src={agent.photo}
-                            className="size-5 shrink-0 rounded-full"
+                            className="size-8 shrink-0 rounded-full"
                           />
                         ) : (
-                          <div className="size-5 shrink-0 rounded-full bg-gray-200"></div>
+                          <div className="size-8 shrink-0 rounded-full bg-gray-200"></div>
                         )}
                         <span className={`ml-3 block truncate ${selected ? 'font-semibold' : 'font-normal'}`}>
                           {getAgentDisplayText(agent)}
