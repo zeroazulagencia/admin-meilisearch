@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+.env
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# PM2
+.pm2/
+
+# Logs
+logs
+*.log
+
+# Documentation with sensitive keys (only root README)
+/README.md
+
+# Database migrations (keep schema files, ignore backups)
+database/backups/
+database/*.dump
+
+# Agent avatars
+public/agent-avatars/*
+!public/agent-avatars/.gitkeep

@@ -1,0 +1,45 @@
+{
+  "proyecto": {
+    "nombre": "Admin Meilisearch",
+    "version": "v23.0",
+    "modo": "local",
+    "debug": true
+  },
+  "meilisearch": {
+    "url": "https://server-search.zeroazul.com/",
+    "apiKey": "Configurado en variables de entorno MEILISEARCH_API_KEY"
+  },
+  "estructura": {
+    "configuracion": [
+      "package.json",
+      "tsconfig.json",
+      "next.config.js",
+      "tailwind.config.js",
+      "postcss.config.js",
+      "settings.json"
+    ],
+    "utilidades": [
+      "utils/meilisearch.ts",
+      "utils/constants.ts"
+    ],
+    "componentes": [
+      "components/IndexSelector.tsx",
+      "components/IndexProperties.tsx",
+      "components/DocumentEditor.tsx",
+      "components/DocumentList.tsx"
+    ],
+    "paginas": [
+      "app/page.tsx",
+      "app/layout.tsx",
+      "app/globals.css"
+    ]
+  },
+  "instrucciones": [
+    "Interfaz de administración para Meilisearch",
+    "Selector de índices",
+    "Vista de propiedades del índice",
+    "CRUD completo de documentos",
+    "Editor automático según tipo de contenido"
+  ]
+}
+

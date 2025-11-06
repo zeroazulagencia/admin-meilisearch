@@ -1,0 +1,193 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;800&display=swap');
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+}
+
+/* Color primary personalizado */
+:root {
+  --color-primary: #5DE1E5;
+  --sidebar-width: 16rem;
+  --sidebar-width-collapsed: 4rem;
+  --sidebar-transition: 300ms ease-in-out;
+}
+
+.focus\:ring-primary:focus {
+  --tw-ring-color: #5DE1E5;
+}
+
+.font-raleway {
+  font-family: 'Raleway', sans-serif;
+}
+
+/* Scrollbar personalizado para sidebar */
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animación de flotar muy lenta */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(-50%) translateY(0px);
+  }
+  50% {
+    transform: translateY(-50%) translateY(-10px);
+  }
+}
+
+.float-slow {
+  animation: floatSlow 3s ease-in-out infinite;
+  transform: translateY(-50%);
+}
+
+/* Animación slide arriba (como saliendo de un agujero/máscara) */
+@keyframes slideUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-up {
+  animation: slideUp 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Animación de icono rodando desde la derecha */
+@keyframes rollInFromRight {
+  0% {
+    transform: translateX(200px) rotate(360deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes rollOutToRight {
+  0% {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(200px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.icon-roll-in {
+  animation: rollInFromRight 1.5s ease-out forwards;
+}
+
+.icon-roll-out {
+  animation: rollOutToRight 1.5s ease-out forwards;
+}
+
+/* Skeleton loader shimmer effect */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Animaciones sutiles */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.5s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s ease-out forwards;
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in,
+  .animate-slide-in-left,
+  .animate-slide-in-right,
+  .skeleton-shimmer {
+    animation: none;
+  }
+}
+
+
