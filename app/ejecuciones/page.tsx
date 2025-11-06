@@ -5,6 +5,7 @@ import { n8nAPI, Workflow, Execution } from '@/utils/n8n';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AlertModal from '@/components/ui/AlertModal';
+import AgentSelector from '@/components/ui/AgentSelector';
 
 type FilterStatus = 'all' | 'success' | 'error' | 'running';
 
@@ -488,31 +489,22 @@ export default function Ejecuciones() {
 
       {/* Selector de Agente */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Seleccionar Agente
-        </label>
-        <select
-          value={selectedAgent?.id || ''}
-          onChange={(e) => {
-            const agent = agents.find(a => a.id === parseInt(e.target.value));
-            setSelectedAgent(agent || null);
+        <AgentSelector
+          label="Seleccionar Agente"
+          agents={agents}
+          selectedAgent={selectedAgent}
+          onChange={(agent) => {
+            setSelectedAgent(agent);
             setSelectedWorkflow(null);
           }}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-          style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-        >
-          <option value="">Seleccionar agente...</option>
-          {agents.map((agent) => {
-            // Usar workflows ya normalizado del agente
+          placeholder="Seleccionar agente..."
+          getDisplayText={(agent) => {
             const workflowIds = agent.workflows?.workflowIds || [];
             const cnt = Array.isArray(workflowIds) ? workflowIds.length : 0;
-            return (
-              <option key={agent.id} value={agent.id}>
-                {agent.name} {cnt ? `(${cnt} flujos)` : '(sin flujos)'}
-              </option>
-            );
-          })}
-        </select>
+            return `${agent.name} ${cnt ? `(${cnt} flujos)` : '(sin flujos)'}`;
+          }}
+          className="w-full"
+        />
         {selectedAgent && selectedAgent.photo && (
           <div className="mt-3 flex items-center gap-3">
             <img

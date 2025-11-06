@@ -6,6 +6,7 @@ import IndexProperties from '@/components/IndexProperties';
 import DocumentList from '@/components/DocumentList';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AlertModal from '@/components/ui/AlertModal';
+import AgentSelector from '@/components/ui/AgentSelector';
 
 interface AgentDB {
   id: number;
@@ -1166,29 +1167,21 @@ export default function AdminConocimiento() {
       <div className="space-y-6">
         {/* Selector de Agente */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Seleccionar Agente
-          </label>
-          <select
-            value={selectedAgent?.id || ''}
-            onChange={(e) => {
-              const agent = agents.find(a => a.id === parseInt(e.target.value));
-              setSelectedAgent(agent || null);
+          <AgentSelector
+            label="Seleccionar Agente"
+            agents={agents}
+            selectedAgent={selectedAgent}
+            onChange={(agent) => {
+              setSelectedAgent(agent);
               setSelectedIndex(null);
             }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-            style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-          >
-            <option value="">Seleccionar agente...</option>
-            {agents.map((agent) => {
+            placeholder="Seleccionar agente..."
+            getDisplayText={(agent) => {
               const indexes = agent.knowledge?.indexes || [];
-              return (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name} ({indexes.length} índice{indexes.length !== 1 ? 's' : ''})
-                </option>
-              );
-            })}
-          </select>
+              return `${agent.name} (${indexes.length} índice${indexes.length !== 1 ? 's' : ''})`;
+            }}
+            className="w-full"
+          />
           {selectedAgent && (
             <div className="mt-3 flex items-center gap-3">
               {selectedAgent.photo && (

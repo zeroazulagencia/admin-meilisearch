@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
+import AgentSelector from '@/components/ui/AgentSelector';
 
 interface ReportDocument {
   id: string;
@@ -322,57 +323,55 @@ export default function Reportes() {
       
       {/* Selector de Agente de la Plataforma */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Seleccionar Agente de la Plataforma
-        </label>
-        {!agentsInitialized ? (
-          <div className="text-sm flex items-center gap-2 text-[#5DE1E5]">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent border-[#5DE1E5]"></div>
-            Cargando agentes de la plataforma...
+        <AgentSelector
+          label="Seleccionar Agente de la Plataforma"
+          agents={allPlatformAgents}
+          selectedAgent={selectedPlatformAgent}
+          onChange={(agent) => {
+            if (typeof agent === 'string') {
+              setSelectedPlatformAgent(agent);
+            } else if (agent === null) {
+              setSelectedPlatformAgent('all');
+            } else {
+              setSelectedPlatformAgent(agent.id.toString());
+            }
+          }}
+          placeholder="Todos los agentes"
+          includeAllOption={true}
+          allOptionLabel="Todos los agentes"
+          getDisplayText={(agent) => {
+            if (agent.id === 'all') return agent.name;
+            return `${agent.name} ${agent.reports_agent_name ? `(${agent.reports_agent_name})` : '(sin identificar)'}`;
+          }}
+          loading={!agentsInitialized}
+          className="w-full"
+        />
+        {selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
+          <div className="mt-3 flex items-center gap-3">
+            {(() => {
+              const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
+              return agent ? (
+                <>
+                  {agent.photo && (
+                    <img
+                      src={agent.photo}
+                      alt={agent.name}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  )}
+                  <div>
+                    <p className="font-medium text-gray-900">{agent.name}</p>
+                    {agent.description && (
+                      <p className="text-sm text-gray-500">{agent.description}</p>
+                    )}
+                    {agent.reports_agent_name && (
+                      <p className="text-xs text-gray-400">ID: {agent.reports_agent_name}</p>
+                    )}
+                  </div>
+                </>
+              ) : null;
+            })()}
           </div>
-        ) : (
-          <>
-            <select
-              value={selectedPlatformAgent}
-              onChange={(e) => setSelectedPlatformAgent(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-              style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-            >
-              <option value="all">Todos los agentes</option>
-              {allPlatformAgents.map((agent) => (
-                <option key={agent.id} value={agent.id.toString()}>
-                  {agent.name} {agent.reports_agent_name ? `(${agent.reports_agent_name})` : '(sin identificar)'}
-                </option>
-              ))}
-            </select>
-            {selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
-              <div className="mt-3 flex items-center gap-3">
-                {(() => {
-                  const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
-                  return agent ? (
-                    <>
-                      {agent.photo && (
-                        <img
-                          src={agent.photo}
-                          alt={agent.name}
-                          className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                        />
-                      )}
-                      <div>
-                        <p className="font-medium text-gray-900">{agent.name}</p>
-                        {agent.description && (
-                          <p className="text-sm text-gray-500">{agent.description}</p>
-                        )}
-                        {agent.reports_agent_name && (
-                          <p className="text-xs text-gray-400">ID: {agent.reports_agent_name}</p>
-                        )}
-                      </div>
-                    </>
-                  ) : null;
-                })()}
-              </div>
-            )}
-          </>
         )}
       </div>
 

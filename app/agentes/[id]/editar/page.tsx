@@ -6,6 +6,7 @@ import { meilisearchAPI, Index } from '@/utils/meilisearch';
 import { n8nAPI, Workflow } from '@/utils/n8n';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AlertModal from '@/components/ui/AlertModal';
+import AgentSelector from '@/components/ui/AgentSelector';
 
 interface Client {
   id: number;
