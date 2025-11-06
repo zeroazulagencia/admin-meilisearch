@@ -146,6 +146,37 @@ export default function EditarAgente() {
     loadReportAgents();
   }, []);
 
+  // Recargar valores seleccionados cuando los datos estén disponibles
+  useEffect(() => {
+    if (currentAgent && availableIndexes.length > 0) {
+      try {
+        const k = typeof currentAgent.knowledge === 'string' ? JSON.parse(currentAgent.knowledge) : (currentAgent.knowledge || {});
+        const savedIndexes = k.indexes || [];
+        // Solo actualizar si hay diferencias para evitar loops infinitos
+        if (JSON.stringify(savedIndexes.sort()) !== JSON.stringify(selectedIndexes.sort())) {
+          setSelectedIndexes(savedIndexes);
+        }
+      } catch {
+        setSelectedIndexes([]);
+      }
+    }
+  }, [currentAgent, availableIndexes]);
+
+  useEffect(() => {
+    if (currentAgent && availableWorkflows.length > 0) {
+      try {
+        const w = typeof currentAgent.workflows === 'string' ? JSON.parse(currentAgent.workflows) : (currentAgent.workflows || {});
+        const savedWorkflows = w.workflowIds || [];
+        // Solo actualizar si hay diferencias para evitar loops infinitos
+        if (JSON.stringify(savedWorkflows.sort()) !== JSON.stringify(selectedWorkflows.sort())) {
+          setSelectedWorkflows(savedWorkflows);
+        }
+      } catch {
+        setSelectedWorkflows([]);
+      }
+    }
+  }, [currentAgent, availableWorkflows]);
+
   const loadReportAgents = async () => {
     setLoadingReportAgents(true);
     try {
@@ -444,7 +475,7 @@ export default function EditarAgente() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                   />
                 </div>
               </div>
@@ -487,7 +518,7 @@ export default function EditarAgente() {
                     rows={3}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                   />
                 </div>
               </div>
@@ -552,7 +583,7 @@ export default function EditarAgente() {
                         name="conversation_agent_name"
                         value={selectedConversationAgent}
                         onChange={(e) => setSelectedConversationAgent(e.target.value)}
-                        className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                        className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                       >
                         <option value="">Seleccionar agente...</option>
                         {availableConversationAgents.map((agent) => (
@@ -587,7 +618,7 @@ export default function EditarAgente() {
                         name="reports_agent_name"
                         value={selectedReportAgent}
                         onChange={(e) => setSelectedReportAgent(e.target.value)}
-                        className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                        className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                       >
                         <option value="">Seleccionar agente...</option>
                         {availableReportAgents.map((agent) => (
@@ -635,7 +666,7 @@ export default function EditarAgente() {
                     placeholder="Buscar índice..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                   />
                 </div>
                 
@@ -728,7 +759,7 @@ export default function EditarAgente() {
                     placeholder="Buscar flujo..."
                     value={workflowSearchQuery}
                     onChange={(e) => setWorkflowSearchQuery(e.target.value)}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                   />
                 </div>
                 
@@ -846,7 +877,7 @@ export default function EditarAgente() {
                     type="text"
                     value={formData.whatsapp_business_account_id}
                     onChange={(e) => setFormData({ ...formData, whatsapp_business_account_id: e.target.value })}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                     placeholder="123456789"
                   />
                 </div>
@@ -863,7 +894,7 @@ export default function EditarAgente() {
                     type="text"
                     value={formData.whatsapp_phone_number_id}
                     onChange={(e) => setFormData({ ...formData, whatsapp_phone_number_id: e.target.value })}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                     placeholder="1234567890"
                   />
                 </div>
@@ -880,7 +911,7 @@ export default function EditarAgente() {
                     rows={3}
                     value={formData.whatsapp_access_token}
                     onChange={(e) => setFormData({ ...formData, whatsapp_access_token: e.target.value })}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                     placeholder="EAA..."
                   />
                 </div>
@@ -897,7 +928,7 @@ export default function EditarAgente() {
                     type="text"
                     value={formData.whatsapp_webhook_verify_token}
                     onChange={(e) => setFormData({ ...formData, whatsapp_webhook_verify_token: e.target.value })}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                     placeholder="mi_token_secreto"
                   />
                 </div>
@@ -914,7 +945,7 @@ export default function EditarAgente() {
                     type="text"
                     value={formData.whatsapp_app_secret}
                     onChange={(e) => setFormData({ ...formData, whatsapp_app_secret: e.target.value })}
-                    className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                     placeholder="abc123..."
                   />
                 </div>
