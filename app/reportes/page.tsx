@@ -5,6 +5,8 @@ import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AgentSelector from '@/components/ui/AgentSelector';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface ReportDocument {
   id: string;
@@ -243,12 +245,8 @@ export default function Reportes() {
     }
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!selectedReport || !reportHtml) return;
-
-    // Crear un nuevo documento HTML para el PDF
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
 
     const agentInfo = allPlatformAgents.find(a => a.reports_agent_name === selectedReport.agent);
     const agentName = agentInfo?.name || selectedReport.agent;
