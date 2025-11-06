@@ -551,12 +551,12 @@ export default function Reportes() {
             }
           </style>
         </head>
-        <body>
-          <div class="header">
-            <div class="type-badge">${selectedReport.type}</div>
-            <div class="date">${formatDate(selectedReport.datetime)}</div>
+        <body style="margin: 0; padding: 0;">
+          <div class="header" style="margin-top: 0; padding-top: 0;">
+            <div class="type-badge" style="margin-top: 0;">${selectedReport.type}</div>
+            <div class="date" style="margin-top: 0;">${formatDate(selectedReport.datetime)}</div>
           </div>
-          <div class="content">
+          <div class="content" style="margin-top: 0; padding-top: 0;">
             ${processedHtml}
           </div>
           <div class="agent-info">
