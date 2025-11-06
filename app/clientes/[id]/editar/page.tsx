@@ -532,16 +532,23 @@ export default function EditarCliente() {
               Cancelar
             </button>
             <button
-              type="submit"
+              type="button"
               onClick={(e) => {
                 console.log('[EDITAR CLIENTE] Botón Guardar Cambios clickeado', e);
-                // No prevenir default aquí, dejar que el form maneje el submit
+                e.preventDefault();
+                e.stopPropagation();
+                // Llamar directamente a handleSubmit
+                const fakeEvent = {
+                  preventDefault: () => {},
+                  stopPropagation: () => {},
+                } as React.FormEvent<HTMLFormElement>;
+                handleSubmit(fakeEvent);
               }}
               onMouseDown={(e) => {
                 console.log('[EDITAR CLIENTE] Botón mouseDown');
               }}
               className="px-6 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all cursor-pointer"
-              style={{ backgroundColor: '#5DE1E5' }}
+              style={{ backgroundColor: '#5DE1E5', zIndex: 1000, position: 'relative' }}
             >
               Guardar Cambios
             </button>
