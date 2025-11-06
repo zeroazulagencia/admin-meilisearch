@@ -217,6 +217,24 @@ export default function EditarCliente() {
     setFormData({ ...formData, clave: password });
   };
 
+  // Verificar permisos del usuario actual
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const userPerms = localStorage.getItem('admin-permissions');
+        if (userPerms) {
+          const perms = JSON.parse(userPerms);
+          console.log('[EDITAR CLIENTE] Permisos del usuario:', perms);
+          if (perms.type === 'admin') {
+            console.log('[EDITAR CLIENTE] Usuario es admin, debe tener acceso completo');
+          }
+        }
+      } catch (e) {
+        console.error('[EDITAR CLIENTE] Error cargando permisos:', e);
+      }
+    }
+  }, []);
+
   if (!currentClient) {
     return (
       <ProtectedLayout>
@@ -235,24 +253,6 @@ export default function EditarCliente() {
       </ProtectedLayout>
     );
   }
-
-  // Verificar permisos del usuario actual
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const userPerms = localStorage.getItem('admin-permissions');
-        if (userPerms) {
-          const perms = JSON.parse(userPerms);
-          console.log('[EDITAR CLIENTE] Permisos del usuario:', perms);
-          if (perms.type === 'admin') {
-            console.log('[EDITAR CLIENTE] Usuario es admin, debe tener acceso completo');
-          }
-        }
-      } catch (e) {
-        console.error('[EDITAR CLIENTE] Error cargando permisos:', e);
-      }
-    }
-  }, []);
 
   return (
     <ProtectedLayout>
