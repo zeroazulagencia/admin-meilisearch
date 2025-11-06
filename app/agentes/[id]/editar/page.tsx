@@ -283,48 +283,48 @@ export default function EditarAgente() {
 
   const handleImageUpload = async (file: File) => {
     if (file.size > 1 * 1024 * 1024) {
-      setAlertModal({
-        isOpen: true,
-        title: 'Validación',
-        message: 'La imagen no puede ser mayor a 1 MB',
-        type: 'warning',
-      });
-      return;
-    }
+                          setAlertModal({
+                            isOpen: true,
+                            title: 'Validación',
+                            message: 'La imagen no puede ser mayor a 1 MB',
+                            type: 'warning',
+                          });
+                          return;
+                        }
 
-    setUploading(true);
-    try {
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
+                      setUploading(true);
+                      try {
+                        const uploadFormData = new FormData();
+                        uploadFormData.append('file', file);
 
-      const response = await fetch('/api/upload-agent-avatar', {
-        method: 'POST',
-        body: uploadFormData
-      });
+                        const response = await fetch('/api/upload-agent-avatar', {
+                          method: 'POST',
+                          body: uploadFormData
+                        });
 
-      const data = await response.json();
+                        const data = await response.json();
 
-      if (response.ok) {
-        setFormData({ ...formData, photo: data.url });
-      } else {
-        setAlertModal({
-          isOpen: true,
-          title: 'Error',
-          message: data.error || 'Error al subir la imagen',
-          type: 'error',
-        });
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      setAlertModal({
-        isOpen: true,
-        title: 'Error',
-        message: 'Error al subir la imagen',
-        type: 'error',
-      });
-    } finally {
-      setUploading(false);
-    }
+                        if (response.ok) {
+                          setFormData({ ...formData, photo: data.url });
+                        } else {
+                          setAlertModal({
+                            isOpen: true,
+                            title: 'Error',
+                            message: data.error || 'Error al subir la imagen',
+                            type: 'error',
+                          });
+                        }
+                      } catch (error) {
+                        console.error('Error uploading image:', error);
+                        setAlertModal({
+                          isOpen: true,
+                          title: 'Error',
+                          message: 'Error al subir la imagen',
+                          type: 'error',
+                        });
+                      } finally {
+                        setUploading(false);
+                      }
   };
 
   const handleVerifyWhatsApp = async () => {
@@ -346,7 +346,8 @@ export default function EditarAgente() {
         body: JSON.stringify({
           business_account_id: formData.whatsapp_business_account_id,
           phone_number_id: formData.whatsapp_phone_number_id,
-          access_token: formData.whatsapp_access_token
+          access_token: formData.whatsapp_access_token,
+          agent_id: currentAgent?.id // Enviar ID del agente para obtener token desencriptado si está enmascarado
         })
       });
 
@@ -519,7 +520,7 @@ export default function EditarAgente() {
                 <label htmlFor="description" className="block text-sm/6 font-medium text-gray-900">
                   Descripción
                 </label>
-                <div className="mt-2">
+                  <div className="mt-2">
                   <textarea
                     id="description"
                     name="description"
@@ -546,8 +547,8 @@ export default function EditarAgente() {
                       ) : (
                         <div className="bg-white rounded-lg border-2 border-gray-200 shadow-sm p-2">
                           <UserCircleIcon aria-hidden="true" className="size-32 text-gray-300" />
-                        </div>
-                      )}
+                  </div>
+                )}
                     </div>
                     <button
                       type="button"
@@ -595,20 +596,20 @@ export default function EditarAgente() {
                     </div>
                   ) : (
                     <>
-                      <select
+                <select
                         id="conversation_agent_name"
                         name="conversation_agent_name"
-                        value={selectedConversationAgent}
-                        onChange={(e) => setSelectedConversationAgent(e.target.value)}
+                  value={selectedConversationAgent}
+                  onChange={(e) => setSelectedConversationAgent(e.target.value)}
                         className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
-                      >
+                >
                         <option value="">Seleccionar agente...</option>
-                        {availableConversationAgents.map((agent) => (
-                          <option key={agent} value={agent}>
-                            {agent}
-                          </option>
-                        ))}
-                      </select>
+                  {availableConversationAgents.map((agent) => (
+                    <option key={agent} value={agent}>
+                      {agent}
+                    </option>
+                  ))}
+                </select>
                       <ChevronDownIcon
                         aria-hidden="true"
                         className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4"
@@ -663,7 +664,7 @@ export default function EditarAgente() {
             </p>
             
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2">
-              {/* Configuración de Conocimiento */}
+          {/* Configuración de Conocimiento */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-4">Conocimiento del Agente</h3>
             
@@ -754,9 +755,9 @@ export default function EditarAgente() {
                 )}
               </>
             )}
-              </div>
+          </div>
 
-              {/* Configuración de Flujos n8n */}
+          {/* Configuración de Flujos n8n */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-4">Flujos n8n del Agente</h3>
             
@@ -880,8 +881,8 @@ export default function EditarAgente() {
                   </>
                 )}
               </button>
-            </div>
-            
+          </div>
+
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
               <div className="sm:col-span-3">
                 <label htmlFor="whatsapp_business_account_id" className="block text-sm/6 font-medium text-gray-900">
@@ -972,20 +973,20 @@ export default function EditarAgente() {
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-x-6">
-          <button
-            type="button"
-            onClick={() => router.push('/agentes')}
+            <button
+              type="button"
+              onClick={() => router.push('/agentes')}
             className="text-sm/6 font-semibold text-gray-900"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
             className="rounded-md bg-[#5DE1E5] px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5]"
-          >
+            >
             Guardar
-          </button>
-        </div>
+            </button>
+          </div>
         </form>
 
         {/* Modal de alertas */}
@@ -996,7 +997,7 @@ export default function EditarAgente() {
           message={alertModal.message}
           type={alertModal.type}
         />
-    </ProtectedLayout>
-  );
-}
+      </ProtectedLayout>
+    );
+  }
 

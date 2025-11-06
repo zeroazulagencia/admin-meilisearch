@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
+import { encrypt, decrypt, maskSensitiveValue, isEncrypted } from '@/utils/encryption';
 
 // GET - Obtener un agente por ID
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -14,7 +15,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       if (!rows || rows.length === 0) {
         return NextResponse.json({ ok: false, error: 'Agente no encontrado' }, { status: 404 });
       }
-      return NextResponse.json({ ok: true, agent: rows[0] });
+      
+      // Enmascarar campos sensibles antes de enviar al frontend
+      const agent = rows[0];
+      if (agent.whatsapp_access_token) {
+        agent.whatsapp_access_token = maskSensitiveValue(agent.whatsapp_access_token, 4);
+      }
+      if (agent.whatsapp_webhook_verify_token) {
+        agent.whatsapp_webhook_verify_token = maskSensitiveValue(agent.whatsapp_webhook_verify_token, 4);
+      }
+      if (agent.whatsapp_app_secret) {
+        agent.whatsapp_app_secret = maskSensitiveValue(agent.whatsapp_app_secret, 4);
+      }
+      
+      return NextResponse.json({ ok: true, agent });
     } catch (e: any) {
       // Si falla, probablemente la columna reports_agent_name no existe, intentar sin ella
       console.log('[API AGENTS] Error with reports_agent_name, trying without it:', e?.message);
@@ -26,18 +40,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         return NextResponse.json({ ok: false, error: 'Agente no encontrado' }, { status: 404 });
       }
       // Agregar campos faltantes como null para compatibilidad
-      return NextResponse.json({ 
-        ok: true, 
-        agent: { 
-          ...rows[0], 
-          reports_agent_name: null,
-          whatsapp_business_account_id: null,
-          whatsapp_phone_number_id: null,
-          whatsapp_access_token: null,
-          whatsapp_webhook_verify_token: null,
-          whatsapp_app_secret: null
-        } 
-      });
+      const agent = {
+        ...rows[0],
+        reports_agent_name: null,
+        whatsapp_business_account_id: null,
+        whatsapp_phone_number_id: null,
+        whatsapp_access_token: null,
+        whatsapp_webhook_verify_token: null,
+        whatsapp_app_secret: null
+      };
+      
+      return NextResponse.json({ ok: true, agent });
     }
   } catch (e: any) {
     console.error('[API AGENTS] Error loading agent:', e?.message || e);
@@ -52,6 +65,38 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json();
     console.log('[API AGENTS] PUT request body:', JSON.stringify(body, null, 2));
     console.log('[API AGENTS] reports_agent_name value:', body.reports_agent_name);
+    
+    // Obtener el agente actual para comparar valores encriptados
+    const [currentRows] = await query<any>(
+      'SELECT whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret FROM agents WHERE id = ? LIMIT 1',
+      [id]
+    );
+    const currentAgent = currentRows && currentRows.length > 0 ? currentRows[0] : null;
+    
+    // Encriptar campos sensibles solo si han cambiado (no son valores enmascarados)
+    let encryptedAccessToken = body.whatsapp_access_token || null;
+    let encryptedWebhookToken = body.whatsapp_webhook_verify_token || null;
+    let encryptedAppSecret = body.whatsapp_app_secret || null;
+    
+    // Si el valor parece estar enmascarado (termina en "..."), mantener el valor encriptado existente
+    if (encryptedAccessToken && encryptedAccessToken.endsWith('...')) {
+      encryptedAccessToken = currentAgent?.whatsapp_access_token || null;
+    } else if (encryptedAccessToken && !isEncrypted(encryptedAccessToken)) {
+      // Solo encriptar si no está ya encriptado
+      encryptedAccessToken = encrypt(encryptedAccessToken);
+    }
+    
+    if (encryptedWebhookToken && encryptedWebhookToken.endsWith('...')) {
+      encryptedWebhookToken = currentAgent?.whatsapp_webhook_verify_token || null;
+    } else if (encryptedWebhookToken && !isEncrypted(encryptedWebhookToken)) {
+      encryptedWebhookToken = encrypt(encryptedWebhookToken);
+    }
+    
+    if (encryptedAppSecret && encryptedAppSecret.endsWith('...')) {
+      encryptedAppSecret = currentAgent?.whatsapp_app_secret || null;
+    } else if (encryptedAppSecret && !isEncrypted(encryptedAppSecret)) {
+      encryptedAppSecret = encrypt(encryptedAppSecret);
+    }
     
     // Primero intentar con todos los campos (reports_agent_name y WhatsApp), si falla intentar sin WhatsApp
     try {
@@ -68,9 +113,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           body.reports_agent_name || null,
           body.whatsapp_business_account_id || null,
           body.whatsapp_phone_number_id || null,
-          body.whatsapp_access_token || null,
-          body.whatsapp_webhook_verify_token || null,
-          body.whatsapp_app_secret || null,
+          encryptedAccessToken,
+          encryptedWebhookToken,
+          encryptedAppSecret,
           id
         ]
       );

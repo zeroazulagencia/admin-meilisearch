@@ -1,13 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { query } from '@/utils/db';
+import { decrypt } from '@/utils/encryption';
 
 // POST - Verificar conexión con WhatsApp Business API
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { business_account_id, phone_number_id, access_token } = body;
+    const { business_account_id, phone_number_id, access_token, agent_id } = body;
 
-    if (!phone_number_id || !access_token) {
+    let decryptedAccessToken = access_token;
+
+    // Si se proporciona agent_id, intentar obtener el token desencriptado desde la BD
+    if (agent_id && (!access_token || access_token.endsWith('...'))) {
+      try {
+        const [rows] = await query<any>(
+          'SELECT whatsapp_access_token FROM agents WHERE id = ? LIMIT 1',
+          [agent_id]
+        );
+        if (rows && rows.length > 0 && rows[0].whatsapp_access_token) {
+          decryptedAccessToken = decrypt(rows[0].whatsapp_access_token);
+        }
+      } catch (e) {
+        console.error('[WHATSAPP VERIFY] Error getting token from DB:', e);
+      }
+    } else if (access_token && !access_token.endsWith('...')) {
+      // Si el token no está enmascarado, usarlo directamente
+      decryptedAccessToken = access_token;
+    }
+
+    if (!phone_number_id || !decryptedAccessToken) {
       return NextResponse.json({ 
         ok: false, 
         error: 'Se requiere Phone Number ID y Access Token para verificar la conexión' 
@@ -22,7 +44,7 @@ export async function POST(req: NextRequest) {
         {
           params: {
             fields: 'id,display_phone_number,verified_name,code_verification_status',
-            access_token: access_token
+            access_token: decryptedAccessToken
           },
           timeout: 10000
         }
