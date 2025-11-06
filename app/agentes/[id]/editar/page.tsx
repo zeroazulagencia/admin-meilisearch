@@ -353,11 +353,13 @@ export default function EditarAgente() {
       const data = await response.json();
       
       if (data.ok) {
+        // Determinar el tipo basado en el status del servidor si está disponible
+        const alertType = data.status === 'warning' ? 'warning' : 'success';
         setAlertModal({
           isOpen: true,
           title: 'Conexión Exitosa',
           message: data.message || 'La conexión con WhatsApp Business API es correcta. Los datos están funcionando.',
-          type: 'success',
+          type: alertType,
         });
       } else {
         setAlertModal({
@@ -497,7 +499,7 @@ export default function EditarAgente() {
                     required
                     value={formData.client_id}
                     onChange={(e) => setFormData({ ...formData, client_id: parseInt(e.target.value) })}
-                    className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6"
+                    className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                   >
                     <option value={0}>Seleccionar cliente</option>
                     {clients.map((client) => (
@@ -534,16 +536,22 @@ export default function EditarAgente() {
                   Foto
                 </label>
                 <div className="mt-2 flex flex-col items-center gap-3">
-                  {formData.photo ? (
-                    <img src={formData.photo} alt="Avatar" className="size-32 rounded-full object-cover" />
-                  ) : (
-                    <UserCircleIcon aria-hidden="true" className="size-32 text-gray-300" />
-                  )}
+                  <div className="relative">
+                    {formData.photo ? (
+                      <div className="bg-white rounded-lg border-2 border-gray-200 shadow-sm p-2">
+                        <img src={formData.photo} alt="Avatar" className="size-32 rounded-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-lg border-2 border-gray-200 shadow-sm p-2">
+                        <UserCircleIcon aria-hidden="true" className="size-32 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                    className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-gray-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5]"
                   >
                     {uploading ? 'Subiendo...' : formData.photo ? 'Cambiar' : 'Subir'}
                   </button>

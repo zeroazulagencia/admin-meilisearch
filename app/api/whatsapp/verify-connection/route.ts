@@ -29,15 +29,46 @@ export async function POST(req: NextRequest) {
       );
 
       if (response.data && response.data.id) {
+        const phoneNumber = response.data.display_phone_number || response.data.id;
+        const verificationStatus = response.data.code_verification_status || 'N/A';
+        const verifiedName = response.data.verified_name || 'No disponible';
+        
+        // Mensaje más detallado
+        let statusMessage = '';
+        let statusColor = 'success';
+        
+        if (verificationStatus === 'VERIFIED') {
+          statusMessage = 'El número está verificado y operativo.';
+        } else if (verificationStatus === 'PENDING') {
+          statusMessage = 'El número está pendiente de verificación.';
+          statusColor = 'warning';
+        } else if (verificationStatus === 'EXPIRED') {
+          statusMessage = 'La verificación del número ha expirado. Es necesario renovar la verificación en Meta Business.';
+          statusColor = 'warning';
+        } else {
+          statusMessage = `Estado de verificación: ${verificationStatus}`;
+        }
+        
+        const detailedMessage = `✅ Conexión exitosa con WhatsApp Business API
+        
+📱 Número de teléfono: ${phoneNumber}
+👤 Nombre verificado: ${verifiedName}
+🔐 Estado de verificación: ${verificationStatus}
+        
+${statusMessage}
+        
+✅ Los datos de conexión son válidos y el servidor puede comunicarse con la API de WhatsApp.`;
+        
         return NextResponse.json({
           ok: true,
-          message: `Conexión exitosa. Número verificado: ${response.data.display_phone_number || response.data.id}. Estado: ${response.data.code_verification_status || 'N/A'}`,
+          message: detailedMessage,
           data: {
             phone_number_id: response.data.id,
-            display_phone_number: response.data.display_phone_number,
-            verified_name: response.data.verified_name,
-            code_verification_status: response.data.code_verification_status
-          }
+            display_phone_number: phoneNumber,
+            verified_name: verifiedName,
+            code_verification_status: verificationStatus
+          },
+          status: statusColor
         });
       } else {
         return NextResponse.json({
