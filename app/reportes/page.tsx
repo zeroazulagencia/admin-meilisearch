@@ -32,18 +32,21 @@ export default function Reportes() {
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedReport, setSelectedReport] = useState<ReportDocument | null>(null);
   const [reportHtml, setReportHtml] = useState<string>('');
   const [loadingReportDetail, setLoadingReportDetail] = useState(false);
 
   const INDEX_UID = 'bd_reports_dworkers';
 
-  // Inicializar fechas con HOY como default
+  // Inicializar fechas: desde el inicio del mes actual hasta hoy
   useEffect(() => {
     const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    
     const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-    setDateFrom(todayStr);
+    const firstDayStr = firstDayOfMonth.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    setDateFrom(firstDayStr);
     setDateTo(todayStr);
   }, []);
 
@@ -84,7 +87,7 @@ export default function Reportes() {
     if (selectedAgent !== 'all') {
       loadReports();
     }
-  }, [selectedAgent, dateFrom, dateTo, searchQuery]);
+  }, [selectedAgent, dateFrom, dateTo]);
 
   const loadReports = async () => {
     try {
@@ -92,68 +95,34 @@ export default function Reportes() {
       
       const allDocuments: ReportDocument[] = [];
       
-      // Si hay búsqueda, usar búsqueda de Meilisearch
-      let searchFailed = false;
-      if (searchQuery && searchQuery.trim()) {
-        try {
-          const filters: string[] = [];
-          filters.push(`agent = "${selectedAgent}"`);
-          
-          if (dateFrom && dateTo) {
-            const fromDateISO = new Date(dateFrom + 'T00:00:00Z').toISOString();
-            const toDateISO = new Date(dateTo + 'T23:59:59Z').toISOString();
-            filters.push(`datetime >= "${fromDateISO}"`);
-            filters.push(`datetime <= "${toDateISO}"`);
-          }
-          
-          const searchResults = await meilisearchAPI.searchDocuments(
-            INDEX_UID,
-            searchQuery,
-            1000,
-            0,
-            { filter: filters.join(' AND ') }
-          );
-          
-          // Filtrar y validar que los documentos tengan los campos requeridos
-          const validReports = searchResults.hits.filter((doc: any): doc is ReportDocument => {
-            return doc.id && doc.type && doc.datetime && doc.agent;
-          });
-          allDocuments.push(...validReports);
-        } catch (err: any) {
-          searchFailed = true;
-        }
-      }
+      // Cargar todos los documentos normalmente
+      let currentOffset = 0;
+      const batchLimit = 1000;
+      let hasMore = true;
       
-      // Si no hay búsqueda o si la búsqueda falló, cargar todos los documentos normalmente
-      if (!searchQuery || !searchQuery.trim() || searchFailed) {
-        let currentOffset = 0;
-        const batchLimit = 1000;
-        let hasMore = true;
+      while (hasMore) {
+        const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
         
-        while (hasMore) {
-          const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
+        const filtered = data.results.filter((doc: any): doc is ReportDocument => {
+          const isAgent = doc.agent === selectedAgent;
           
-          const filtered = data.results.filter((doc: any): doc is ReportDocument => {
-            const isAgent = doc.agent === selectedAgent;
-            
-            let isInDateRange = true;
-            if (dateFrom && doc.datetime) {
-              const docDate = new Date(doc.datetime);
-              const fromDate = new Date(dateFrom + 'T00:00:00');
-              const toDate = new Date(dateTo + 'T23:59:59');
-              isInDateRange = docDate >= fromDate && docDate <= toDate;
-            }
-            
-            return isAgent && isInDateRange && doc.id && doc.type && doc.datetime;
-          });
-          
-          allDocuments.push(...filtered);
-          
-          if (data.results.length < batchLimit) {
-            hasMore = false;
-          } else {
-            currentOffset += batchLimit;
+          let isInDateRange = true;
+          if (dateFrom && dateTo && doc.datetime) {
+            const docDate = new Date(doc.datetime);
+            const fromDate = new Date(dateFrom + 'T00:00:00');
+            const toDate = new Date(dateTo + 'T23:59:59');
+            isInDateRange = docDate >= fromDate && docDate <= toDate;
           }
+          
+          return isAgent && isInDateRange && doc.id && doc.type && doc.datetime;
+        });
+        
+        allDocuments.push(...filtered);
+        
+        if (data.results.length < batchLimit) {
+          hasMore = false;
+        } else {
+          currentOffset += batchLimit;
         }
       }
       
@@ -393,61 +362,35 @@ export default function Reportes() {
         )}
       </div>
 
-      {/* Búsqueda y Filtro de Fechas */}
+      {/* Filtro de Fechas */}
       {selectedAgent !== 'all' && selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
-        <>
-          {/* Campo de Búsqueda */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Buscar por Palabras Clave
-            </label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar en reportes..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-              style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="mt-2 text-sm text-[#5DE1E5] hover:underline"
-              >
-                Limpiar búsqueda
-              </button>
-            )}
-          </div>
-
-          {/* Filtro de Fechas */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-4">
-              Filtrar por Rango de Fechas
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Desde</label>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Hasta</label>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                />
-              </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-4">
+            Filtrar por Rango de Fechas
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Desde</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Hasta</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+              />
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Listado de Reportes */}
