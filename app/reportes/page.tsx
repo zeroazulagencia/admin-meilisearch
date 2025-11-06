@@ -624,8 +624,7 @@ export default function Reportes() {
           </style>
         </head>
         <body style="margin: 0; padding: 0;">
-          <div class="header" style="margin-top: 0; padding-top: 0;">
-            <div class="type-badge" style="margin-top: 0;">${selectedReport.type}</div>
+          <div class="header" style="margin-top: 0; padding-top: 0; display: none;">
             <div class="date" style="margin-top: 0;">${formatDate(selectedReport.datetime)}</div>
           </div>
           <div class="content" style="margin-top: 0; padding-top: 0;">
