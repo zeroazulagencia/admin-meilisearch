@@ -5,10 +5,27 @@ import { query } from '@/utils/db';
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const [rows] = await query<any>(
-      'SELECT id, name, email, phone, company, nit, clave, permissions, status FROM clients WHERE id = ? LIMIT 1',
-      [id]
-    );
+    
+    // Intentar con nit primero, si falla intentar sin él (backward compatibility)
+    let rows: any[];
+    try {
+      [rows] = await query<any>(
+        'SELECT id, name, email, phone, company, nit, clave, permissions, status FROM clients WHERE id = ? LIMIT 1',
+        [id]
+      );
+    } catch (e: any) {
+      // Si falla, probablemente la columna nit no existe, intentar sin ella
+      console.log('[API CLIENTS] Error con nit, intentando sin nit:', e?.message);
+      [rows] = await query<any>(
+        'SELECT id, name, email, phone, company, clave, permissions, status FROM clients WHERE id = ? LIMIT 1',
+        [id]
+      );
+      // Agregar nit como null para compatibilidad
+      if (rows && rows.length > 0) {
+        rows[0].nit = null;
+      }
+    }
+    
     if (!rows || rows.length === 0) {
       return NextResponse.json({ ok: false, error: 'Cliente no encontrado' }, { status: 404 });
     }
