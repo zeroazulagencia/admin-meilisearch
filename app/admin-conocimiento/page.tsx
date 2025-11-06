@@ -1546,13 +1546,14 @@ export default function AdminConocimiento() {
                         style={{ 
                           zIndex: 1,
                           background: 'white',
-                          minHeight: '384px'
+                          minHeight: '384px',
+                          color: '#374151'
                         }}
                         aria-hidden="true"
                       >
                         {pdfText ? pdfText.split('[separador]').map((part, index, array) => (
                           <React.Fragment key={index}>
-                            <span style={{ color: 'transparent' }}>{part}</span>
+                            <span>{part}</span>
                             {index < array.length - 1 && (
                               <span className="bg-blue-500 text-white font-bold px-1 rounded" style={{ 
                                 background: '#3B82F6',
@@ -1563,7 +1564,7 @@ export default function AdminConocimiento() {
                               </span>
                             )}
                           </React.Fragment>
-                        )) : <span style={{ color: 'transparent' }}>&nbsp;</span>}
+                        )) : <span>&nbsp;</span>}
                       </div>
                       {/* Textarea transparente para edición */}
                       <textarea
@@ -1582,7 +1583,7 @@ export default function AdminConocimiento() {
                         style={{ 
                           position: 'relative',
                           zIndex: 10,
-                          color: pdfText ? 'transparent' : '#374151',
+                          color: 'transparent',
                           caretColor: '#374151'
                         }}
                       />
