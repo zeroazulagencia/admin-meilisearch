@@ -219,6 +219,29 @@ export default function Reportes() {
     const agentInfo = allPlatformAgents.find(a => a.reports_agent_name === selectedReport.agent);
     const agentName = agentInfo?.name || selectedReport.agent;
 
+    // Procesar el HTML para convertir degradados y estilos incompatibles
+    let processedHtml = reportHtml;
+    
+    // Convertir degradados a colores sólidos usando regex
+    // Buscar y reemplazar gradientes lineales comunes
+    processedHtml = processedHtml.replace(/background:\s*linear-gradient\([^)]+\)/gi, (match) => {
+      // Extraer el primer color del gradiente o usar un color por defecto
+      const colorMatch = match.match(/#[0-9a-fA-F]{6}|rgb\([^)]+\)|rgba\([^)]+\)/);
+      if (colorMatch) {
+        return `background: ${colorMatch[0]}`;
+      }
+      return 'background: #f3f4f6'; // Color gris por defecto
+    });
+    
+    // Convertir gradientes en style attributes
+    processedHtml = processedHtml.replace(/style="[^"]*background[^"]*linear-gradient[^"]*"/gi, (match) => {
+      const colorMatch = match.match(/#[0-9a-fA-F]{6}|rgb\([^)]+\)|rgba\([^)]+\)/);
+      if (colorMatch) {
+        return match.replace(/background[^;]*linear-gradient[^;]*;?/gi, `background: ${colorMatch[0]};`);
+      }
+      return match.replace(/background[^;]*linear-gradient[^;]*;?/gi, 'background: #f3f4f6;');
+    });
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -226,56 +249,197 @@ export default function Reportes() {
           <meta charset="UTF-8">
           <title>${selectedReport.type} - ${formatDate(selectedReport.datetime)}</title>
           <style>
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            
             body {
               font-family: Arial, sans-serif;
               padding: 40px;
               max-width: 800px;
               margin: 0 auto;
+              background: white;
+              color: #1f2937;
             }
+            
             .header {
               margin-bottom: 30px;
               padding-bottom: 20px;
               border-bottom: 2px solid #e5e7eb;
             }
+            
             .type-badge {
               display: inline-block;
               padding: 6px 12px;
-              border-radius: 20px;
+              border-radius: 4px;
               font-size: 14px;
               font-weight: 600;
               margin-bottom: 10px;
-              background-color: #3b82f6;
-              color: white;
+              background-color: #3b82f6 !important;
+              color: white !important;
+              border: 1px solid #2563eb;
             }
+            
             .date {
               color: #6b7280;
               font-size: 14px;
               margin-bottom: 10px;
             }
+            
             .agent-info {
               display: flex;
               align-items: center;
               gap: 12px;
-              margin-top: 20px;
+              margin-top: 30px;
               padding-top: 20px;
-              border-top: 1px solid #e5e7eb;
+              border-top: 2px solid #e5e7eb;
             }
+            
             .agent-photo {
               width: 50px;
               height: 50px;
               border-radius: 50%;
               object-fit: cover;
+              border: 2px solid #e5e7eb;
             }
+            
             .agent-name {
               font-size: 14px;
               color: #6b7280;
             }
+            
             .content {
               margin-top: 30px;
+              line-height: 1.6;
             }
+            
+            .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {
+              color: #1f2937;
+              margin-top: 24px;
+              margin-bottom: 12px;
+              font-weight: 600;
+            }
+            
+            .content p {
+              margin-bottom: 12px;
+              color: #374151;
+            }
+            
+            .content ul, .content ol {
+              margin-bottom: 12px;
+              padding-left: 24px;
+            }
+            
+            .content li {
+              margin-bottom: 6px;
+              color: #374151;
+            }
+            
+            .content img {
+              max-width: 100%;
+              height: auto;
+              border: 1px solid #e5e7eb;
+              margin: 12px 0;
+            }
+            
+            .content table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 16px 0;
+            }
+            
+            .content table th,
+            .content table td {
+              border: 1px solid #e5e7eb;
+              padding: 8px 12px;
+              text-align: left;
+            }
+            
+            .content table th {
+              background-color: #f9fafb !important;
+              font-weight: 600;
+              color: #1f2937;
+            }
+            
+            .content code {
+              background-color: #f3f4f6;
+              padding: 2px 6px;
+              border-radius: 3px;
+              font-family: 'Courier New', monospace;
+              font-size: 0.9em;
+            }
+            
+            .content pre {
+              background-color: #f9fafb;
+              border: 1px solid #e5e7eb;
+              padding: 12px;
+              border-radius: 4px;
+              overflow-x: auto;
+            }
+            
+            .content blockquote {
+              border-left: 4px solid #3b82f6;
+              padding-left: 16px;
+              margin: 16px 0;
+              color: #6b7280;
+            }
+            
+            /* Convertir todos los gradientes a colores sólidos */
+            [style*="gradient"] {
+              background: #f3f4f6 !important;
+            }
+            
+            /* Asegurar que los colores de fondo se impriman */
+            [style*="background"] {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
             @media print {
+              @page {
+                margin: 1.5cm;
+                size: A4;
+              }
+              
               body {
-                padding: 20px;
+                padding: 0;
+                background: white;
+              }
+              
+              .header {
+                page-break-after: avoid;
+              }
+              
+              .content {
+                page-break-inside: avoid;
+              }
+              
+              .agent-info {
+                page-break-inside: avoid;
+                margin-top: 40px;
+              }
+              
+              /* Ocultar elementos que no deben imprimirse */
+              .no-print {
+                display: none !important;
+              }
+              
+              /* Asegurar que las imágenes se impriman */
+              img {
+                max-width: 100% !important;
+                page-break-inside: avoid;
+              }
+              
+              /* Evitar cortes de página en elementos importantes */
+              h1, h2, h3, h4, h5, h6 {
+                page-break-after: avoid;
+              }
+              
+              p, li {
+                orphans: 3;
+                widows: 3;
               }
             }
           </style>
@@ -286,7 +450,7 @@ export default function Reportes() {
             <div class="date">${formatDate(selectedReport.datetime)}</div>
           </div>
           <div class="content">
-            ${reportHtml}
+            ${processedHtml}
           </div>
           <div class="agent-info">
             ${agentInfo?.photo ? `<img src="${agentInfo.photo}" alt="${agentName}" class="agent-photo" />` : ''}
@@ -303,7 +467,7 @@ export default function Reportes() {
     // Esperar a que se cargue el contenido y luego imprimir/descargar PDF
     setTimeout(() => {
       printWindow.print();
-    }, 250);
+    }, 500);
   };
 
   return (
