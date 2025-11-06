@@ -662,12 +662,34 @@ export default function Reportes() {
                       {report.agent}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleViewReport(report)}
-                        className="text-[#5DE1E5] hover:text-[#4DD1D5] transition-colors"
-                      >
-                        Ver Reporte
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => handleViewReport(report)}
+                          className="text-[#5DE1E5] hover:text-[#4DD1D5] transition-colors"
+                        >
+                          Ver Reporte
+                        </button>
+                        <button
+                          onClick={() => handleDeleteReport(report.id)}
+                          disabled={deletingReport === report.id}
+                          className="text-red-600 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                          title="Eliminar reporte"
+                        >
+                          {deletingReport === report.id ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full"></div>
+                              <span>Eliminando...</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              <span>Eliminar</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -759,35 +781,32 @@ export default function Reportes() {
                 </div>
               ) : reportHtml ? (
                 <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-200">
+                  <style dangerouslySetInnerHTML={{
+                    __html: `
+                      .report-html-content {
+                        width: 100%;
+                      }
+                      .report-html-content * {
+                        box-sizing: border-box;
+                      }
+                      .report-html-content img {
+                        max-width: 100%;
+                        height: auto;
+                      }
+                      .report-html-content table {
+                        width: 100%;
+                        border-collapse: collapse;
+                      }
+                      .report-html-content a {
+                        color: #2563eb;
+                        text-decoration: underline;
+                      }
+                    `
+                  }} />
                   <div 
-                    className="report-content"
-                    style={{
-                      all: 'initial',
-                      display: 'block',
-                      fontFamily: 'system-ui, -apple-system, sans-serif',
-                      fontSize: '14px',
-                      lineHeight: '1.5',
-                      color: '#111827',
-                    }}
+                    className="report-html-content"
                     dangerouslySetInnerHTML={{ __html: reportHtml }}
                   />
-                  <style jsx global>{`
-                    .report-content * {
-                      box-sizing: border-box;
-                    }
-                    .report-content img {
-                      max-width: 100%;
-                      height: auto;
-                    }
-                    .report-content table {
-                      width: 100%;
-                      border-collapse: collapse;
-                    }
-                    .report-content a {
-                      color: #2563eb;
-                      text-decoration: underline;
-                    }
-                  `}</style>
                   
                   {/* Footer con información del creador */}
                   <div className="mt-8 pt-6 border-t border-gray-200">
