@@ -251,6 +251,8 @@ export default function Reportes() {
 
     setGeneratingPDF(true);
 
+    let pdfContainer: HTMLDivElement | null = null;
+
     try {
       const agentInfo = allPlatformAgents.find(a => a.reports_agent_name === selectedReport.agent);
       const agentName = agentInfo?.name || selectedReport.agent;
@@ -262,8 +264,8 @@ export default function Reportes() {
       const parser = new DOMParser();
       const doc = parser.parseFromString(reportHtml, 'text/html');
     
-    // Función para extraer el primer color de un gradiente
-    const getFirstColorFromGradient = (gradient: string): string => {
+      // Función para extraer el primer color de un gradiente
+      const getFirstColorFromGradient = (gradient: string): string => {
       // Buscar colores en formato hex, rgb, rgba
       const colorMatch = gradient.match(/#[0-9a-fA-F]{3,6}|rgb\([^)]+\)|rgba\([^)]+\)/i);
       if (colorMatch) {
@@ -344,7 +346,7 @@ export default function Reportes() {
       processedHtml = doc.body.innerHTML;
 
       // Crear un elemento temporal fuera de la vista para renderizar el PDF
-      const pdfContainer = document.createElement('div');
+      pdfContainer = document.createElement('div');
       pdfContainer.style.position = 'absolute';
       pdfContainer.style.left = '-9999px';
       pdfContainer.style.top = '0';
@@ -468,10 +470,12 @@ export default function Reportes() {
       pdf.save(`reporte-${selectedReport.type}-${formatDate(selectedReport.datetime).replace(/\//g, '-')}.pdf`);
 
       // Limpiar el elemento temporal
-      document.body.removeChild(pdfContainer);
+      if (pdfContainer && document.body.contains(pdfContainer)) {
+        document.body.removeChild(pdfContainer);
+      }
     } catch (error) {
       console.error('Error generando PDF:', error);
-      if (document.body.contains(pdfContainer)) {
+      if (pdfContainer && document.body.contains(pdfContainer)) {
         document.body.removeChild(pdfContainer);
       }
       alert('Error al generar el PDF. Por favor, intenta nuevamente.');
