@@ -35,6 +35,7 @@ export default function Reportes() {
   const [selectedReport, setSelectedReport] = useState<ReportDocument | null>(null);
   const [reportHtml, setReportHtml] = useState<string>('');
   const [loadingReportDetail, setLoadingReportDetail] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
 
   const INDEX_UID = 'bd_reports_dworkers';
 
@@ -306,7 +307,19 @@ export default function Reportes() {
 
   return (
     <ProtectedLayout>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Reportes</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
+        <button
+          onClick={() => setShowCodeModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+          title="Ver instrucciones de inserción"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+          <span className="text-sm font-medium">Código</span>
+        </button>
+      </div>
       
       {/* Selector de Agente de la Plataforma */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -588,6 +601,121 @@ export default function Reportes() {
                   <p className="text-gray-500">No hay contenido disponible para este reporte.</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Instrucciones de Código */}
+      {showCodeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            {/* Header del Modal */}
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Insertar Reporte en Meilisearch</h2>
+                    <p className="text-sm text-gray-500">Instrucciones usando curl</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCodeModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            {/* Contenido del Modal */}
+            <div className="p-6 flex-1 overflow-auto bg-gray-50">
+              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div className="space-y-6">
+                  {/* Información del Endpoint */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Endpoint</h3>
+                    <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                      <div className="text-green-400">POST</div>
+                      <div className="mt-1">https://server-search.zeroazul.com/indexes/{INDEX_UID}/documents</div>
+                    </div>
+                  </div>
+
+                  {/* Ejemplo de curl */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Ejemplo con curl</h3>
+                    <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                      <pre className="whitespace-pre-wrap">{`curl -X POST 'https://server-search.zeroazul.com/indexes/bd_reports_dworkers/documents' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer YOUR_MEILISEARCH_API_KEY' \\
+  -d '{
+    "id": "report-001",
+    "type": "Informe Mensual",
+    "datetime": "2024-01-15T10:30:00Z",
+    "agent": "nombre-del-agente",
+    "report": "<h1>Contenido del Reporte</h1><p>Aquí va el contenido HTML del reporte...</p>"
+  }'`}</pre>
+                    </div>
+                  </div>
+
+                  {/* Estructura del Documento */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Estructura del Documento</h3>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <div className="space-y-2 text-sm font-mono text-gray-700">
+                        <div><span className="text-blue-600">id</span>: <span className="text-gray-600">string (requerido) - Identificador único del reporte</span></div>
+                        <div><span className="text-blue-600">type</span>: <span className="text-gray-600">string (requerido) - Tipo de reporte</span></div>
+                        <div><span className="text-blue-600">datetime</span>: <span className="text-gray-600">string ISO 8601 (requerido) - Fecha y hora del reporte</span></div>
+                        <div><span className="text-blue-600">agent</span>: <span className="text-gray-600">string (requerido) - Nombre del agente (debe coincidir con reports_agent_name)</span></div>
+                        <div><span className="text-blue-600">report</span>: <span className="text-gray-600">string HTML (opcional) - Contenido del reporte en formato HTML</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notas Importantes */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Notas Importantes</h3>
+                    <ul className="space-y-2 text-sm text-gray-700 list-disc list-inside">
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">agent</code> debe coincidir exactamente con el <code className="bg-gray-200 px-1 rounded">reports_agent_name</code> configurado en el agente</li>
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">datetime</code> debe estar en formato ISO 8601 (ejemplo: 2024-01-15T10:30:00Z)</li>
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">id</code> debe ser único para cada reporte</li>
+                      <li>El campo <code className="bg-gray-200 px-1 rounded">report</code> acepta HTML válido</li>
+                      <li>Necesitarás tu API Key de Meilisearch para autenticación</li>
+                    </ul>
+                  </div>
+
+                  {/* Ejemplo con múltiples documentos */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Insertar múltiples reportes</h3>
+                    <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                      <pre className="whitespace-pre-wrap">{`curl -X POST 'https://server-search.zeroazul.com/indexes/bd_reports_dworkers/documents' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer YOUR_MEILISEARCH_API_KEY' \\
+  -d '[
+    {
+      "id": "report-001",
+      "type": "Informe Mensual",
+      "datetime": "2024-01-15T10:30:00Z",
+      "agent": "nombre-del-agente",
+      "report": "<h1>Reporte 1</h1>"
+    },
+    {
+      "id": "report-002",
+      "type": "Informe Semanal",
+      "datetime": "2024-01-16T10:30:00Z",
+      "agent": "nombre-del-agente",
+      "report": "<h1>Reporte 2</h1>"
+    }
+  ]'`}</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
