@@ -61,9 +61,24 @@ export default function EditarCliente() {
             clave: client.clave || ''
           });
           try {
-            setPermissions(typeof client.permissions === 'string' ? JSON.parse(client.permissions) : (client.permissions || {}));
+            const perms = typeof client.permissions === 'string' ? JSON.parse(client.permissions) : (client.permissions || {});
+            // Inicializar permisos con estructura simplificada
+            const defaultPerms: any = {
+              canLogin: perms.canLogin !== false,
+            };
+            MODULES.forEach(module => {
+              defaultPerms[module.key] = {
+                view: perms[module.key]?.view || false,
+                edit: perms[module.key]?.edit || false
+              };
+            });
+            setPermissions(defaultPerms);
           } catch {
-            setPermissions({});
+            const defaultPerms: any = { canLogin: true };
+            MODULES.forEach(module => {
+              defaultPerms[module.key] = { view: false, edit: false };
+            });
+            setPermissions(defaultPerms);
           }
           
           // Buscar agentes asociados desde MySQL
@@ -148,36 +163,30 @@ export default function EditarCliente() {
     }
   };
 
-  const togglePermission = (section: string, action: string) => {
+  const togglePermission = (module: string, action: 'view' | 'edit') => {
     setPermissions((prev: any) => ({
       ...prev,
-      [section]: {
-        ...prev[section],
-        [action]: !prev[section]?.[action]
+      [module]: {
+        ...prev[module],
+        [action]: !prev[module]?.[action]
       }
     }));
   };
 
-  const SECTIONS = ['dashboard', 'conocimiento', 'ejecuciones', 'conversaciones', 'informes', 'consumoApi', 'clientes', 'agentes'];
-  const ACTION_LABELS: Record<string, string> = {
-    viewOwn: 'Ver propios',
-    viewAll: 'Ver todos',
-    editOwn: 'Editar propios',
-    editAll: 'Editar todos',
-    createOwn: 'Crear propios',
-    createAll: 'Crear todos'
-  };
-
-  const getAvailableActions = (section: string) => {
-    const actions = ['viewOwn', 'viewAll'];
-    if (section !== 'ejecuciones' && section !== 'conversaciones' && section !== 'consumoApi') {
-      actions.push('editOwn', 'editAll');
-    }
-    if (section === 'clientes' || section === 'agentes' || section === 'informes') {
-      actions.push('createOwn', 'createAll');
-    }
-    return actions;
-  };
+  const MODULES = [
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'clientes', label: 'Clientes' },
+    { key: 'agentes', label: 'Agentes' },
+    { key: 'ejecuciones', label: 'Ejecuciones' },
+    { key: 'adminConocimiento', label: 'Admin Conocimiento' },
+    { key: 'reportes', label: 'Reportes' },
+    { key: 'conversaciones', label: 'Conversaciones' },
+    { key: 'whatsappManager', label: 'WhatsApp Manager' },
+    { key: 'facturacion', label: 'Facturación' },
+    { key: 'dbManager', label: 'DB Manager' },
+    { key: 'consumoAPI', label: 'Consumo API' },
+    { key: 'roadmap', label: 'Roadmap' }
+  ];
 
   const generatePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
@@ -354,97 +363,55 @@ export default function EditarCliente() {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Permisos del Sistema</h2>
             <p className="text-sm text-gray-500 mb-4">Selecciona los permisos que tendrá este cliente</p>
 
-            {/* Tipo de Perfil */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de Perfil
-              </label>
-              <select
-                value={permissions.type || 'client'}
-                onChange={(e) => {
-                  const type = e.target.value;
-                  if (type === 'admin') {
-                    // Configurar permisos de admin (todos activos)
-                    setPermissions({
-                      canLogin: true,
-                      login: true,
-                      type: 'admin',
-                      dashboard: { viewOwn: true, editOwn: true, viewAll: true, editAll: true },
-                      conocimiento: { viewOwn: true, editOwn: true, viewAll: true, editAll: true },
-                      ejecuciones: { viewOwn: true, viewAll: true },
-                      conversaciones: { viewOwn: true, viewAll: true },
-                      informes: { viewOwn: true, editOwn: true, viewAll: true, editAll: true, createOwn: true, createAll: true },
-                      consumoApi: { viewOwn: true, viewAll: true },
-                      clientes: { viewOwn: true, editOwn: true, viewAll: true, editAll: true, createOwn: true, createAll: true },
-                      agentes: { viewOwn: true, editOwn: true, viewAll: true, editAll: true, createOwn: true, createAll: true }
-                    });
-                  } else {
-                    // Configurar permisos básicos de cliente
-                    setPermissions({
-                      canLogin: true,
-                      login: true,
-                      type: 'client',
-                      dashboard: { viewOwn: true, editOwn: true, viewAll: false, editAll: false },
-                      conocimiento: { viewOwn: true, editOwn: false, viewAll: false, editAll: false },
-                      ejecuciones: { viewOwn: true, viewAll: false },
-                      conversaciones: { viewOwn: true, viewAll: false },
-                      informes: { viewOwn: true, editOwn: false, viewAll: false, editAll: false, createOwn: false, createAll: false },
-                      consumoApi: { viewOwn: true, viewAll: false },
-                      clientes: { viewOwn: false, editOwn: false, viewAll: false, editAll: false, createOwn: false, createAll: false },
-                      agentes: { viewOwn: false, editOwn: false, viewAll: false, editAll: false, createOwn: false, createAll: false }
-                    });
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="client">Cliente (Perfil Normal)</option>
-                <option value="admin">Super Admin (Acceso Completo)</option>
-              </select>
-            </div>
-
             {/* Login Checkbox */}
             <div className="mb-6 p-4 rounded-lg border" style={{ backgroundColor: 'rgba(93, 225, 229, 0.1)', borderColor: '#5DE1E5' }}>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={permissions.canLogin || false}
-                  onChange={(e) => setPermissions((prev: any) => ({ ...prev, canLogin: e.target.checked, login: e.target.checked }))}
+                  checked={permissions.canLogin !== false}
+                  onChange={(e) => setPermissions((prev: any) => ({ ...prev, canLogin: e.target.checked }))}
                   className="w-5 h-5 rounded focus:ring-[#5DE1E5]"
                   style={{ color: '#5DE1E5' }}
                 />
                 <span className="ml-3 text-base font-medium text-gray-900">
-                  Permitir Login (acceso al sistema)
+                  Puede hacer login
                 </span>
               </label>
             </div>
 
-            {/* Section Permissions */}
+            {/* Module Permissions - Dos por línea */}
             <div className="space-y-4">
-              {SECTIONS.map((section) => {
-                const sectionName = section === 'consumoApi' ? 'Consumo API' : section.charAt(0).toUpperCase() + section.slice(1);
-                const availableActions = getAvailableActions(section);
-                
-                return (
-                  <div key={section} className="p-4 border border-gray-200 rounded-lg">
-                    <h3 className="font-semibold text-gray-900 mb-3">{sectionName}</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {availableActions.map((action) => (
-                        <label key={action} className="flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={permissions[section]?.[action] || false}
-                            onChange={() => togglePermission(section, action)}
-                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">
-                            {ACTION_LABELS[action]}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
+              {MODULES.map((module) => (
+                <div key={module.key} className="p-4 border border-gray-200 rounded-lg">
+                  <h3 className="font-semibold text-gray-900 mb-3">{module.label}</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={permissions[module.key]?.view || false}
+                        onChange={() => togglePermission(module.key, 'view')}
+                        className="w-5 h-5 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                        style={{ color: '#5DE1E5' }}
+                      />
+                      <span className="ml-3 text-sm font-medium text-gray-700">
+                        Puede ver
+                      </span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={permissions[module.key]?.edit || false}
+                        onChange={() => togglePermission(module.key, 'edit')}
+                        className="w-5 h-5 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                        style={{ color: '#5DE1E5' }}
+                      />
+                      <span className="ml-3 text-sm font-medium text-gray-700">
+                        Puede editar
+                      </span>
+                    </label>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
 

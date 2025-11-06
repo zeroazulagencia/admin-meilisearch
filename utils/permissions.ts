@@ -1,7 +1,7 @@
 // Mapa de rutas a permisos requeridos
 export const routePermissions: Record<string, string> = {
   '/dashboard': 'dashboard',
-  '/admin-conocimiento': 'conocimiento',
+  '/admin-conocimiento': 'adminConocimiento',
   '/ejecuciones': 'ejecuciones',
   '/conversaciones': 'conversaciones',
   '/reportes': 'reportes',
@@ -9,7 +9,7 @@ export const routePermissions: Record<string, string> = {
   '/whatsapp-manager': 'whatsappManager',
   '/facturacion': 'facturacion',
   '/db-manager': 'dbManager',
-  '/consumo-api': 'consumoApi',
+  '/consumo-api': 'consumoAPI',
   '/clientes': 'clientes',
   '/agentes': 'agentes',
 };
@@ -21,10 +21,10 @@ export function hasAccessToRoute(route: string, permissions: any): boolean {
     return false;
   }
   
-  // Admin tiene acceso a todo
-  if (permissions.type === 'admin') {
-    console.log('[PERMISSIONS] Admin user, allowing access');
-    return true;
+  // Verificar si puede hacer login
+  if (permissions.canLogin === false) {
+    console.log('[PERMISSIONS] Login disabled');
+    return false;
   }
   
   // Obtener el permiso requerido para la ruta
@@ -36,17 +36,18 @@ export function hasAccessToRoute(route: string, permissions: any): boolean {
   
   console.log('[PERMISSIONS] Checking route:', route, 'requiring perm:', requiredPerm);
   
-  // Verificar permisos de la sección
-  const sectionPerms = permissions[requiredPerm];
-  console.log('[PERMISSIONS] Section perms:', sectionPerms);
+  // Verificar permisos del módulo (nuevo sistema simplificado)
+  const modulePerms = permissions[requiredPerm];
+  console.log('[PERMISSIONS] Module perms:', modulePerms);
   
-  if (!sectionPerms) {
-    console.log('[PERMISSIONS] No section perms, denying');
+  if (!modulePerms) {
+    console.log('[PERMISSIONS] No module perms, denying');
     return false;
   }
   
-  const hasAccess = sectionPerms.viewOwn || sectionPerms.viewAll;
-  console.log('[PERMISSIONS] Has access:', hasAccess, 'viewOwn:', sectionPerms.viewOwn, 'viewAll:', sectionPerms.viewAll);
+  // Si tiene permiso de ver o editar, tiene acceso
+  const hasAccess = modulePerms.view || modulePerms.edit;
+  console.log('[PERMISSIONS] Has access:', hasAccess, 'view:', modulePerms.view, 'edit:', modulePerms.edit);
   
   return hasAccess;
 }
