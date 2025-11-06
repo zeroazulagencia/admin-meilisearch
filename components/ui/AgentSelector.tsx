@@ -88,8 +88,8 @@ export default function AgentSelector({
           }
         }}
       >
-        <Label className="block text-sm/6 font-medium text-gray-900 mb-2">{label}</Label>
         <div className="relative mt-2">
+          <Label className="block text-sm/6 font-medium text-gray-900 mb-2">{label}</Label>
           <ListboxButton className="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pr-2 pl-3 text-left text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#5DE1E5] sm:text-sm/6 border border-gray-300">
             <span className="col-start-1 row-start-1 flex items-center gap-3 pr-6">
               {currentSelected?.photo ? (
