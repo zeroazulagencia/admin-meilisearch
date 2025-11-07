@@ -14,9 +14,8 @@ import {
   CheckCircleIcon,
   InformationCircleIcon,
   ShieldCheckIcon,
-  TemplateIcon,
+  DocumentTextIcon,
   TrashIcon,
-  WebhookIcon,
   Cog6ToothIcon,
   InboxIcon,
   ArchiveBoxIcon,
@@ -77,7 +76,7 @@ const whatsappActions: WhatsAppAction[] = [
     id: 'send-template',
     title: 'Enviar Mensaje con Plantilla',
     description: 'Enviar un mensaje usando una plantilla preaprobada',
-    icon: TemplateIcon,
+    icon: DocumentTextIcon,
     category: 'plantillas',
     color: 'bg-indigo-500'
   },
@@ -157,7 +156,7 @@ const whatsappActions: WhatsAppAction[] = [
     id: 'get-webhooks',
     title: 'Obtener Webhooks Configurados',
     description: 'Listar todos los webhooks configurados para este número',
-    icon: WebhookIcon,
+    icon: Cog6ToothIcon,
     category: 'configuracion',
     color: 'bg-sky-500'
   },
