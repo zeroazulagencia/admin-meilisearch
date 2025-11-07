@@ -1125,7 +1125,7 @@ export default function WhatsAppManager() {
                         Parámetros de la Plantilla (Opcional)
                       </label>
                       <p className="text-xs text-gray-500 mb-2">
-                        Si la plantilla tiene variables, ingrésalas separadas por comas. Ej: "Juan, Pedido #123, $50.000"
+                        Si la plantilla tiene variables, ingrésalas separadas por comas. Ej: &quot;Juan, Pedido #123, $50.000&quot;
                       </p>
                       <textarea
                         value={sendMessageForm.message}
