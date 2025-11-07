@@ -66,30 +66,6 @@ const whatsappActions: WhatsAppAction[] = [
     color: 'bg-indigo-500'
   },
   {
-    id: 'send-buttons',
-    title: 'Enviar Mensaje con Botones',
-    description: 'Enviar un mensaje con botones interactivos',
-    icon: CommandLineIcon,
-    category: 'mensajes',
-    color: 'bg-pink-500'
-  },
-  {
-    id: 'send-list',
-    title: 'Enviar Mensaje con Lista',
-    description: 'Enviar un mensaje con lista desplegable interactiva',
-    icon: ListBulletIcon,
-    category: 'mensajes',
-    color: 'bg-cyan-500'
-  },
-  {
-    id: 'mark-read',
-    title: 'Marcar Mensaje como Leído',
-    description: 'Marcar un mensaje recibido como leído',
-    icon: CheckCircleIcon,
-    category: 'mensajes',
-    color: 'bg-emerald-500'
-  },
-  {
     id: 'get-delivery-status',
     title: 'Obtener Estado de Entrega',
     description: 'Consultar el estado de entrega de un mensaje enviado',
@@ -209,7 +185,10 @@ export default function WhatsAppManager() {
   const [selectedAgent, setSelectedAgent] = useState<AgentDB | null>(null);
   const [agentDetails, setAgentDetails] = useState<AgentDB | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('mensajes');
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [showSendMessageModal, setShowSendMessageModal] = useState(false);
   const [messageType, setMessageType] = useState<'text' | 'image' | 'document' | 'buttons' | 'list'>('text');
   const [sendMessageForm, setSendMessageForm] = useState({ 
@@ -290,8 +269,8 @@ export default function WhatsAppManager() {
     }
   };
 
-  const handleActionClick = (actionId: string) => {
-    if (actionId === 'send-message' || actionId === 'send-text' || actionId === 'send-image' || actionId === 'send-document' || actionId === 'send-buttons' || actionId === 'send-list') {
+  const handleActionClick = async (actionId: string) => {
+    if (actionId === 'send-message' || actionId === 'send-text' || actionId === 'send-image' || actionId === 'send-document') {
       if (!selectedAgent) {
         setAlertModal({
           isOpen: true,
@@ -304,8 +283,6 @@ export default function WhatsAppManager() {
       // Determinar tipo según la acción clickeada
       if (actionId === 'send-image') setMessageType('image');
       else if (actionId === 'send-document') setMessageType('document');
-      else if (actionId === 'send-buttons') setMessageType('buttons');
-      else if (actionId === 'send-list') setMessageType('list');
       else setMessageType('text');
       
       setShowSendMessageModal(true);
@@ -322,6 +299,59 @@ export default function WhatsAppManager() {
         list_button_text: '',
         list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }]
       });
+    } else if (actionId === 'get-templates') {
+      if (!selectedAgent) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Agente requerido',
+          message: 'Por favor selecciona un agente primero',
+          type: 'warning',
+        });
+        return;
+      }
+      await loadTemplates();
+    }
+  };
+
+  const loadTemplates = async () => {
+    if (!selectedAgent) return;
+    
+    setLoadingTemplates(true);
+    setTemplates([]);
+    try {
+      const res = await fetch('/api/whatsapp/get-templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          agent_id: selectedAgent.id,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setTemplates(data.data || []);
+        setShowTemplatesModal(true);
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error al cargar plantillas',
+          message: data.error || 'Error desconocido al cargar las plantillas',
+          type: 'error',
+        });
+      }
+    } catch (e: any) {
+      console.error('[WHATSAPP-MANAGER] Error cargando plantillas:', e);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error al cargar plantillas',
+        message: e?.message || 'Error al procesar la solicitud',
+        type: 'error',
+      });
+    } finally {
+      setLoadingTemplates(false);
     }
   };
 
@@ -584,7 +614,7 @@ export default function WhatsAppManager() {
               {/* Grid de acciones */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {whatsappActions
-                  .filter(action => selectedCategory === 'all' || action.category === selectedCategory)
+                  .filter(action => action.category === selectedCategory)
                   .map((action) => {
                     const Icon = action.icon;
                     return (
