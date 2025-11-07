@@ -58,6 +58,9 @@ function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/&quot;/g, '"');
   markdown = markdown.replace(/&#39;/g, "'");
   
+  // Eliminar referencias de imágenes en markdown que puedan haber quedado
+  markdown = markdown.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '');
+  
   // Limpiar espacios múltiples y saltos de línea
   markdown = markdown.replace(/\n{3,}/g, '\n\n');
   markdown = markdown.replace(/[ \t]+/g, ' ');
