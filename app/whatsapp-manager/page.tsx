@@ -7,6 +7,7 @@ import { getPermissions, getUserId } from '@/utils/permissions';
 
 interface AgentDB {
   id: number;
+  client_id?: number;
   name: string;
   description?: string;
   photo?: string;
