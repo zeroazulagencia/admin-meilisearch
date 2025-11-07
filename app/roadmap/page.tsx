@@ -74,6 +74,66 @@ export default function Roadmap() {
       description: 'Agregación de botones de código con instrucciones para inserción de datos en Meilisearch',
       completed: true,
     },
+    {
+      date: 'Pendiente',
+      title: 'Sistema de permisos clientes funcional',
+      description: 'Implementar y verificar que el sistema de permisos para clientes funcione correctamente',
+      completed: false,
+    },
+    {
+      date: 'Pendiente',
+      title: 'Sincronizador NIT con Polar',
+      description: 'Desarrollar sincronización automática del campo NIT con el sistema Polar',
+      completed: false,
+    },
+    {
+      date: 'Pendiente',
+      title: 'Operaciones WhatsApp',
+      description: 'Implementar funcionalidades de operaciones para WhatsApp',
+      completed: false,
+    },
+    {
+      date: 'Pendiente',
+      title: 'Limpiar mensaje Amavu en amistoso',
+      description: 'Mejorar y simplificar los mensajes de Amavu para que sean más amigables',
+      completed: false,
+    },
+    {
+      date: 'Pendiente',
+      title: 'Simplificar vistas para cliente',
+      description: 'Optimizar y simplificar las vistas de la interfaz para mejorar la experiencia del cliente',
+      completed: false,
+    },
+    {
+      date: 'Pendiente',
+      title: 'Agregar cargar web en conocimiento',
+      description: 'Implementar funcionalidad para cargar contenido web en el módulo de conocimiento',
+      completed: false,
+    },
+    {
+      date: 'Pendiente',
+      title: 'Mostrar imágenes y archivos en conversaciones',
+      description: 'Agregar visualización de imágenes de WhatsApp y web, así como archivos en las conversaciones',
+      completed: false,
+    },
+    {
+      date: 'Pendiente',
+      title: 'Rango de fecha default en conversaciones',
+      description: 'Configurar el rango de fechas por defecto en conversaciones para mostrar este mes hasta hoy',
+      completed: false,
+    },
+    {
+      date: 'Pendiente',
+      title: 'Conectar Stripe',
+      description: 'Integrar y conectar el sistema con Stripe para procesamiento de pagos',
+      completed: false,
+    },
+    {
+      date: 'Pendiente',
+      title: 'Conectar Alegra',
+      description: 'Integrar y conectar el sistema con Alegra para gestión contable',
+      completed: false,
+    },
   ];
 
   return (
