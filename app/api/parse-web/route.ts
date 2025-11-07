@@ -61,32 +61,33 @@ function htmlToMarkdown(html: string): string {
   // Eliminar referencias de imágenes en markdown que puedan haber quedado
   markdown = markdown.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '');
   
-  // Eliminar código CSS o base64 extenso (líneas muy largas con caracteres especiales)
-  markdown = markdown.split('\n').filter(line => {
-    // Eliminar líneas que sean muy largas y contengan principalmente caracteres especiales/base64
-    if (line.length > 100 && /^[A-Za-z0-9+/=_-]+$/.test(line.trim()) && line.trim().length > 50) {
+  // Dividir en líneas y filtrar
+  let lines = markdown.split('\n');
+  
+  // Filtrar líneas vacías o que solo contengan espacios
+  lines = lines.map(line => line.trim()).filter(line => {
+    // Eliminar líneas completamente vacías
+    if (line.length === 0) {
       return false;
     }
+    
+    // Eliminar líneas que sean muy largas y contengan principalmente caracteres especiales/base64
+    if (line.length > 100 && /^[A-Za-z0-9+/=_-]+$/.test(line) && line.length > 50) {
+      return false;
+    }
+    
     // Eliminar líneas que parezcan código CSS minificado
     if (line.length > 200 && /[{}\s;:]+/.test(line) && !/[a-zA-Z]{3,}/.test(line)) {
       return false;
     }
+    
     return true;
-  }).join('\n');
-  
-  // Limpiar espacios múltiples y saltos de línea (máximo 2 saltos seguidos)
-  markdown = markdown.replace(/\n{3,}/g, '\n\n');
-  markdown = markdown.replace(/[ \t]+/g, ' ');
-  
-  // Eliminar líneas vacías al inicio y al final
-  markdown = markdown.replace(/^\n+/, '');
-  markdown = markdown.replace(/\n+$/, '');
+  });
   
   // Eliminar contenido que parezca código al inicio (primeras líneas muy largas sin espacios)
-  const lines = markdown.split('\n');
   let startIndex = 0;
   for (let i = 0; i < Math.min(10, lines.length); i++) {
-    const line = lines[i].trim();
+    const line = lines[i];
     // Si la línea es muy larga, sin espacios significativos, y parece código/base64
     if (line.length > 100 && (line.match(/[A-Za-z0-9+/=_-]{50,}/) || line.match(/[{}\s;:]{20,}/))) {
       startIndex = i + 1;
@@ -95,7 +96,34 @@ function htmlToMarkdown(html: string): string {
       break;
     }
   }
-  markdown = lines.slice(startIndex).join('\n');
+  lines = lines.slice(startIndex);
+  
+  // Unir líneas y limpiar saltos de línea múltiples
+  markdown = lines.join('\n');
+  
+  // Reducir saltos de línea múltiples a máximo 1 salto (2 saltos máximo entre párrafos)
+  markdown = markdown.replace(/\n{3,}/g, '\n\n');
+  
+  // Limpiar espacios múltiples dentro de las líneas
+  markdown = markdown.replace(/[ \t]{2,}/g, ' ');
+  
+  // Eliminar saltos de línea al inicio y al final
+  markdown = markdown.replace(/^\n+/, '');
+  markdown = markdown.replace(/\n+$/, '');
+  
+  // Limpieza final: eliminar líneas que solo tengan espacios o caracteres especiales
+  lines = markdown.split('\n');
+  lines = lines.map(line => line.trim()).filter(line => {
+    // Mantener líneas con contenido real
+    if (line.length === 0) return false;
+    // Eliminar líneas que solo tengan caracteres especiales sin texto
+    if (!/[a-zA-Z0-9]/.test(line)) return false;
+    return true;
+  });
+  
+  // Unir nuevamente y asegurar máximo 1 salto de línea entre párrafos
+  markdown = lines.join('\n');
+  markdown = markdown.replace(/\n{3,}/g, '\n\n');
   
   markdown = markdown.trim();
   
