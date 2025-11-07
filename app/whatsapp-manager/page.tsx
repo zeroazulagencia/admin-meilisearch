@@ -398,9 +398,18 @@ export default function WhatsAppManager() {
         },
         body: JSON.stringify({
           agent_id: selectedAgent.id,
-          phone_number: sendMessageForm.phone_number.trim(),
           message_type: messageType,
-          ...sendMessageForm,
+          phone_number: sendMessageForm.phone_number.trim(),
+          message: sendMessageForm.message.trim(),
+          image_url: sendMessageForm.image_url.trim(),
+          document_url: sendMessageForm.document_url.trim(),
+          document_filename: sendMessageForm.document_filename.trim(),
+          caption: sendMessageForm.caption.trim(),
+          buttons: sendMessageForm.buttons,
+          list_title: sendMessageForm.list_title.trim(),
+          list_description: sendMessageForm.list_description.trim(),
+          list_button_text: sendMessageForm.list_button_text.trim(),
+          list_sections: sendMessageForm.list_sections,
         }),
       });
 
