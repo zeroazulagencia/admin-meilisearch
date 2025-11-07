@@ -29,9 +29,8 @@ function htmlToMarkdown(html: string): string {
   // Convertir links
   markdown = markdown.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)');
   
-  // Convertir imágenes
-  markdown = markdown.replace(/<img[^>]*alt=["']([^"']*)["'][^>]*src=["']([^"']*)["'][^>]*>/gi, '![$1]($2)');
-  markdown = markdown.replace(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi, '![]($1)');
+  // Eliminar imágenes (no convertir a markdown)
+  markdown = markdown.replace(/<img[^>]*>/gi, '');
   
   // Convertir texto en negrita
   markdown = markdown.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
