@@ -619,6 +619,37 @@ export default function AdminConocimiento() {
         // Garantía final: asegurar que el ID siempre tenga el valor correcto
         structuredFields[i][selectedIdField] = generatedId;
         console.log(`[PDF-UPLOAD] ID final para chunk ${i + 1}:`, structuredFields[i][selectedIdField]);
+        
+        // VALIDACIÓN CRÍTICA: Asegurar que todos los campos obligatorios tengan valores válidos
+        fields.forEach(fieldInfo => {
+          if (fieldInfo.required || requiredFields.some(rf => rf.field === fieldInfo.name)) {
+            const currentValue = structuredFields[i][fieldInfo.name];
+            const isEmpty = currentValue === null || 
+                           currentValue === undefined || 
+                           currentValue === '' || 
+                           (Array.isArray(currentValue) && currentValue.length === 0) ||
+                           (typeof currentValue === 'object' && !Array.isArray(currentValue) && Object.keys(currentValue).length === 0);
+            
+            if (isEmpty) {
+              console.warn(`[PDF-UPLOAD] Campo obligatorio "${fieldInfo.name}" está vacío en chunk ${i + 1}, asignando valor por defecto`);
+              
+              // Asignar valor por defecto según el tipo
+              if (fieldInfo.type === 'array') {
+                structuredFields[i][fieldInfo.name] = [];
+              } else if (fieldInfo.type === 'object') {
+                structuredFields[i][fieldInfo.name] = {};
+              } else if (fieldInfo.type === 'boolean') {
+                structuredFields[i][fieldInfo.name] = false;
+              } else if (fieldInfo.type === 'integer' || fieldInfo.type === 'number') {
+                structuredFields[i][fieldInfo.name] = 0;
+              } else {
+                // Para strings, intentar extraer del texto antes de usar vacío
+                const extractedValue = extractFieldValue(chunk.text, fieldInfo.name);
+                structuredFields[i][fieldInfo.name] = extractedValue || '';
+              }
+            }
+          }
+        });
       } else {
         // Si falla, usar extracción manual como fallback
         const extractedValues: Record<string, string> = {};
