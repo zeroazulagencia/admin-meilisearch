@@ -190,7 +190,7 @@ export default function WhatsAppManager() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [showSendMessageModal, setShowSendMessageModal] = useState(false);
-  const [messageType, setMessageType] = useState<'text' | 'image' | 'document' | 'buttons' | 'list'>('text');
+  const [messageType, setMessageType] = useState<'text' | 'image' | 'document' | 'buttons' | 'list' | 'template'>('text');
   const [sendMessageForm, setSendMessageForm] = useState({ 
     phone_number: '', 
     message: '',
