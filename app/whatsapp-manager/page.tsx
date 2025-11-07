@@ -419,8 +419,34 @@ export default function WhatsAppManager() {
       return;
     }
 
+    if (messageType === 'template' && !sendMessageForm.template_name.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campo requerido',
+        message: 'Por favor ingresa el nombre de la plantilla',
+        type: 'warning',
+      });
+      return;
+    }
+
     setSendingMessage(true);
     try {
+      // Procesar componentes de plantilla si es necesario
+      let templateComponents: any[] = [];
+      if (messageType === 'template' && sendMessageForm.message.trim()) {
+        // Si hay parámetros en el campo message, procesarlos
+        const params = sendMessageForm.message.split(',').map(p => p.trim()).filter(p => p);
+        if (params.length > 0) {
+          templateComponents = [{
+            type: 'body',
+            parameters: params.map(param => ({
+              type: 'text',
+              text: param
+            }))
+          }];
+        }
+      }
+
       const res = await fetch('/api/whatsapp/send-message', {
         method: 'POST',
         headers: {
@@ -440,6 +466,9 @@ export default function WhatsAppManager() {
           list_description: sendMessageForm.list_description.trim(),
           list_button_text: sendMessageForm.list_button_text.trim(),
           list_sections: sendMessageForm.list_sections,
+          template_name: sendMessageForm.template_name.trim(),
+          template_language: sendMessageForm.template_language,
+          template_components: templateComponents.length > 0 ? templateComponents : sendMessageForm.template_components,
         }),
       });
 
@@ -464,7 +493,10 @@ export default function WhatsAppManager() {
           list_title: '',
           list_description: '',
           list_button_text: '',
-          list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }]
+          list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
+          template_name: '',
+          template_language: 'es',
+          template_components: []
         });
         setMessageType('text');
       } else {
@@ -682,7 +714,7 @@ export default function WhatsAppManager() {
                   </label>
                   <select
                     value={messageType}
-                    onChange={(e) => setMessageType(e.target.value as 'text' | 'image' | 'document' | 'buttons' | 'list')}
+                    onChange={(e) => setMessageType(e.target.value as 'text' | 'image' | 'document' | 'buttons' | 'list' | 'template')}
                     disabled={sendingMessage}
                     className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
@@ -691,6 +723,7 @@ export default function WhatsAppManager() {
                     <option value="document">Documento</option>
                     <option value="buttons">Botones</option>
                     <option value="list">Lista</option>
+                    <option value="template">Plantilla</option>
                   </select>
                 </div>
 
@@ -1053,6 +1086,77 @@ export default function WhatsAppManager() {
                   </>
                 )}
 
+                {messageType === 'template' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nombre de la Plantilla *
+                      </label>
+                      <input
+                        type="text"
+                        value={sendMessageForm.template_name}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, template_name: e.target.value })}
+                        placeholder="Ej: bienvenida, confirmacion_pedido"
+                        disabled={sendingMessage}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Nombre exacto de la plantilla aprobada por WhatsApp (sin espacios, usa guiones bajos)
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Idioma
+                      </label>
+                      <select
+                        value={sendMessageForm.template_language}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, template_language: e.target.value })}
+                        disabled={sendingMessage}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      >
+                        <option value="es">Español (es)</option>
+                        <option value="en">Inglés (en)</option>
+                        <option value="pt">Portugués (pt)</option>
+                        <option value="fr">Francés (fr)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Parámetros de la Plantilla (Opcional)
+                      </label>
+                      <p className="text-xs text-gray-500 mb-2">
+                        Si la plantilla tiene variables, ingrésalas separadas por comas. Ej: "Juan, Pedido #123, $50.000"
+                      </p>
+                      <textarea
+                        value={sendMessageForm.message}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, message: e.target.value })}
+                        placeholder="Parámetros separados por comas (solo si la plantilla los requiere)"
+                        rows={3}
+                        disabled={sendingMessage}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Nota: Los parámetros se procesarán automáticamente según el formato de la plantilla
+                      </p>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <InformationCircleIcon className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-green-900 mb-1">
+                            Plantillas: Sin límite de tiempo
+                          </p>
+                          <p className="text-xs text-green-800 leading-relaxed">
+                            Las plantillas de mensajes pueden enviarse en cualquier momento, incluso fuera de la ventana de 24 horas. 
+                            Asegúrate de que la plantilla esté aprobada por WhatsApp antes de usarla.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {messageType !== 'template' && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <InformationCircleIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -1096,7 +1200,10 @@ export default function WhatsAppManager() {
                       list_title: '',
                       list_description: '',
                       list_button_text: '',
-                      list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }]
+                      list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
+                      template_name: '',
+                      template_language: 'es',
+                      template_components: []
                     });
                   }}
                   disabled={sendingMessage}
@@ -1111,7 +1218,8 @@ export default function WhatsAppManager() {
                     (messageType === 'image' && !sendMessageForm.image_url.trim()) ||
                     (messageType === 'document' && (!sendMessageForm.document_url.trim() || !sendMessageForm.document_filename.trim())) ||
                     (messageType === 'buttons' && (!sendMessageForm.message.trim() || sendMessageForm.buttons.some(b => !b.id.trim() || !b.title.trim()))) ||
-                    (messageType === 'list' && (!sendMessageForm.list_title.trim() || !sendMessageForm.list_button_text.trim()))
+                    (messageType === 'list' && (!sendMessageForm.list_title.trim() || !sendMessageForm.list_button_text.trim())) ||
+                    (messageType === 'template' && !sendMessageForm.template_name.trim())
                   }
                   className="px-4 py-2 rounded-lg font-medium text-black bg-[#5DE1E5] hover:bg-[#4BC5C9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >

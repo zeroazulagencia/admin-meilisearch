@@ -195,6 +195,86 @@ export async function POST(req: NextRequest) {
         }
       };
     }
+    else if (message_type === 'template') {
+      if (!template_name) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Se requiere template_name para mensajes con plantilla' 
+        }, { status: 400 });
+      }
+      
+      payload.type = 'template';
+      payload.template = {
+        name: template_name,
+        language: {
+          code: template_language
+        }
+      };
+      
+      // Agregar componentes si están presentes
+      if (template_components && Array.isArray(template_components) && template_components.length > 0) {
+        payload.template.components = template_components.map((comp: any) => {
+          const component: any = {
+            type: comp.type || 'body'
+          };
+          
+          if (comp.type === 'body' && comp.parameters) {
+            component.parameters = comp.parameters.map((param: any) => {
+              if (param.type === 'text') {
+                return {
+                  type: 'text',
+                  text: param.text
+                };
+              } else if (param.type === 'currency') {
+                return {
+                  type: 'currency',
+                  currency: {
+                    fallback_value: param.currency?.fallback_value || param.text,
+                    code: param.currency?.code || 'USD',
+                    amount_1000: param.currency?.amount_1000 || 0
+                  }
+                };
+              } else if (param.type === 'date_time') {
+                return {
+                  type: 'date_time',
+                  date_time: {
+                    fallback_value: param.date_time?.fallback_value || param.text
+                  }
+                };
+              }
+              return {
+                type: 'text',
+                text: param.text || String(param)
+              };
+            });
+          } else if (comp.type === 'button' && comp.sub_type && comp.index !== undefined) {
+            component.sub_type = comp.sub_type;
+            component.index = comp.index;
+            if (comp.parameters && comp.parameters.length > 0) {
+              component.parameters = comp.parameters.map((param: any) => {
+                if (param.type === 'payload') {
+                  return {
+                    type: 'payload',
+                    payload: param.payload
+                  };
+                } else if (param.type === 'text') {
+                  return {
+                    type: 'text',
+                    text: param.text
+                  };
+                }
+                return {
+                  type: 'text',
+                  text: param.text || String(param)
+                };
+              });
+            }
+          }
+          
+          return component;
+        });
+      }
+    }
     else {
       return NextResponse.json({ 
         ok: false, 
