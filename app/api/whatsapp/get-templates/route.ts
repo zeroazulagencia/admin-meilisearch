@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     // Obtener configuración de WhatsApp del agente
     const [rows] = await query<any>(
-      'SELECT whatsapp_business_account_id, whatsapp_access_token FROM agents WHERE id = ? LIMIT 1',
+      'SELECT whatsapp_business_account_id, whatsapp_phone_number_id, whatsapp_access_token FROM agents WHERE id = ? LIMIT 1',
       [agent_id]
     );
 
@@ -31,9 +31,10 @@ export async function POST(req: NextRequest) {
 
     const agent = rows[0];
     const businessAccountId = agent.whatsapp_business_account_id;
+    const phoneNumberId = agent.whatsapp_phone_number_id;
     const encryptedAccessToken = agent.whatsapp_access_token;
 
-    if (!businessAccountId || !encryptedAccessToken) {
+    if (!encryptedAccessToken) {
       return NextResponse.json({ 
         ok: false, 
         error: 'El agente no tiene configuración completa de WhatsApp' 
@@ -43,10 +44,45 @@ export async function POST(req: NextRequest) {
     // Desencriptar el access token
     const accessToken = decrypt(encryptedAccessToken);
 
+    // Obtener el WABA ID desde el Phone Number ID si no tenemos Business Account ID o si falla
+    let wabaId = businessAccountId;
+    
+    // Si no hay Business Account ID o si falla, intentar obtenerlo desde el Phone Number ID
+    if (!wabaId && phoneNumberId) {
+      try {
+        const phoneInfoResponse = await axios.get(
+          `https://graph.facebook.com/v21.0/${phoneNumberId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            params: {
+              fields: 'whatsapp_business_account.id'
+            },
+            timeout: 10000
+          }
+        );
+        
+        if (phoneInfoResponse.data?.whatsapp_business_account?.id) {
+          wabaId = phoneInfoResponse.data.whatsapp_business_account.id;
+        }
+      } catch (e) {
+        console.error('[WHATSAPP GET TEMPLATES] Error obteniendo WABA ID desde Phone Number ID:', e);
+      }
+    }
+
+    if (!wabaId) {
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'No se pudo obtener el Business Account ID. Verifica la configuración del agente.' 
+      }, { status: 400 });
+    }
+
     // Obtener plantillas desde WhatsApp Business API
     try {
       const response = await axios.get(
-        `https://graph.facebook.com/v21.0/${businessAccountId}/message_templates`,
+        `https://graph.facebook.com/v21.0/${wabaId}/message_templates`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
