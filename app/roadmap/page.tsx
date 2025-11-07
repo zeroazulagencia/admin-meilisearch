@@ -87,10 +87,10 @@ export default function Roadmap() {
       completed: false,
     },
     {
-      date: 'Pendiente',
+      date: todayFormatted,
       title: 'Operaciones WhatsApp',
-      description: 'Implementar funcionalidades de operaciones para WhatsApp',
-      completed: false,
+      description: 'Selector de agente con configuración completa de WhatsApp',
+      completed: true,
     },
     {
       date: 'Pendiente',
