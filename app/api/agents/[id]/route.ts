@@ -17,15 +17,61 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }
       
       // Enmascarar campos sensibles antes de enviar al frontend
+      // Si está encriptado, intentar desencriptar para obtener los primeros caracteres del original
       const agent = rows[0];
+      
       if (agent.whatsapp_access_token) {
-        agent.whatsapp_access_token = maskSensitiveValue(agent.whatsapp_access_token, 4);
+        if (isEncrypted(agent.whatsapp_access_token)) {
+          try {
+            // Intentar desencriptar para obtener los primeros caracteres del token original
+            const decrypted = decrypt(agent.whatsapp_access_token);
+            if (decrypted && decrypted.length > 0) {
+              // Mostrar los primeros caracteres del token original, no del encriptado
+              agent.whatsapp_access_token = decrypted.substring(0, 4) + '...';
+            } else {
+              agent.whatsapp_access_token = maskSensitiveValue(agent.whatsapp_access_token, 4);
+            }
+          } catch (e) {
+            // Si falla la desencriptación, usar el método de enmascarado estándar
+            agent.whatsapp_access_token = maskSensitiveValue(agent.whatsapp_access_token, 4);
+          }
+        } else {
+          agent.whatsapp_access_token = maskSensitiveValue(agent.whatsapp_access_token, 4);
+        }
       }
+      
       if (agent.whatsapp_webhook_verify_token) {
-        agent.whatsapp_webhook_verify_token = maskSensitiveValue(agent.whatsapp_webhook_verify_token, 4);
+        if (isEncrypted(agent.whatsapp_webhook_verify_token)) {
+          try {
+            const decrypted = decrypt(agent.whatsapp_webhook_verify_token);
+            if (decrypted && decrypted.length > 0) {
+              agent.whatsapp_webhook_verify_token = decrypted.substring(0, 4) + '...';
+            } else {
+              agent.whatsapp_webhook_verify_token = maskSensitiveValue(agent.whatsapp_webhook_verify_token, 4);
+            }
+          } catch (e) {
+            agent.whatsapp_webhook_verify_token = maskSensitiveValue(agent.whatsapp_webhook_verify_token, 4);
+          }
+        } else {
+          agent.whatsapp_webhook_verify_token = maskSensitiveValue(agent.whatsapp_webhook_verify_token, 4);
+        }
       }
+      
       if (agent.whatsapp_app_secret) {
-        agent.whatsapp_app_secret = maskSensitiveValue(agent.whatsapp_app_secret, 4);
+        if (isEncrypted(agent.whatsapp_app_secret)) {
+          try {
+            const decrypted = decrypt(agent.whatsapp_app_secret);
+            if (decrypted && decrypted.length > 0) {
+              agent.whatsapp_app_secret = decrypted.substring(0, 4) + '...';
+            } else {
+              agent.whatsapp_app_secret = maskSensitiveValue(agent.whatsapp_app_secret, 4);
+            }
+          } catch (e) {
+            agent.whatsapp_app_secret = maskSensitiveValue(agent.whatsapp_app_secret, 4);
+          }
+        } else {
+          agent.whatsapp_app_secret = maskSensitiveValue(agent.whatsapp_app_secret, 4);
+        }
       }
       
       return NextResponse.json({ ok: true, agent });

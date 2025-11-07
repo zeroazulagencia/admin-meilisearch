@@ -54,6 +54,8 @@ export default function EditarAgente() {
     whatsapp_webhook_verify_token: '',
     whatsapp_app_secret: ''
   });
+  // Guardar los primeros caracteres del token original para mostrar
+  const [tokenPrefix, setTokenPrefix] = useState<{ access_token?: string; webhook_token?: string; app_secret?: string }>({});
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [availableIndexes, setAvailableIndexes] = useState<Index[]>([]);
@@ -103,6 +105,18 @@ export default function EditarAgente() {
         if (data.ok && data.agent) {
           const agent: AgentDB = data.agent;
           setCurrentAgent(agent);
+          // Si el token está enmascarado (termina en "..."), no mostrar nada en el campo
+          // Guardar los primeros caracteres si están disponibles
+          const accessToken = agent.whatsapp_access_token || '';
+          const webhookToken = agent.whatsapp_webhook_verify_token || '';
+          const appSecret = agent.whatsapp_app_secret || '';
+          
+          setTokenPrefix({
+            access_token: accessToken.endsWith('...') ? accessToken.substring(0, 4) : (accessToken.length > 0 ? accessToken.substring(0, 4) : undefined),
+            webhook_token: webhookToken.endsWith('...') ? webhookToken.substring(0, 4) : (webhookToken.length > 0 ? webhookToken.substring(0, 4) : undefined),
+            app_secret: appSecret.endsWith('...') ? appSecret.substring(0, 4) : (appSecret.length > 0 ? appSecret.substring(0, 4) : undefined)
+          });
+          
           setFormData({
             name: agent.name,
             description: agent.description || '',
@@ -110,9 +124,10 @@ export default function EditarAgente() {
             client_id: agent.client_id,
             whatsapp_business_account_id: agent.whatsapp_business_account_id || '',
             whatsapp_phone_number_id: agent.whatsapp_phone_number_id || '',
-            whatsapp_access_token: agent.whatsapp_access_token || '',
-            whatsapp_webhook_verify_token: agent.whatsapp_webhook_verify_token || '',
-            whatsapp_app_secret: agent.whatsapp_app_secret || ''
+            // Si está enmascarado, dejar vacío para que el usuario pueda ingresar uno nuevo
+            whatsapp_access_token: accessToken.endsWith('...') ? '' : accessToken,
+            whatsapp_webhook_verify_token: webhookToken.endsWith('...') ? '' : webhookToken,
+            whatsapp_app_secret: appSecret.endsWith('...') ? '' : appSecret
           });
           try {
             const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {});
@@ -928,10 +943,22 @@ export default function EditarAgente() {
                     name="whatsapp_access_token"
                     rows={3}
                     value={formData.whatsapp_access_token}
-                    onChange={(e) => setFormData({ ...formData, whatsapp_access_token: e.target.value })}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      // Guardar los primeros caracteres del token original
+                      if (newValue.length > 0) {
+                        setTokenPrefix({ ...tokenPrefix, access_token: newValue.substring(0, 4) });
+                      }
+                      setFormData({ ...formData, whatsapp_access_token: newValue });
+                    }}
                     className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
-                    placeholder="EAA..."
+                    placeholder={tokenPrefix.access_token ? `${tokenPrefix.access_token}... (token guardado)` : "EAA..."}
                   />
+                  {tokenPrefix.access_token && !formData.whatsapp_access_token && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Token guardado (inicia con: {tokenPrefix.access_token}...). Deja vacío para mantener el actual o ingresa uno nuevo para reemplazarlo.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -945,10 +972,22 @@ export default function EditarAgente() {
                     name="whatsapp_webhook_verify_token"
                     type="text"
                     value={formData.whatsapp_webhook_verify_token}
-                    onChange={(e) => setFormData({ ...formData, whatsapp_webhook_verify_token: e.target.value })}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      // Guardar los primeros caracteres del token original
+                      if (newValue.length > 0) {
+                        setTokenPrefix({ ...tokenPrefix, webhook_token: newValue.substring(0, 4) });
+                      }
+                      setFormData({ ...formData, whatsapp_webhook_verify_token: newValue });
+                    }}
                     className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
-                    placeholder="mi_token_secreto"
+                    placeholder={tokenPrefix.webhook_token ? `${tokenPrefix.webhook_token}... (token guardado)` : "mi_token_secreto"}
                   />
+                  {tokenPrefix.webhook_token && !formData.whatsapp_webhook_verify_token && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Token guardado (inicia con: {tokenPrefix.webhook_token}...). Deja vacío para mantener el actual o ingresa uno nuevo para reemplazarlo.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -962,10 +1001,22 @@ export default function EditarAgente() {
                     name="whatsapp_app_secret"
                     type="text"
                     value={formData.whatsapp_app_secret}
-                    onChange={(e) => setFormData({ ...formData, whatsapp_app_secret: e.target.value })}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      // Guardar los primeros caracteres del token original
+                      if (newValue.length > 0) {
+                        setTokenPrefix({ ...tokenPrefix, app_secret: newValue.substring(0, 4) });
+                      }
+                      setFormData({ ...formData, whatsapp_app_secret: newValue });
+                    }}
                     className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
-                    placeholder="abc123..."
+                    placeholder={tokenPrefix.app_secret ? `${tokenPrefix.app_secret}... (token guardado)` : "abc123..."}
                   />
+                  {tokenPrefix.app_secret && !formData.whatsapp_app_secret && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Token guardado (inicia con: {tokenPrefix.app_secret}...). Deja vacío para mantener el actual o ingresa uno nuevo para reemplazarlo.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
