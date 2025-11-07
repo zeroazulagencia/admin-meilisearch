@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { n8nAPI, Workflow, Execution } from '@/utils/n8n';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
-import AlertModal from '@/components/ui/AlertModal';
+import NoticeModal from '@/components/ui/NoticeModal';
 import AgentSelector from '@/components/ui/AgentSelector';
 
 type FilterStatus = 'all' | 'success' | 'error' | 'running';
@@ -928,7 +928,7 @@ export default function Ejecuciones() {
         )}
 
       {/* Modal de alertas */}
-      <AlertModal
+      <NoticeModal
         isOpen={alertModal.isOpen}
         onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
         title={alertModal.title}

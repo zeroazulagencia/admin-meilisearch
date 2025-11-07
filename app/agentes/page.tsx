@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import settings from '../../settings.json';
 import ProtectedLayout from '@/components/ProtectedLayout';
-import AlertModal from '@/components/ui/AlertModal';
+import NoticeModal from '@/components/ui/NoticeModal';
 
 interface AgentDB {
   id: number;
@@ -168,21 +168,35 @@ export default function Agentes() {
     setShowForm(true);
   };
 
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning'; onConfirm?: () => void; deleteId?: number }>({
+    isOpen: false,
+    message: '',
+    type: 'warning',
+  });
+
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Estás seguro de eliminar este agente?')) return;
-    try {
-      const res = await fetch(`/api/agents/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || 'Error al eliminar agente');
-      setAgents(prev => prev.filter(a => a.id !== id));
-    } catch (err: any) {
-      setAlertModal({
-        isOpen: true,
-        title: 'Error',
-        message: err.message || 'Error al eliminar',
-        type: 'error',
-      });
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Confirmar eliminación',
+      message: '¿Estás seguro de eliminar este agente?',
+      type: 'warning',
+      deleteId: id,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/agents/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (!data.ok) throw new Error(data.error || 'Error al eliminar agente');
+          setAgents(prev => prev.filter(a => a.id !== id));
+        } catch (err: any) {
+          setAlertModal({
+            isOpen: true,
+            title: 'Error',
+            message: err.message || 'Error al eliminar',
+            type: 'error',
+          });
+        }
+      }
+    });
   };
 
   const resetForm = () => {
@@ -402,7 +416,7 @@ export default function Agentes() {
         </div>
 
         {/* Modal de alertas */}
-        <AlertModal
+        <NoticeModal
           isOpen={alertModal.isOpen}
           onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
           title={alertModal.title}

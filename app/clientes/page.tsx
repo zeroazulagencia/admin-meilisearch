@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
-import AlertModal from '@/components/ui/AlertModal';
+import NoticeModal from '@/components/ui/NoticeModal';
 
 interface ClientDB {
   id: number;
@@ -78,30 +78,42 @@ export default function Clientes() {
     router.push(`/clientes/${client.id}/editar`);
   };
 
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning'; onConfirm?: () => void; deleteId?: number }>({
+    isOpen: false,
+    message: '',
+    type: 'warning',
+  });
+
   const handleDelete = async (id: number) => {
-    if (confirm('¿Estás seguro de eliminar este cliente?')) {
-      try {
-        const res = await fetch(`/api/clients/${id}`, {
-          method: 'DELETE'
-        });
-        const data = await res.json();
-        if (data.ok) {
-          // Recargar clientes
-          const res2 = await fetch('/api/clients');
-          const data2 = await res2.json();
-          if (data2.ok && data2.clients) {
-            setClients(data2.clients);
-          }
-        } else {
-          setAlertModal({
-            isOpen: true,
-            title: 'Error',
-            message: 'Error al eliminar cliente',
-            type: 'error',
+    setConfirmModal({
+      isOpen: true,
+      title: 'Confirmar eliminación',
+      message: '¿Estás seguro de eliminar este cliente?',
+      type: 'warning',
+      deleteId: id,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/clients/${id}`, {
+            method: 'DELETE'
           });
-        }
-      } catch (err) {
-        setAlertModal({
+          const data = await res.json();
+          if (data.ok) {
+            // Recargar clientes
+            const res2 = await fetch('/api/clients');
+            const data2 = await res2.json();
+            if (data2.ok && data2.clients) {
+              setClients(data2.clients);
+            }
+          } else {
+            setAlertModal({
+              isOpen: true,
+              title: 'Error',
+              message: 'Error al eliminar cliente',
+              type: 'error',
+            });
+          }
+        } catch (err) {
+          setAlertModal({
           isOpen: true,
           title: 'Error',
           message: 'Error al eliminar cliente',
@@ -144,7 +156,7 @@ export default function Clientes() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full border-[#5DE1E5]"></div>
         </div>
-        <AlertModal
+        <NoticeModal
           isOpen={alertModal.isOpen}
           onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
           title={alertModal.title}

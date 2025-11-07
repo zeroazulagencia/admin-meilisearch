@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { meilisearchAPI, Index } from '@/utils/meilisearch';
 import { n8nAPI, Workflow } from '@/utils/n8n';
 import ProtectedLayout from '@/components/ProtectedLayout';
-import AlertModal from '@/components/ui/AlertModal';
+import NoticeModal from '@/components/ui/NoticeModal';
 import AgentSelector from '@/components/ui/AgentSelector';
 import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { ChevronDownIcon } from '@heroicons/react/16/solid';
@@ -1041,7 +1041,7 @@ export default function EditarAgente() {
         </form>
 
         {/* Modal de alertas */}
-        <AlertModal
+        <NoticeModal
           isOpen={alertModal.isOpen}
           onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
           title={alertModal.title}

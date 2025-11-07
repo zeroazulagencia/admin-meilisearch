@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ProtectedLayout from '@/components/ProtectedLayout';
-import AlertModal from '@/components/ui/AlertModal';
+import NoticeModal from '@/components/ui/NoticeModal';
 import Modal from '@/components/ui/Modal';
 import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
@@ -43,6 +43,11 @@ export default function DBManager() {
     show: false,
     message: '',
     type: 'info'
+  });
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning'; onConfirm?: () => void }>({
+    isOpen: false,
+    message: '',
+    type: 'warning',
   });
 
   // Cargar lista de tablas
@@ -89,22 +94,28 @@ export default function DBManager() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Estás seguro de eliminar este registro?')) return;
-
-    try {
-      const res = await fetch(`/api/db-manager/tables/${selectedTable}?id=${id}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (data.ok) {
-        showAlert('Registro eliminado exitosamente', 'success');
-        loadTableData(selectedTable, currentPage);
-      } else {
-        showAlert('Error al eliminar: ' + data.error, 'error');
+    setConfirmModal({
+      isOpen: true,
+      title: 'Confirmar eliminación',
+      message: '¿Estás seguro de eliminar este registro?',
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/db-manager/tables/${selectedTable}?id=${id}`, {
+            method: 'DELETE'
+          });
+          const data = await res.json();
+          if (data.ok) {
+            showAlert('Registro eliminado exitosamente', 'success');
+            loadTableData(selectedTable, currentPage);
+          } else {
+            showAlert('Error al eliminar: ' + data.error, 'error');
+          }
+        } catch (e: any) {
+          showAlert('Error al eliminar: ' + e.message, 'error');
+        }
       }
-    } catch (e: any) {
-      showAlert('Error al eliminar: ' + e.message, 'error');
-    }
+    });
   };
 
   const handleEdit = (record: any) => {
@@ -459,7 +470,7 @@ export default function DBManager() {
         </Modal>
 
         {/* Modal de alertas */}
-        <AlertModal
+        <NoticeModal
           isOpen={alert.show}
           onClose={() => setAlert({ ...alert, show: false })}
           message={alert.message}

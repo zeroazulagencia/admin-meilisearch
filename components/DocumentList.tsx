@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import DocumentEditor from './DocumentEditor';
-import AlertModal from './ui/AlertModal';
+import NoticeModal from './ui/NoticeModal';
 
 interface DocumentListProps {
   indexUid: string;
@@ -32,6 +32,11 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     isOpen: false,
     message: '',
     type: 'info',
+  });
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning'; onConfirm?: () => void }>({
+    isOpen: false,
+    message: '',
+    type: 'warning',
   });
   const [searchParams, setSearchParams] = useState({
     matchingStrategy: 'all',
@@ -212,58 +217,70 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
   };
 
   const handleDelete = async (doc: Document) => {
-    if (!confirm('¿Está seguro de eliminar este documento?')) return;
-
-    try {
-      setDeleting(true);
-      const primaryKey = Object.keys(doc)[0];
-      await meilisearchAPI.deleteDocument(indexUid, doc[primaryKey] as string);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      await loadDocuments();
-      
-      // Notificar al padre para refrescar el índice
-      if (onRefresh) {
-        onRefresh();
+    setConfirmModal({
+      isOpen: true,
+      title: 'Confirmar eliminación',
+      message: '¿Está seguro de eliminar este documento?',
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          setDeleting(true);
+          const primaryKey = Object.keys(doc)[0];
+          await meilisearchAPI.deleteDocument(indexUid, doc[primaryKey] as string);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          await loadDocuments();
+          
+          // Notificar al padre para refrescar el índice
+          if (onRefresh) {
+            onRefresh();
+          }
+        } catch (err) {
+          console.error('Error deleting document:', err);
+          setAlertModal({
+            isOpen: true,
+            title: 'Error',
+            message: 'Error al eliminar el documento',
+            type: 'error',
+          });
+        } finally {
+          setDeleting(false);
+        }
       }
-    } catch (err) {
-      console.error('Error deleting document:', err);
-      setAlertModal({
-        isOpen: true,
-        title: 'Error',
-        message: 'Error al eliminar el documento',
-        type: 'error',
-      });
-    } finally {
-      setDeleting(false);
-    }
+    });
   };
 
   const handleDeleteSelected = async () => {
     if (selectedDocs.size === 0) return;
-    if (!confirm(`¿Está seguro de eliminar ${selectedDocs.size} documento(s)?`)) return;
-
-    try {
-      setDeleting(true);
-      await meilisearchAPI.deleteDocuments(indexUid, Array.from(selectedDocs));
-      setSelectedDocs(new Set());
-      await new Promise(resolve => setTimeout(resolve, 300));
-      await loadDocuments();
-      
-      // Notificar al padre para refrescar el índice
-      if (onRefresh) {
-        onRefresh();
+    setConfirmModal({
+      isOpen: true,
+      title: 'Confirmar eliminación',
+      message: `¿Está seguro de eliminar ${selectedDocs.size} documento(s)?`,
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          setDeleting(true);
+          await meilisearchAPI.deleteDocuments(indexUid, Array.from(selectedDocs));
+          setSelectedDocs(new Set());
+          await new Promise(resolve => setTimeout(resolve, 300));
+          await loadDocuments();
+          
+          // Notificar al padre para refrescar el índice
+          if (onRefresh) {
+            onRefresh();
+          }
+        } catch (err) {
+          console.error('Error deleting documents:', err);
+          setAlertModal({
+            isOpen: true,
+            title: 'Error',
+            message: 'Error al eliminar los documentos',
+            type: 'error',
+          });
+        } finally {
+          setDeleting(false);
+        }
       }
-    } catch (err) {
-      console.error('Error deleting documents:', err);
-      setAlertModal({
-        isOpen: true,
-        title: 'Error',
-        message: 'Error al eliminar los documentos',
-        type: 'error',
-      });
-    } finally {
-      setDeleting(false);
-    }
+    });
   };
 
   const toggleSelect = (docId: string) => {
@@ -603,12 +620,23 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
       )}
 
       {/* Modal de alertas */}
-      <AlertModal
+      <NoticeModal
         isOpen={alertModal.isOpen}
         onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
         title={alertModal.title}
         message={alertModal.message}
         type={alertModal.type}
+      />
+      
+      {/* Modal de confirmación */}
+      <NoticeModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        showCancel={true}
+        onConfirm={confirmModal.onConfirm}
       />
     </>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { meilisearchAPI, Index, IndexStats, IndexSettings } from '@/utils/meilisearch';
-import AlertModal from './ui/AlertModal';
+import NoticeModal from './ui/NoticeModal';
 
 interface IndexPropertiesProps {
   indexUid: string;
@@ -645,7 +645,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
       )}
 
       {/* Modal de alertas */}
-      <AlertModal
+      <NoticeModal
         isOpen={alertModal.isOpen}
         onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
         title={alertModal.title}

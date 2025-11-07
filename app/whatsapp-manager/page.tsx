@@ -2,7 +2,7 @@
 
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AgentSelector from '@/components/ui/AgentSelector';
-import AlertModal from '@/components/ui/AlertModal';
+import NoticeModal from '@/components/ui/NoticeModal';
 import { useState, useEffect } from 'react';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import {
@@ -1592,7 +1592,7 @@ export default function WhatsAppManager() {
       )}
 
       {/* Alert Modal */}
-      <AlertModal
+      <NoticeModal
         isOpen={alertModal.isOpen}
         onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
         title={alertModal.title}

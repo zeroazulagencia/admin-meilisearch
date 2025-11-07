@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
-import AlertModal from '@/components/ui/AlertModal';
+import NoticeModal from '@/components/ui/NoticeModal';
 
 interface Client {
   id: number;
@@ -274,7 +274,7 @@ export default function EditarCliente() {
         </div>
 
         {/* Modal de alertas */}
-        <AlertModal
+        <NoticeModal
           isOpen={alertModal.isOpen}
           onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
           title={alertModal.title}

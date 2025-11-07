@@ -5,6 +5,7 @@ import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AgentSelector from '@/components/ui/AgentSelector';
+import NoticeModal from '@/components/ui/NoticeModal';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -44,6 +45,11 @@ export default function Reportes() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ isOpen: boolean; reportId: string | null }>({
     isOpen: false,
     reportId: null,
+  });
+  const [noticeModal, setNoticeModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
   });
 
   const INDEX_UID = 'bd_reports_dworkers';
@@ -218,9 +224,15 @@ export default function Reportes() {
   };
 
   const handleDeleteReport = async (reportId: string) => {
-    if (!confirm('¿Está seguro de eliminar este reporte? Esta acción no se puede deshacer.')) {
-      return;
-    }
+    setShowDeleteConfirm({
+      isOpen: true,
+      reportId: reportId
+    });
+  };
+
+  const confirmDeleteReport = async () => {
+    const reportId = showDeleteConfirm.reportId;
+    if (!reportId) return;
 
     setDeletingReport(reportId);
     try {
@@ -239,7 +251,12 @@ export default function Reportes() {
       }
     } catch (err) {
       console.error('Error eliminando reporte:', err);
-      alert('Error al eliminar el reporte. Por favor, intenta nuevamente.');
+      setNoticeModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al eliminar el reporte. Por favor, intenta nuevamente.',
+        type: 'error',
+      });
     } finally {
       setDeletingReport(null);
       setShowDeleteConfirm({ isOpen: false, reportId: null });
@@ -494,7 +511,12 @@ export default function Reportes() {
       if (pdfContainer && document.body.contains(pdfContainer)) {
         document.body.removeChild(pdfContainer);
       }
-      alert('Error al generar el PDF. Por favor, intenta nuevamente.');
+      setNoticeModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al generar el PDF. Por favor, intenta nuevamente.',
+        type: 'error',
+      });
     } finally {
       setGeneratingPDF(false);
     }
@@ -973,6 +995,25 @@ export default function Reportes() {
           </div>
         </div>
       )}
+      {/* Modal de confirmación de eliminación */}
+      <NoticeModal
+        isOpen={showDeleteConfirm.isOpen}
+        onClose={() => setShowDeleteConfirm({ isOpen: false, reportId: null })}
+        title="Confirmar eliminación"
+        message="¿Está seguro de eliminar este reporte? Esta acción no se puede deshacer."
+        type="warning"
+        showCancel={true}
+        onConfirm={confirmDeleteReport}
+      />
+      
+      {/* Modal de notificaciones */}
+      <NoticeModal
+        isOpen={noticeModal.isOpen}
+        onClose={() => setNoticeModal({ ...noticeModal, isOpen: false })}
+        title={noticeModal.title}
+        message={noticeModal.message}
+        type={noticeModal.type}
+      />
     </ProtectedLayout>
   );
 }

@@ -5,7 +5,7 @@ import { Index, meilisearchAPI } from '@/utils/meilisearch';
 import IndexProperties from '@/components/IndexProperties';
 import DocumentList from '@/components/DocumentList';
 import ProtectedLayout from '@/components/ProtectedLayout';
-import AlertModal from '@/components/ui/AlertModal';
+import NoticeModal from '@/components/ui/NoticeModal';
 import AgentSelector from '@/components/ui/AgentSelector';
 
 interface AgentDB {
@@ -2279,7 +2279,7 @@ export default function AdminConocimiento() {
       )}
 
       {/* Modal de alertas */}
-      <AlertModal
+      <NoticeModal
         isOpen={alertModal.isOpen}
         onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
         title={alertModal.title}
