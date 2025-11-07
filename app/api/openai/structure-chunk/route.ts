@@ -305,13 +305,13 @@ Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos 
           
           if (extractedValue && field.type === 'string') {
             finalData[field.name] = extractedValue;
-          } else if (fieldNameLower.includes('palabra') || fieldNameLower.includes('clave')) {
+          } else if (fieldNameLower.includes('palabra') || fieldNameLower.includes('clave') || fieldNameLower.includes('tag')) {
             // Ya procesado arriba, usar array vacío si no se encontró
             if (!finalData[field.name]) {
               finalData[field.name] = [];
             }
           } else {
-            // Valores por defecto para campos requeridos
+            // Valores por defecto para campos requeridos - NUNCA null o undefined
             if (field.type === 'array') {
               finalData[field.name] = [];
             } else if (field.type === 'object') {
@@ -321,6 +321,7 @@ Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos 
             } else if (field.type === 'integer' || field.type === 'number') {
               finalData[field.name] = 0;
             } else {
+              // Para strings, usar cadena vacía en lugar de null/undefined
               finalData[field.name] = '';
             }
           }
@@ -331,9 +332,52 @@ Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos 
       }
     });
     
-    // Remover campos undefined
+    // VALIDACIÓN FINAL: Asegurar que todos los campos obligatorios tengan valores válidos
+    fields.forEach((field: any) => {
+      if (field.required) {
+        if (!finalData.hasOwnProperty(field.name) || 
+            finalData[field.name] === null || 
+            finalData[field.name] === undefined) {
+          // Campo obligatorio faltante o con valor inválido
+          console.warn(`[OPENAI-STRUCTURE] Campo obligatorio "${field.name}" faltante o inválido, asignando valor por defecto`);
+          
+          if (field.type === 'array') {
+            finalData[field.name] = [];
+          } else if (field.type === 'object') {
+            finalData[field.name] = {};
+          } else if (field.type === 'boolean') {
+            finalData[field.name] = false;
+          } else if (field.type === 'integer' || field.type === 'number') {
+            finalData[field.name] = 0;
+          } else {
+            finalData[field.name] = '';
+          }
+        } else {
+          // Validar que el valor no esté vacío según el tipo
+          const value = finalData[field.name];
+          const isEmpty = (field.type === 'string' && value === '') ||
+                         (field.type === 'array' && (!Array.isArray(value) || value.length === 0)) ||
+                         (field.type === 'object' && (typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length === 0));
+          
+          if (isEmpty) {
+            console.warn(`[OPENAI-STRUCTURE] Campo obligatorio "${field.name}" está vacío, asignando valor por defecto`);
+            
+            if (field.type === 'array') {
+              finalData[field.name] = [];
+            } else if (field.type === 'object') {
+              finalData[field.name] = {};
+            } else {
+              finalData[field.name] = '';
+            }
+          }
+        }
+      }
+    });
+    
+    // Remover campos undefined (solo opcionales)
     Object.keys(finalData).forEach(key => {
-      if (finalData[key] === undefined) {
+      const field = fields.find((f: any) => f.name === key);
+      if (finalData[key] === undefined && (!field || !field.required)) {
         delete finalData[key];
       }
     });
