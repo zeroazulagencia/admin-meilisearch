@@ -300,7 +300,10 @@ export default function WhatsAppManager() {
         list_title: '',
         list_description: '',
         list_button_text: '',
-        list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }]
+        list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
+        template_name: '',
+        template_language: 'es',
+        template_components: []
       });
     } else if (actionId === 'get-templates') {
       if (!selectedAgent) {
