@@ -476,6 +476,17 @@ export default function DBManager() {
           message={alert.message}
           type={alert.type}
         />
+        
+        {/* Modal de confirmación */}
+        <NoticeModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          type={confirmModal.type}
+          showCancel={true}
+          onConfirm={confirmModal.onConfirm}
+        />
       </div>
     </ProtectedLayout>
   );

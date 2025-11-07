@@ -416,13 +416,24 @@ export default function Agentes() {
         </div>
 
         {/* Modal de alertas */}
-        <NoticeModal
-          isOpen={alertModal.isOpen}
-          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
-          title={alertModal.title}
-          message={alertModal.message}
-          type={alertModal.type}
-        />
+      <NoticeModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
+      
+      {/* Modal de confirmación */}
+      <NoticeModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        showCancel={true}
+        onConfirm={confirmModal.onConfirm}
+      />
     </ProtectedLayout>
   );
 }

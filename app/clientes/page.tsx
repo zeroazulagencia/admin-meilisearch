@@ -157,14 +157,25 @@ export default function Clientes() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full border-[#5DE1E5]"></div>
         </div>
-        <NoticeModal
-          isOpen={alertModal.isOpen}
-          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
-          title={alertModal.title}
-          message={alertModal.message}
-          type={alertModal.type}
-        />
-      </ProtectedLayout>
+      <NoticeModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
+      
+      {/* Modal de confirmación */}
+      <NoticeModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        showCancel={true}
+        onConfirm={confirmModal.onConfirm}
+      />
+    </ProtectedLayout>
     );
   }
 
