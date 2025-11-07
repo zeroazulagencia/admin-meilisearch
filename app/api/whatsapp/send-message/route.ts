@@ -7,7 +7,7 @@ import { decrypt } from '@/utils/encryption';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { agent_id, phone_number, message_type = 'text', message, image_url, document_url, document_filename, caption, buttons, list_title, list_description, list_button_text, list_sections } = body;
+    const { agent_id, phone_number, message_type = 'text', message, image_url, document_url, document_filename, caption, buttons, list_title, list_description, list_button_text, list_sections, template_name, template_language = 'es', template_components } = body;
 
     if (!agent_id || !phone_number) {
       return NextResponse.json({ 
