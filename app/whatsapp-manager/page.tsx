@@ -229,9 +229,6 @@ export default function WhatsAppManager() {
   const [showSendMessageModal, setShowSendMessageModal] = useState(false);
   const [sendMessageForm, setSendMessageForm] = useState({ phone_number: '', message: '' });
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [lastSentMessage, setLastSentMessage] = useState<{ message_id: string; phone_number: string } | null>(null);
-  const [checkingStatus, setCheckingStatus] = useState(false);
-  const [messageStatus, setMessageStatus] = useState<{ status: string; note?: string } | null>(null);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
@@ -309,8 +306,6 @@ export default function WhatsAppManager() {
       }
       setShowSendMessageModal(true);
       setSendMessageForm({ phone_number: '', message: '' });
-      setLastSentMessage(null);
-      setMessageStatus(null);
     }
   };
 
@@ -344,18 +339,13 @@ export default function WhatsAppManager() {
       const data = await res.json();
 
       if (data.ok) {
-        setLastSentMessage({
-          message_id: data.data.message_id,
-          phone_number: data.data.to
-        });
-        setMessageStatus(null); // Resetear estado anterior
         setAlertModal({
           isOpen: true,
           title: 'Mensaje enviado',
           message: `Mensaje enviado exitosamente a ${data.data.to}. ID del mensaje: ${data.data.message_id}`,
           type: 'success',
         });
-        // No cerrar el modal para permitir verificar el estado
+        setShowSendMessageModal(false);
         setSendMessageForm({ phone_number: '', message: '' });
       } else {
         setAlertModal({
@@ -375,58 +365,6 @@ export default function WhatsAppManager() {
       });
     } finally {
       setSendingMessage(false);
-    }
-  };
-
-  const handleCheckMessageStatus = async () => {
-    if (!selectedAgent || !lastSentMessage) return;
-
-    setCheckingStatus(true);
-    setMessageStatus(null);
-    
-    try {
-      const res = await fetch('/api/whatsapp/check-message-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          agent_id: selectedAgent.id,
-          message_id: lastSentMessage.message_id,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.ok) {
-        setMessageStatus({
-          status: data.data.status,
-          note: data.data.note
-        });
-        setAlertModal({
-          isOpen: true,
-          title: 'Estado del Mensaje',
-          message: `Estado: ${data.data.status.toUpperCase()}\n\n${data.data.note || ''}`,
-          type: 'info',
-        });
-      } else {
-        setAlertModal({
-          isOpen: true,
-          title: 'Error al verificar',
-          message: data.error || 'Error desconocido al verificar el estado',
-          type: 'error',
-        });
-      }
-    } catch (e: any) {
-      console.error('[WHATSAPP-MANAGER] Error verificando estado:', e);
-      setAlertModal({
-        isOpen: true,
-        title: 'Error al verificar',
-        message: e?.message || 'Error al procesar la verificación del estado',
-        type: 'error',
-      });
-    } finally {
-      setCheckingStatus(false);
     }
   };
 
@@ -671,68 +609,15 @@ export default function WhatsAppManager() {
                     </p>
                   </div>
                 )}
-
-                {lastSentMessage && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="text-sm font-medium text-green-900">
-                          ✓ Mensaje Enviado
-                        </p>
-                        <p className="text-xs text-green-700 mt-1">
-                          A: {lastSentMessage.phone_number}
-                        </p>
-                        <p className="text-xs text-green-600 mt-1 font-mono break-all">
-                          ID: {lastSentMessage.message_id}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {messageStatus && (
-                      <div className="mt-3 pt-3 border-t border-green-200">
-                        <p className="text-xs text-green-800">
-                          <span className="font-medium">Estado:</span> {messageStatus.status.toUpperCase()}
-                        </p>
-                        {messageStatus.note && (
-                          <p className="text-xs text-green-700 mt-1">
-                            {messageStatus.note}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    <button
-                      onClick={handleCheckMessageStatus}
-                      disabled={checkingStatus || sendingMessage}
-                      className="mt-3 w-full px-4 py-2 rounded-lg font-medium text-sm text-green-900 bg-green-100 hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {checkingStatus ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent border-green-900"></div>
-                          Verificando...
-                        </>
-                      ) : (
-                        <>
-                          <InformationCircleIcon className="h-4 w-4" />
-                          Verificar Estado del Mensaje
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
               </div>
 
               <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
                 <button
-                  onClick={() => {
-                    setShowSendMessageModal(false);
-                    setLastSentMessage(null);
-                    setMessageStatus(null);
-                  }}
+                  onClick={() => setShowSendMessageModal(false)}
                   disabled={sendingMessage}
                   className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {lastSentMessage ? 'Cerrar' : 'Cancelar'}
+                  Cancelar
                 </button>
                 <button
                   onClick={handleSendMessage}
