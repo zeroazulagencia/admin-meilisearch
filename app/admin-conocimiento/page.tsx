@@ -676,7 +676,7 @@ export default function AdminConocimiento() {
                     
                     if (palabrasClave.length > 0) {
                       structuredFields[i][fieldInfo.name] = palabrasClave;
-                      continue; // Saltar al siguiente campo
+                      return; // Saltar al siguiente campo (dentro del forEach)
                     }
                   }
                   
