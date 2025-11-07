@@ -61,9 +61,42 @@ function htmlToMarkdown(html: string): string {
   // Eliminar referencias de imágenes en markdown que puedan haber quedado
   markdown = markdown.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '');
   
-  // Limpiar espacios múltiples y saltos de línea
+  // Eliminar código CSS o base64 extenso (líneas muy largas con caracteres especiales)
+  markdown = markdown.split('\n').filter(line => {
+    // Eliminar líneas que sean muy largas y contengan principalmente caracteres especiales/base64
+    if (line.length > 100 && /^[A-Za-z0-9+/=_-]+$/.test(line.trim()) && line.trim().length > 50) {
+      return false;
+    }
+    // Eliminar líneas que parezcan código CSS minificado
+    if (line.length > 200 && /[{}\s;:]+/.test(line) && !/[a-zA-Z]{3,}/.test(line)) {
+      return false;
+    }
+    return true;
+  }).join('\n');
+  
+  // Limpiar espacios múltiples y saltos de línea (máximo 2 saltos seguidos)
   markdown = markdown.replace(/\n{3,}/g, '\n\n');
   markdown = markdown.replace(/[ \t]+/g, ' ');
+  
+  // Eliminar líneas vacías al inicio y al final
+  markdown = markdown.replace(/^\n+/, '');
+  markdown = markdown.replace(/\n+$/, '');
+  
+  // Eliminar contenido que parezca código al inicio (primeras líneas muy largas sin espacios)
+  const lines = markdown.split('\n');
+  let startIndex = 0;
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    const line = lines[i].trim();
+    // Si la línea es muy larga, sin espacios significativos, y parece código/base64
+    if (line.length > 100 && (line.match(/[A-Za-z0-9+/=_-]{50,}/) || line.match(/[{}\s;:]{20,}/))) {
+      startIndex = i + 1;
+    } else if (line.length > 0 && /[a-zA-Z]{3,}/.test(line)) {
+      // Si encontramos texto legible, detener la eliminación
+      break;
+    }
+  }
+  markdown = lines.slice(startIndex).join('\n');
+  
   markdown = markdown.trim();
   
   return markdown;
