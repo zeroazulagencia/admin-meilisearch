@@ -51,32 +51,80 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Intentar obtener plantillas usando el Business Account ID directamente
-    // Si no funciona, el problema es de permisos del token
+    // Intentar obtener el WABA ID desde el Phone Number ID primero (más confiable)
     let wabaId = businessAccountId;
+    
+    if (phoneNumberId) {
+      try {
+        // Intentar obtener el WABA ID desde el Phone Number ID usando diferentes métodos
+        // Método 1: Intentar con v18.0 que puede tener mejor soporte
+        const phoneInfoResponse = await axios.get(
+          `https://graph.facebook.com/v18.0/${phoneNumberId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            params: {
+              fields: 'id'
+            },
+            timeout: 10000
+          }
+        );
+        
+        // Si tenemos el phoneNumberId pero no el businessAccountId, intentar obtenerlo
+        // Nota: El Phone Number ID no expone directamente el WABA ID en la API pública
+        // Por lo tanto, debemos usar el Business Account ID proporcionado
+        console.log('[WHATSAPP GET TEMPLATES] Phone Number ID verificado:', phoneNumberId);
+      } catch (e: any) {
+        console.error('[WHATSAPP GET TEMPLATES] Error verificando Phone Number ID:', e?.response?.data || e?.message);
+        // Continuar con el Business Account ID si está disponible
+      }
+    }
     
     if (!wabaId) {
       return NextResponse.json({ 
         ok: false, 
-        error: 'Se requiere Business Account ID para obtener plantillas. El token de acceso necesita permisos para acceder al Business Account.' 
+        error: 'Se requiere Business Account ID (WABA ID) para obtener plantillas. El token de acceso necesita permisos para acceder al Business Account. Verifica que el Business Account ID configurado en el agente sea correcto.' 
       }, { status: 400 });
     }
 
     // Obtener plantillas desde WhatsApp Business API usando el WABA ID
-    try {
-      const response = await axios.get(
-        `https://graph.facebook.com/v21.0/${wabaId}/message_templates`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          params: {
-            fields: 'id,name,status,language,category,components'
-          },
-          timeout: 30000
-        }
-      );
+    // Intentar con diferentes versiones de la API si es necesario
+    let response;
+    const apiVersions = ['v21.0', 'v18.0', 'v17.0'];
+    let lastError: any = null;
+    
+    for (const version of apiVersions) {
+      try {
+        response = await axios.get(
+          `https://graph.facebook.com/${version}/${wabaId}/message_templates`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            params: {
+              fields: 'id,name,status,language,category,components'
+            },
+            timeout: 30000
+          }
+        );
+        
+        // Si llegamos aquí, la solicitud fue exitosa
+        break;
+      } catch (e: any) {
+        lastError = e;
+        console.error(`[WHATSAPP GET TEMPLATES] Error con ${version}:`, e?.response?.data || e?.message);
+        // Continuar con la siguiente versión
+        continue;
+      }
+    }
+    
+    // Si ninguna versión funcionó, lanzar el último error
+    if (!response) {
+      throw lastError;
+    }
 
       if (response.data && response.data.data) {
         return NextResponse.json({
