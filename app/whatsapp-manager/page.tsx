@@ -586,16 +586,6 @@ export default function WhatsAppManager() {
 
               {/* Filtros por categoría */}
               <div className="mb-6 flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedCategory('all')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedCategory === 'all'
-                      ? 'bg-[#5DE1E5] text-black'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Todas
-                </button>
                 {Object.entries(categories).map(([key, label]) => (
                   <button
                     key={key}
@@ -1136,6 +1126,123 @@ export default function WhatsAppManager() {
                       Enviar Mensaje
                     </>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Plantillas */}
+      {showTemplatesModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => setShowTemplatesModal(false)}
+            />
+            
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Plantillas de Mensajes
+                  </h3>
+                  <button
+                    onClick={() => setShowTemplatesModal(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="px-6 py-4">
+                {loadingTemplates ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent border-[#5DE1E5] mx-auto"></div>
+                    <p className="mt-2 text-sm text-gray-600">Cargando plantillas...</p>
+                  </div>
+                ) : templates.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No hay plantillas disponibles.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {templates.map((template, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h4 className="text-base font-semibold text-gray-900 mb-1">
+                              {template.name || 'Sin nombre'}
+                            </h4>
+                            {template.language && (
+                              <p className="text-xs text-gray-500 mb-2">
+                                Idioma: {template.language}
+                              </p>
+                            )}
+                            {template.status && (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                template.status === 'APPROVED' 
+                                  ? 'bg-green-100 text-green-800'
+                                  : template.status === 'PENDING'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {template.status}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {template.components && template.components.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {template.components.map((component: any, compIndex: number) => (
+                              <div key={compIndex} className="bg-gray-50 rounded p-2">
+                                <p className="text-xs font-medium text-gray-700 mb-1">
+                                  {component.type === 'HEADER' ? 'Encabezado' : 
+                                   component.type === 'BODY' ? 'Cuerpo' : 
+                                   component.type === 'FOOTER' ? 'Pie' : component.type}
+                                </p>
+                                {component.text && (
+                                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                                    {component.text}
+                                  </p>
+                                )}
+                                {component.format && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Formato: {component.format}
+                                  </p>
+                                )}
+                                {component.buttons && component.buttons.length > 0 && (
+                                  <div className="mt-2 space-y-1">
+                                    {component.buttons.map((btn: any, btnIndex: number) => (
+                                      <div key={btnIndex} className="text-xs text-gray-600">
+                                        {btn.type === 'QUICK_REPLY' ? 'Respuesta rápida' : 
+                                         btn.type === 'URL' ? 'URL' : 
+                                         btn.type === 'PHONE_NUMBER' ? 'Teléfono' : btn.type}: {btn.text || btn.url || btn.phone_number}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 py-4 bg-gray-50 flex justify-end border-t border-gray-200">
+                <button
+                  onClick={() => setShowTemplatesModal(false)}
+                  className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  Cerrar
                 </button>
               </div>
             </div>
