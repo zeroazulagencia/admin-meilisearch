@@ -37,21 +37,26 @@ export async function POST(request: NextRequest) {
     const productoMatch = chunkText.match(/PRODUCTO:\s*(.+?)(?:\n|$)/i);
     const palabrasMatch = chunkText.match(/PALABRAS[:\s]*(.+?)(?:\n|$)/i);
     
+    // Separar campos requeridos y opcionales para mejor formato
+    const requiredFieldsList = fields.filter((f: any) => f.required);
+    const optionalFieldsList = fields.filter((f: any) => !f.required);
+    
     const systemMessage = `Eres un asistente experto en extraer información estructurada de documentos de productos.
 
 TU TAREA:
 Analizar el texto proporcionado y extraer información específica para cada campo solicitado.
 
-REGLAS ABSOLUTAS:
+REGLAS ABSOLUTAS CRÍTICAS:
 1. Debes devolver UNICAMENTE un objeto JSON válido. NADA más, sin texto, sin explicaciones, sin markdown.
 2. El objeto JSON DEBE contener TODOS los campos listados abajo, sin excepción.
-3. Para cada campo, busca la información relevante en el texto y extráela.
-4. Si un campo obligatorio no tiene información directa, INFIERE o usa valor por defecto apropiado.
+3. ⚠️ CAMPOS OBLIGATORIOS: NO pueden estar vacíos, null, undefined o faltar. SIEMPRE deben tener un valor válido según su tipo.
+4. Si un campo obligatorio no tiene información directa en el texto, DEBES INFERIR un valor apropiado del contexto o usar el valor por defecto especificado.
+5. Los campos opcionales pueden omitirse si no hay información relevante.
 
-CAMPOS QUE DEBES INCLUIR (OBLIGATORIO - TODOS):
-${fields.map((field: any) => {
-  const required = field.required ? ' [OBLIGATORIO]' : ' [OPCIONAL]';
+CAMPOS OBLIGATORIOS (DEBEN TENER VALOR SIEMPRE):
+${requiredFieldsList.map((field: any) => {
   let hint = '';
+  let formatHint = '';
   
   // Agregar pistas sobre dónde buscar la información
   if (field.name.toLowerCase().includes('categoria')) {
@@ -74,7 +79,25 @@ ${fields.map((field: any) => {
     hint = ' - Busca secciones que digan "NECESIDADES:" o "INTERESES:"';
   }
   
-  return `- ${field.name}: tipo ${field.type}${required}${hint}`;
+  // Agregar formato específico según el tipo
+  if (field.type === 'array') {
+    formatHint = ' - FORMATO: Array JSON ["item1", "item2"]. Si no encuentras lista, usa []. NUNCA null o undefined.';
+  } else if (field.type === 'object') {
+    formatHint = ' - FORMATO: Objeto JSON {"key": "value"}. Si no encuentras datos, usa {}. NUNCA null o undefined.';
+  } else if (field.type === 'number' || field.type === 'integer') {
+    formatHint = ' - FORMATO: Número (ej: 123). Si no encuentras número, usa 0. NUNCA null, undefined o string vacío.';
+  } else if (field.type === 'boolean') {
+    formatHint = ' - FORMATO: true o false. Si no encuentras indicación, usa false. NUNCA null o undefined.';
+  } else {
+    formatHint = ' - FORMATO: String con texto. Si no encuentras información, INFIERE del contexto o usa "". NUNCA null o undefined.';
+  }
+  
+  return `- ${field.name} (${field.type}): ⚠️ OBLIGATORIO${hint}${formatHint}`;
+}).join('\n')}
+
+CAMPOS OPCIONALES (incluir solo si hay información relevante):
+${optionalFieldsList.map((field: any) => {
+  return `- ${field.name} (${field.type}): Opcional`;
 }).join('\n')}
 
 REGLAS DE TIPOS DE DATOS:
@@ -99,19 +122,24 @@ INSTRUCCIONES DE EXTRACCIÓN:
 4. Si un campo obligatorio no tiene información clara, usa tu mejor juicio o valor por defecto
 5. Para campos opcionales, inclúyelos solo si encuentras información relevante
 
-VALORES POR DEFECTO (solo para campos obligatorios sin información):
-- String: "" (cadena vacía)
-- Array: [] (array vacío)
-- Number/Integer: 0
-- Boolean: false
-- Object: {}`;
+VALORES POR DEFECTO PARA CAMPOS OBLIGATORIOS (usar SOLO si no encuentras información):
+- String: "" (cadena vacía) - PERO intenta INFERIR del contexto antes de usar vacío
+- Array: [] (array vacío) - PERO intenta extraer lista del texto antes de usar vacío
+- Number/Integer: 0 - PERO intenta encontrar número en el texto antes de usar 0
+- Boolean: false - PERO intenta inferir del contexto antes de usar false
+- Object: {} - PERO intenta extraer datos estructurados antes de usar vacío
+
+⚠️ IMPORTANTE: Los campos marcados como OBLIGATORIOS DEBEN aparecer SIEMPRE en el JSON con un valor válido según su tipo. 
+NO uses null, undefined, o omitas campos obligatorios. Si no encuentras información directa, INFIERE del contexto del texto.`;
 
     const userMessage = `Extrae la información del siguiente texto y estructura en un objeto JSON con TODOS los campos especificados.
+
+⚠️ RECUERDA: Los campos marcados como OBLIGATORIOS deben tener SIEMPRE un valor válido. No pueden estar vacíos, null o undefined.
 
 TEXTO:
 ${chunkText}
 
-Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos listados.`;
+Responde SOLO con el objeto JSON, sin texto adicional. Incluye TODOS los campos listados, especialmente los obligatorios con valores válidos.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
