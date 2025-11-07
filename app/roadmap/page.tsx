@@ -134,6 +134,18 @@ export default function Roadmap() {
       description: 'Integrar y conectar el sistema con Alegra para gestión contable',
       completed: false,
     },
+    {
+      date: 'Pendiente',
+      title: 'Crear espacio de documentación del asistente',
+      description: 'Desarrollar un espacio dedicado para documentar el asistente y sus funcionalidades',
+      completed: false,
+    },
+    {
+      date: 'Pendiente',
+      title: 'Crear espacio de documentación de developers',
+      description: 'Desarrollar un espacio dedicado para documentación técnica dirigida a desarrolladores',
+      completed: false,
+    },
   ];
 
   return (

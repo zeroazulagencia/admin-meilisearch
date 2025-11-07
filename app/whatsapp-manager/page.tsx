@@ -1198,7 +1198,7 @@ export default function WhatsAppManager() {
                       <p className="text-sm font-medium text-blue-900 mb-1">
                         Importante: Ventana de 24 horas
                       </p>
-                      <p className="text-xs text-blue-800 leading-relaxed">
+                      <p className="text-xs text-blue-800 leading-relaxed break-words overflow-wrap-anywhere">
                         Este mensaje solo se entregará si el usuario ha enviado un mensaje en las últimas 24 horas. 
                         Para enviar mensajes fuera de esta ventana, debes usar <span className="font-semibold">plantillas de mensajes</span>.
                       </p>
@@ -1208,10 +1208,10 @@ export default function WhatsAppManager() {
 
                 {selectedAgent && (
                   <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-gray-600 break-words overflow-wrap-anywhere">
                       <span className="font-medium">Agente:</span> {selectedAgent.name}
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-xs text-gray-600 mt-1 break-words overflow-wrap-anywhere">
                       <span className="font-medium">Phone Number ID:</span> {agentDetails?.whatsapp_phone_number_id || 'N/A'}
                     </p>
                   </div>
@@ -1333,7 +1333,7 @@ export default function WhatsAppManager() {
                     disabled={sendingMessage}
                     className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 break-words overflow-wrap-anywhere">
                     Nombre exacto de la plantilla aprobada por WhatsApp (sin espacios, usa guiones bajos)
                   </p>
                 </div>
@@ -1361,7 +1361,7 @@ export default function WhatsAppManager() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Parámetros de la Plantilla (Opcional)
                   </label>
-                  <p className="text-xs text-gray-500 mb-2">
+                  <p className="text-xs text-gray-500 mb-2 break-words overflow-wrap-anywhere">
                     Si la plantilla tiene variables, ingrésalas separadas por comas. Ej: &quot;Juan, Pedido #123, $50.000&quot;
                   </p>
                   <textarea
@@ -1372,7 +1372,7 @@ export default function WhatsAppManager() {
                     disabled={sendingMessage}
                     className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 break-words overflow-wrap-anywhere">
                     Nota: Los parámetros se procesarán automáticamente según el formato de la plantilla
                   </p>
                 </div>
@@ -1385,7 +1385,7 @@ export default function WhatsAppManager() {
                       <p className="text-sm font-medium text-green-900 mb-1">
                         Plantillas: Sin límite de tiempo
                       </p>
-                      <p className="text-xs text-green-800 leading-relaxed">
+                      <p className="text-xs text-green-800 leading-relaxed break-words overflow-wrap-anywhere">
                         Las plantillas de mensajes pueden enviarse en cualquier momento, incluso fuera de la ventana de 24 horas. 
                         Asegúrate de que la plantilla esté aprobada por WhatsApp antes de usarla.
                       </p>
@@ -1395,10 +1395,10 @@ export default function WhatsAppManager() {
 
                 {selectedAgent && (
                   <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-gray-600 break-words overflow-wrap-anywhere">
                       <span className="font-medium">Agente:</span> {selectedAgent.name}
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-xs text-gray-600 mt-1 break-words overflow-wrap-anywhere">
                       <span className="font-medium">Phone Number ID:</span> {agentDetails?.whatsapp_phone_number_id || 'N/A'}
                     </p>
                   </div>
@@ -1504,7 +1504,7 @@ export default function WhatsAppManager() {
                           href={`https://business.facebook.com/latest/whatsapp_business_account/${agentDetails.whatsapp_business_account_id}/message_templates`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
+                          className="text-xs text-blue-600 hover:text-blue-800 underline break-all break-words overflow-wrap-anywhere block"
                         >
                           https://business.facebook.com/latest/whatsapp_business_account/{agentDetails.whatsapp_business_account_id}/message_templates
                         </a>
@@ -1517,7 +1517,7 @@ export default function WhatsAppManager() {
                       <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <h4 className="text-base font-semibold text-gray-900 mb-1">
+                            <h4 className="text-base font-semibold text-gray-900 mb-1 break-words overflow-wrap-anywhere">
                               {template.name || 'Sin nombre'}
                             </h4>
                             {template.language && (
@@ -1549,7 +1549,7 @@ export default function WhatsAppManager() {
                                    component.type === 'FOOTER' ? 'Pie' : component.type}
                                 </p>
                                 {component.text && (
-                                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                                  <p className="text-sm text-gray-900 whitespace-pre-wrap break-words overflow-wrap-anywhere">
                                     {component.text}
                                   </p>
                                 )}
@@ -1561,7 +1561,7 @@ export default function WhatsAppManager() {
                                 {component.buttons && component.buttons.length > 0 && (
                                   <div className="mt-2 space-y-1">
                                     {component.buttons.map((btn: any, btnIndex: number) => (
-                                      <div key={btnIndex} className="text-xs text-gray-600">
+                                      <div key={btnIndex} className="text-xs text-gray-600 break-words overflow-wrap-anywhere">
                                         {btn.type === 'QUICK_REPLY' ? 'Respuesta rápida' : 
                                          btn.type === 'URL' ? 'URL' : 
                                          btn.type === 'PHONE_NUMBER' ? 'Teléfono' : btn.type}: {btn.text || btn.url || btn.phone_number}
