@@ -44,50 +44,25 @@ export async function POST(req: NextRequest) {
     // Desencriptar el access token
     const accessToken = decrypt(encryptedAccessToken);
 
-    if (!phoneNumberId) {
+    if (!phoneNumberId && !businessAccountId) {
       return NextResponse.json({ 
         ok: false, 
-        error: 'El agente no tiene Phone Number ID configurado' 
+        error: 'El agente no tiene Phone Number ID ni Business Account ID configurado' 
       }, { status: 400 });
     }
 
-    // Obtener el WABA ID desde el Phone Number ID (más confiable que usar el Business Account ID directamente)
-    let wabaId = null;
+    // Intentar obtener plantillas usando el Business Account ID directamente
+    // Si no funciona, el problema es de permisos del token
+    let wabaId = businessAccountId;
     
-    try {
-      const phoneInfoResponse = await axios.get(
-        `https://graph.facebook.com/v21.0/${phoneNumberId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          params: {
-            fields: 'whatsapp_business_account.id'
-          },
-          timeout: 10000
-        }
-      );
-      
-      if (phoneInfoResponse.data?.whatsapp_business_account?.id) {
-        wabaId = phoneInfoResponse.data.whatsapp_business_account.id;
-      }
-    } catch (e: any) {
-      console.error('[WHATSAPP GET TEMPLATES] Error obteniendo WABA ID desde Phone Number ID:', e?.response?.data || e?.message);
-      // Si falla, intentar usar el Business Account ID directamente como fallback
-      if (businessAccountId) {
-        wabaId = businessAccountId;
-      }
-    }
-
     if (!wabaId) {
       return NextResponse.json({ 
         ok: false, 
-        error: 'No se pudo obtener el Business Account ID. Verifica que el Phone Number ID y el Access Token sean correctos y tengan los permisos necesarios.' 
+        error: 'Se requiere Business Account ID para obtener plantillas. El token de acceso necesita permisos para acceder al Business Account.' 
       }, { status: 400 });
     }
 
-    // Obtener plantillas desde WhatsApp Business API
+    // Obtener plantillas desde WhatsApp Business API usando el WABA ID
     try {
       const response = await axios.get(
         `https://graph.facebook.com/v21.0/${wabaId}/message_templates`,
@@ -129,6 +104,17 @@ export async function POST(req: NextRequest) {
       
       if (apiError.response?.status === 400) {
         const errorMessage = apiError.response?.data?.error?.message || 'Error en la solicitud';
+        const errorCode = apiError.response?.data?.error?.code;
+        const errorSubcode = apiError.response?.data?.error?.error_subcode;
+        
+        // Error específico de objeto no encontrado o sin permisos
+        if (errorCode === 100 || errorSubcode === 33) {
+          return NextResponse.json({
+            ok: false,
+            error: `El Business Account ID (${wabaId}) no existe, no tiene permisos o el token no tiene acceso. Verifica que el Business Account ID sea correcto y que el Access Token tenga los permisos 'whatsapp_business_management' y 'whatsapp_business_messaging'.`
+          }, { status: 400 });
+        }
+        
         return NextResponse.json({
           ok: false,
           error: `Error al obtener plantillas: ${errorMessage}`
