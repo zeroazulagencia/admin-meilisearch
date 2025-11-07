@@ -828,7 +828,6 @@ export default function WhatsAppManager() {
                     <option value="document">Documento</option>
                     <option value="buttons">Botones</option>
                     <option value="list">Lista</option>
-                    <option value="template">Plantilla</option>
                   </select>
                 </div>
 
