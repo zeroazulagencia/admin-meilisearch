@@ -76,6 +76,18 @@ export default function AdminConocimiento() {
         body: JSON.stringify({ url: webUrl.trim() })
       });
       
+      // Verificar si la respuesta es OK antes de parsear JSON
+      if (!response.ok) {
+        let errorMessage = `Error ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Si no se puede parsear el JSON, usar el mensaje por defecto
+        }
+        throw new Error(errorMessage);
+      }
+      
       const data = await response.json();
       
       if (data.success && data.markdown) {
@@ -85,20 +97,23 @@ export default function AdminConocimiento() {
         setShowWebUrlModal(false);
         setWebUrl('');
       } else {
-        const errorMessage = data.error || 'Error desconocido';
-        setPdfText(`Error: ${errorMessage}`);
-        setShowPdfModal(true);
-        setPdfStep('text');
-        setShowWebUrlModal(false);
-        setWebUrl('');
+        const errorMessage = data.error || 'Error desconocido al procesar la URL';
+        setAlertModal({
+          isOpen: true,
+          title: 'Error al cargar URL',
+          message: errorMessage,
+          type: 'error',
+        });
       }
     } catch (error: any) {
       console.error('[WEB-UPLOAD] Error al procesar URL:', error);
-      setPdfText(`Error al procesar la URL: ${error.message || 'Error desconocido'}`);
-      setShowPdfModal(true);
-      setPdfStep('text');
-      setShowWebUrlModal(false);
-      setWebUrl('');
+      const errorMessage = error.message || 'Error de conexión. Verifica que la URL sea accesible públicamente y no requiera autenticación.';
+      setAlertModal({
+        isOpen: true,
+        title: 'Error al cargar URL',
+        message: errorMessage,
+        type: 'error',
+      });
     } finally {
       setLoadingWeb(false);
     }
