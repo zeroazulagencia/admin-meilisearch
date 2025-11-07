@@ -599,6 +599,21 @@ export default function WhatsAppManager() {
                   </p>
                 </div>
 
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <InformationCircleIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900 mb-1">
+                        Importante: Ventana de 24 horas
+                      </p>
+                      <p className="text-xs text-blue-800 leading-relaxed">
+                        Este mensaje solo se entregará si el usuario ha enviado un mensaje en las últimas 24 horas. 
+                        Para enviar mensajes fuera de esta ventana, debes usar <span className="font-semibold">plantillas de mensajes</span>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {selectedAgent && (
                   <div className="bg-gray-50 rounded-lg p-3">
                     <p className="text-xs text-gray-600">
