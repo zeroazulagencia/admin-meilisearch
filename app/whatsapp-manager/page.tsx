@@ -1500,12 +1500,12 @@ export default function WhatsAppManager() {
                       <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <p className="text-sm text-blue-900 font-medium mb-2">Administrar plantillas:</p>
                         <a
-                          href={`https://business.facebook.com/latest/whatsapp_business_account/${agentDetails.whatsapp_business_account_id}/message_templates`}
+                          href={`https://business.facebook.com/latest/whatsapp_manager/message_templates?business_id=${agentDetails.whatsapp_business_account_id}&tab=message-templates&nav_ref=whatsapp_manager&asset_id=${agentDetails.whatsapp_phone_number_id || agentDetails.whatsapp_business_account_id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-blue-600 hover:text-blue-800 underline break-all break-words overflow-wrap-anywhere block"
                         >
-                          https://business.facebook.com/latest/whatsapp_business_account/{agentDetails.whatsapp_business_account_id}/message_templates
+                          https://business.facebook.com/latest/whatsapp_manager/message_templates?business_id={agentDetails.whatsapp_business_account_id}&tab=message-templates&nav_ref=whatsapp_manager&asset_id={agentDetails.whatsapp_phone_number_id || agentDetails.whatsapp_business_account_id}
                         </a>
                       </div>
                     )}
