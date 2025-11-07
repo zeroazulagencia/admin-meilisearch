@@ -2,6 +2,7 @@
 
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AgentSelector from '@/components/ui/AgentSelector';
+import AlertModal from '@/components/ui/AlertModal';
 import { useState, useEffect } from 'react';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import {
@@ -225,6 +226,14 @@ export default function WhatsAppManager() {
   const [agentDetails, setAgentDetails] = useState<AgentDB | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
+  const [showSendMessageModal, setShowSendMessageModal] = useState(false);
+  const [sendMessageForm, setSendMessageForm] = useState({ phone_number: '', message: '' });
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
 
   useEffect(() => {
     const loadAgents = async () => {
@@ -281,6 +290,81 @@ export default function WhatsAppManager() {
       console.error('[WHATSAPP-MANAGER] Error cargando detalles del agente:', e);
     } finally {
       setLoadingDetails(false);
+    }
+  };
+
+  const handleActionClick = (actionId: string) => {
+    if (actionId === 'send-text') {
+      if (!selectedAgent) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Agente requerido',
+          message: 'Por favor selecciona un agente primero',
+          type: 'warning',
+        });
+        return;
+      }
+      setShowSendMessageModal(true);
+      setSendMessageForm({ phone_number: '', message: '' });
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedAgent) return;
+    
+    if (!sendMessageForm.phone_number.trim() || !sendMessageForm.message.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campos requeridos',
+        message: 'Por favor completa el número de teléfono y el mensaje',
+        type: 'warning',
+      });
+      return;
+    }
+
+    setSendingMessage(true);
+    try {
+      const res = await fetch('/api/whatsapp/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          agent_id: selectedAgent.id,
+          phone_number: sendMessageForm.phone_number.trim(),
+          message: sendMessageForm.message.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Mensaje enviado',
+          message: `Mensaje enviado exitosamente a ${data.data.to}. ID del mensaje: ${data.data.message_id}`,
+          type: 'success',
+        });
+        setShowSendMessageModal(false);
+        setSendMessageForm({ phone_number: '', message: '' });
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error al enviar',
+          message: data.error || 'Error desconocido al enviar el mensaje',
+          type: 'error',
+        });
+      }
+    } catch (e: any) {
+      console.error('[WHATSAPP-MANAGER] Error enviando mensaje:', e);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error al enviar',
+        message: e?.message || 'Error al procesar el envío del mensaje',
+        type: 'error',
+      });
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -416,6 +500,7 @@ export default function WhatsAppManager() {
                     return (
                       <div
                         key={action.id}
+                        onClick={() => handleActionClick(action.id)}
                         className="group relative bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-[#5DE1E5]"
                       >
                         <div className="flex items-start gap-4">
@@ -451,6 +536,120 @@ export default function WhatsAppManager() {
           </div>
         )}
       </div>
+
+      {/* Modal para enviar mensaje de texto */}
+      {showSendMessageModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => !sendingMessage && setShowSendMessageModal(false)}
+            />
+            
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Enviar Mensaje de Texto
+                  </h3>
+                  <button
+                    onClick={() => !sendingMessage && setShowSendMessageModal(false)}
+                    disabled={sendingMessage}
+                    className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="px-6 py-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Número de Teléfono
+                  </label>
+                  <input
+                    type="text"
+                    value={sendMessageForm.phone_number}
+                    onChange={(e) => setSendMessageForm({ ...sendMessageForm, phone_number: e.target.value })}
+                    placeholder="Ej: 573001234567 (con código de país, sin +)"
+                    disabled={sendingMessage}
+                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Incluye el código de país sin el símbolo + (ej: 57 para Colombia, 1 para USA)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mensaje
+                  </label>
+                  <textarea
+                    value={sendMessageForm.message}
+                    onChange={(e) => setSendMessageForm({ ...sendMessageForm, message: e.target.value })}
+                    placeholder="Escribe tu mensaje aquí..."
+                    rows={6}
+                    disabled={sendingMessage}
+                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    {sendMessageForm.message.length} caracteres
+                  </p>
+                </div>
+
+                {selectedAgent && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-600">
+                      <span className="font-medium">Agente:</span> {selectedAgent.name}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="font-medium">Phone Number ID:</span> {agentDetails?.whatsapp_phone_number_id || 'N/A'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowSendMessageModal(false)}
+                  disabled={sendingMessage}
+                  className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSendMessage}
+                  disabled={sendingMessage || !sendMessageForm.phone_number.trim() || !sendMessageForm.message.trim()}
+                  className="px-4 py-2 rounded-lg font-medium text-black bg-[#5DE1E5] hover:bg-[#4BC5C9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {sendingMessage ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent border-black"></div>
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <PaperAirplaneIcon className="h-4 w-4" />
+                      Enviar Mensaje
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </ProtectedLayout>
   );
 }
