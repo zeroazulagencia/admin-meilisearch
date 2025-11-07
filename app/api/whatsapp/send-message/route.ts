@@ -3,16 +3,16 @@ import axios from 'axios';
 import { query } from '@/utils/db';
 import { decrypt } from '@/utils/encryption';
 
-// POST - Enviar mensaje de texto a través de WhatsApp Business API
+// POST - Enviar mensaje a través de WhatsApp Business API
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { agent_id, phone_number, message } = body;
+    const { agent_id, phone_number, message_type = 'text', message, image_url, document_url, document_filename, caption, buttons, list_title, list_description, list_button_text, list_sections } = body;
 
-    if (!agent_id || !phone_number || !message) {
+    if (!agent_id || !phone_number) {
       return NextResponse.json({ 
         ok: false, 
-        error: 'Se requiere agent_id, phone_number y message' 
+        error: 'Se requiere agent_id y phone_number' 
       }, { status: 400 });
     }
 
@@ -52,18 +52,161 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
+    // Construir el payload según el tipo de mensaje
+    let payload: any = {
+      messaging_product: 'whatsapp',
+      to: cleanPhoneNumber,
+    };
+
+    if (message_type === 'text') {
+      if (!message) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Se requiere el campo message para mensajes de texto' 
+        }, { status: 400 });
+      }
+      payload.type = 'text';
+      payload.text = { body: message };
+    } 
+    else if (message_type === 'image') {
+      if (!image_url) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Se requiere image_url para mensajes con imagen' 
+        }, { status: 400 });
+      }
+      payload.type = 'image';
+      payload.image = {
+        link: image_url
+      };
+      if (caption) {
+        payload.image.caption = caption;
+      }
+    }
+    else if (message_type === 'document') {
+      if (!document_url || !document_filename) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Se requiere document_url y document_filename para mensajes con documento' 
+        }, { status: 400 });
+      }
+      payload.type = 'document';
+      payload.document = {
+        link: document_url,
+        filename: document_filename
+      };
+      if (caption) {
+        payload.document.caption = caption;
+      }
+    }
+    else if (message_type === 'buttons') {
+      if (!message || !buttons || !Array.isArray(buttons) || buttons.length === 0) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Se requiere message y al menos un botón válido' 
+        }, { status: 400 });
+      }
+      // Validar que los botones tengan id y title
+      const validButtons = buttons.filter(b => b.id && b.title);
+      if (validButtons.length === 0) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Los botones deben tener id y title' 
+        }, { status: 400 });
+      }
+      if (validButtons.length > 3) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Máximo 3 botones permitidos' 
+        }, { status: 400 });
+      }
+      payload.type = 'interactive';
+      payload.interactive = {
+        type: 'button',
+        body: {
+          text: message
+        },
+        action: {
+          buttons: validButtons.map((btn, idx) => ({
+            type: 'reply',
+            reply: {
+              id: btn.id,
+              title: btn.title
+            }
+          }))
+        }
+      };
+    }
+    else if (message_type === 'list') {
+      if (!list_title || !list_button_text || !list_sections || !Array.isArray(list_sections) || list_sections.length === 0) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Se requiere list_title, list_button_text y al menos una sección' 
+        }, { status: 400 });
+      }
+      // Validar y formatear secciones
+      const validSections = list_sections
+        .filter(s => s.title && s.rows && Array.isArray(s.rows) && s.rows.length > 0)
+        .map(s => ({
+          title: s.title,
+          rows: s.rows
+            .filter(r => r.id && r.title)
+            .map(r => ({
+              id: r.id,
+              title: r.title,
+              description: r.description || ''
+            }))
+        }))
+        .filter(s => s.rows.length > 0);
+
+      if (validSections.length === 0) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Debe haber al menos una sección con filas válidas (id y title)' 
+        }, { status: 400 });
+      }
+
+      if (validSections.length > 10) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Máximo 10 secciones permitidas' 
+        }, { status: 400 });
+      }
+
+      // Validar límites de filas por sección
+      for (const section of validSections) {
+        if (section.rows.length > 10) {
+          return NextResponse.json({ 
+            ok: false, 
+            error: 'Máximo 10 filas por sección' 
+          }, { status: 400 });
+        }
+      }
+
+      payload.type = 'interactive';
+      payload.interactive = {
+        type: 'list',
+        body: {
+          text: list_description || list_title
+        },
+        action: {
+          button: list_button_text,
+          sections: validSections
+        }
+      };
+    }
+    else {
+      return NextResponse.json({ 
+        ok: false, 
+        error: `Tipo de mensaje no soportado: ${message_type}` 
+      }, { status: 400 });
+    }
+
     // Enviar mensaje a través de WhatsApp Business API
     try {
       const response = await axios.post(
         `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-        {
-          messaging_product: 'whatsapp',
-          to: cleanPhoneNumber,
-          type: 'text',
-          text: {
-            body: message
-          }
-        },
+        payload,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -121,4 +264,3 @@ export async function POST(req: NextRequest) {
     }, { status: 500 });
   }
 }
-

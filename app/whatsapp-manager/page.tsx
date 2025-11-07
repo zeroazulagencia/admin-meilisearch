@@ -50,28 +50,12 @@ interface WhatsAppAction {
 
 const whatsappActions: WhatsAppAction[] = [
   {
-    id: 'send-text',
-    title: 'Enviar Mensaje de Texto',
-    description: 'Enviar un mensaje de texto simple a un número de WhatsApp',
+    id: 'send-message',
+    title: 'Enviar Mensaje',
+    description: 'Enviar mensajes de texto, imagen, documento, botones o lista',
     icon: ChatBubbleLeftRightIcon,
     category: 'mensajes',
     color: 'bg-blue-500'
-  },
-  {
-    id: 'send-image',
-    title: 'Enviar Mensaje con Imagen',
-    description: 'Enviar un mensaje con imagen adjunta',
-    icon: PhotoIcon,
-    category: 'mensajes',
-    color: 'bg-green-500'
-  },
-  {
-    id: 'send-document',
-    title: 'Enviar Mensaje con Documento',
-    description: 'Enviar un documento (PDF, DOC, etc.) a través de WhatsApp',
-    icon: DocumentIcon,
-    category: 'mensajes',
-    color: 'bg-purple-500'
   },
   {
     id: 'send-template',
@@ -227,7 +211,20 @@ export default function WhatsAppManager() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const [showSendMessageModal, setShowSendMessageModal] = useState(false);
-  const [sendMessageForm, setSendMessageForm] = useState({ phone_number: '', message: '' });
+  const [messageType, setMessageType] = useState<'text' | 'image' | 'document' | 'buttons' | 'list'>('text');
+  const [sendMessageForm, setSendMessageForm] = useState({ 
+    phone_number: '', 
+    message: '',
+    image_url: '',
+    document_url: '',
+    document_filename: '',
+    caption: '',
+    buttons: [{ id: '', title: '' }],
+    list_title: '',
+    list_description: '',
+    list_button_text: '',
+    list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }]
+  });
   const [sendingMessage, setSendingMessage] = useState(false);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
@@ -294,7 +291,7 @@ export default function WhatsAppManager() {
   };
 
   const handleActionClick = (actionId: string) => {
-    if (actionId === 'send-text') {
+    if (actionId === 'send-message' || actionId === 'send-text' || actionId === 'send-image' || actionId === 'send-document' || actionId === 'send-buttons' || actionId === 'send-list') {
       if (!selectedAgent) {
         setAlertModal({
           isOpen: true,
@@ -304,19 +301,89 @@ export default function WhatsAppManager() {
         });
         return;
       }
+      // Determinar tipo según la acción clickeada
+      if (actionId === 'send-image') setMessageType('image');
+      else if (actionId === 'send-document') setMessageType('document');
+      else if (actionId === 'send-buttons') setMessageType('buttons');
+      else if (actionId === 'send-list') setMessageType('list');
+      else setMessageType('text');
+      
       setShowSendMessageModal(true);
-      setSendMessageForm({ phone_number: '', message: '' });
+      setSendMessageForm({ 
+        phone_number: '', 
+        message: '',
+        image_url: '',
+        document_url: '',
+        document_filename: '',
+        caption: '',
+        buttons: [{ id: '', title: '' }],
+        list_title: '',
+        list_description: '',
+        list_button_text: '',
+        list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }]
+      });
     }
   };
 
   const handleSendMessage = async () => {
     if (!selectedAgent) return;
     
-    if (!sendMessageForm.phone_number.trim() || !sendMessageForm.message.trim()) {
+    // Validaciones según el tipo de mensaje
+    if (!sendMessageForm.phone_number.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campo requerido',
+        message: 'Por favor completa el número de teléfono',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (messageType === 'text' && !sendMessageForm.message.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campo requerido',
+        message: 'Por favor completa el mensaje',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (messageType === 'image' && !sendMessageForm.image_url.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campo requerido',
+        message: 'Por favor proporciona la URL de la imagen',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (messageType === 'document' && (!sendMessageForm.document_url.trim() || !sendMessageForm.document_filename.trim())) {
       setAlertModal({
         isOpen: true,
         title: 'Campos requeridos',
-        message: 'Por favor completa el número de teléfono y el mensaje',
+        message: 'Por favor completa la URL del documento y el nombre del archivo',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (messageType === 'buttons' && (!sendMessageForm.message.trim() || sendMessageForm.buttons.length === 0 || sendMessageForm.buttons.some(b => !b.id.trim() || !b.title.trim()))) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campos requeridos',
+        message: 'Por favor completa el mensaje y al menos un botón con ID y título',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (messageType === 'list' && (!sendMessageForm.list_title.trim() || !sendMessageForm.list_button_text.trim() || sendMessageForm.list_sections.length === 0 || sendMessageForm.list_sections.some(s => s.rows.length === 0))) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campos requeridos',
+        message: 'Por favor completa el título, texto del botón y al menos una sección con filas',
         type: 'warning',
       });
       return;
@@ -332,7 +399,8 @@ export default function WhatsAppManager() {
         body: JSON.stringify({
           agent_id: selectedAgent.id,
           phone_number: sendMessageForm.phone_number.trim(),
-          message: sendMessageForm.message.trim(),
+          message_type: messageType,
+          ...sendMessageForm,
         }),
       });
 
@@ -346,7 +414,20 @@ export default function WhatsAppManager() {
           type: 'success',
         });
         setShowSendMessageModal(false);
-        setSendMessageForm({ phone_number: '', message: '' });
+        setSendMessageForm({ 
+          phone_number: '', 
+          message: '',
+          image_url: '',
+          document_url: '',
+          document_filename: '',
+          caption: '',
+          buttons: [{ id: '', title: '' }],
+          list_title: '',
+          list_description: '',
+          list_button_text: '',
+          list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }]
+        });
+        setMessageType('text');
       } else {
         setAlertModal({
           isOpen: true,
@@ -537,7 +618,7 @@ export default function WhatsAppManager() {
         )}
       </div>
 
-      {/* Modal para enviar mensaje de texto */}
+      {/* Modal para enviar mensaje */}
       {showSendMessageModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
@@ -546,11 +627,11 @@ export default function WhatsAppManager() {
               onClick={() => !sendingMessage && setShowSendMessageModal(false)}
             />
             
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto">
               <div className="px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-gray-900">
-                    Enviar Mensaje de Texto
+                    Enviar Mensaje
                   </h3>
                   <button
                     onClick={() => !sendingMessage && setShowSendMessageModal(false)}
@@ -564,7 +645,27 @@ export default function WhatsAppManager() {
                 </div>
               </div>
               
-              <div className="px-6 py-4 space-y-4">
+              <div className="px-6 py-4 space-y-4 max-h-[calc(90vh-200px)] overflow-y-auto">
+                {/* Selector de tipo de mensaje */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de Mensaje
+                  </label>
+                  <select
+                    value={messageType}
+                    onChange={(e) => setMessageType(e.target.value as 'text' | 'image' | 'document' | 'buttons' | 'list')}
+                    disabled={sendingMessage}
+                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="text">Texto</option>
+                    <option value="image">Imagen</option>
+                    <option value="document">Documento</option>
+                    <option value="buttons">Botones</option>
+                    <option value="list">Lista</option>
+                  </select>
+                </div>
+
+                {/* Número de teléfono (siempre visible) */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Número de Teléfono
@@ -582,22 +683,346 @@ export default function WhatsAppManager() {
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mensaje
-                  </label>
-                  <textarea
-                    value={sendMessageForm.message}
-                    onChange={(e) => setSendMessageForm({ ...sendMessageForm, message: e.target.value })}
-                    placeholder="Escribe tu mensaje aquí..."
-                    rows={6}
-                    disabled={sendingMessage}
-                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    {sendMessageForm.message.length} caracteres
-                  </p>
-                </div>
+                {/* Campos según el tipo de mensaje */}
+                {messageType === 'text' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mensaje
+                    </label>
+                    <textarea
+                      value={sendMessageForm.message}
+                      onChange={(e) => setSendMessageForm({ ...sendMessageForm, message: e.target.value })}
+                      placeholder="Escribe tu mensaje aquí..."
+                      rows={6}
+                      disabled={sendingMessage}
+                      className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      {sendMessageForm.message.length} caracteres
+                    </p>
+                  </div>
+                )}
+
+                {messageType === 'image' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        URL de la Imagen
+                      </label>
+                      <input
+                        type="url"
+                        value={sendMessageForm.image_url}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, image_url: e.target.value })}
+                        placeholder="https://ejemplo.com/imagen.jpg"
+                        disabled={sendingMessage}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        La imagen debe estar públicamente accesible vía HTTPS
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Caption (Opcional)
+                      </label>
+                      <textarea
+                        value={sendMessageForm.caption}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, caption: e.target.value })}
+                        placeholder="Texto que aparecerá con la imagen..."
+                        rows={3}
+                        disabled={sendingMessage}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {messageType === 'document' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        URL del Documento
+                      </label>
+                      <input
+                        type="url"
+                        value={sendMessageForm.document_url}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, document_url: e.target.value })}
+                        placeholder="https://ejemplo.com/documento.pdf"
+                        disabled={sendingMessage}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nombre del Archivo
+                      </label>
+                      <input
+                        type="text"
+                        value={sendMessageForm.document_filename}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, document_filename: e.target.value })}
+                        placeholder="documento.pdf"
+                        disabled={sendingMessage}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Caption (Opcional)
+                      </label>
+                      <textarea
+                        value={sendMessageForm.caption}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, caption: e.target.value })}
+                        placeholder="Texto que aparecerá con el documento..."
+                        rows={3}
+                        disabled={sendingMessage}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {messageType === 'buttons' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mensaje
+                      </label>
+                      <textarea
+                        value={sendMessageForm.message}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, message: e.target.value })}
+                        placeholder="Mensaje que aparecerá antes de los botones..."
+                        rows={4}
+                        disabled={sendingMessage}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Botones (máximo 3)
+                      </label>
+                      {sendMessageForm.buttons.map((button, index) => (
+                        <div key={index} className="mb-3 p-3 border border-gray-200 rounded-lg">
+                          <div className="grid grid-cols-2 gap-2 mb-2">
+                            <input
+                              type="text"
+                              value={button.id}
+                              onChange={(e) => {
+                                const newButtons = [...sendMessageForm.buttons];
+                                newButtons[index].id = e.target.value;
+                                setSendMessageForm({ ...sendMessageForm, buttons: newButtons });
+                              }}
+                              placeholder="ID del botón (ej: btn1)"
+                              disabled={sendingMessage}
+                              className="block w-full rounded-md bg-white px-3 py-2 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            />
+                            <input
+                              type="text"
+                              value={button.title}
+                              onChange={(e) => {
+                                const newButtons = [...sendMessageForm.buttons];
+                                newButtons[index].title = e.target.value;
+                                setSendMessageForm({ ...sendMessageForm, buttons: newButtons });
+                              }}
+                              placeholder="Título del botón"
+                              disabled={sendingMessage}
+                              className="block w-full rounded-md bg-white px-3 py-2 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            />
+                          </div>
+                          {sendMessageForm.buttons.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newButtons = sendMessageForm.buttons.filter((_, i) => i !== index);
+                                setSendMessageForm({ ...sendMessageForm, buttons: newButtons });
+                              }}
+                              disabled={sendingMessage}
+                              className="text-xs text-red-600 hover:text-red-800"
+                            >
+                              Eliminar
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {sendMessageForm.buttons.length < 3 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSendMessageForm({ ...sendMessageForm, buttons: [...sendMessageForm.buttons, { id: '', title: '' }] });
+                          }}
+                          disabled={sendingMessage}
+                          className="text-sm text-[#5DE1E5] hover:text-[#4BC5C9] font-medium"
+                        >
+                          + Agregar Botón
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {messageType === 'list' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Título de la Lista
+                      </label>
+                      <input
+                        type="text"
+                        value={sendMessageForm.list_title}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, list_title: e.target.value })}
+                        placeholder="Título (máximo 60 caracteres)"
+                        disabled={sendingMessage}
+                        maxLength={60}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Descripción (Opcional)
+                      </label>
+                      <textarea
+                        value={sendMessageForm.list_description}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, list_description: e.target.value })}
+                        placeholder="Descripción de la lista..."
+                        rows={2}
+                        disabled={sendingMessage}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Texto del Botón
+                      </label>
+                      <input
+                        type="text"
+                        value={sendMessageForm.list_button_text}
+                        onChange={(e) => setSendMessageForm({ ...sendMessageForm, list_button_text: e.target.value })}
+                        placeholder="Texto del botón (máximo 20 caracteres)"
+                        disabled={sendingMessage}
+                        maxLength={20}
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Secciones y Filas
+                      </label>
+                      <p className="text-xs text-gray-500 mb-2">
+                        Máximo 10 secciones, cada una con máximo 10 filas
+                      </p>
+                      {sendMessageForm.list_sections.map((section, sectionIndex) => (
+                        <div key={sectionIndex} className="mb-4 p-3 border border-gray-200 rounded-lg">
+                          <input
+                            type="text"
+                            value={section.title}
+                            onChange={(e) => {
+                              const newSections = [...sendMessageForm.list_sections];
+                              newSections[sectionIndex].title = e.target.value;
+                              setSendMessageForm({ ...sendMessageForm, list_sections: newSections });
+                            }}
+                            placeholder="Título de la sección"
+                            disabled={sendingMessage}
+                            className="block w-full rounded-md bg-white px-3 py-2 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] mb-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                          {section.rows.map((row, rowIndex) => (
+                            <div key={rowIndex} className="mb-2 p-2 bg-gray-50 rounded">
+                              <div className="grid grid-cols-3 gap-2">
+                                <input
+                                  type="text"
+                                  value={row.id}
+                                  onChange={(e) => {
+                                    const newSections = [...sendMessageForm.list_sections];
+                                    newSections[sectionIndex].rows[rowIndex].id = e.target.value;
+                                    setSendMessageForm({ ...sendMessageForm, list_sections: newSections });
+                                  }}
+                                  placeholder="ID"
+                                  disabled={sendingMessage}
+                                  className="block w-full rounded-md bg-white px-2 py-1 text-xs text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                />
+                                <input
+                                  type="text"
+                                  value={row.title}
+                                  onChange={(e) => {
+                                    const newSections = [...sendMessageForm.list_sections];
+                                    newSections[sectionIndex].rows[rowIndex].title = e.target.value;
+                                    setSendMessageForm({ ...sendMessageForm, list_sections: newSections });
+                                  }}
+                                  placeholder="Título"
+                                  disabled={sendingMessage}
+                                  className="block w-full rounded-md bg-white px-2 py-1 text-xs text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                />
+                                <input
+                                  type="text"
+                                  value={row.description}
+                                  onChange={(e) => {
+                                    const newSections = [...sendMessageForm.list_sections];
+                                    newSections[sectionIndex].rows[rowIndex].description = e.target.value;
+                                    setSendMessageForm({ ...sendMessageForm, list_sections: newSections });
+                                  }}
+                                  placeholder="Descripción"
+                                  disabled={sendingMessage}
+                                  className="block w-full rounded-md bg-white px-2 py-1 text-xs text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                />
+                              </div>
+                              {section.rows.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newSections = [...sendMessageForm.list_sections];
+                                    newSections[sectionIndex].rows = newSections[sectionIndex].rows.filter((_, i) => i !== rowIndex);
+                                    setSendMessageForm({ ...sendMessageForm, list_sections: newSections });
+                                  }}
+                                  disabled={sendingMessage}
+                                  className="text-xs text-red-600 hover:text-red-800 mt-1"
+                                >
+                                  Eliminar fila
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          {section.rows.length < 10 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSections = [...sendMessageForm.list_sections];
+                                newSections[sectionIndex].rows.push({ id: '', title: '', description: '' });
+                                setSendMessageForm({ ...sendMessageForm, list_sections: newSections });
+                              }}
+                              disabled={sendingMessage}
+                              className="text-xs text-[#5DE1E5] hover:text-[#4BC5C9] font-medium"
+                            >
+                              + Agregar Fila
+                            </button>
+                          )}
+                          {sendMessageForm.list_sections.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSections = sendMessageForm.list_sections.filter((_, i) => i !== sectionIndex);
+                                setSendMessageForm({ ...sendMessageForm, list_sections: newSections });
+                              }}
+                              disabled={sendingMessage}
+                              className="text-xs text-red-600 hover:text-red-800 mt-2"
+                            >
+                              Eliminar sección
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {sendMessageForm.list_sections.length < 10 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSendMessageForm({ ...sendMessageForm, list_sections: [...sendMessageForm.list_sections, { title: '', rows: [{ id: '', title: '', description: '' }] }] });
+                          }}
+                          disabled={sendingMessage}
+                          className="text-sm text-[#5DE1E5] hover:text-[#4BC5C9] font-medium"
+                        >
+                          + Agregar Sección
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
@@ -626,9 +1051,25 @@ export default function WhatsAppManager() {
                 )}
               </div>
 
-              <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+              <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
                 <button
-                  onClick={() => setShowSendMessageModal(false)}
+                  onClick={() => {
+                    setShowSendMessageModal(false);
+                    setMessageType('text');
+                    setSendMessageForm({ 
+                      phone_number: '', 
+                      message: '',
+                      image_url: '',
+                      document_url: '',
+                      document_filename: '',
+                      caption: '',
+                      buttons: [{ id: '', title: '' }],
+                      list_title: '',
+                      list_description: '',
+                      list_button_text: '',
+                      list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }]
+                    });
+                  }}
                   disabled={sendingMessage}
                   className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -636,7 +1077,13 @@ export default function WhatsAppManager() {
                 </button>
                 <button
                   onClick={handleSendMessage}
-                  disabled={sendingMessage || !sendMessageForm.phone_number.trim() || !sendMessageForm.message.trim()}
+                  disabled={sendingMessage || !sendMessageForm.phone_number.trim() || 
+                    (messageType === 'text' && !sendMessageForm.message.trim()) ||
+                    (messageType === 'image' && !sendMessageForm.image_url.trim()) ||
+                    (messageType === 'document' && (!sendMessageForm.document_url.trim() || !sendMessageForm.document_filename.trim())) ||
+                    (messageType === 'buttons' && (!sendMessageForm.message.trim() || sendMessageForm.buttons.some(b => !b.id.trim() || !b.title.trim()))) ||
+                    (messageType === 'list' && (!sendMessageForm.list_title.trim() || !sendMessageForm.list_button_text.trim()))
+                  }
                   className="px-4 py-2 rounded-lg font-medium text-black bg-[#5DE1E5] hover:bg-[#4BC5C9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {sendingMessage ? (
