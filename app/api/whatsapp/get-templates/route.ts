@@ -44,38 +44,46 @@ export async function POST(req: NextRequest) {
     // Desencriptar el access token
     const accessToken = decrypt(encryptedAccessToken);
 
-    // Obtener el WABA ID desde el Phone Number ID si no tenemos Business Account ID o si falla
-    let wabaId = businessAccountId;
+    if (!phoneNumberId) {
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'El agente no tiene Phone Number ID configurado' 
+      }, { status: 400 });
+    }
+
+    // Obtener el WABA ID desde el Phone Number ID (más confiable que usar el Business Account ID directamente)
+    let wabaId = null;
     
-    // Si no hay Business Account ID o si falla, intentar obtenerlo desde el Phone Number ID
-    if (!wabaId && phoneNumberId) {
-      try {
-        const phoneInfoResponse = await axios.get(
-          `https://graph.facebook.com/v21.0/${phoneNumberId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            params: {
-              fields: 'whatsapp_business_account.id'
-            },
-            timeout: 10000
-          }
-        );
-        
-        if (phoneInfoResponse.data?.whatsapp_business_account?.id) {
-          wabaId = phoneInfoResponse.data.whatsapp_business_account.id;
+    try {
+      const phoneInfoResponse = await axios.get(
+        `https://graph.facebook.com/v21.0/${phoneNumberId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          params: {
+            fields: 'whatsapp_business_account.id'
+          },
+          timeout: 10000
         }
-      } catch (e) {
-        console.error('[WHATSAPP GET TEMPLATES] Error obteniendo WABA ID desde Phone Number ID:', e);
+      );
+      
+      if (phoneInfoResponse.data?.whatsapp_business_account?.id) {
+        wabaId = phoneInfoResponse.data.whatsapp_business_account.id;
+      }
+    } catch (e: any) {
+      console.error('[WHATSAPP GET TEMPLATES] Error obteniendo WABA ID desde Phone Number ID:', e?.response?.data || e?.message);
+      // Si falla, intentar usar el Business Account ID directamente como fallback
+      if (businessAccountId) {
+        wabaId = businessAccountId;
       }
     }
 
     if (!wabaId) {
       return NextResponse.json({ 
         ok: false, 
-        error: 'No se pudo obtener el Business Account ID. Verifica la configuración del agente.' 
+        error: 'No se pudo obtener el Business Account ID. Verifica que el Phone Number ID y el Access Token sean correctos y tengan los permisos necesarios.' 
       }, { status: 400 });
     }
 
