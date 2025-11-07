@@ -2146,8 +2146,8 @@ export default function AdminConocimiento() {
                 <button
                   onClick={handleLoadWeb}
                   disabled={loadingWeb || !webUrl.trim()}
-                  className="px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: '#5DE1E5' }}
+                  className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: '#5DE1E5', color: '#000000' }}
                 >
                   {loadingWeb ? 'Cargando...' : 'Cargar'}
                 </button>

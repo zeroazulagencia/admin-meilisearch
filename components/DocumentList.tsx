@@ -308,8 +308,8 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               {onLoadWeb && (
                 <button
                   onClick={onLoadWeb}
-                  className="px-4 py-2 rounded-lg text-white transition-colors"
-                  style={{ backgroundColor: '#5DE1E5' }}
+                  className="px-4 py-2 rounded-lg transition-colors"
+                  style={{ backgroundColor: '#5DE1E5', color: '#000000' }}
                 >
                   Cargar desde URL
                 </button>
@@ -317,16 +317,16 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               {onLoadPdf && (
                 <button
                   onClick={onLoadPdf}
-                  className="px-4 py-2 rounded-lg text-white transition-colors"
-                  style={{ backgroundColor: '#5DE1E5' }}
+                  className="px-4 py-2 rounded-lg transition-colors"
+                  style={{ backgroundColor: '#5DE1E5', color: '#000000' }}
                 >
                   Cargar PDF {uploadProgressCount > 0 && <span className="ml-1 text-xs">({uploadProgressCount} errores)</span>}
                 </button>
               )}
               <button
                 onClick={handleCreate}
-                className="px-4 py-2 rounded-lg text-white transition-colors"
-                style={{ backgroundColor: '#5DE1E5' }}
+                className="px-4 py-2 rounded-lg transition-colors"
+                style={{ backgroundColor: '#5DE1E5', color: '#000000' }}
               >
                 Nuevo Documento
               </button>
