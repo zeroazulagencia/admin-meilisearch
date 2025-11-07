@@ -1325,18 +1325,93 @@ export default function AdminConocimiento() {
                   )}
 
               <IndexProperties indexUid={selectedIndex.uid} />
-                  <DocumentList 
-                    indexUid={selectedIndex.uid}
-                    onLoadPdf={() => {
-                      setShowPdfModal(true);
-                      // Si hay progreso, ir directamente al paso de revisión
-                      if (uploadProgress.length > 0) {
-                        setPdfStep('review');
+              
+              {/* Botones para cargar contenido */}
+              <div className="flex gap-3 mb-6">
+                <button
+                  onClick={() => {
+                    setShowPdfModal(true);
+                    setPdfStep('text');
+                    // Si hay progreso, ir directamente al paso de revisión
+                    if (uploadProgress.length > 0) {
+                      setPdfStep('review');
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg text-white transition-colors"
+                  style={{ backgroundColor: '#5DE1E5' }}
+                >
+                  Cargar PDF
+                </button>
+                <button
+                  onClick={async () => {
+                    const url = prompt('Ingresa la URL del contenido web:');
+                    if (!url || !url.trim()) return;
+                    
+                    setLoadingWeb(true);
+                    setPdfText('');
+                    
+                    try {
+                      const response = await fetch('/api/parse-web', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ url: url.trim() })
+                      });
+                      
+                      const data = await response.json();
+                      
+                      if (data.success && data.markdown) {
+                        setPdfText(data.markdown);
+                        setShowPdfModal(true);
+                        setPdfStep('text');
+                        setAlertModal({
+                          isOpen: true,
+                          title: 'Éxito',
+                          message: `Contenido cargado desde ${data.url}`,
+                          type: 'success'
+                        });
+                      } else {
+                        const errorMessage = data.error || 'Error desconocido';
+                        setAlertModal({
+                          isOpen: true,
+                          title: 'Error',
+                          message: errorMessage,
+                          type: 'error'
+                        });
                       }
-                    }}
-                    uploadProgressCount={uploadProgress.filter(p => p.status === 'failed').length}
-                    onRefresh={refreshIndex}
-                  />
+                    } catch (error: any) {
+                      console.error('[WEB-UPLOAD] Error al procesar URL:', error);
+                      setAlertModal({
+                        isOpen: true,
+                        title: 'Error',
+                        message: `Error al procesar la URL: ${error.message || 'Error desconocido'}`,
+                        type: 'error'
+                      });
+                    } finally {
+                      setLoadingWeb(false);
+                    }
+                  }}
+                  disabled={loadingWeb}
+                  className="px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: '#5DE1E5' }}
+                >
+                  {loadingWeb ? 'Cargando...' : 'Cargar desde URL'}
+                </button>
+              </div>
+              
+              <DocumentList 
+                indexUid={selectedIndex.uid}
+                onLoadPdf={() => {
+                  setShowPdfModal(true);
+                  // Si hay progreso, ir directamente al paso de revisión
+                  if (uploadProgress.length > 0) {
+                    setPdfStep('review');
+                  }
+                }}
+                uploadProgressCount={uploadProgress.filter(p => p.status === 'failed').length}
+                onRefresh={refreshIndex}
+              />
             </>
           )}
             </>
@@ -1379,91 +1454,6 @@ export default function AdminConocimiento() {
             </div>
             
             <div className="p-6 flex-1 overflow-auto">
-              {/* Opción para cargar desde URL */}
-              <div className="mb-6 pb-6 border-b border-gray-200">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cargar desde URL
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={webUrl}
-                    onChange={(e) => setWebUrl(e.target.value)}
-                    placeholder="https://ejemplo.com/pagina"
-                    disabled={loadingWeb || loadingPdf}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                  />
-                  <button
-                    onClick={async () => {
-                      if (!webUrl || !webUrl.trim()) {
-                        setAlertModal({
-                          isOpen: true,
-                          title: 'Error',
-                          message: 'Por favor ingresa una URL válida',
-                          type: 'error'
-                        });
-                        return;
-                      }
-                      
-                      setLoadingWeb(true);
-                      setPdfText('');
-                      
-                      try {
-                        const response = await fetch('/api/parse-web', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({ url: webUrl.trim() })
-                        });
-                        
-                        const data = await response.json();
-                        
-                        if (data.success && data.markdown) {
-                          setPdfText(data.markdown);
-                          setAlertModal({
-                            isOpen: true,
-                            title: 'Éxito',
-                            message: `Contenido cargado desde ${data.url}`,
-                            type: 'success'
-                          });
-                        } else {
-                          const errorMessage = data.error || 'Error desconocido';
-                          setPdfText(`Error: ${errorMessage}`);
-                          setAlertModal({
-                            isOpen: true,
-                            title: 'Error',
-                            message: errorMessage,
-                            type: 'error'
-                          });
-                        }
-                      } catch (error: any) {
-                        console.error('[WEB-UPLOAD] Error al procesar URL:', error);
-                        setPdfText(`Error al procesar la URL: ${error.message || 'Error desconocido'}`);
-                        setAlertModal({
-                          isOpen: true,
-                          title: 'Error',
-                          message: `Error al procesar la URL: ${error.message || 'Error desconocido'}`,
-                          type: 'error'
-                        });
-                      } finally {
-                        setLoadingWeb(false);
-                      }
-                    }}
-                    disabled={loadingWeb || loadingPdf || !webUrl.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loadingWeb ? 'Cargando...' : 'Cargar'}
-                  </button>
-                </div>
-                {loadingWeb && (
-                  <div className="flex items-center mt-2 text-sm text-gray-600">
-                    <div className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full mr-2" style={{ borderColor: '#5DE1E5' }}></div>
-                    Procesando URL...
-                  </div>
-                )}
-              </div>
-              
               {/* Opción para cargar PDF */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1472,7 +1462,7 @@ export default function AdminConocimiento() {
                 <input
                   type="file"
                   accept=".pdf"
-                  disabled={loadingPdf || loadingWeb}
+                  disabled={loadingPdf}
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) {
