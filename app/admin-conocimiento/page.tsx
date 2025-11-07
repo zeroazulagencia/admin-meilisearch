@@ -60,6 +60,50 @@ export default function AdminConocimiento() {
   });
   const [showCodeModal, setShowCodeModal] = useState(false);
   
+  // Función para cargar contenido desde URL
+  const handleLoadWeb = async () => {
+    if (!webUrl || !webUrl.trim()) return;
+    
+    setLoadingWeb(true);
+    setPdfText('');
+    
+    try {
+      const response = await fetch('/api/parse-web', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: webUrl.trim() })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.markdown) {
+        setPdfText(data.markdown);
+        setShowPdfModal(true);
+        setPdfStep('text');
+        setShowWebUrlModal(false);
+        setWebUrl('');
+      } else {
+        const errorMessage = data.error || 'Error desconocido';
+        setPdfText(`Error: ${errorMessage}`);
+        setShowPdfModal(true);
+        setPdfStep('text');
+        setShowWebUrlModal(false);
+        setWebUrl('');
+      }
+    } catch (error: any) {
+      console.error('[WEB-UPLOAD] Error al procesar URL:', error);
+      setPdfText(`Error al procesar la URL: ${error.message || 'Error desconocido'}`);
+      setShowPdfModal(true);
+      setPdfStep('text');
+      setShowWebUrlModal(false);
+      setWebUrl('');
+    } finally {
+      setLoadingWeb(false);
+    }
+  };
+
   // Calcular cantidad de chunks basado en el símbolo [separador]
   const calculateChunks = (text: string): number => {
     if (!text || text.trim().length === 0) return 1;
