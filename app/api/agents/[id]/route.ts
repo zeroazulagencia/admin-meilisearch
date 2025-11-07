@@ -144,36 +144,27 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       encryptedAppSecret = encrypt(encryptedAppSecret);
     }
     
-    // Primero intentar con todos los campos (reports_agent_name y WhatsApp), si falla intentar sin WhatsApp
+    // Verificar si las columnas de WhatsApp existen antes de intentar actualizar
+    let whatsappColumnsExist = false;
     try {
-      await query(
-        'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ?, whatsapp_business_account_id = ?, whatsapp_phone_number_id = ?, whatsapp_access_token = ?, whatsapp_webhook_verify_token = ?, whatsapp_app_secret = ? WHERE id = ?',
-        [
-          body.client_id,
-          body.name,
-          body.description || null,
-          body.photo || null,
-          JSON.stringify(body.knowledge || {}),
-          JSON.stringify(body.workflows || {}),
-          body.conversation_agent_name || null,
-          body.reports_agent_name || null,
-          body.whatsapp_business_account_id || null,
-          body.whatsapp_phone_number_id || null,
-          encryptedAccessToken,
-          encryptedWebhookToken,
-          encryptedAppSecret,
-          id
-        ]
+      const [columnCheck] = await query<any>(
+        `SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'agents' 
+         AND COLUMN_NAME IN ('whatsapp_business_account_id', 'whatsapp_phone_number_id', 'whatsapp_access_token', 'whatsapp_webhook_verify_token', 'whatsapp_app_secret')`
       );
-      console.log('[API AGENTS] Successfully updated with all fields');
-      return NextResponse.json({ ok: true });
-    } catch (e: any) {
-      // Si falla, probablemente las columnas de WhatsApp no existen, intentar sin ellas pero con reports_agent_name
-      console.log('[API AGENTS] Error updating with WhatsApp fields, trying without them:', e?.message);
-      
+      whatsappColumnsExist = columnCheck && columnCheck.length > 0 && columnCheck[0].count === 5;
+    } catch (checkError) {
+      console.log('[API AGENTS] Error checking WhatsApp columns:', checkError);
+      // Si no podemos verificar, asumir que no existen
+      whatsappColumnsExist = false;
+    }
+
+    // Intentar actualizar con todos los campos si las columnas existen
+    if (whatsappColumnsExist) {
       try {
         await query(
-          'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ? WHERE id = ?',
+          'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ?, whatsapp_business_account_id = ?, whatsapp_phone_number_id = ?, whatsapp_access_token = ?, whatsapp_webhook_verify_token = ?, whatsapp_app_secret = ? WHERE id = ?',
           [
             body.client_id,
             body.name,
@@ -183,36 +174,84 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             JSON.stringify(body.workflows || {}),
             body.conversation_agent_name || null,
             body.reports_agent_name || null,
+            body.whatsapp_business_account_id || null,
+            body.whatsapp_phone_number_id || null,
+            encryptedAccessToken,
+            encryptedWebhookToken,
+            encryptedAppSecret,
             id
           ]
         );
-        console.log('[API AGENTS] Successfully updated with reports_agent_name (without WhatsApp fields)');
-        return NextResponse.json({ 
-          ok: true, 
-          warning: 'Las columnas de WhatsApp no existen en la base de datos. Ejecuta la migración SQL para habilitar esta funcionalidad.' 
-        });
-      } catch (e2: any) {
-        // Si también falla, probablemente reports_agent_name no existe
-        console.log('[API AGENTS] Error updating with reports_agent_name, trying without it:', e2?.message);
-        
-    await query(
-          'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ? WHERE id = ?',
-      [
-        body.client_id,
-        body.name,
-        body.description || null,
-        body.photo || null,
-        JSON.stringify(body.knowledge || {}),
-        JSON.stringify(body.workflows || {}),
-        body.conversation_agent_name || null,
-        id
-      ]
-    );
-        
-        return NextResponse.json({ 
-          ok: true, 
-          warning: 'Las columnas reports_agent_name y WhatsApp no existen en la base de datos. Ejecuta las migraciones SQL para habilitar esta funcionalidad.' 
-        });
+        console.log('[API AGENTS] Successfully updated with all fields including WhatsApp');
+        return NextResponse.json({ ok: true });
+      } catch (e: any) {
+        // Si las columnas existen pero falla el UPDATE, es un error real
+        console.error('[API AGENTS] Error updating with WhatsApp fields (columns exist):', e?.message);
+        throw new Error('Error al actualizar agente: ' + (e?.message || 'Error desconocido'));
+      }
+    } else {
+      // Si las columnas no existen, actualizar sin ellas
+      console.log('[API AGENTS] WhatsApp columns do not exist, updating without them');
+      
+      // Verificar si reports_agent_name existe
+      let reportsAgentNameExists = false;
+      try {
+        const [reportsCheck] = await query<any>(
+          `SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = DATABASE() 
+           AND TABLE_NAME = 'agents' 
+           AND COLUMN_NAME = 'reports_agent_name'`
+        );
+        reportsAgentNameExists = reportsCheck && reportsCheck.length > 0 && reportsCheck[0].count === 1;
+      } catch (checkError) {
+        console.log('[API AGENTS] Error checking reports_agent_name column:', checkError);
+        reportsAgentNameExists = false;
+      }
+
+      if (reportsAgentNameExists) {
+        try {
+          await query(
+            'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ? WHERE id = ?',
+            [
+              body.client_id,
+              body.name,
+              body.description || null,
+              body.photo || null,
+              JSON.stringify(body.knowledge || {}),
+              JSON.stringify(body.workflows || {}),
+              body.conversation_agent_name || null,
+              body.reports_agent_name || null,
+              id
+            ]
+          );
+          console.log('[API AGENTS] Successfully updated without WhatsApp fields');
+          return NextResponse.json({ ok: true });
+        } catch (e2: any) {
+          console.error('[API AGENTS] Error updating without WhatsApp fields:', e2?.message);
+          throw new Error('Error al actualizar agente: ' + (e2?.message || 'Error desconocido'));
+        }
+      } else {
+        // Si reports_agent_name tampoco existe, actualizar sin él
+        try {
+          await query(
+            'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ? WHERE id = ?',
+            [
+              body.client_id,
+              body.name,
+              body.description || null,
+              body.photo || null,
+              JSON.stringify(body.knowledge || {}),
+              JSON.stringify(body.workflows || {}),
+              body.conversation_agent_name || null,
+              id
+            ]
+          );
+          console.log('[API AGENTS] Successfully updated without reports_agent_name and WhatsApp fields');
+          return NextResponse.json({ ok: true });
+        } catch (e3: any) {
+          console.error('[API AGENTS] Error updating with basic fields:', e3?.message);
+          throw new Error('Error al actualizar agente: ' + (e3?.message || 'Error desconocido'));
+        }
       }
     }
   } catch (e: any) {
