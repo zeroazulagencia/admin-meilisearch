@@ -20,6 +20,16 @@ export default function Roadmap() {
     day: 'numeric' 
   });
 
+  // Obtener fecha de ayer en formato legible
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayFormatted = yesterday.toLocaleDateString('es-ES', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
   // Items del roadmap - Hoy y futuros
   const roadmapItems: RoadmapItem[] = [
     {
@@ -35,31 +45,31 @@ export default function Roadmap() {
       completed: true,
     },
     {
-      date: todayFormatted,
+      date: yesterdayFormatted,
       title: 'Implementación de selectores de agentes con Headless UI',
       description: 'Actualización de todos los selectores de agentes en el sistema para usar el componente moderno con Headless UI',
       completed: true,
     },
     {
-      date: todayFormatted,
+      date: yesterdayFormatted,
       title: 'Resaltado visual de separadores en PDFs',
       description: 'Mejora en la visualización de separadores [separador] en el proceso de carga de PDFs',
       completed: true,
     },
     {
-      date: todayFormatted,
+      date: yesterdayFormatted,
       title: 'Agregación de servicios de consumo API',
       description: 'Integración de nuevos dashboards: AWS Lightsail, AWS Billing y RapidAPI',
       completed: true,
     },
     {
-      date: todayFormatted,
+      date: yesterdayFormatted,
       title: 'Filtrado mejorado de agentes',
       description: 'Los listados ahora muestran solo agentes identificados según el contexto',
       completed: true,
     },
     {
-      date: todayFormatted,
+      date: yesterdayFormatted,
       title: 'Modales de instrucciones con curl',
       description: 'Agregación de botones de código con instrucciones para inserción de datos en Meilisearch',
       completed: true,
