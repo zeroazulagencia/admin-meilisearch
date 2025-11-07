@@ -146,18 +146,18 @@ export async function POST(req: NextRequest) {
       }
       // Validar y formatear secciones
       const validSections = list_sections
-        .filter(s => s.title && s.rows && Array.isArray(s.rows) && s.rows.length > 0)
-        .map(s => ({
+        .filter((s: any) => s.title && s.rows && Array.isArray(s.rows) && s.rows.length > 0)
+        .map((s: any) => ({
           title: s.title,
           rows: s.rows
-            .filter(r => r.id && r.title)
-            .map(r => ({
+            .filter((r: any) => r.id && r.title)
+            .map((r: any) => ({
               id: r.id,
               title: r.title,
               description: r.description || ''
             }))
         }))
-        .filter(s => s.rows.length > 0);
+        .filter((s: any) => s.rows.length > 0);
 
       if (validSections.length === 0) {
         return NextResponse.json({ 
