@@ -644,7 +644,48 @@ export default function AdminConocimiento() {
                 structuredFields[i][fieldInfo.name] = 0;
               } else {
                 // Para strings, intentar extraer del texto antes de usar vacío
-                const extractedValue = extractFieldValue(chunk.text, fieldInfo.name);
+                let extractedValue = extractFieldValue(chunk.text, fieldInfo.name);
+                
+                // Si no se encontró, intentar inferir del contexto según el nombre del campo
+                if (!extractedValue) {
+                  const fieldNameLower = fieldInfo.name.toLowerCase();
+                  
+                  // Intentar inferir categoria del título o contenido
+                  if (fieldNameLower.includes('categoria') || fieldNameLower.includes('categoría')) {
+                    // Buscar palabras clave comunes en el texto
+                    const textoLower = chunk.text.toLowerCase();
+                    if (textoLower.includes('auditorio')) extractedValue = 'Espacios';
+                    else if (textoLower.includes('stand') || textoLower.includes('activacion')) extractedValue = 'Activaciones';
+                    else if (textoLower.includes('publicidad') || textoLower.includes('publicitario')) extractedValue = 'Publicidad';
+                    else extractedValue = 'General';
+                  }
+                  
+                  // Intentar inferir tags del contenido
+                  if (fieldNameLower.includes('tag') || fieldNameLower.includes('palabra') || fieldNameLower.includes('clave')) {
+                    const palabrasClave: string[] = [];
+                    const textoLower = chunk.text.toLowerCase();
+                    
+                    // Extraer palabras clave comunes
+                    if (textoLower.includes('auditorio')) palabrasClave.push('auditorio');
+                    if (textoLower.includes('evento')) palabrasClave.push('evento');
+                    if (textoLower.includes('reunion')) palabrasClave.push('reunión');
+                    if (textoLower.includes('capacidad')) palabrasClave.push('capacidad');
+                    if (textoLower.includes('sonido')) palabrasClave.push('sonido');
+                    if (textoLower.includes('wifi')) palabrasClave.push('wifi');
+                    if (textoLower.includes('parqueadero')) palabrasClave.push('parqueadero');
+                    
+                    if (palabrasClave.length > 0) {
+                      structuredFields[i][fieldInfo.name] = palabrasClave;
+                      continue; // Saltar al siguiente campo
+                    }
+                  }
+                  
+                  // Intentar inferir datetime (fecha actual si no hay información)
+                  if (fieldNameLower.includes('datetime') || fieldNameLower.includes('fecha') || fieldNameLower.includes('date')) {
+                    extractedValue = new Date().toISOString();
+                  }
+                }
+                
                 structuredFields[i][fieldInfo.name] = extractedValue || '';
               }
             }
