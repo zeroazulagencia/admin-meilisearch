@@ -30,6 +30,7 @@ export default function AdminConocimiento() {
   const [pdfIdPrefix, setPdfIdPrefix] = useState<string>('');
   const [webUrl, setWebUrl] = useState<string>('');
   const [loadingWeb, setLoadingWeb] = useState(false);
+  const [showWebUrlModal, setShowWebUrlModal] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   
@@ -1326,80 +1327,6 @@ export default function AdminConocimiento() {
 
               <IndexProperties indexUid={selectedIndex.uid} />
               
-              {/* Botones para cargar contenido */}
-              <div className="flex gap-3 mb-6">
-                <button
-                  onClick={() => {
-                    setShowPdfModal(true);
-                    setPdfStep('text');
-                    // Si hay progreso, ir directamente al paso de revisión
-                    if (uploadProgress.length > 0) {
-                      setPdfStep('review');
-                    }
-                  }}
-                  className="px-4 py-2 rounded-lg text-white transition-colors"
-                  style={{ backgroundColor: '#5DE1E5' }}
-                >
-                  Cargar PDF
-                </button>
-                <button
-                  onClick={async () => {
-                    const url = prompt('Ingresa la URL del contenido web:');
-                    if (!url || !url.trim()) return;
-                    
-                    setLoadingWeb(true);
-                    setPdfText('');
-                    
-                    try {
-                      const response = await fetch('/api/parse-web', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ url: url.trim() })
-                      });
-                      
-                      const data = await response.json();
-                      
-                      if (data.success && data.markdown) {
-                        setPdfText(data.markdown);
-                        setShowPdfModal(true);
-                        setPdfStep('text');
-                        setAlertModal({
-                          isOpen: true,
-                          title: 'Éxito',
-                          message: `Contenido cargado desde ${data.url}`,
-                          type: 'success'
-                        });
-                      } else {
-                        const errorMessage = data.error || 'Error desconocido';
-                        setAlertModal({
-                          isOpen: true,
-                          title: 'Error',
-                          message: errorMessage,
-                          type: 'error'
-                        });
-                      }
-                    } catch (error: any) {
-                      console.error('[WEB-UPLOAD] Error al procesar URL:', error);
-                      setAlertModal({
-                        isOpen: true,
-                        title: 'Error',
-                        message: `Error al procesar la URL: ${error.message || 'Error desconocido'}`,
-                        type: 'error'
-                      });
-                    } finally {
-                      setLoadingWeb(false);
-                    }
-                  }}
-                  disabled={loadingWeb}
-                  className="px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: '#5DE1E5' }}
-                >
-                  {loadingWeb ? 'Cargando...' : 'Cargar desde URL'}
-                </button>
-              </div>
-              
               <DocumentList 
                 indexUid={selectedIndex.uid}
                 onLoadPdf={() => {
@@ -1408,6 +1335,9 @@ export default function AdminConocimiento() {
                   if (uploadProgress.length > 0) {
                     setPdfStep('review');
                   }
+                }}
+                onLoadWeb={() => {
+                  setShowWebUrlModal(true);
                 }}
                 uploadProgressCount={uploadProgress.filter(p => p.status === 'failed').length}
                 onRefresh={refreshIndex}

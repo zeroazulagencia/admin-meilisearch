@@ -8,11 +8,12 @@ import AlertModal from './ui/AlertModal';
 interface DocumentListProps {
   indexUid: string;
   onLoadPdf?: () => void;
+  onLoadWeb?: () => void;
   uploadProgressCount?: number;
   onRefresh?: () => void;
 }
 
-export default function DocumentList({ indexUid, onLoadPdf, uploadProgressCount = 0, onRefresh }: DocumentListProps) {
+export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadProgressCount = 0, onRefresh }: DocumentListProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -294,7 +295,7 @@ export default function DocumentList({ indexUid, onLoadPdf, uploadProgressCount 
             <h2 className="text-xl font-semibold text-gray-800">
               Documentos ({total})
             </h2>
-            <div className="space-x-2">
+            <div className="space-x-2 flex gap-2">
               {selectedDocs.size > 0 && (
                 <button
                   onClick={handleDeleteSelected}
@@ -304,19 +305,30 @@ export default function DocumentList({ indexUid, onLoadPdf, uploadProgressCount 
                   {deleting ? '⏳ Eliminando...' : `Eliminar Seleccionados (${selectedDocs.size})`}
                 </button>
               )}
+              {onLoadWeb && (
+                <button
+                  onClick={onLoadWeb}
+                  className="px-4 py-2 rounded-lg text-white transition-colors"
+                  style={{ backgroundColor: '#5DE1E5' }}
+                >
+                  Cargar desde URL
+                </button>
+              )}
               {onLoadPdf && (
                 <button
                   onClick={onLoadPdf}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                  className="px-4 py-2 rounded-lg text-white transition-colors"
+                  style={{ backgroundColor: '#5DE1E5' }}
                 >
-                  📄 Cargar PDF {uploadProgressCount > 0 && <span className="ml-1 text-xs">({uploadProgressCount} errores)</span>}
+                  Cargar PDF {uploadProgressCount > 0 && <span className="ml-1 text-xs">({uploadProgressCount} errores)</span>}
                 </button>
               )}
               <button
                 onClick={handleCreate}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="px-4 py-2 rounded-lg text-white transition-colors"
+                style={{ backgroundColor: '#5DE1E5' }}
               >
-                + Nuevo Documento
+                Nuevo Documento
               </button>
             </div>
           </div>
