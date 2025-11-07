@@ -91,12 +91,46 @@ export async function POST(req: NextRequest) {
     
     console.log('[WEB-PARSE] Iniciando parseo de URL:', url);
     
-    // Hacer fetch de la URL
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    // Crear AbortController para timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos
+    
+    // Hacer fetch de la URL con configuración mejorada
+    let response;
+    try {
+      response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
+        },
+        redirect: 'follow',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      console.error('[WEB-PARSE] Error en fetch:', fetchError);
+      
+      let errorMessage = 'Error de conexión';
+      if (fetchError.name === 'AbortError') {
+        errorMessage = 'La solicitud tardó demasiado. Intenta con otra URL o verifica tu conexión.';
+      } else if (fetchError.message) {
+        errorMessage = fetchError.message;
+      } else if (fetchError.cause) {
+        errorMessage = fetchError.cause.message || 'Error de conexión';
       }
-    });
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Error al obtener la URL: ${errorMessage}. Verifica que la URL sea accesible públicamente y no requiera autenticación.` 
+        },
+        { status: 500 }
+      );
+    }
     
     if (!response.ok) {
       return NextResponse.json(
