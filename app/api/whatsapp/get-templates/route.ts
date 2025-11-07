@@ -121,39 +121,23 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // Si ninguna versión funcionó, lanzar el último error
+    // Si ninguna versión funcionó, manejar el error
     if (!response) {
-      throw lastError;
-    }
-
-      if (response.data && response.data.data) {
-        return NextResponse.json({
-          ok: true,
-          message: 'Plantillas obtenidas exitosamente',
-          data: response.data.data
-        });
-      } else {
-        return NextResponse.json({
-          ok: true,
-          message: 'No hay plantillas disponibles',
-          data: []
-        });
-      }
-    } catch (apiError: any) {
-      console.error('[WHATSAPP GET TEMPLATES] API Error:', apiError.response?.data || apiError.message);
+      const apiError = lastError;
+      console.error('[WHATSAPP GET TEMPLATES] API Error:', apiError?.response?.data || apiError?.message);
       
       // Errores comunes de la API de WhatsApp
-      if (apiError.response?.status === 401 || apiError.response?.status === 403) {
+      if (apiError?.response?.status === 401 || apiError?.response?.status === 403) {
         return NextResponse.json({
           ok: false,
           error: 'Token de acceso inválido o expirado. Verifica el Access Token del agente.'
         }, { status: 401 });
       }
       
-      if (apiError.response?.status === 400) {
-        const errorMessage = apiError.response?.data?.error?.message || 'Error en la solicitud';
-        const errorCode = apiError.response?.data?.error?.code;
-        const errorSubcode = apiError.response?.data?.error?.error_subcode;
+      if (apiError?.response?.status === 400) {
+        const errorMessage = apiError?.response?.data?.error?.message || 'Error en la solicitud';
+        const errorCode = apiError?.response?.data?.error?.code;
+        const errorSubcode = apiError?.response?.data?.error?.error_subcode;
         
         // Error específico de objeto no encontrado o sin permisos
         if (errorCode === 100 || errorSubcode === 33) {
@@ -171,8 +155,23 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         ok: false,
-        error: apiError.response?.data?.error?.message || 'Error al obtener plantillas desde WhatsApp Business API'
-      }, { status: apiError.response?.status || 500 });
+        error: apiError?.response?.data?.error?.message || 'Error al obtener plantillas desde WhatsApp Business API'
+      }, { status: apiError?.response?.status || 500 });
+    }
+
+    // Procesar respuesta exitosa
+    if (response.data && response.data.data) {
+      return NextResponse.json({
+        ok: true,
+        message: 'Plantillas obtenidas exitosamente',
+        data: response.data.data
+      });
+    } else {
+      return NextResponse.json({
+        ok: true,
+        message: 'No hay plantillas disponibles',
+        data: []
+      });
     }
   } catch (e: any) {
     console.error('[WHATSAPP GET TEMPLATES] Error:', e?.message || e);
