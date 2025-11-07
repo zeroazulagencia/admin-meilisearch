@@ -202,7 +202,10 @@ export default function WhatsAppManager() {
     list_title: '',
     list_description: '',
     list_button_text: '',
-    list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }]
+    list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
+    template_name: '',
+    template_language: 'es',
+    template_components: [] as any[]
   });
   const [sendingMessage, setSendingMessage] = useState(false);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
