@@ -114,13 +114,14 @@ export default function Clientes() {
           }
         } catch (err) {
           setAlertModal({
-          isOpen: true,
-          title: 'Error',
-          message: 'Error al eliminar cliente',
-          type: 'error',
-        });
+            isOpen: true,
+            title: 'Error',
+            message: 'Error al eliminar cliente',
+            type: 'error',
+          });
+        }
       }
-    }
+    });
   };
 
   const resetForm = () => {
