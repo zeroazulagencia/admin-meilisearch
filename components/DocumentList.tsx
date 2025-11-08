@@ -59,10 +59,14 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
       if (settings.embedders && Object.keys(settings.embedders).length > 0) {
         const embedderName = Object.keys(settings.embedders)[0];
         setDetectedEmbedderName(embedderName);
+        setUseAI(true); // Marcar automáticamente el checkbox si hay embedder
         console.log('🔍 Embedder detectado:', embedderName);
+      } else {
+        setUseAI(false); // Desmarcar si no hay embedder
       }
     } catch (err) {
       console.error('Error detectando embedder:', err);
+      setUseAI(false); // Desmarcar en caso de error
     }
   };
 
