@@ -119,38 +119,60 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     );
     const currentAgent = currentRows && currentRows.length > 0 ? currentRows[0] : null;
     
-    // Encriptar campos sensibles solo si han cambiado (no son valores enmascarados)
-    let encryptedAccessToken = body.whatsapp_access_token || null;
-    let encryptedWebhookToken = body.whatsapp_webhook_verify_token || null;
-    let encryptedAppSecret = body.whatsapp_app_secret || null;
+    // CRÍTICO: Solo actualizar tokens si se envía un valor nuevo explícito
+    // Si no se envía el campo (undefined), mantener el valor existente
+    // Si se envía null, vacío, o enmascarado, mantener el valor existente
+    let encryptedAccessToken: string | null | undefined = undefined;
+    let encryptedWebhookToken: string | null | undefined = undefined;
+    let encryptedAppSecret: string | null | undefined = undefined;
     
-    // Si el valor está vacío, null, o parece estar enmascarado (termina en "..."), mantener el valor encriptado existente
-    if (!encryptedAccessToken || encryptedAccessToken.trim() === '' || encryptedAccessToken.endsWith('...')) {
-      // Mantener el valor existente si el campo está vacío o enmascarado
+    // Solo procesar si el campo está presente en el body
+    if ('whatsapp_access_token' in body) {
+      const accessToken = body.whatsapp_access_token;
+      if (accessToken && typeof accessToken === 'string' && accessToken.trim() !== '' && !accessToken.endsWith('...')) {
+        // Hay un valor nuevo explícito
+        if (!isEncrypted(accessToken)) {
+          encryptedAccessToken = encrypt(accessToken);
+        } else {
+          encryptedAccessToken = accessToken;
+        }
+      } else {
+        // Mantener el valor existente
+        encryptedAccessToken = currentAgent?.whatsapp_access_token || null;
+      }
+    } else {
+      // Campo no presente, mantener el valor existente
       encryptedAccessToken = currentAgent?.whatsapp_access_token || null;
-    } else if (encryptedAccessToken) {
-      // Si hay un valor nuevo, verificar si está encriptado
-      if (!isEncrypted(encryptedAccessToken)) {
-        // Solo encriptar si no está ya encriptado y es un valor nuevo
-        encryptedAccessToken = encrypt(encryptedAccessToken);
-      }
-      // Si ya está encriptado, usarlo directamente
     }
     
-    if (!encryptedWebhookToken || encryptedWebhookToken.trim() === '' || encryptedWebhookToken.endsWith('...')) {
+    if ('whatsapp_webhook_verify_token' in body) {
+      const webhookToken = body.whatsapp_webhook_verify_token;
+      if (webhookToken && typeof webhookToken === 'string' && webhookToken.trim() !== '' && !webhookToken.endsWith('...')) {
+        if (!isEncrypted(webhookToken)) {
+          encryptedWebhookToken = encrypt(webhookToken);
+        } else {
+          encryptedWebhookToken = webhookToken;
+        }
+      } else {
+        encryptedWebhookToken = currentAgent?.whatsapp_webhook_verify_token || null;
+      }
+    } else {
       encryptedWebhookToken = currentAgent?.whatsapp_webhook_verify_token || null;
-    } else if (encryptedWebhookToken) {
-      if (!isEncrypted(encryptedWebhookToken)) {
-        encryptedWebhookToken = encrypt(encryptedWebhookToken);
-      }
     }
     
-    if (!encryptedAppSecret || encryptedAppSecret.trim() === '' || encryptedAppSecret.endsWith('...')) {
-      encryptedAppSecret = currentAgent?.whatsapp_app_secret || null;
-    } else if (encryptedAppSecret) {
-      if (!isEncrypted(encryptedAppSecret)) {
-        encryptedAppSecret = encrypt(encryptedAppSecret);
+    if ('whatsapp_app_secret' in body) {
+      const appSecret = body.whatsapp_app_secret;
+      if (appSecret && typeof appSecret === 'string' && appSecret.trim() !== '' && !appSecret.endsWith('...')) {
+        if (!isEncrypted(appSecret)) {
+          encryptedAppSecret = encrypt(appSecret);
+        } else {
+          encryptedAppSecret = appSecret;
+        }
+      } else {
+        encryptedAppSecret = currentAgent?.whatsapp_app_secret || null;
       }
+    } else {
+      encryptedAppSecret = currentAgent?.whatsapp_app_secret || null;
     }
     
     // Verificar si las columnas de WhatsApp existen antes de intentar actualizar
@@ -172,24 +194,52 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Intentar actualizar con todos los campos si las columnas existen
     if (whatsappColumnsExist) {
       try {
+        // Construir la query dinámicamente para solo actualizar los campos que se enviaron
+        const updateFields: string[] = [];
+        const updateValues: any[] = [];
+        
+        updateFields.push('client_id = ?', 'name = ?', 'description = ?', 'photo = ?', 'knowledge = ?', 'workflows = ?', 'conversation_agent_name = ?', 'reports_agent_name = ?');
+        updateValues.push(
+          body.client_id,
+          body.name,
+          body.description || null,
+          body.photo || null,
+          JSON.stringify(body.knowledge || {}),
+          JSON.stringify(body.workflows || {}),
+          body.conversation_agent_name || null,
+          body.reports_agent_name || null
+        );
+        
+        // Solo agregar campos de WhatsApp si se enviaron
+        if (body.whatsapp_business_account_id !== undefined) {
+          updateFields.push('whatsapp_business_account_id = ?');
+          updateValues.push(body.whatsapp_business_account_id || null);
+        }
+        if (body.whatsapp_phone_number_id !== undefined) {
+          updateFields.push('whatsapp_phone_number_id = ?');
+          updateValues.push(body.whatsapp_phone_number_id || null);
+        }
+        
+        // CRÍTICO: Solo actualizar tokens si se envió un valor nuevo explícito
+        if (encryptedAccessToken !== undefined) {
+          updateFields.push('whatsapp_access_token = ?');
+          updateValues.push(encryptedAccessToken);
+        }
+        if (encryptedWebhookToken !== undefined) {
+          updateFields.push('whatsapp_webhook_verify_token = ?');
+          updateValues.push(encryptedWebhookToken);
+        }
+        if (encryptedAppSecret !== undefined) {
+          updateFields.push('whatsapp_app_secret = ?');
+          updateValues.push(encryptedAppSecret);
+        }
+        
+        updateFields.push('id = ?');
+        updateValues.push(id);
+        
         await query(
-          'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ?, whatsapp_business_account_id = ?, whatsapp_phone_number_id = ?, whatsapp_access_token = ?, whatsapp_webhook_verify_token = ?, whatsapp_app_secret = ? WHERE id = ?',
-          [
-            body.client_id,
-            body.name,
-            body.description || null,
-            body.photo || null,
-            JSON.stringify(body.knowledge || {}),
-            JSON.stringify(body.workflows || {}),
-            body.conversation_agent_name || null,
-            body.reports_agent_name || null,
-            body.whatsapp_business_account_id || null,
-            body.whatsapp_phone_number_id || null,
-            encryptedAccessToken,
-            encryptedWebhookToken,
-            encryptedAppSecret,
-            id
-          ]
+          `UPDATE agents SET ${updateFields.join(', ')} WHERE id = ?`,
+          updateValues
         );
         console.log('[API AGENTS] Successfully updated with all fields including WhatsApp');
         return NextResponse.json({ ok: true });

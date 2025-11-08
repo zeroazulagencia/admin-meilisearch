@@ -427,9 +427,11 @@ export default function EditarAgente() {
           reports_agent_name: selectedReportAgent || null,
           whatsapp_business_account_id: formData.whatsapp_business_account_id || null,
           whatsapp_phone_number_id: formData.whatsapp_phone_number_id || null,
-          whatsapp_access_token: formData.whatsapp_access_token || null,
-          whatsapp_webhook_verify_token: formData.whatsapp_webhook_verify_token || null,
-          whatsapp_app_secret: formData.whatsapp_app_secret || null
+          // Solo enviar tokens si tienen un valor nuevo (no vacío y no enmascarado)
+          // Si están vacíos, no enviarlos para que el backend mantenga los valores existentes
+          whatsapp_access_token: formData.whatsapp_access_token && formData.whatsapp_access_token.trim() !== '' && !formData.whatsapp_access_token.endsWith('...') ? formData.whatsapp_access_token : undefined,
+          whatsapp_webhook_verify_token: formData.whatsapp_webhook_verify_token && formData.whatsapp_webhook_verify_token.trim() !== '' && !formData.whatsapp_webhook_verify_token.endsWith('...') ? formData.whatsapp_webhook_verify_token : undefined,
+          whatsapp_app_secret: formData.whatsapp_app_secret && formData.whatsapp_app_secret.trim() !== '' && !formData.whatsapp_app_secret.endsWith('...') ? formData.whatsapp_app_secret : undefined
         })
       });
       const data = await res.json();
