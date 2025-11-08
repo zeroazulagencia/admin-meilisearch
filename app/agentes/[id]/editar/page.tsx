@@ -343,12 +343,12 @@ export default function EditarAgente() {
   };
 
   const handleVerifyWhatsApp = async () => {
-    if (!formData.whatsapp_business_account_id || !formData.whatsapp_phone_number_id || !formData.whatsapp_access_token) {
+    if (!currentAgent?.id) {
       setAlertModal({
         isOpen: true,
-        title: 'Validación',
-        message: 'Por favor completa Business Account ID, Phone Number ID y Access Token para verificar la conexión',
-        type: 'warning',
+        title: 'Error',
+        message: 'No se pudo obtener el ID del agente',
+        type: 'error',
       });
       return;
     }
@@ -359,10 +359,10 @@ export default function EditarAgente() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          business_account_id: formData.whatsapp_business_account_id,
-          phone_number_id: formData.whatsapp_phone_number_id,
-          access_token: formData.whatsapp_access_token,
-          agent_id: currentAgent?.id // Enviar ID del agente para obtener token desencriptado si está enmascarado
+          business_account_id: formData.whatsapp_business_account_id || undefined,
+          phone_number_id: formData.whatsapp_phone_number_id || undefined,
+          access_token: formData.whatsapp_access_token || undefined,
+          agent_id: currentAgent.id // Siempre enviar ID del agente para buscar datos en BD
         })
       });
 
@@ -879,7 +879,7 @@ export default function EditarAgente() {
               <button
                 type="button"
                 onClick={handleVerifyWhatsApp}
-                disabled={verifyingWhatsApp || !formData.whatsapp_business_account_id || !formData.whatsapp_phone_number_id || !formData.whatsapp_access_token}
+                disabled={verifyingWhatsApp}
                 className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-green-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {verifyingWhatsApp ? (

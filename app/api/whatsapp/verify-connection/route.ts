@@ -10,29 +10,56 @@ export async function POST(req: NextRequest) {
     const { business_account_id, phone_number_id, access_token, agent_id } = body;
 
     let decryptedAccessToken = access_token;
+    let finalPhoneNumberId = phone_number_id;
+    let finalBusinessAccountId = business_account_id;
 
-    // Si se proporciona agent_id, intentar obtener el token desencriptado desde la BD
-    if (agent_id && (!access_token || access_token.endsWith('...'))) {
+    // Si se proporciona agent_id, buscar todos los datos en la BD
+    if (agent_id) {
       try {
         const [rows] = await query<any>(
-          'SELECT whatsapp_access_token FROM agents WHERE id = ? LIMIT 1',
+          `SELECT 
+            whatsapp_access_token, 
+            whatsapp_phone_number_id, 
+            whatsapp_business_account_id 
+          FROM agents 
+          WHERE id = ? LIMIT 1`,
           [agent_id]
         );
-        if (rows && rows.length > 0 && rows[0].whatsapp_access_token) {
-          decryptedAccessToken = decrypt(rows[0].whatsapp_access_token);
+        
+        if (rows && rows.length > 0) {
+          // Obtener token desencriptado si está disponible
+          if (rows[0].whatsapp_access_token) {
+            // Si el token del request está enmascarado o vacío, usar el de la BD
+            if (!access_token || access_token.endsWith('...')) {
+              decryptedAccessToken = decrypt(rows[0].whatsapp_access_token);
+            } else {
+              // Si el token del request no está enmascarado, usarlo directamente
+              decryptedAccessToken = access_token;
+            }
+          }
+          
+          // Obtener phone_number_id de la BD si no está en el request
+          if (!finalPhoneNumberId && rows[0].whatsapp_phone_number_id) {
+            finalPhoneNumberId = rows[0].whatsapp_phone_number_id;
+          }
+          
+          // Obtener business_account_id de la BD si no está en el request
+          if (!finalBusinessAccountId && rows[0].whatsapp_business_account_id) {
+            finalBusinessAccountId = rows[0].whatsapp_business_account_id;
+          }
         }
       } catch (e) {
-        console.error('[WHATSAPP VERIFY] Error getting token from DB:', e);
+        console.error('[WHATSAPP VERIFY] Error getting data from DB:', e);
       }
     } else if (access_token && !access_token.endsWith('...')) {
-      // Si el token no está enmascarado, usarlo directamente
+      // Si el token no está enmascarado y no hay agent_id, usarlo directamente
       decryptedAccessToken = access_token;
     }
 
-    if (!phone_number_id || !decryptedAccessToken) {
+    if (!finalPhoneNumberId || !decryptedAccessToken) {
       return NextResponse.json({ 
         ok: false, 
-        error: 'Se requiere Phone Number ID y Access Token para verificar la conexión' 
+        error: 'No se encontraron Phone Number ID y Access Token. Por favor, configura estos datos en el agente.' 
       }, { status: 400 });
     }
 
@@ -40,7 +67,7 @@ export async function POST(req: NextRequest) {
     // Endpoint: https://graph.facebook.com/v21.0/{phone-number-id}
     try {
       const response = await axios.get(
-        `https://graph.facebook.com/v21.0/${phone_number_id}`,
+        `https://graph.facebook.com/v21.0/${finalPhoneNumberId}`,
         {
           params: {
             fields: 'id,display_phone_number,verified_name,code_verification_status',
