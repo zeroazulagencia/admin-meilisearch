@@ -3,9 +3,9 @@ import crypto from 'crypto';
 // CRÍTICO: ENCRYPTION_KEY debe estar configurada en variables de entorno
 // Si no está configurada, la aplicación NO funcionará correctamente
 // y los tokens encriptados se corromperán al intentar desencriptarlos
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+const ENCRYPTION_KEY_RAW = process.env.ENCRYPTION_KEY;
 
-if (!ENCRYPTION_KEY || ENCRYPTION_KEY.trim() === '') {
+if (!ENCRYPTION_KEY_RAW || ENCRYPTION_KEY_RAW.trim() === '') {
   const error = `
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                    ERROR CRÍTICO: ENCRYPTION_KEY NO CONFIGURADA              ║
@@ -31,6 +31,9 @@ if (!ENCRYPTION_KEY || ENCRYPTION_KEY.trim() === '') {
   console.error(error);
   throw new Error('ENCRYPTION_KEY no está configurada. Por favor, configura esta variable de entorno antes de continuar.');
 }
+
+// Después de la validación, TypeScript sabe que ENCRYPTION_KEY no puede ser undefined
+const ENCRYPTION_KEY: string = ENCRYPTION_KEY_RAW;
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
