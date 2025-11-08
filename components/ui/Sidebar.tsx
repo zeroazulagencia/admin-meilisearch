@@ -17,6 +17,7 @@ import {
   CurrencyDollarIcon,
   CircleStackIcon,
   MapIcon,
+  CodeBracketIcon,
 } from '@heroicons/react/24/outline';
 import SidebarItem from './SidebarItem';
 import settings from '@/settings.json';
@@ -96,6 +97,7 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     { href: '/facturacion', label: 'Facturación', perm: 'facturacion', icon: <CurrencyDollarIcon className="w-5 h-5" /> },
     { href: '/db-manager', label: 'DB Manager', perm: 'dbManager', icon: <CircleStackIcon className="w-5 h-5" /> },
     { href: '/consumo-api', label: 'Consumo API', perm: 'consumoApi', icon: <ChartBarIcon className="w-5 h-5" /> },
+    { href: '/developers', label: 'Developers', perm: 'developers', icon: <CodeBracketIcon className="w-5 h-5" /> },
     { href: '/roadmap', label: 'Roadmap', perm: 'roadmap', icon: <MapIcon className="w-5 h-5" /> },
   ];
 

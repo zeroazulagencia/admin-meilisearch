@@ -12,6 +12,7 @@ export const routePermissions: Record<string, string> = {
   '/consumo-api': 'consumoAPI',
   '/clientes': 'clientes',
   '/agentes': 'agentes',
+  '/developers': 'developers',
 };
 
 // Verificar si el usuario tiene acceso a una ruta
