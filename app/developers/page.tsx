@@ -57,6 +57,19 @@ export default function Developers() {
   useEffect(() => {
     const loadAgents = async () => {
       try {
+        // Verificar y crear tabla si no existe
+        try {
+          const migrationRes = await fetch('/api/migrations/create-developer-docs-table', {
+            method: 'POST',
+          });
+          const migrationData = await migrationRes.json();
+          if (migrationData.ok) {
+            console.log('[DEVELOPERS] Migración ejecutada:', migrationData.message);
+          }
+        } catch (migrationError) {
+          console.error('[DEVELOPERS] Error ejecutando migración:', migrationError);
+        }
+
         const res = await fetch('/api/agents');
         const data = await res.json();
         let list: AgentDB[] = data.ok ? data.agents : [];
