@@ -60,6 +60,15 @@ export default function AdminConocimiento() {
     type: 'info',
   });
   const [showCodeModal, setShowCodeModal] = useState(false);
+  const [showCreateIndexModal, setShowCreateIndexModal] = useState(false);
+  const [showEditIndexModal, setShowEditIndexModal] = useState(false);
+  const [showDeleteIndexModal, setShowDeleteIndexModal] = useState(false);
+  const [indexToDelete, setIndexToDelete] = useState<Index | null>(null);
+  const [indexToEdit, setIndexToEdit] = useState<Index | null>(null);
+  const [creatingIndex, setCreatingIndex] = useState(false);
+  const [deletingIndex, setDeletingIndex] = useState(false);
+  const [newIndexForm, setNewIndexForm] = useState({ uid: '', primaryKey: '' });
+  const [editIndexForm, setEditIndexForm] = useState({ primaryKey: '' });
   
   // Función para cargar contenido desde URL
   const handleLoadWeb = async () => {
@@ -1243,6 +1252,136 @@ export default function AdminConocimiento() {
     }
   };
 
+  // Crear nuevo índice
+  const handleCreateIndex = async () => {
+    if (!newIndexForm.uid || !newIndexForm.uid.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'El UID del índice es requerido',
+        type: 'error',
+      });
+      return;
+    }
+
+    setCreatingIndex(true);
+    try {
+      await meilisearchAPI.createIndex(
+        newIndexForm.uid.trim(),
+        newIndexForm.primaryKey.trim() || undefined
+      );
+      
+      setAlertModal({
+        isOpen: true,
+        title: 'Éxito',
+        message: `Índice "${newIndexForm.uid.trim()}" creado exitosamente`,
+        type: 'success',
+      });
+      
+      setShowCreateIndexModal(false);
+      setNewIndexForm({ uid: '', primaryKey: '' });
+      
+      // Recargar índices
+      await loadAgentIndexes();
+    } catch (error: any) {
+      console.error('Error creating index:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: error?.response?.data?.message || error?.message || 'Error al crear el índice',
+        type: 'error',
+      });
+    } finally {
+      setCreatingIndex(false);
+    }
+  };
+
+  // Editar índice
+  const handleEditIndex = async () => {
+    if (!indexToEdit) return;
+
+    setCreatingIndex(true);
+    try {
+      await meilisearchAPI.updateIndex(
+        indexToEdit.uid,
+        editIndexForm.primaryKey.trim() || undefined
+      );
+      
+      setAlertModal({
+        isOpen: true,
+        title: 'Éxito',
+        message: `Índice "${indexToEdit.uid}" actualizado exitosamente`,
+        type: 'success',
+      });
+      
+      setShowEditIndexModal(false);
+      setIndexToEdit(null);
+      setEditIndexForm({ primaryKey: '' });
+      
+      // Recargar índices
+      await loadAgentIndexes();
+    } catch (error: any) {
+      console.error('Error updating index:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: error?.response?.data?.message || error?.message || 'Error al actualizar el índice',
+        type: 'error',
+      });
+    } finally {
+      setCreatingIndex(false);
+    }
+  };
+
+  // Eliminar índice
+  const handleDeleteIndex = async () => {
+    if (!indexToDelete) return;
+
+    setDeletingIndex(true);
+    try {
+      await meilisearchAPI.deleteIndex(indexToDelete.uid);
+      
+      setAlertModal({
+        isOpen: true,
+        title: 'Éxito',
+        message: `Índice "${indexToDelete.uid}" eliminado exitosamente`,
+        type: 'success',
+      });
+      
+      setShowDeleteIndexModal(false);
+      setIndexToDelete(null);
+      
+      // Si el índice eliminado estaba seleccionado, limpiar selección
+      if (selectedIndex?.uid === indexToDelete.uid) {
+        setSelectedIndex(null);
+      }
+      
+      // Recargar índices
+      await loadAgentIndexes();
+    } catch (error: any) {
+      console.error('Error deleting index:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: error?.response?.data?.message || error?.message || 'Error al eliminar el índice',
+        type: 'error',
+      });
+    } finally {
+      setDeletingIndex(false);
+    }
+  };
+
+  const openEditIndexModal = (index: Index) => {
+    setIndexToEdit(index);
+    setEditIndexForm({ primaryKey: index.primaryKey || '' });
+    setShowEditIndexModal(true);
+  };
+
+  const openDeleteIndexModal = (index: Index) => {
+    setIndexToDelete(index);
+    setShowDeleteIndexModal(true);
+  };
+
   // Función para refrescar el índice después de operaciones
   const refreshIndex = async () => {
     if (selectedAgent) {
@@ -1378,18 +1517,34 @@ export default function AdminConocimiento() {
         ) : selectedAgent && availableIndexes.length > 0 ? (
           <>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Seleccionar Índice
-              </label>
-              <select
-                value={selectedIndex?.uid || ''}
-                onChange={(e) => {
-                  const index = availableIndexes.find(i => i.uid === e.target.value);
-                  setSelectedIndex(index || null);
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-              >
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Gestión de Índices
+                </label>
+                <button
+                  onClick={() => {
+                    setNewIndexForm({ uid: '', primaryKey: '' });
+                    setShowCreateIndexModal(true);
+                  }}
+                  className="px-4 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-all"
+                  style={{ backgroundColor: '#5DE1E5' }}
+                >
+                  + Crear Índice
+                </button>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Seleccionar Índice
+                </label>
+                <select
+                  value={selectedIndex?.uid || ''}
+                  onChange={(e) => {
+                    const index = availableIndexes.find(i => i.uid === e.target.value);
+                    setSelectedIndex(index || null);
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+                >
                   <option value="">Seleccionar índice...</option>
                   {availableIndexes.map((index) => (
                     <option key={index.uid} value={index.uid}>
@@ -1398,6 +1553,33 @@ export default function AdminConocimiento() {
                   ))}
                 </select>
               </div>
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-gray-600 mb-2">Acciones rápidas:</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {availableIndexes.map((index) => (
+                    <div key={index.uid} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200">
+                      <span className="text-sm text-gray-700 truncate flex-1">{index.uid}</span>
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          onClick={() => openEditIndexModal(index)}
+                          className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                          title="Editar índice"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => openDeleteIndexModal(index)}
+                          className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                          title="Eliminar índice"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
 
           {selectedIndex && (
             <>
@@ -2421,6 +2603,171 @@ export default function AdminConocimiento() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal para Crear Índice */}
+      {showCreateIndexModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-800">Crear Nuevo Índice</h2>
+              <button
+                onClick={() => {
+                  setShowCreateIndexModal(false);
+                  setNewIndexForm({ uid: '', primaryKey: '' });
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    UID del Índice <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newIndexForm.uid}
+                    onChange={(e) => setNewIndexForm({ ...newIndexForm, uid: e.target.value })}
+                    placeholder="guia_miagente_productos"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Convención: guia_nombreagente_temadeconocimiento
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Primary Key (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newIndexForm.primaryKey}
+                    onChange={(e) => setNewIndexForm({ ...newIndexForm, primaryKey: e.target.value })}
+                    placeholder="id"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Campo que se usará como identificador único (por defecto: id)
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowCreateIndexModal(false);
+                    setNewIndexForm({ uid: '', primaryKey: '' });
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateIndex}
+                  disabled={creatingIndex || !newIndexForm.uid.trim()}
+                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: '#5DE1E5' }}
+                >
+                  {creatingIndex ? 'Creando...' : 'Crear Índice'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Editar Índice */}
+      {showEditIndexModal && indexToEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-800">Editar Índice</h2>
+              <button
+                onClick={() => {
+                  setShowEditIndexModal(false);
+                  setIndexToEdit(null);
+                  setEditIndexForm({ primaryKey: '' });
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    UID del Índice
+                  </label>
+                  <input
+                    type="text"
+                    value={indexToEdit.uid}
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    El UID no se puede modificar
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Primary Key
+                  </label>
+                  <input
+                    type="text"
+                    value={editIndexForm.primaryKey}
+                    onChange={(e) => setEditIndexForm({ primaryKey: e.target.value })}
+                    placeholder="id"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Campo que se usará como identificador único
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowEditIndexModal(false);
+                    setIndexToEdit(null);
+                    setEditIndexForm({ primaryKey: '' });
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleEditIndex}
+                  disabled={creatingIndex}
+                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: '#5DE1E5' }}
+                >
+                  {creatingIndex ? 'Actualizando...' : 'Actualizar Índice'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Eliminar Índice */}
+      {showDeleteIndexModal && indexToDelete && (
+        <NoticeModal
+          isOpen={showDeleteIndexModal}
+          onClose={() => {
+            setShowDeleteIndexModal(false);
+            setIndexToDelete(null);
+          }}
+          onConfirm={handleDeleteIndex}
+          title="Eliminar Índice"
+          message={`¿Estás seguro de que deseas eliminar el índice "${indexToDelete.uid}"?\n\nEsta acción no se puede deshacer y eliminará todos los documentos asociados.`}
+          type="warning"
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          isLoading={deletingIndex}
+        />
       )}
     </ProtectedLayout>
   );

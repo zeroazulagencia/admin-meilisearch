@@ -190,6 +190,32 @@ export const meilisearchAPI = {
   async getTask(uid: number): Promise<any> {
     const response = await api.get(`/tasks/${uid}`);
     return response.data;
+  },
+
+  // Crear un nuevo índice
+  async createIndex(uid: string, primaryKey?: string): Promise<any> {
+    const body: any = { uid };
+    if (primaryKey) {
+      body.primaryKey = primaryKey;
+    }
+    const response = await api.post('/indexes', body);
+    return response.data;
+  },
+
+  // Actualizar un índice (cambiar primaryKey)
+  async updateIndex(uid: string, primaryKey?: string): Promise<any> {
+    const body: any = {};
+    if (primaryKey) {
+      body.primaryKey = primaryKey;
+    }
+    const response = await api.patch(`/indexes/${uid}`, body);
+    return response.data;
+  },
+
+  // Eliminar un índice
+  async deleteIndex(uid: string): Promise<any> {
+    const response = await api.delete(`/indexes/${uid}`);
+    return response.data;
   }
 };
 
