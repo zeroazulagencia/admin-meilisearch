@@ -40,18 +40,24 @@ export async function POST(req: NextRequest) {
             // Si el token del request está enmascarado o vacío, usar el de la BD
             if (!access_token || access_token.trim() === '' || access_token.endsWith('...')) {
               // Desencriptar el token de la BD
-              try {
-                const dbToken = rows[0].whatsapp_access_token;
-                if (isEncrypted(dbToken)) {
+              const dbToken = rows[0].whatsapp_access_token;
+              if (isEncrypted(dbToken)) {
+                try {
                   decryptedAccessToken = decrypt(dbToken);
-                } else {
-                  // Si no está encriptado, usarlo directamente
-                  decryptedAccessToken = dbToken;
+                } catch (e: any) {
+                  // CRÍTICO: Si falla la desencriptación, NO usar el token encriptado tal cual
+                  // Esto causaría que se intente usar un token corrupto
+                  console.error('[WHATSAPP VERIFY] Error decrypting token from DB - posible clave incorrecta o token corrupto:', e?.message);
+                  // Retornar error en lugar de usar token corrupto
+                  return NextResponse.json({ 
+                    ok: false, 
+                    error: 'Error al desencriptar token: La clave de encriptación puede haber cambiado o el token está corrupto. Verifica que ENCRYPTION_KEY esté configurada correctamente en el servidor.',
+                    details: 'El token no pudo ser desencriptado. Esto generalmente ocurre cuando ENCRYPTION_KEY no está configurada o ha cambiado.'
+                  }, { status: 500 });
                 }
-              } catch (e) {
-                console.error('[WHATSAPP VERIFY] Error decrypting token from DB:', e);
-                // Si falla la desencriptación, intentar usar el token tal cual
-                decryptedAccessToken = rows[0].whatsapp_access_token;
+              } else {
+                // Si no está encriptado, usarlo directamente
+                decryptedAccessToken = dbToken;
               }
             } else {
               // Si el token del request no está enmascarado, usarlo directamente
