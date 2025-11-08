@@ -572,6 +572,27 @@ export default function EditarAgente() {
     }
   };
 
+  // Calcular tags del agente basados en configuración
+  const agentTags: string[] = [];
+  if (formData.whatsapp_access_token || formData.whatsapp_business_account_id || formData.whatsapp_phone_number_id) {
+    agentTags.push('WhatsApp');
+  }
+  if (selectedIndexes.length > 0) {
+    agentTags.push('Meilisearch');
+  }
+  if (selectedWorkflows.length > 0) {
+    agentTags.push('n8n');
+  }
+  if (selectedConversationAgent) {
+    agentTags.push('Conversaciones');
+  }
+  if (selectedReportAgent) {
+    agentTags.push('Informes');
+  }
+
+  // Obtener nombre del cliente
+  const clientName = clients.find(c => c.id === formData.client_id)?.name || 'Sin cliente asignado';
+
   if (!currentAgent) {
     return (
       <ProtectedLayout>
@@ -584,12 +605,139 @@ export default function EditarAgente() {
 
   return (
     <ProtectedLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Editar Agente</h1>
-        <p className="mt-2 text-gray-600">Actualiza la información del agente y configura su conocimiento</p>
-      </div>
-
       <form onSubmit={handleSubmit}>
+        {/* Header de Perfil del Agente */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
+          <div className="flex flex-col md:flex-row md:items-start gap-8">
+            {/* Avatar */}
+            <div className="relative group flex-shrink-0">
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="cursor-pointer relative"
+              >
+                {formData.photo ? (
+                  <div className="relative">
+                    <img 
+                      src={formData.photo} 
+                      alt={formData.name || 'Avatar'} 
+                      className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-full transition-all flex items-center justify-center">
+                      <PhotoIcon className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-32 h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center group-hover:bg-gray-300 transition-colors">
+                    <UserCircleIcon className="w-24 h-24 text-gray-400" />
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleImageUpload(file);
+                  }
+                }}
+              />
+              {uploading && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                  <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full"></div>
+                </div>
+              )}
+            </div>
+
+            {/* Información Principal */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl font-bold text-gray-900 mb-3">{formData.name || 'Sin nombre'}</h1>
+              
+              {/* Tags/Roles */}
+              {agentTags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {agentTags.map((tag) => (
+                    <span 
+                      key={tag}
+                      className="px-3 py-1 bg-[#5DE1E5] text-gray-900 rounded-full text-xs font-medium"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Descripción */}
+              {formData.description && (
+                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{formData.description}</p>
+              )}
+
+              {/* Cliente */}
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>{clientName}</span>
+              </div>
+
+              {/* Métricas */}
+              <div className="flex gap-6">
+                <div className="text-sm">
+                  <span className="text-gray-500">Índices:</span>
+                  <span className="ml-2 font-semibold text-gray-900">{selectedIndexes.length}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-gray-500">Flujos:</span>
+                  <span className="ml-2 font-semibold text-gray-900">{selectedWorkflows.length}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Acciones Principales */}
+            <div className="flex flex-col gap-3 md:items-end flex-shrink-0">
+              <button
+                type="button"
+                onClick={handleVerifyWhatsApp}
+                disabled={verifyingWhatsApp}
+                className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+              >
+                {verifyingWhatsApp ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-gray-900 border-t-transparent rounded-full"></div>
+                    <span>Verificando...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Verificar Conexión</span>
+                  </>
+                )}
+              </button>
+              
+              <button
+                type="button"
+                onClick={handleRefreshData}
+                disabled={refreshingData}
+                className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+              >
+                <ArrowPathIcon className={`h-4 w-4 ${refreshingData ? 'animate-spin' : ''}`} />
+                <span>{refreshingData ? 'Actualizando...' : 'Actualizar Datos'}</span>
+              </button>
+
+              <button
+                type="submit"
+                className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] whitespace-nowrap"
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
         <div className="space-y-16">
           {/* Información del Agente */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
@@ -643,7 +791,7 @@ export default function EditarAgente() {
                 </div>
               </div>
 
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-full">
                 <label htmlFor="description" className="block text-sm/6 font-medium text-gray-900">
                   Descripción
                 </label>
@@ -651,52 +799,11 @@ export default function EditarAgente() {
                   <textarea
                     id="description"
                     name="description"
-                    rows={8}
+                    rows={6}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
-                    style={{ height: '152px' }}
-                  />
-                </div>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label htmlFor="photo" className="block text-sm/6 font-medium text-gray-900">
-                  Foto
-                </label>
-                <div className="mt-2 flex flex-col gap-3" style={{ height: '152px' }}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="relative">
-                      {formData.photo ? (
-                        <div className="bg-white rounded-lg border-2 border-gray-200 shadow-sm p-2">
-                          <img src={formData.photo} alt="Avatar" className="size-32 rounded-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="bg-white rounded-lg border-2 border-gray-200 shadow-sm p-2">
-                          <UserCircleIcon aria-hidden="true" className="size-32 text-gray-300" />
-                  </div>
-                )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-gray-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] h-fit"
-                    >
-                      {uploading ? 'Subiendo...' : formData.photo ? 'Cambiar' : 'Subir'}
-                    </button>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleImageUpload(file);
-                      }
-                    }}
+                    placeholder="Descripción del agente y su propósito..."
                   />
                 </div>
               </div>
