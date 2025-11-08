@@ -105,10 +105,10 @@ export default function Roadmap() {
       completed: false,
     },
     {
-      date: 'Pendiente',
+      date: 'Completado',
       title: 'Agregar cargar web en conocimiento',
       description: 'Implementar funcionalidad para cargar contenido web en el módulo de conocimiento',
-      completed: false,
+      completed: true,
     },
     {
       date: 'Pendiente',
