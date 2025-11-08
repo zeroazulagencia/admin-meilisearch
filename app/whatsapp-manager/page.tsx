@@ -342,6 +342,7 @@ export default function WhatsAppManager() {
       // Cargar plantillas primero para poder seleccionar una
       await loadTemplates();
       setShowDeleteTemplateModal(true);
+    }
   };
 
   const loadTemplates = async () => {
