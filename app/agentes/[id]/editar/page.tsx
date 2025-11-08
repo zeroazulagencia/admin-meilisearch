@@ -1348,6 +1348,7 @@ export default function EditarAgente() {
             </div>
             </div>
           )}
+        </div>
 
         {/* Botones de Acción Finales */}
         <div className="mt-6 flex items-center justify-end gap-x-6">
