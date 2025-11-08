@@ -1494,20 +1494,30 @@ export default function AdminConocimiento() {
       };
       
       // Crear blob y descargar
-      const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+      const jsonString = JSON.stringify(jsonData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${indexUid}_${new Date().toISOString().split('T')[0]}.json`;
+      a.style.display = 'none';
       document.body.appendChild(a);
+      
+      // Pequeño delay para asegurar que el navegador procese el elemento
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      
+      // Limpiar después de un delay
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 200);
       
       setAlertModal({
         isOpen: true,
         title: 'Éxito',
-        message: `JSON descargado exitosamente. ${allDocuments.length} documentos exportados.`,
+        message: `JSON descargado exitosamente. ${allDocuments.length} documentos exportados.\n\nEl archivo se descargará automáticamente. Si no se descarga, verifica la configuración de descargas de tu navegador.`,
         type: 'success',
       });
     } catch (error: any) {
