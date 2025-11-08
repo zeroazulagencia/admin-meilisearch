@@ -41,7 +41,7 @@ interface WhatsAppAction {
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  category: 'mensajes' | 'plantillas' | 'conversaciones' | 'configuracion' | 'informacion';
+  category: 'mensajes' | 'plantillas' | 'configuracion' | 'informacion';
   color: string;
 }
 
@@ -139,7 +139,6 @@ const whatsappActions: WhatsAppAction[] = [
 const categories = {
   mensajes: 'Mensajes',
   plantillas: 'Plantillas',
-  conversaciones: 'Conversaciones',
   configuracion: 'Configuración',
   informacion: 'Información'
 };
