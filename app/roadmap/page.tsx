@@ -146,6 +146,12 @@ export default function Roadmap() {
       description: 'Desarrollar un espacio dedicado para documentación técnica dirigida a desarrolladores',
       completed: false,
     },
+    {
+      date: 'Pendiente',
+      title: 'CRUD de conocimiento Meilisearch',
+      description: 'Implementar CRUD completo para crear, editar y eliminar índices de Meilisearch',
+      completed: false,
+    },
   ];
 
   return (
