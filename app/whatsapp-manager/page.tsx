@@ -206,7 +206,7 @@ export default function WhatsAppManager() {
     list_button_text: '',
     list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
     template_name: '',
-    template_language: 'es',
+    template_language: '',
     template_components: [] as any[]
   });
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -304,7 +304,7 @@ export default function WhatsAppManager() {
         list_button_text: '',
         list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
         template_name: '',
-        template_language: 'es',
+        template_language: '',
         template_components: []
       });
     } else if (actionId === 'send-template') {
@@ -331,7 +331,7 @@ export default function WhatsAppManager() {
         list_button_text: '',
         list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
         template_name: '',
-        template_language: 'es',
+        template_language: '',
         template_components: []
       });
     } else if (actionId === 'get-templates') {
@@ -475,7 +475,7 @@ export default function WhatsAppManager() {
           list_button_text: '',
           list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
           template_name: '',
-          template_language: 'es',
+          template_language: '',
           template_components: []
         });
       } else {
@@ -610,7 +610,7 @@ export default function WhatsAppManager() {
           list_button_text: '',
           list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
           template_name: '',
-          template_language: 'es',
+          template_language: '',
           template_components: []
         });
         setMessageType('text');
@@ -1245,7 +1245,7 @@ export default function WhatsAppManager() {
                       list_button_text: '',
                       list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
                       template_name: '',
-                      template_language: 'es',
+                      template_language: '',
                       template_components: []
                     });
                   }}
@@ -1453,7 +1453,7 @@ export default function WhatsAppManager() {
                       list_button_text: '',
                       list_sections: [{ title: '', rows: [{ id: '', title: '', description: '' }] }],
                       template_name: '',
-                      template_language: 'es',
+                      template_language: '',
                       template_components: []
                     });
                   }}
