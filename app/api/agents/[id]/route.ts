@@ -185,8 +185,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         console.log('[API AGENTS] Successfully updated with all fields including WhatsApp');
         return NextResponse.json({ ok: true });
       } catch (e: any) {
-        // Si las columnas existen pero falla el UPDATE, es un error real
+        // Si las columnas existen pero falla el UPDATE, verificar si es por tamaño de columna
         console.error('[API AGENTS] Error updating with WhatsApp fields (columns exist):', e?.message);
+        
+        // Si el error es "Data too long for column", sugerir ejecutar la migración
+        if (e?.message && e.message.includes('Data too long for column')) {
+          throw new Error('Error: El valor es demasiado largo para la columna. Por favor, ejecuta la migración para corregir el tamaño de las columnas. Endpoint: POST /api/migrations/fix-whatsapp-columns');
+        }
+        
         throw new Error('Error al actualizar agente: ' + (e?.message || 'Error desconocido'));
       }
     } else {
