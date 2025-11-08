@@ -111,22 +111,6 @@ const whatsappActions: WhatsAppAction[] = [
     color: 'bg-red-500'
   },
   {
-    id: 'get-webhooks',
-    title: 'Obtener Webhooks Configurados',
-    description: 'Listar todos los webhooks configurados para este número',
-    icon: Cog6ToothIcon,
-    category: 'configuracion',
-    color: 'bg-sky-500'
-  },
-  {
-    id: 'configure-webhook',
-    title: 'Configurar Webhook',
-    description: 'Configurar o actualizar la URL del webhook para recibir eventos',
-    icon: Cog6ToothIcon,
-    category: 'configuracion',
-    color: 'bg-slate-500'
-  },
-  {
     id: 'get-media',
     title: 'Obtener Media',
     description: 'Descargar imágenes, documentos u otros archivos multimedia',
@@ -161,15 +145,6 @@ export default function WhatsAppManager() {
   const [showDeleteTemplateModal, setShowDeleteTemplateModal] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState(false);
   const [selectedTemplateToDelete, setSelectedTemplateToDelete] = useState<any>(null);
-  const [showWebhooksModal, setShowWebhooksModal] = useState(false);
-  const [webhooks, setWebhooks] = useState<any>(null);
-  const [loadingWebhooks, setLoadingWebhooks] = useState(false);
-  const [webhooksError, setWebhooksError] = useState<string | null>(null);
-  const [showConfigureWebhookModal, setShowConfigureWebhookModal] = useState(false);
-  const [configuringWebhook, setConfiguringWebhook] = useState(false);
-  const [webhookConfigForm, setWebhookConfigForm] = useState({
-    fields: 'messages,messaging_postbacks,message_deliveries,message_reads'
-  });
   const [createTemplateForm, setCreateTemplateForm] = useState({
     name: '',
     language: '',
@@ -367,32 +342,6 @@ export default function WhatsAppManager() {
       // Cargar plantillas primero para poder seleccionar una
       await loadTemplates();
       setShowDeleteTemplateModal(true);
-    } else if (actionId === 'get-webhooks') {
-      if (!selectedAgent) {
-        setAlertModal({
-          isOpen: true,
-          title: 'Agente requerido',
-          message: 'Por favor selecciona un agente primero',
-          type: 'warning',
-        });
-        return;
-      }
-      await loadWebhooks();
-    } else if (actionId === 'configure-webhook') {
-      if (!selectedAgent) {
-        setAlertModal({
-          isOpen: true,
-          title: 'Agente requerido',
-          message: 'Por favor selecciona un agente primero',
-          type: 'warning',
-        });
-        return;
-      }
-      setShowConfigureWebhookModal(true);
-      setWebhookConfigForm({
-        fields: 'messages,messaging_postbacks,message_deliveries,message_reads'
-      });
-    }
   };
 
   const loadTemplates = async () => {
@@ -433,92 +382,6 @@ export default function WhatsAppManager() {
     }
   };
 
-  const loadWebhooks = async () => {
-    if (!selectedAgent) return;
-    
-    setLoadingWebhooks(true);
-    setWebhooks(null);
-    setWebhooksError(null);
-    try {
-      const res = await fetch('/api/whatsapp/get-webhooks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          agent_id: selectedAgent.id,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.ok) {
-        setWebhooks(data.data);
-        setWebhooksError(null);
-        setShowWebhooksModal(true);
-      } else {
-        setWebhooks(null);
-        setWebhooksError(data.error || 'Error desconocido al cargar los webhooks');
-        setShowWebhooksModal(true);
-      }
-    } catch (e: any) {
-      console.error('[WHATSAPP-MANAGER] Error cargando webhooks:', e);
-      setWebhooks(null);
-      setWebhooksError(e?.message || 'Error al procesar la solicitud');
-      setShowWebhooksModal(true);
-    } finally {
-      setLoadingWebhooks(false);
-    }
-  };
-
-  const handleConfigureWebhook = async () => {
-    if (!selectedAgent) return;
-    
-    setConfiguringWebhook(true);
-    try {
-      const fields = webhookConfigForm.fields.split(',').map(f => f.trim()).filter(f => f);
-      
-      const res = await fetch('/api/whatsapp/configure-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          agent_id: selectedAgent.id,
-          fields: fields,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.ok) {
-        setAlertModal({
-          isOpen: true,
-          title: 'Webhook configurado',
-          message: data.message || 'Los campos de webhook se han suscrito exitosamente. Nota: El webhook_url debe configurarse en Meta Business Manager.',
-          type: 'success',
-        });
-        setShowConfigureWebhookModal(false);
-      } else {
-        setAlertModal({
-          isOpen: true,
-          title: 'Error',
-          message: data.error || 'Error al configurar el webhook',
-          type: 'error',
-        });
-      }
-    } catch (e: any) {
-      console.error('[WHATSAPP-MANAGER] Error configurando webhook:', e);
-      setAlertModal({
-        isOpen: true,
-        title: 'Error',
-        message: e?.message || 'Error al procesar la solicitud',
-        type: 'error',
-      });
-    } finally {
-      setConfiguringWebhook(false);
-    }
-  };
 
   const handleSendTemplate = async () => {
     if (!selectedAgent) return;
@@ -2134,93 +1997,6 @@ export default function WhatsAppManager() {
                 ) : (
                   <span>Crear Plantilla</span>
                 )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Alert Modal */}
-      {/* Modal de Webhooks Configurados */}
-      {showWebhooksModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Webhooks Configurados</h2>
-              <p className="text-sm text-gray-600 mt-1">Lista de webhooks configurados para este número</p>
-            </div>
-            <div className="px-6 py-4">
-              {loadingWebhooks ? (
-                <div className="flex justify-center items-center py-8">
-                  <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
-                </div>
-              ) : webhooksError ? (
-                <div className="text-center py-8">
-                  <p className="text-red-600 mb-4">{webhooksError}</p>
-                </div>
-              ) : webhooks ? (
-                <div className="space-y-4">
-                  <pre className="bg-gray-50 p-4 rounded-lg overflow-auto text-sm">
-                    {JSON.stringify(webhooks, null, 2)}
-                  </pre>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No hay webhooks configurados
-                </div>
-              )}
-            </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
-              <button
-                onClick={() => setShowWebhooksModal(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Configurar Webhook */}
-      {showConfigureWebhookModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Configurar Webhook</h2>
-              <p className="text-sm text-gray-600 mt-1">Suscribe campos de webhook para recibir eventos. Nota: El webhook_url debe configurarse en Meta Business Manager.</p>
-            </div>
-            <div className="px-6 py-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Campos a suscribir (separados por comas) *
-                </label>
-                <textarea
-                  value={webhookConfigForm.fields}
-                  onChange={(e) => setWebhookConfigForm({ ...webhookConfigForm, fields: e.target.value })}
-                  placeholder="messages, messaging_postbacks, message_deliveries, message_reads"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5]"
-                  rows={5}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Campos disponibles: messages, messaging_postbacks, message_deliveries, message_reads, message_echoes, message_reactions, message_unsends, message_replies, messaging_handovers, messaging_optins, messaging_optouts, messaging_policy_enforcement, messaging_app_roles, messaging_seen, messaging_account_linking, messaging_referrals, messaging_fblogin_account_linking, messaging_customer_information, messaging_phone_number, messaging_phone_number_name_status, messaging_phone_number_quality_update
-                </p>
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => setShowConfigureWebhookModal(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-                disabled={configuringWebhook}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfigureWebhook}
-                disabled={configuringWebhook || !webhookConfigForm.fields.trim()}
-                className="px-4 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {configuringWebhook ? 'Configurando...' : 'Configurar Webhook'}
               </button>
             </div>
           </div>
