@@ -79,14 +79,6 @@ const whatsappActions: WhatsAppAction[] = [
     color: 'bg-teal-500'
   },
   {
-    id: 'verify-phone',
-    title: 'Verificar Número de Teléfono',
-    description: 'Verificar el estado de verificación de un número',
-    icon: ShieldCheckIcon,
-    category: 'informacion',
-    color: 'bg-orange-500'
-  },
-  {
     id: 'get-templates',
     title: 'Obtener Plantillas de Mensajes',
     description: 'Listar todas las plantillas de mensajes disponibles',
@@ -144,6 +136,18 @@ export default function WhatsAppManager() {
   const [showDeleteTemplateModal, setShowDeleteTemplateModal] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState(false);
   const [selectedTemplateToDelete, setSelectedTemplateToDelete] = useState<any>(null);
+  const [showDeliveryStatusModal, setShowDeliveryStatusModal] = useState(false);
+  const [checkingDeliveryStatus, setCheckingDeliveryStatus] = useState(false);
+  const [deliveryStatusForm, setDeliveryStatusForm] = useState({ message_id: '' });
+  const [deliveryStatusResult, setDeliveryStatusResult] = useState<any>(null);
+  const [showPhoneInfoModal, setShowPhoneInfoModal] = useState(false);
+  const [checkingPhoneInfo, setCheckingPhoneInfo] = useState(false);
+  const [phoneInfoForm, setPhoneInfoForm] = useState({ phone_number: '' });
+  const [phoneInfoResult, setPhoneInfoResult] = useState<any>(null);
+  const [showGetMediaModal, setShowGetMediaModal] = useState(false);
+  const [gettingMedia, setGettingMedia] = useState(false);
+  const [mediaForm, setMediaForm] = useState({ media_id: '' });
+  const [mediaResult, setMediaResult] = useState<any>(null);
   const [createTemplateForm, setCreateTemplateForm] = useState({
     name: '',
     language: '',
@@ -341,6 +345,45 @@ export default function WhatsAppManager() {
       // Cargar plantillas primero para poder seleccionar una
       await loadTemplates();
       setShowDeleteTemplateModal(true);
+    } else if (actionId === 'get-delivery-status') {
+      if (!selectedAgent) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Agente requerido',
+          message: 'Por favor selecciona un agente primero',
+          type: 'warning',
+        });
+        return;
+      }
+      setShowDeliveryStatusModal(true);
+      setDeliveryStatusForm({ message_id: '' });
+      setDeliveryStatusResult(null);
+    } else if (actionId === 'get-phone-info') {
+      if (!selectedAgent) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Agente requerido',
+          message: 'Por favor selecciona un agente primero',
+          type: 'warning',
+        });
+        return;
+      }
+      setShowPhoneInfoModal(true);
+      setPhoneInfoForm({ phone_number: '' });
+      setPhoneInfoResult(null);
+    } else if (actionId === 'get-media') {
+      if (!selectedAgent) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Agente requerido',
+          message: 'Por favor selecciona un agente primero',
+          type: 'warning',
+        });
+        return;
+      }
+      setShowGetMediaModal(true);
+      setMediaForm({ media_id: '' });
+      setMediaResult(null);
     }
   };
 
@@ -1996,6 +2039,440 @@ export default function WhatsAppManager() {
                   </>
                 ) : (
                   <span>Crear Plantilla</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para obtener estado de entrega */}
+      {showDeliveryStatusModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Obtener Estado de Entrega</h2>
+              <p className="text-sm text-gray-600 mt-1">Consulta el estado de entrega de un mensaje enviado</p>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Message ID *
+                </label>
+                <input
+                  type="text"
+                  value={deliveryStatusForm.message_id}
+                  onChange={(e) => setDeliveryStatusForm({ ...deliveryStatusForm, message_id: e.target.value })}
+                  placeholder="wamid.xxxxx"
+                  disabled={checkingDeliveryStatus}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+                <p className="mt-1 text-xs text-gray-500 break-words overflow-wrap-anywhere">
+                  El Message ID se obtiene al enviar un mensaje. Ejemplo: wamid.HBgNMTIzNDU2Nzg5MDEyFQIAERgSQjU5QjY0QzE3QzY4QzY4QzY4
+                </p>
+              </div>
+
+              {deliveryStatusResult && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Resultado:</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-700">Message ID:</span>{' '}
+                      <span className="text-gray-900 font-mono text-xs break-all">{deliveryStatusResult.message_id}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Estado:</span>{' '}
+                      <span className={`font-semibold ${
+                        deliveryStatusResult.status === 'sent' ? 'text-blue-600' :
+                        deliveryStatusResult.status === 'delivered' ? 'text-green-600' :
+                        deliveryStatusResult.status === 'read' ? 'text-purple-600' :
+                        'text-gray-600'
+                      }`}>
+                        {deliveryStatusResult.status}
+                      </span>
+                    </div>
+                    {deliveryStatusResult.recipient_id && (
+                      <div>
+                        <span className="font-medium text-gray-700">Recipient ID:</span>{' '}
+                        <span className="text-gray-900 font-mono text-xs break-all">{deliveryStatusResult.recipient_id}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowDeliveryStatusModal(false);
+                  setDeliveryStatusForm({ message_id: '' });
+                  setDeliveryStatusResult(null);
+                }}
+                disabled={checkingDeliveryStatus}
+                className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={async () => {
+                  if (!deliveryStatusForm.message_id.trim()) {
+                    setAlertModal({
+                      isOpen: true,
+                      title: 'Campo requerido',
+                      message: 'Por favor ingresa el Message ID',
+                      type: 'warning',
+                    });
+                    return;
+                  }
+
+                  setCheckingDeliveryStatus(true);
+                  try {
+                    const res = await fetch('/api/whatsapp/get-message-status', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        agent_id: selectedAgent?.id,
+                        message_id: deliveryStatusForm.message_id.trim(),
+                      }),
+                    });
+
+                    const data = await res.json();
+
+                    if (data.ok) {
+                      setDeliveryStatusResult(data.data);
+                    } else {
+                      setAlertModal({
+                        isOpen: true,
+                        title: 'Error',
+                        message: data.error || 'Error al obtener el estado del mensaje',
+                        type: 'error',
+                      });
+                    }
+                  } catch (e: any) {
+                    console.error('[WHATSAPP-MANAGER] Error obteniendo estado:', e);
+                    setAlertModal({
+                      isOpen: true,
+                      title: 'Error',
+                      message: e?.message || 'Error al procesar la solicitud',
+                      type: 'error',
+                    });
+                  } finally {
+                    setCheckingDeliveryStatus(false);
+                  }
+                }}
+                disabled={checkingDeliveryStatus || !deliveryStatusForm.message_id.trim()}
+                className="px-4 py-2 rounded-lg font-medium text-white bg-[#5DE1E5] hover:bg-[#4BC4C7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {checkingDeliveryStatus ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <span>Consultando...</span>
+                  </>
+                ) : (
+                  <span>Consultar Estado</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para obtener información del número */}
+      {showPhoneInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Obtener Información del Número</h2>
+              <p className="text-sm text-gray-600 mt-1">Consulta información y estado de un número de teléfono</p>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Número de Teléfono *
+                </label>
+                <input
+                  type="text"
+                  value={phoneInfoForm.phone_number}
+                  onChange={(e) => setPhoneInfoForm({ ...phoneInfoForm, phone_number: e.target.value })}
+                  placeholder="573001234567"
+                  disabled={checkingPhoneInfo}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+                <p className="mt-1 text-xs text-gray-500 break-words overflow-wrap-anywhere">
+                  Incluye el código de país sin el símbolo + (ej: 57 para Colombia, 1 para USA)
+                </p>
+              </div>
+
+              {phoneInfoResult && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Información del Número:</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-700">Phone Number ID:</span>{' '}
+                      <span className="text-gray-900 font-mono text-xs break-all">{phoneInfoResult.phone_number_id}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Número Mostrado:</span>{' '}
+                      <span className="text-gray-900">{phoneInfoResult.display_phone_number || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Nombre Verificado:</span>{' '}
+                      <span className="text-gray-900">{phoneInfoResult.verified_name || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Estado de Verificación:</span>{' '}
+                      <span className={`font-semibold ${
+                        phoneInfoResult.verification_status === 'VERIFIED' ? 'text-green-600' :
+                        phoneInfoResult.verification_status === 'PENDING' ? 'text-yellow-600' :
+                        'text-gray-600'
+                      }`}>
+                        {phoneInfoResult.verification_status || 'N/A'}
+                      </span>
+                    </div>
+                    {phoneInfoResult.note && (
+                      <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-800 break-words overflow-wrap-anywhere">
+                        {phoneInfoResult.note}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowPhoneInfoModal(false);
+                  setPhoneInfoForm({ phone_number: '' });
+                  setPhoneInfoResult(null);
+                }}
+                disabled={checkingPhoneInfo}
+                className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={async () => {
+                  if (!phoneInfoForm.phone_number.trim()) {
+                    setAlertModal({
+                      isOpen: true,
+                      title: 'Campo requerido',
+                      message: 'Por favor ingresa el número de teléfono',
+                      type: 'warning',
+                    });
+                    return;
+                  }
+
+                  setCheckingPhoneInfo(true);
+                  try {
+                    const res = await fetch('/api/whatsapp/get-phone-info', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        agent_id: selectedAgent?.id,
+                        phone_number: phoneInfoForm.phone_number.trim(),
+                      }),
+                    });
+
+                    const data = await res.json();
+
+                    if (data.ok) {
+                      setPhoneInfoResult(data.data);
+                    } else {
+                      setAlertModal({
+                        isOpen: true,
+                        title: 'Error',
+                        message: data.error || 'Error al obtener información del número',
+                        type: 'error',
+                      });
+                    }
+                  } catch (e: any) {
+                    console.error('[WHATSAPP-MANAGER] Error obteniendo información:', e);
+                    setAlertModal({
+                      isOpen: true,
+                      title: 'Error',
+                      message: e?.message || 'Error al procesar la solicitud',
+                      type: 'error',
+                    });
+                  } finally {
+                    setCheckingPhoneInfo(false);
+                  }
+                }}
+                disabled={checkingPhoneInfo || !phoneInfoForm.phone_number.trim()}
+                className="px-4 py-2 rounded-lg font-medium text-white bg-[#5DE1E5] hover:bg-[#4BC4C7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {checkingPhoneInfo ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <span>Consultando...</span>
+                  </>
+                ) : (
+                  <span>Consultar Información</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para obtener media */}
+      {showGetMediaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Obtener Media</h2>
+              <p className="text-sm text-gray-600 mt-1">Descarga imágenes, documentos u otros archivos multimedia</p>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Media ID *
+                </label>
+                <input
+                  type="text"
+                  value={mediaForm.media_id}
+                  onChange={(e) => setMediaForm({ ...mediaForm, media_id: e.target.value })}
+                  placeholder="xxxxx"
+                  disabled={gettingMedia}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+                <p className="mt-1 text-xs text-gray-500 break-words overflow-wrap-anywhere">
+                  El Media ID se obtiene de los mensajes recibidos o enviados. Los media expiran después de cierto tiempo.
+                </p>
+              </div>
+
+              {mediaResult && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Media Obtenido:</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-700">Media ID:</span>{' '}
+                      <span className="text-gray-900 font-mono text-xs break-all">{mediaResult.media_id}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Tipo MIME:</span>{' '}
+                      <span className="text-gray-900">{mediaResult.mime_type || 'N/A'}</span>
+                    </div>
+                    {mediaResult.file_size && (
+                      <div>
+                        <span className="font-medium text-gray-700">Tamaño:</span>{' '}
+                        <span className="text-gray-900">{(mediaResult.file_size / 1024).toFixed(2)} KB</span>
+                      </div>
+                    )}
+                    {mediaResult.data_url && (
+                      <div className="mt-4">
+                        {mediaResult.mime_type?.startsWith('image/') && (
+                          <img
+                            src={mediaResult.data_url}
+                            alt="Media descargado"
+                            className="max-w-full h-auto rounded-lg border border-gray-200"
+                          />
+                        )}
+                        {mediaResult.mime_type?.startsWith('video/') && (
+                          <video
+                            src={mediaResult.data_url}
+                            controls
+                            className="max-w-full h-auto rounded-lg border border-gray-200"
+                          />
+                        )}
+                        {!mediaResult.mime_type?.startsWith('image/') && !mediaResult.mime_type?.startsWith('video/') && (
+                          <div className="p-4 bg-gray-100 rounded-lg text-center">
+                            <p className="text-sm text-gray-600 mb-2">Archivo descargado</p>
+                            <a
+                              href={mediaResult.data_url}
+                              download
+                              className="text-[#5DE1E5] hover:text-[#4BC4C7] font-medium underline"
+                            >
+                              Descargar archivo
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowGetMediaModal(false);
+                  setMediaForm({ media_id: '' });
+                  setMediaResult(null);
+                }}
+                disabled={gettingMedia}
+                className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={async () => {
+                  if (!mediaForm.media_id.trim()) {
+                    setAlertModal({
+                      isOpen: true,
+                      title: 'Campo requerido',
+                      message: 'Por favor ingresa el Media ID',
+                      type: 'warning',
+                    });
+                    return;
+                  }
+
+                  setGettingMedia(true);
+                  try {
+                    const res = await fetch('/api/whatsapp/get-media', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        agent_id: selectedAgent?.id,
+                        media_id: mediaForm.media_id.trim(),
+                      }),
+                    });
+
+                    const data = await res.json();
+
+                    if (data.ok) {
+                      setMediaResult(data.data);
+                    } else {
+                      setAlertModal({
+                        isOpen: true,
+                        title: 'Error',
+                        message: data.error || 'Error al obtener el media',
+                        type: 'error',
+                      });
+                    }
+                  } catch (e: any) {
+                    console.error('[WHATSAPP-MANAGER] Error obteniendo media:', e);
+                    setAlertModal({
+                      isOpen: true,
+                      title: 'Error',
+                      message: e?.message || 'Error al procesar la solicitud',
+                      type: 'error',
+                    });
+                  } finally {
+                    setGettingMedia(false);
+                  }
+                }}
+                disabled={gettingMedia || !mediaForm.media_id.trim()}
+                className="px-4 py-2 rounded-lg font-medium text-white bg-[#5DE1E5] hover:bg-[#4BC4C7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {gettingMedia ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <span>Descargando...</span>
+                  </>
+                ) : (
+                  <span>Obtener Media</span>
                 )}
               </button>
             </div>
