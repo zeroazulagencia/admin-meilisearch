@@ -41,11 +41,16 @@ export default function Conversaciones() {
 
   const INDEX_UID = 'bd_conversations_dworkers';
 
-  // Inicializar fechas con HOY como default
+  // Inicializar fechas con "este mes hasta hoy" como default
   useEffect(() => {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-    setDateFrom(todayStr);
+    
+    // Primer día del mes actual
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const firstDayStr = firstDayOfMonth.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    setDateFrom(firstDayStr);
     setDateTo(todayStr);
   }, []);
 
