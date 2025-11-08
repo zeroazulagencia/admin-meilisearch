@@ -49,11 +49,28 @@ export interface Document {
 }
 
 export const meilisearchAPI = {
-  // Obtener todos los índices
+  // Obtener todos los índices (con paginación para obtener todos)
   async getIndexes(cacheBust?: number): Promise<Index[]> {
-    const params = cacheBust ? { _t: cacheBust } : {};
-    const response = await api.get('/indexes', { params });
-    return response.data.results;
+    const params: any = cacheBust ? { _t: cacheBust } : {};
+    const allIndexes: Index[] = [];
+    let offset = 0;
+    const limit = 100; // Obtener 100 por página para asegurar que obtenemos todos
+    
+    while (true) {
+      const pageParams = { ...params, limit, offset };
+      const response = await api.get('/indexes', { params: pageParams });
+      const indexes = response.data.results || [];
+      allIndexes.push(...indexes);
+      
+      // Si no hay más resultados o ya obtuvimos todos, salir
+      if (indexes.length < limit || allIndexes.length >= response.data.total) {
+        break;
+      }
+      
+      offset += limit;
+    }
+    
+    return allIndexes;
   },
 
   // Obtener información de un índice específico
