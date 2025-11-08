@@ -34,31 +34,34 @@ export default function Conversaciones() {
   const [selectedConversation, setSelectedConversation] = useState<ConversationGroup | null>(null);
   const [currentAgent, setCurrentAgent] = useState<string>('');
   const [selectedPlatformAgent, setSelectedPlatformAgent] = useState<string>('all');
-  const [dateFrom, setDateFrom] = useState<string>('');
-  const [dateTo, setDateTo] = useState<string>('');
+  // Calcular fechas por defecto: primer día del mes actual hasta hoy
+  const getDefaultDates = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const day = today.getDate();
+    
+    const firstDayStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const todayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    return { firstDayStr, todayStr };
+  };
+
+  const defaultDates = getDefaultDates();
+  const [dateFrom, setDateFrom] = useState<string>(defaultDates.firstDayStr);
+  const [dateTo, setDateTo] = useState<string>(defaultDates.todayStr);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showCodeModal, setShowCodeModal] = useState(false);
 
   const INDEX_UID = 'bd_conversations_dworkers';
 
-  // Inicializar fechas con "este mes hasta hoy" como default
+  // Asegurar que las fechas se actualicen si cambian (por si acaso)
   useEffect(() => {
-    const today = new Date();
-    
-    // Asegurar que usamos la fecha local, no UTC
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const day = today.getDate();
-    
-    // Primer día del mes actual (formato local)
-    const firstDayOfMonth = new Date(year, month, 1);
-    const firstDayStr = `${year}-${String(month + 1).padStart(2, '0')}-01`; // YYYY-MM-01
-    
-    // Fecha de hoy (formato local)
-    const todayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; // YYYY-MM-DD
-    
-    setDateFrom(firstDayStr);
-    setDateTo(todayStr);
+    if (!dateFrom || !dateTo) {
+      const dates = getDefaultDates();
+      setDateFrom(dates.firstDayStr);
+      setDateTo(dates.todayStr);
+    }
   }, []);
 
   useEffect(() => {
