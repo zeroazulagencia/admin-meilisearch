@@ -1573,7 +1573,7 @@ export default function WhatsAppManager() {
                                 setSendMessageForm({
                                   ...sendMessageForm,
                                   template_name: template.name || '',
-                                  template_language: template.language || 'es',
+                                  template_language: template.language || '',
                                 });
                                 setShowTemplatesModal(false);
                                 setShowSendTemplateModal(true);
