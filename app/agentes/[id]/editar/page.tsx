@@ -84,6 +84,7 @@ export default function EditarAgente() {
   const [refreshingData, setRefreshingData] = useState(false);
   const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
   const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores'>('general');
 
   useEffect(() => {
     // Cargar clientes desde MySQL
@@ -738,9 +739,75 @@ export default function EditarAgente() {
             </div>
           </div>
         </div>
-        <div className="space-y-16">
-          {/* Información del Agente */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
+
+        {/* Tabs de Navegación */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="flex -mb-px overflow-x-auto" aria-label="Tabs">
+              <button
+                type="button"
+                onClick={() => setActiveTab('general')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                  activeTab === 'general'
+                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Información General
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('whatsapp')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                  activeTab === 'whatsapp'
+                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('conocimiento')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                  activeTab === 'conocimiento'
+                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Conocimiento
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('flujos')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                  activeTab === 'flujos'
+                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Flujos
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('identificadores')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                  activeTab === 'identificadores'
+                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Identificadores
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Contenido de Tabs */}
+        <div className="space-y-6">
+          {/* Tab: Información General */}
+          {activeTab === 'general' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
             <h2 className="text-base/7 font-semibold text-gray-900">Información General</h2>
             <p className="mt-1 text-sm/6 text-gray-600">
               Información básica del agente que será visible en el sistema.
@@ -808,10 +875,12 @@ export default function EditarAgente() {
                 </div>
               </div>
             </div>
-          </div>
+            </div>
+          )}
 
-          {/* Identificadores */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
+          {/* Tab: Identificadores */}
+          {activeTab === 'identificadores' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
             <h2 className="text-base/7 font-semibold text-gray-900">Identificadores</h2>
             <p className="mt-1 text-sm/6 text-gray-600">
               Configura los identificadores para asociar conversaciones e informes con este agente.
