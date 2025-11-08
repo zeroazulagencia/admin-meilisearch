@@ -124,24 +124,33 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     let encryptedWebhookToken = body.whatsapp_webhook_verify_token || null;
     let encryptedAppSecret = body.whatsapp_app_secret || null;
     
-    // Si el valor parece estar enmascarado (termina en "..."), mantener el valor encriptado existente
-    if (encryptedAccessToken && encryptedAccessToken.endsWith('...')) {
+    // Si el valor está vacío, null, o parece estar enmascarado (termina en "..."), mantener el valor encriptado existente
+    if (!encryptedAccessToken || encryptedAccessToken.trim() === '' || encryptedAccessToken.endsWith('...')) {
+      // Mantener el valor existente si el campo está vacío o enmascarado
       encryptedAccessToken = currentAgent?.whatsapp_access_token || null;
-    } else if (encryptedAccessToken && !isEncrypted(encryptedAccessToken)) {
-      // Solo encriptar si no está ya encriptado
-      encryptedAccessToken = encrypt(encryptedAccessToken);
+    } else if (encryptedAccessToken) {
+      // Si hay un valor nuevo, verificar si está encriptado
+      if (!isEncrypted(encryptedAccessToken)) {
+        // Solo encriptar si no está ya encriptado y es un valor nuevo
+        encryptedAccessToken = encrypt(encryptedAccessToken);
+      }
+      // Si ya está encriptado, usarlo directamente
     }
     
-    if (encryptedWebhookToken && encryptedWebhookToken.endsWith('...')) {
+    if (!encryptedWebhookToken || encryptedWebhookToken.trim() === '' || encryptedWebhookToken.endsWith('...')) {
       encryptedWebhookToken = currentAgent?.whatsapp_webhook_verify_token || null;
-    } else if (encryptedWebhookToken && !isEncrypted(encryptedWebhookToken)) {
-      encryptedWebhookToken = encrypt(encryptedWebhookToken);
+    } else if (encryptedWebhookToken) {
+      if (!isEncrypted(encryptedWebhookToken)) {
+        encryptedWebhookToken = encrypt(encryptedWebhookToken);
+      }
     }
     
-    if (encryptedAppSecret && encryptedAppSecret.endsWith('...')) {
+    if (!encryptedAppSecret || encryptedAppSecret.trim() === '' || encryptedAppSecret.endsWith('...')) {
       encryptedAppSecret = currentAgent?.whatsapp_app_secret || null;
-    } else if (encryptedAppSecret && !isEncrypted(encryptedAppSecret)) {
-      encryptedAppSecret = encrypt(encryptedAppSecret);
+    } else if (encryptedAppSecret) {
+      if (!isEncrypted(encryptedAppSecret)) {
+        encryptedAppSecret = encrypt(encryptedAppSecret);
+      }
     }
     
     // Verificar si las columnas de WhatsApp existen antes de intentar actualizar

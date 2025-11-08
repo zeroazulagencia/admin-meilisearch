@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { query } from '@/utils/db';
-import { decrypt } from '@/utils/encryption';
+import { decrypt, isEncrypted } from '@/utils/encryption';
 
 // POST - Verificar conexión con WhatsApp Business API
 export async function POST(req: NextRequest) {
@@ -30,8 +30,21 @@ export async function POST(req: NextRequest) {
           // Obtener token desencriptado si está disponible
           if (rows[0].whatsapp_access_token) {
             // Si el token del request está enmascarado o vacío, usar el de la BD
-            if (!access_token || access_token.endsWith('...')) {
-              decryptedAccessToken = decrypt(rows[0].whatsapp_access_token);
+            if (!access_token || access_token.trim() === '' || access_token.endsWith('...')) {
+              // Desencriptar el token de la BD
+              try {
+                const dbToken = rows[0].whatsapp_access_token;
+                if (isEncrypted(dbToken)) {
+                  decryptedAccessToken = decrypt(dbToken);
+                } else {
+                  // Si no está encriptado, usarlo directamente
+                  decryptedAccessToken = dbToken;
+                }
+              } catch (e) {
+                console.error('[WHATSAPP VERIFY] Error decrypting token from DB:', e);
+                // Si falla la desencriptación, intentar usar el token tal cual
+                decryptedAccessToken = rows[0].whatsapp_access_token;
+              }
             } else {
               // Si el token del request no está enmascarado, usarlo directamente
               decryptedAccessToken = access_token;
