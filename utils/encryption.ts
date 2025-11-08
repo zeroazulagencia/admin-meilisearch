@@ -3,9 +3,13 @@ import crypto from 'crypto';
 // CRÍTICO: ENCRYPTION_KEY debe estar configurada en variables de entorno
 // Si no está configurada, la aplicación NO funcionará correctamente
 // y los tokens encriptados se corromperán al intentar desencriptarlos
+// NOTA: Esta validación solo se ejecuta en el servidor (Node.js), no en el cliente (navegador)
 const ENCRYPTION_KEY_RAW = process.env.ENCRYPTION_KEY;
 
-if (!ENCRYPTION_KEY_RAW || ENCRYPTION_KEY_RAW.trim() === '') {
+// Solo validar en el servidor (Node.js), no en el cliente (navegador)
+const isServer = typeof window === 'undefined';
+
+if (isServer && (!ENCRYPTION_KEY_RAW || ENCRYPTION_KEY_RAW.trim() === '')) {
   const error = `
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                    ERROR CRÍTICO: ENCRYPTION_KEY NO CONFIGURADA              ║
@@ -32,8 +36,9 @@ if (!ENCRYPTION_KEY_RAW || ENCRYPTION_KEY_RAW.trim() === '') {
   throw new Error('ENCRYPTION_KEY no está configurada. Por favor, configura esta variable de entorno antes de continuar.');
 }
 
-// Después de la validación, TypeScript sabe que ENCRYPTION_KEY no puede ser undefined
-const ENCRYPTION_KEY: string = ENCRYPTION_KEY_RAW;
+// Después de la validación, TypeScript sabe que ENCRYPTION_KEY no puede ser undefined en el servidor
+// En el cliente, será undefined pero las funciones de encriptación no se usarán allí
+const ENCRYPTION_KEY: string = ENCRYPTION_KEY_RAW || '';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
@@ -44,10 +49,20 @@ const ENCRYPTED_POSITION = TAG_POSITION + TAG_LENGTH;
 
 /**
  * Encripta un texto usando AES-256-GCM
+ * NOTA: Esta función solo funciona en el servidor (Node.js), no en el cliente
  */
 export function encrypt(text: string): string {
   if (!text || text.trim() === '') {
     return '';
+  }
+  
+  // Verificar que estamos en el servidor y que ENCRYPTION_KEY está configurada
+  if (typeof window !== 'undefined') {
+    throw new Error('La función encrypt() solo puede usarse en el servidor. No se puede encriptar en el cliente.');
+  }
+  
+  if (!ENCRYPTION_KEY || ENCRYPTION_KEY.trim() === '') {
+    throw new Error('ENCRYPTION_KEY no está configurada en el servidor.');
   }
   
   try {
@@ -74,10 +89,20 @@ export function encrypt(text: string): string {
 
 /**
  * Desencripta un texto encriptado usando AES-256-GCM
+ * NOTA: Esta función solo funciona en el servidor (Node.js), no en el cliente
  */
 export function decrypt(encryptedText: string): string {
   if (!encryptedText || encryptedText.trim() === '') {
     return '';
+  }
+  
+  // Verificar que estamos en el servidor y que ENCRYPTION_KEY está configurada
+  if (typeof window !== 'undefined') {
+    throw new Error('La función decrypt() solo puede usarse en el servidor. No se puede desencriptar en el cliente.');
+  }
+  
+  if (!ENCRYPTION_KEY || ENCRYPTION_KEY.trim() === '') {
+    throw new Error('ENCRYPTION_KEY no está configurada en el servidor.');
   }
   
   try {
