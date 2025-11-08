@@ -44,7 +44,23 @@ nano .env
 Agregar:
 ```
 OPENAI_API_KEY=tu-api-key-aqui
+ENCRYPTION_KEY=tu_clave_secreta_de_al_menos_32_caracteres_aqui
+MYSQL_HOST=localhost
+MYSQL_USER=root
+MYSQL_PASSWORD=tu_contraseña_mysql
+MYSQL_DATABASE=admin_dworkers
+MEILISEARCH_URL=https://server-search.zeroazul.com/
+MEILISEARCH_API_KEY=tu_api_key_meilisearch
+N8N_URL=https://automation.zeroazul.com/
+N8N_API_KEY=tu_api_key_n8n
 ```
+
+**⚠️ CRÍTICO - ENCRYPTION_KEY:**
+- Esta variable es **OBLIGATORIA** para encriptar/desencriptar tokens de WhatsApp
+- Debe ser una clave **fija y persistente** (mínimo 32 caracteres)
+- **NUNCA cambiar** esta clave una vez que los tokens estén encriptados
+- Si cambias la clave, todos los tokens encriptados se corromperán
+- Generar una clave segura: `openssl rand -hex 32`
 
 ### 6. Construir la aplicación
 ```bash

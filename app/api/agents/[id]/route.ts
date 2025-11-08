@@ -37,10 +37,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               // Mostrar los primeros caracteres del token original, no del encriptado
               agent.whatsapp_access_token = decrypted.substring(0, 4) + '...';
             } else {
+              // Si la desencriptación devuelve vacío, el token puede estar corrupto
+              console.error('[API AGENTS] [GET] whatsapp_access_token: Desencriptación devolvió vacío, token puede estar corrupto');
               agent.whatsapp_access_token = maskSensitiveValue(agent.whatsapp_access_token, 4);
             }
-          } catch (e) {
-            // Si falla la desencriptación, usar el método de enmascarado estándar
+          } catch (e: any) {
+            // CRÍTICO: Si falla la desencriptación, NO intentar "reparar" el token
+            // Solo enmascarar para mostrar, pero NO modificar el valor en la BD
+            console.error('[API AGENTS] [GET] whatsapp_access_token: Error al desencriptar - posible clave incorrecta o token corrupto:', e?.message);
             agent.whatsapp_access_token = maskSensitiveValue(agent.whatsapp_access_token, 4);
           }
         } else {
