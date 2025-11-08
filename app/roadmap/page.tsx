@@ -135,10 +135,10 @@ export default function Roadmap() {
       completed: false,
     },
     {
-      date: 'Pendiente',
+      date: todayFormatted,
       title: 'Crear espacio de documentación del asistente',
       description: 'Desarrollar un espacio dedicado para documentar el asistente y sus funcionalidades',
-      completed: false,
+      completed: true,
     },
     {
       date: 'Completado',
