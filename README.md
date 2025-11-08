@@ -106,6 +106,7 @@ El proyecto utiliza variables de entorno para todas las credenciales y API keys.
 
 **Archivo `.env.example`** contiene la plantilla con todas las variables necesarias:
 
+- `ENCRYPTION_KEY`: **OBLIGATORIA** - Clave de encriptación para tokens de WhatsApp (mínimo 32 caracteres)
 - `OPENAI_API_KEY`: API key de OpenAI para embeddings y estructuración de documentos
 - `SENDGRID_API_KEY`: API key de SendGrid para envío de emails
 - `SENDGRID_FROM_EMAIL`: Email remitente para SendGrid
@@ -118,6 +119,13 @@ El proyecto utiliza variables de entorno para todas las credenciales y API keys.
 - `MEILISEARCH_API_KEY`: API key de Meilisearch
 - `N8N_URL`: URL del servidor N8N
 - `N8N_API_KEY`: API key de N8N
+
+**⚠️ CRÍTICO - ENCRYPTION_KEY:**
+- Esta variable es **OBLIGATORIA** para encriptar/desencriptar tokens de WhatsApp
+- Debe ser una clave **fija y persistente** (mínimo 32 caracteres)
+- **NUNCA cambiar** esta clave una vez que los tokens estén encriptados
+- Si cambias la clave, todos los tokens encriptados se corromperán
+- Generar una clave segura: `openssl rand -hex 32`
 
 **IMPORTANTE**: 
 - Nunca subas el archivo `.env` al repositorio

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 import { encrypt, decrypt, maskSensitiveValue, isEncrypted, hashToken, isValidToken } from '@/utils/encryption';
+import { validateCriticalEnvVars } from '@/utils/validate-env';
+
+// Validar variables de entorno críticas al cargar el módulo
+try {
+  validateCriticalEnvVars();
+} catch (error: any) {
+  console.error('[API AGENTS] Error de validación de variables de entorno:', error.message);
+}
 
 // GET - Obtener un agente por ID
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -47,9 +55,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             if (decrypted && decrypted.length > 0) {
               agent.whatsapp_webhook_verify_token = decrypted.substring(0, 4) + '...';
             } else {
+              console.error('[API AGENTS] [GET] whatsapp_webhook_verify_token: Desencriptación devolvió vacío, token puede estar corrupto');
               agent.whatsapp_webhook_verify_token = maskSensitiveValue(agent.whatsapp_webhook_verify_token, 4);
             }
-          } catch (e) {
+          } catch (e: any) {
+            // CRÍTICO: Si falla la desencriptación, NO intentar "reparar" el token
+            console.error('[API AGENTS] [GET] whatsapp_webhook_verify_token: Error al desencriptar - posible clave incorrecta o token corrupto:', e?.message);
             agent.whatsapp_webhook_verify_token = maskSensitiveValue(agent.whatsapp_webhook_verify_token, 4);
           }
         } else {
@@ -64,9 +75,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             if (decrypted && decrypted.length > 0) {
               agent.whatsapp_app_secret = decrypted.substring(0, 4) + '...';
             } else {
+              console.error('[API AGENTS] [GET] whatsapp_app_secret: Desencriptación devolvió vacío, token puede estar corrupto');
               agent.whatsapp_app_secret = maskSensitiveValue(agent.whatsapp_app_secret, 4);
             }
-          } catch (e) {
+          } catch (e: any) {
+            // CRÍTICO: Si falla la desencriptación, NO intentar "reparar" el token
+            console.error('[API AGENTS] [GET] whatsapp_app_secret: Error al desencriptar - posible clave incorrecta o token corrupto:', e?.message);
             agent.whatsapp_app_secret = maskSensitiveValue(agent.whatsapp_app_secret, 4);
           }
         } else {

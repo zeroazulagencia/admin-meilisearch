@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { query } from '@/utils/db';
 import { decrypt } from '@/utils/encryption';
+import { validateCriticalEnvVars } from '@/utils/validate-env';
+
+// Validar variables de entorno críticas al cargar el módulo
+try {
+  validateCriticalEnvVars();
+} catch (error: any) {
+  console.error('[API WHATSAPP GET-TEMPLATES] Error de validación de variables de entorno:', error.message);
+}
 
 // POST - Obtener plantillas de mensajes de WhatsApp Business API
 export async function POST(req: NextRequest) {

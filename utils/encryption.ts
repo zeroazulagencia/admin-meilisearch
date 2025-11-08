@@ -1,6 +1,37 @@
 import crypto from 'crypto';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+// CRÍTICO: ENCRYPTION_KEY debe estar configurada en variables de entorno
+// Si no está configurada, la aplicación NO funcionará correctamente
+// y los tokens encriptados se corromperán al intentar desencriptarlos
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+
+if (!ENCRYPTION_KEY || ENCRYPTION_KEY.trim() === '') {
+  const error = `
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    ERROR CRÍTICO: ENCRYPTION_KEY NO CONFIGURADA              ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  La variable de entorno ENCRYPTION_KEY no está configurada.                 ║
+║                                                                              ║
+║  CONSECUENCIAS:                                                              ║
+║  - Los tokens de WhatsApp NO se podrán desencriptar correctamente           ║
+║  - Los tokens se corromperán al intentar desencriptarlos                    ║
+║  - La aplicación NO funcionará correctamente                                ║
+║                                                                              ║
+║  SOLUCIÓN:                                                                   ║
+║  1. Agregar ENCRYPTION_KEY al archivo .env del servidor                     ║
+║  2. Usar una clave fija y persistente (mínimo 32 caracteres)                ║
+║  3. NUNCA cambiar esta clave una vez que los tokens estén encriptados       ║
+║                                                                              ║
+║  Ejemplo en .env:                                                            ║
+║  ENCRYPTION_KEY=tu_clave_secreta_de_al_menos_32_caracteres_aqui             ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+  `;
+  console.error(error);
+  throw new Error('ENCRYPTION_KEY no está configurada. Por favor, configura esta variable de entorno antes de continuar.');
+}
+
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
 const SALT_LENGTH = 64;
@@ -70,8 +101,10 @@ export function decrypt(encryptedText: string): string {
     return decrypted;
   } catch (error) {
     console.error('[ENCRYPTION] Error decrypting:', error);
-    // Si falla la desencriptación, podría ser texto plano (backward compatibility)
-    return encryptedText;
+    // CRÍTICO: Si falla la desencriptación, NO devolver el texto encriptado
+    // Esto podría causar que se guarde un token corrupto
+    // En su lugar, lanzar un error para que el código que llama maneje la situación
+    throw new Error(`Error al desencriptar: La clave de encriptación puede haber cambiado o el token está corrupto. Verifica que ENCRYPTION_KEY esté configurada correctamente.`);
   }
 }
 
