@@ -526,6 +526,52 @@ export default function EditarAgente() {
     setPendingTokenUpdate(null);
   };
 
+  const handleImageUpload = async (file: File) => {
+    if (file.size > 1 * 1024 * 1024) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Validación',
+        message: 'La imagen no puede ser mayor a 1 MB',
+        type: 'warning',
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      const response = await fetch('/api/upload-agent-avatar', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setFormData({ ...formData, photo: data.url });
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error',
+          message: data.error || 'Error al subir la imagen',
+          type: 'error',
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al subir la imagen',
+        type: 'error',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (!currentAgent) {
     return (
       <ProtectedLayout>
