@@ -10,6 +10,7 @@ import AgentSelector from '@/components/ui/AgentSelector';
 import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { ChevronDownIcon } from '@heroicons/react/16/solid';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { isValidToken } from '@/utils/encryption';
 
 interface Client {
   id: number;
@@ -81,6 +82,8 @@ export default function EditarAgente() {
   });
   const [verifyingWhatsApp, setVerifyingWhatsApp] = useState(false);
   const [refreshingData, setRefreshingData] = useState(false);
+  const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
+  const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
 
   useEffect(() => {
     // Cargar clientes desde MySQL
@@ -329,50 +332,49 @@ export default function EditarAgente() {
     }
   };
 
-  const handleImageUpload = async (file: File) => {
-                        if (file.size > 1 * 1024 * 1024) {
-                          setAlertModal({
-                            isOpen: true,
-                            title: 'Validación',
-                            message: 'La imagen no puede ser mayor a 1 MB',
-                            type: 'warning',
-                          });
-                          return;
-                        }
-
-                      setUploading(true);
-                      try {
-                        const uploadFormData = new FormData();
-                        uploadFormData.append('file', file);
-
-                        const response = await fetch('/api/upload-agent-avatar', {
-                          method: 'POST',
-                          body: uploadFormData
-                        });
-
-                        const data = await response.json();
-
-                        if (response.ok) {
-                          setFormData({ ...formData, photo: data.url });
-                        } else {
-                          setAlertModal({
-                            isOpen: true,
-                            title: 'Error',
-                            message: data.error || 'Error al subir la imagen',
-                            type: 'error',
-                          });
-                        }
-                      } catch (error) {
-                        console.error('Error uploading image:', error);
-                        setAlertModal({
-                          isOpen: true,
-                          title: 'Error',
-                          message: 'Error al subir la imagen',
-                          type: 'error',
-                        });
-                      } finally {
-                        setUploading(false);
-                      }
+  const submitAgentUpdate = async (dataToSubmit: any) => {
+    if (!currentAgent) return;
+    
+    try {
+      // Agregar flag explícito si hay tokens para actualizar
+      if (dataToSubmit.whatsapp_access_token || dataToSubmit.whatsapp_webhook_verify_token || dataToSubmit.whatsapp_app_secret) {
+        dataToSubmit.update_tokens = true;
+      }
+      
+      const res = await fetch(`/api/agents/${currentAgent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSubmit)
+      });
+      
+      const data = await res.json();
+      console.log('[EDIT AGENT] Response:', data);
+      
+      if (!data.ok) {
+        throw new Error(data.error || 'Error al actualizar');
+      }
+      
+      // Mostrar warning si existe
+      if (data.warning) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Advertencia',
+          message: data.warning,
+          type: 'warning',
+        });
+        return;
+      }
+      
+      router.push('/agentes');
+    } catch (err: any) {
+      console.error('[EDIT AGENT] Error:', err);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: err.message || 'Error al guardar cambios',
+        type: 'error',
+      });
+    }
   };
 
   const handleVerifyWhatsApp = async () => {
@@ -461,17 +463,30 @@ export default function EditarAgente() {
         whatsapp_phone_number_id: formData.whatsapp_phone_number_id || null,
       };
       
-      // CRÍTICO: Solo incluir tokens si tienen un valor nuevo (no vacío y no enmascarado)
-      // Si están vacíos, NO incluirlos en el body para que el backend mantenga los valores existentes
-      // Usar Object.entries y filter para excluir campos undefined antes de JSON.stringify
-      if (formData.whatsapp_access_token && formData.whatsapp_access_token.trim() !== '' && !formData.whatsapp_access_token.endsWith('...')) {
+      // CRÍTICO: Validar y preparar tokens para actualización
+      // Solo incluir tokens si tienen un valor nuevo válido (no vacío, no enmascarado, longitud mínima)
+      const tokensToUpdate: string[] = [];
+      const MIN_TOKEN_LENGTH = 20;
+      
+      if (isValidToken(formData.whatsapp_access_token, MIN_TOKEN_LENGTH)) {
         requestData.whatsapp_access_token = formData.whatsapp_access_token;
+        tokensToUpdate.push('Access Token');
       }
-      if (formData.whatsapp_webhook_verify_token && formData.whatsapp_webhook_verify_token.trim() !== '' && !formData.whatsapp_webhook_verify_token.endsWith('...')) {
+      if (isValidToken(formData.whatsapp_webhook_verify_token, MIN_TOKEN_LENGTH)) {
         requestData.whatsapp_webhook_verify_token = formData.whatsapp_webhook_verify_token;
+        tokensToUpdate.push('Webhook Verify Token');
       }
-      if (formData.whatsapp_app_secret && formData.whatsapp_app_secret.trim() !== '' && !formData.whatsapp_app_secret.endsWith('...')) {
+      if (isValidToken(formData.whatsapp_app_secret, MIN_TOKEN_LENGTH)) {
         requestData.whatsapp_app_secret = formData.whatsapp_app_secret;
+        tokensToUpdate.push('App Secret');
+      }
+      
+      // Si hay tokens para actualizar, requerir confirmación explícita
+      if (tokensToUpdate.length > 0) {
+        // Guardar los datos pendientes y mostrar confirmación
+        setPendingTokenUpdate({ requestData, tokensToUpdate });
+        setShowTokenUpdateConfirm(true);
+        return; // No continuar hasta que el usuario confirme
       }
       
       // Filtrar campos undefined antes de enviar
@@ -486,28 +501,7 @@ export default function EditarAgente() {
         whatsapp_app_secret: filteredData.whatsapp_app_secret ? 'YES' : 'NO'
       });
       
-      const res = await fetch(`/api/agents/${currentAgent.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(filteredData)
-      });
-      const data = await res.json();
-      console.log('[EDIT AGENT] Response:', data);
-      if (!data.ok) throw new Error(data.error || 'Error al actualizar');
-      
-      // Mostrar warning si existe
-      if (data.warning) {
-        setAlertModal({
-          isOpen: true,
-          title: 'Advertencia',
-          message: data.warning,
-          type: 'warning',
-        });
-        // No redirigir si hay warning, para que el usuario pueda ver el mensaje
-        return;
-      }
-      
-      router.push('/agentes');
+      await submitAgentUpdate(filteredData);
     } catch (err: any) {
       console.error('[EDIT AGENT] Error:', err);
       setAlertModal({
@@ -517,6 +511,19 @@ export default function EditarAgente() {
         type: 'error',
       });
     }
+  };
+
+  const handleConfirmTokenUpdate = async () => {
+    if (!pendingTokenUpdate) return;
+    
+    // Filtrar campos undefined antes de enviar
+    const filteredData = Object.fromEntries(
+      Object.entries(pendingTokenUpdate.requestData).filter(([_, value]) => value !== undefined)
+    );
+    
+    setShowTokenUpdateConfirm(false);
+    await submitAgentUpdate(filteredData);
+    setPendingTokenUpdate(null);
   };
 
   if (!currentAgent) {
@@ -1113,6 +1120,22 @@ export default function EditarAgente() {
             </button>
           </div>
         </form>
+
+        {/* Modal de confirmación para actualizar tokens */}
+        {showTokenUpdateConfirm && pendingTokenUpdate && (
+          <NoticeModal
+            isOpen={showTokenUpdateConfirm}
+            onClose={() => {
+              setShowTokenUpdateConfirm(false);
+              setPendingTokenUpdate(null);
+            }}
+            title="Confirmar Actualización de Tokens"
+            message={`Estás a punto de actualizar los siguientes tokens de WhatsApp:\n\n${pendingTokenUpdate.tokensToUpdate.join('\n')}\n\n⚠️ ADVERTENCIA: Esta acción reemplazará los tokens actuales. Asegúrate de que los nuevos tokens sean correctos.\n\n¿Deseas continuar?`}
+            type="warning"
+            showCancel={true}
+            onConfirm={handleConfirmTokenUpdate}
+          />
+        )}
 
         {/* Modal de alertas */}
         <NoticeModal

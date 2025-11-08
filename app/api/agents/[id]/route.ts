@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
-import { encrypt, decrypt, maskSensitiveValue, isEncrypted } from '@/utils/encryption';
+import { encrypt, decrypt, maskSensitiveValue, isEncrypted, hashToken, isValidToken } from '@/utils/encryption';
 
 // GET - Obtener un agente por ID
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -119,10 +119,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     );
     const currentAgent = currentRows && currentRows.length > 0 ? currentRows[0] : null;
     
-    // CRÍTICO: Solo actualizar tokens si se envía un valor nuevo explícito Y es diferente del actual
-    // Si no se envía el campo (undefined), mantener el valor existente
-    // Si se envía null, vacío, o enmascarado, mantener el valor existente
-    // Si el valor nuevo es igual al actual, NO actualizar
+    // CRÍTICO: PROTECCIÓN MULTI-CAPA PARA TOKENS
+    // REGLA #1: Requerir flag explícito update_tokens === true para actualizar tokens
+    // REGLA #2: Validar longitud mínima y formato
+    // REGLA #3: Comparar hash antes de actualizar
+    // REGLA #4: Crear backup antes de actualizar
+    
+    const updateTokensFlag = body.update_tokens === true;
+    const MIN_TOKEN_LENGTH = 20;
+    
     let encryptedAccessToken: string | null | undefined = undefined;
     let encryptedWebhookToken: string | null | undefined = undefined;
     let encryptedAppSecret: string | null | undefined = undefined;
@@ -138,85 +143,144 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return token.substring(0, 4) + '...' + token.substring(token.length - 4);
     };
     
+    // Función para crear backup de tokens antes de actualizar
+    const createTokenBackup = () => {
+      return {
+        access_token: currentAccessToken,
+        webhook_token: currentWebhookToken,
+        app_secret: currentAppSecret,
+        timestamp: new Date().toISOString()
+      };
+    };
+    
     // Procesar whatsapp_access_token
     if ('whatsapp_access_token' in body) {
-      const accessToken = body.whatsapp_access_token;
-      if (accessToken && typeof accessToken === 'string' && accessToken.trim() !== '' && !accessToken.endsWith('...')) {
-        // Hay un valor nuevo explícito
-        let newEncryptedToken: string;
-        if (!isEncrypted(accessToken)) {
-          newEncryptedToken = encrypt(accessToken);
-        } else {
-          newEncryptedToken = accessToken;
-        }
-        
-        // CRÍTICO: Solo actualizar si el valor nuevo es diferente del actual
-        if (newEncryptedToken !== currentAccessToken) {
-          encryptedAccessToken = newEncryptedToken;
-          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: Cambio detectado. Actual: ${maskForLog(currentAccessToken)}, Nuevo: ${maskForLog(newEncryptedToken)}`);
-        } else {
-          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: Valor nuevo es igual al actual, omitiendo actualización. Valor: ${maskForLog(currentAccessToken)}`);
-          // NO establecer encryptedAccessToken, dejar como undefined para no actualizar
-        }
+      // CRÍTICO: Solo procesar si el flag update_tokens está presente y es true
+      if (!updateTokensFlag) {
+        console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_access_token: Campo presente pero flag update_tokens=false o ausente, IGNORANDO actualización. Valor actual: ${maskForLog(currentAccessToken)}`);
+        // NO procesar, dejar como undefined
       } else {
-        // Mantener el valor existente (campo vacío, null, o enmascarado)
-        console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: Campo vacío/enmascarado, manteniendo valor existente. Valor actual: ${maskForLog(currentAccessToken)}`);
-        // NO establecer encryptedAccessToken, dejar como undefined para no actualizar
+        const accessToken = body.whatsapp_access_token;
+        
+        // Validar token: debe ser válido (no vacío, no enmascarado, longitud mínima)
+        if (!isValidToken(accessToken, MIN_TOKEN_LENGTH)) {
+          console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_access_token: Token inválido (vacío, enmascarado, o longitud insuficiente), IGNORANDO actualización. Valor actual: ${maskForLog(currentAccessToken)}`);
+          // NO procesar, dejar como undefined
+        } else {
+          // Crear backup antes de actualizar
+          const backup = createTokenBackup();
+          console.log(`[API AGENTS] [TOKEN BACKUP] Backup creado antes de actualizar access_token: ${JSON.stringify({ timestamp: backup.timestamp, hash: hashToken(currentAccessToken || '') })}`);
+          
+          // Hay un valor nuevo válido
+          let newEncryptedToken: string;
+          if (!isEncrypted(accessToken)) {
+            newEncryptedToken = encrypt(accessToken);
+          } else {
+            newEncryptedToken = accessToken;
+          }
+          
+          // CRÍTICO: Comparar hash antes de actualizar
+          const currentHash = hashToken(currentAccessToken);
+          const newHash = hashToken(newEncryptedToken);
+          
+          if (currentHash === newHash) {
+            console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_access_token: Hash del token nuevo es igual al actual, IGNORANDO actualización. Hash: ${currentHash.substring(0, 8)}...`);
+            // NO establecer encryptedAccessToken, dejar como undefined para no actualizar
+          } else {
+            encryptedAccessToken = newEncryptedToken;
+            console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: Cambio detectado y validado. Actual hash: ${currentHash.substring(0, 8)}..., Nuevo hash: ${newHash.substring(0, 8)}...`);
+          }
+        }
       }
     } else {
       // Campo no presente en body, mantener el valor existente
-      console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: Campo no presente en body, manteniendo valor existente. Valor actual: ${maskForLog(currentAccessToken)}`);
-      // NO establecer encryptedAccessToken, dejar como undefined para no actualizar
+      console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_access_token: Campo no presente en body, manteniendo valor existente. Valor actual: ${maskForLog(currentAccessToken)}`);
     }
     
     // Procesar whatsapp_webhook_verify_token
     if ('whatsapp_webhook_verify_token' in body) {
-      const webhookToken = body.whatsapp_webhook_verify_token;
-      if (webhookToken && typeof webhookToken === 'string' && webhookToken.trim() !== '' && !webhookToken.endsWith('...')) {
-        let newEncryptedToken: string;
-        if (!isEncrypted(webhookToken)) {
-          newEncryptedToken = encrypt(webhookToken);
-        } else {
-          newEncryptedToken = webhookToken;
-        }
-        
-        // CRÍTICO: Solo actualizar si el valor nuevo es diferente del actual
-        if (newEncryptedToken !== currentWebhookToken) {
-          encryptedWebhookToken = newEncryptedToken;
-          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: Cambio detectado. Actual: ${maskForLog(currentWebhookToken)}, Nuevo: ${maskForLog(newEncryptedToken)}`);
-        } else {
-          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: Valor nuevo es igual al actual, omitiendo actualización. Valor: ${maskForLog(currentWebhookToken)}`);
-        }
+      // CRÍTICO: Solo procesar si el flag update_tokens está presente y es true
+      if (!updateTokensFlag) {
+        console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_webhook_verify_token: Campo presente pero flag update_tokens=false o ausente, IGNORANDO actualización. Valor actual: ${maskForLog(currentWebhookToken)}`);
+        // NO procesar, dejar como undefined
       } else {
-        console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: Campo vacío/enmascarado, manteniendo valor existente. Valor actual: ${maskForLog(currentWebhookToken)}`);
+        const webhookToken = body.whatsapp_webhook_verify_token;
+        
+        // Validar token: debe ser válido (no vacío, no enmascarado, longitud mínima)
+        if (!isValidToken(webhookToken, MIN_TOKEN_LENGTH)) {
+          console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_webhook_verify_token: Token inválido (vacío, enmascarado, o longitud insuficiente), IGNORANDO actualización. Valor actual: ${maskForLog(currentWebhookToken)}`);
+          // NO procesar, dejar como undefined
+        } else {
+          // Crear backup antes de actualizar
+          const backup = createTokenBackup();
+          console.log(`[API AGENTS] [TOKEN BACKUP] Backup creado antes de actualizar webhook_token: ${JSON.stringify({ timestamp: backup.timestamp, hash: hashToken(currentWebhookToken || '') })}`);
+          
+          let newEncryptedToken: string;
+          if (!isEncrypted(webhookToken)) {
+            newEncryptedToken = encrypt(webhookToken);
+          } else {
+            newEncryptedToken = webhookToken;
+          }
+          
+          // CRÍTICO: Comparar hash antes de actualizar
+          const currentHash = hashToken(currentWebhookToken);
+          const newHash = hashToken(newEncryptedToken);
+          
+          if (currentHash === newHash) {
+            console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_webhook_verify_token: Hash del token nuevo es igual al actual, IGNORANDO actualización. Hash: ${currentHash.substring(0, 8)}...`);
+            // NO establecer encryptedWebhookToken, dejar como undefined para no actualizar
+          } else {
+            encryptedWebhookToken = newEncryptedToken;
+            console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: Cambio detectado y validado. Actual hash: ${currentHash.substring(0, 8)}..., Nuevo hash: ${newHash.substring(0, 8)}...`);
+          }
+        }
       }
     } else {
-      console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: Campo no presente en body, manteniendo valor existente. Valor actual: ${maskForLog(currentWebhookToken)}`);
+      // Campo no presente en body, mantener el valor existente
+      console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_webhook_verify_token: Campo no presente en body, manteniendo valor existente. Valor actual: ${maskForLog(currentWebhookToken)}`);
     }
     
     // Procesar whatsapp_app_secret
     if ('whatsapp_app_secret' in body) {
-      const appSecret = body.whatsapp_app_secret;
-      if (appSecret && typeof appSecret === 'string' && appSecret.trim() !== '' && !appSecret.endsWith('...')) {
-        let newEncryptedSecret: string;
-        if (!isEncrypted(appSecret)) {
-          newEncryptedSecret = encrypt(appSecret);
-        } else {
-          newEncryptedSecret = appSecret;
-        }
-        
-        // CRÍTICO: Solo actualizar si el valor nuevo es diferente del actual
-        if (newEncryptedSecret !== currentAppSecret) {
-          encryptedAppSecret = newEncryptedSecret;
-          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Cambio detectado. Actual: ${maskForLog(currentAppSecret)}, Nuevo: ${maskForLog(newEncryptedSecret)}`);
-        } else {
-          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Valor nuevo es igual al actual, omitiendo actualización. Valor: ${maskForLog(currentAppSecret)}`);
-        }
+      // CRÍTICO: Solo procesar si el flag update_tokens está presente y es true
+      if (!updateTokensFlag) {
+        console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_app_secret: Campo presente pero flag update_tokens=false o ausente, IGNORANDO actualización. Valor actual: ${maskForLog(currentAppSecret)}`);
+        // NO procesar, dejar como undefined
       } else {
-        console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Campo vacío/enmascarado, manteniendo valor existente. Valor actual: ${maskForLog(currentAppSecret)}`);
+        const appSecret = body.whatsapp_app_secret;
+        
+        // Validar token: debe ser válido (no vacío, no enmascarado, longitud mínima)
+        if (!isValidToken(appSecret, MIN_TOKEN_LENGTH)) {
+          console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_app_secret: Token inválido (vacío, enmascarado, o longitud insuficiente), IGNORANDO actualización. Valor actual: ${maskForLog(currentAppSecret)}`);
+          // NO procesar, dejar como undefined
+        } else {
+          // Crear backup antes de actualizar
+          const backup = createTokenBackup();
+          console.log(`[API AGENTS] [TOKEN BACKUP] Backup creado antes de actualizar app_secret: ${JSON.stringify({ timestamp: backup.timestamp, hash: hashToken(currentAppSecret || '') })}`);
+          
+          let newEncryptedSecret: string;
+          if (!isEncrypted(appSecret)) {
+            newEncryptedSecret = encrypt(appSecret);
+          } else {
+            newEncryptedSecret = appSecret;
+          }
+          
+          // CRÍTICO: Comparar hash antes de actualizar
+          const currentHash = hashToken(currentAppSecret);
+          const newHash = hashToken(newEncryptedSecret);
+          
+          if (currentHash === newHash) {
+            console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_app_secret: Hash del token nuevo es igual al actual, IGNORANDO actualización. Hash: ${currentHash.substring(0, 8)}...`);
+            // NO establecer encryptedAppSecret, dejar como undefined para no actualizar
+          } else {
+            encryptedAppSecret = newEncryptedSecret;
+            console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Cambio detectado y validado. Actual hash: ${currentHash.substring(0, 8)}..., Nuevo hash: ${newHash.substring(0, 8)}...`);
+          }
+        }
       }
     } else {
-      console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Campo no presente en body, manteniendo valor existente. Valor actual: ${maskForLog(currentAppSecret)}`);
+      // Campo no presente en body, mantener el valor existente
+      console.log(`[API AGENTS] [TOKEN PROTECTION] whatsapp_app_secret: Campo no presente en body, manteniendo valor existente. Valor actual: ${maskForLog(currentAppSecret)}`);
     }
     
     // Verificar si las columnas de WhatsApp existen antes de intentar actualizar

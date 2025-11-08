@@ -109,3 +109,41 @@ export function isEncrypted(value: string | null | undefined): boolean {
   return value.length > 50 && /^[0-9a-f]+$/i.test(value);
 }
 
+/**
+ * Genera un hash SHA-256 de un token para comparación segura
+ */
+export function hashToken(token: string | null | undefined): string {
+  if (!token || token.trim() === '') {
+    return '';
+  }
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Valida que un token tenga formato y longitud válidos
+ */
+export function isValidToken(token: string | null | undefined, minLength: number = 20): boolean {
+  if (!token || typeof token !== 'string') {
+    return false;
+  }
+  
+  const trimmed = token.trim();
+  
+  // No debe estar vacío
+  if (trimmed === '') {
+    return false;
+  }
+  
+  // No debe terminar en '...' (enmascarado)
+  if (trimmed.endsWith('...')) {
+    return false;
+  }
+  
+  // Debe tener longitud mínima
+  if (trimmed.length < minLength) {
+    return false;
+  }
+  
+  return true;
+}
+
