@@ -108,7 +108,11 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     if (permissions.type === 'admin') return true;
     // Verificar permisos del módulo (nuevo sistema simplificado)
     const sectionPerms = permissions[item.perm];
-    if (!sectionPerms) return false;
+    // Si no hay permisos configurados para este módulo, permitir acceso (para nuevos módulos)
+    if (!sectionPerms) {
+      // Permitir acceso a módulos nuevos como developers si no hay permisos configurados
+      return item.perm === 'developers' || item.perm === 'roadmap';
+    }
     // Si tiene permiso de ver o editar, tiene acceso
     return sectionPerms.view || sectionPerms.edit;
   });
