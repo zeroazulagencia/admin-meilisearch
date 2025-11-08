@@ -42,6 +42,8 @@ export default function Developers() {
   const [editingDoc, setEditingDoc] = useState<DeveloperDoc | null>(null);
   const [savingDoc, setSavingDoc] = useState(false);
   const [deletingDoc, setDeletingDoc] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<DeveloperDoc | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [docForm, setDocForm] = useState({
     title: '',
     content: '',
@@ -205,12 +207,16 @@ export default function Developers() {
     }
   };
 
-  const handleDeleteDoc = async (doc: DeveloperDoc) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar el documento "${doc.title}"?`)) {
-      return;
-    }
+  const handleDeleteDoc = (doc: DeveloperDoc) => {
+    setDocToDelete(doc);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteDoc = async () => {
+    if (!docToDelete) return;
 
     setDeletingDoc(true);
+    setShowDeleteConfirm(false);
     try {
       const res = await fetch(`/api/developer-docs/${doc.id}`, {
         method: 'DELETE',
@@ -246,6 +252,7 @@ export default function Developers() {
       });
     } finally {
       setDeletingDoc(false);
+      setDocToDelete(null);
     }
   };
 
@@ -447,6 +454,19 @@ export default function Developers() {
         title={alertModal.title}
         message={alertModal.message}
         type={alertModal.type}
+      />
+
+      <NoticeModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDocToDelete(null);
+        }}
+        onConfirm={confirmDeleteDoc}
+        title="Eliminar Documento"
+        message={docToDelete ? `¿Estás seguro de que deseas eliminar el documento "${docToDelete.title}"? Esta acción no se puede deshacer.` : ''}
+        type="warning"
+        showCancel={true}
       />
     </ProtectedLayout>
   );
