@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/utils/db';
+import { query, getDbPool } from '@/utils/db';
 
 // GET - Obtener todos los documentos de developers, opcionalmente filtrados por agent_id
 export async function GET(req: NextRequest) {
@@ -66,16 +66,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Insertar el documento
-    const [result] = await query<any>(
+    const pool = getDbPool();
+    const [result] = await pool.execute(
       'INSERT INTO developer_docs (agent_id, title, content) VALUES (?, ?, ?)',
       [agent_id, title.trim(), content.trim()]
-    );
+    ) as any;
+
+    // Obtener el ID insertado
+    const insertId = result?.insertId || 0;
 
     return NextResponse.json({ 
       ok: true, 
       message: 'Documento creado exitosamente',
       doc: {
-        id: result.insertId,
+        id: insertId,
         agent_id,
         title: title.trim(),
         content: content.trim()
