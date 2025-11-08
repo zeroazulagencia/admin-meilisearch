@@ -1426,7 +1426,7 @@ export default function AdminConocimiento() {
             uid: index.uid,
             stats: {
               numberOfDocuments: stats.numberOfDocuments || 0,
-              hasEmbedder,
+              hasEmbedder: hasEmbedder || false,
               primaryKey: index.primaryKey,
               createdAt: index.createdAt,
               updatedAt: index.updatedAt,
