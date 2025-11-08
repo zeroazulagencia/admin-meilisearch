@@ -44,11 +44,18 @@ export default function Conversaciones() {
   // Inicializar fechas con "este mes hasta hoy" como default
   useEffect(() => {
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
     
-    // Primer día del mes actual
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const firstDayStr = firstDayOfMonth.toISOString().split('T')[0]; // YYYY-MM-DD
+    // Asegurar que usamos la fecha local, no UTC
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const day = today.getDate();
+    
+    // Primer día del mes actual (formato local)
+    const firstDayOfMonth = new Date(year, month, 1);
+    const firstDayStr = `${year}-${String(month + 1).padStart(2, '0')}-01`; // YYYY-MM-01
+    
+    // Fecha de hoy (formato local)
+    const todayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; // YYYY-MM-DD
     
     setDateFrom(firstDayStr);
     setDateTo(todayStr);
