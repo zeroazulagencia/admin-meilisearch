@@ -2757,16 +2757,17 @@ export default function AdminConocimiento() {
         <NoticeModal
           isOpen={showDeleteIndexModal}
           onClose={() => {
-            setShowDeleteIndexModal(false);
-            setIndexToDelete(null);
+            if (!deletingIndex) {
+              setShowDeleteIndexModal(false);
+              setIndexToDelete(null);
+            }
           }}
           onConfirm={handleDeleteIndex}
           title="Eliminar Índice"
           message={`¿Estás seguro de que deseas eliminar el índice "${indexToDelete.uid}"?\n\nEsta acción no se puede deshacer y eliminará todos los documentos asociados.`}
           type="warning"
-          confirmText="Eliminar"
+          confirmText={deletingIndex ? 'Eliminando...' : 'Eliminar'}
           cancelText="Cancelar"
-          isLoading={deletingIndex}
         />
       )}
     </ProtectedLayout>
