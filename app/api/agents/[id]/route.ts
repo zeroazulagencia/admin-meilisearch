@@ -234,7 +234,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           updateValues.push(encryptedAppSecret);
         }
         
-        updateFields.push('id = ?');
+        // Agregar el id al final para el WHERE
         updateValues.push(id);
         
         await query(
