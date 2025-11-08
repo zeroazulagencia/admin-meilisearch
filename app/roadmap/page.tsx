@@ -141,10 +141,10 @@ export default function Roadmap() {
       completed: false,
     },
     {
-      date: 'Pendiente',
+      date: 'Completado',
       title: 'Crear espacio de documentación de developers',
       description: 'Desarrollar un espacio dedicado para documentación técnica dirigida a desarrolladores',
-      completed: false,
+      completed: true,
     },
     {
       date: 'Pendiente',
