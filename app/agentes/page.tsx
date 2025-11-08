@@ -214,10 +214,7 @@ export default function Agentes() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Agentes</h1>
         <button
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-          }}
+          onClick={() => router.push('/agentes/crear')}
           className="px-4 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
           style={{ backgroundColor: '#5DE1E5' }}
         >
