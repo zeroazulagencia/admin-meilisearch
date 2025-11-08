@@ -194,6 +194,9 @@ export default function WhatsAppManager() {
   const [showSendTemplateModal, setShowSendTemplateModal] = useState(false);
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
   const [creatingTemplate, setCreatingTemplate] = useState(false);
+  const [showDeleteTemplateModal, setShowDeleteTemplateModal] = useState(false);
+  const [deletingTemplate, setDeletingTemplate] = useState(false);
+  const [selectedTemplateToDelete, setSelectedTemplateToDelete] = useState<any>(null);
   const [createTemplateForm, setCreateTemplateForm] = useState({
     name: '',
     language: '',
@@ -378,6 +381,19 @@ export default function WhatsAppManager() {
         footer_text: '',
         buttons: []
       });
+    } else if (actionId === 'delete-template') {
+      if (!selectedAgent) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Agente requerido',
+          message: 'Por favor selecciona un agente primero',
+          type: 'warning',
+        });
+        return;
+      }
+      // Cargar plantillas primero para poder seleccionar una
+      await loadTemplates();
+      setShowDeleteTemplateModal(true);
     }
   };
 
