@@ -833,6 +833,56 @@ export default function WhatsAppManager() {
     }
   };
 
+  const handleDeleteTemplate = async () => {
+    if (!selectedAgent || !selectedTemplateToDelete) return;
+
+    setDeletingTemplate(true);
+    try {
+      const res = await fetch('/api/whatsapp/delete-template', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          agent_id: selectedAgent.id,
+          template_id: selectedTemplateToDelete.id
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Plantilla Eliminada',
+          message: data.message || 'La plantilla ha sido eliminada exitosamente.',
+          type: 'success',
+        });
+        setShowDeleteTemplateModal(false);
+        setSelectedTemplateToDelete(null);
+        // Recargar plantillas para actualizar la lista
+        await loadTemplates();
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error al eliminar plantilla',
+          message: data.error || 'Error desconocido al eliminar la plantilla',
+          type: 'error',
+        });
+      }
+    } catch (e: any) {
+      console.error('[WHATSAPP-MANAGER] Error eliminando plantilla:', e);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error al eliminar plantilla',
+        message: e?.message || 'Error al procesar la eliminación de la plantilla',
+        type: 'error',
+      });
+    } finally {
+      setDeletingTemplate(false);
+    }
+  };
+
   return (
     <ProtectedLayout>
       <div className="mb-8">
