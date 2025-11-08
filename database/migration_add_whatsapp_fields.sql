@@ -62,14 +62,14 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 SET @sql = IF(@col_exists_whatsapp_webhook_verify_token = 0, 
-  'ALTER TABLE agents ADD COLUMN whatsapp_webhook_verify_token VARCHAR(255) NULL AFTER whatsapp_access_token;', 
+  'ALTER TABLE agents ADD COLUMN whatsapp_webhook_verify_token TEXT NULL AFTER whatsapp_access_token;', 
   'SELECT "whatsapp_webhook_verify_token already exists" AS message;');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 SET @sql = IF(@col_exists_whatsapp_app_secret = 0, 
-  'ALTER TABLE agents ADD COLUMN whatsapp_app_secret VARCHAR(255) NULL AFTER whatsapp_webhook_verify_token;', 
+  'ALTER TABLE agents ADD COLUMN whatsapp_app_secret TEXT NULL AFTER whatsapp_webhook_verify_token;', 
   'SELECT "whatsapp_app_secret already exists" AS message;');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
