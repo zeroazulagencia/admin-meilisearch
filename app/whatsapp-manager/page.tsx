@@ -409,6 +409,16 @@ export default function WhatsAppManager() {
       return;
     }
 
+    if (!sendMessageForm.template_language || sendMessageForm.template_language.trim() === '') {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campo requerido',
+        message: 'Por favor selecciona el idioma de la plantilla. Debe coincidir exactamente con el idioma de la plantilla en WhatsApp.',
+        type: 'warning',
+      });
+      return;
+    }
+
     setSendingMessage(true);
     try {
       // Procesar componentes de plantilla si es necesario
@@ -1340,7 +1350,7 @@ export default function WhatsAppManager() {
                 {/* Idioma */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Idioma
+                    Idioma *
                   </label>
                   <select
                     value={sendMessageForm.template_language}
@@ -1348,11 +1358,33 @@ export default function WhatsAppManager() {
                     disabled={sendingMessage}
                     className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    <option value="es">Español (es)</option>
-                    <option value="en">Inglés (en)</option>
-                    <option value="pt">Portugués (pt)</option>
-                    <option value="fr">Francés (fr)</option>
+                    <option value="">Seleccionar idioma...</option>
+                    <optgroup label="Español">
+                      <option value="es">Español (es)</option>
+                      <option value="es_MX">Español México (es_MX)</option>
+                      <option value="es_ES">Español España (es_ES)</option>
+                      <option value="es_AR">Español Argentina (es_AR)</option>
+                      <option value="es_CO">Español Colombia (es_CO)</option>
+                    </optgroup>
+                    <optgroup label="Inglés">
+                      <option value="en">Inglés (en)</option>
+                      <option value="en_US">Inglés Estados Unidos (en_US)</option>
+                      <option value="en_GB">Inglés Reino Unido (en_GB)</option>
+                    </optgroup>
+                    <optgroup label="Portugués">
+                      <option value="pt">Portugués (pt)</option>
+                      <option value="pt_BR">Portugués Brasil (pt_BR)</option>
+                      <option value="pt_PT">Portugués Portugal (pt_PT)</option>
+                    </optgroup>
+                    <optgroup label="Francés">
+                      <option value="fr">Francés (fr)</option>
+                      <option value="fr_FR">Francés Francia (fr_FR)</option>
+                      <option value="fr_CA">Francés Canadá (fr_CA)</option>
+                    </optgroup>
                   </select>
+                  <p className="mt-1 text-xs text-gray-500 break-words overflow-wrap-anywhere">
+                    El código de idioma debe coincidir exactamente con el de la plantilla. Si ves &quot;English (US)&quot; en la plantilla, usa &quot;en_US&quot;.
+                  </p>
                 </div>
 
                 {/* Parámetros */}
@@ -1535,6 +1567,21 @@ export default function WhatsAppManager() {
                                 {template.status}
                               </span>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSendMessageForm({
+                                  ...sendMessageForm,
+                                  template_name: template.name || '',
+                                  template_language: template.language || 'es',
+                                });
+                                setShowTemplatesModal(false);
+                                setShowSendTemplateModal(true);
+                              }}
+                              className="mt-2 text-xs text-[#5DE1E5] hover:text-[#4BC4C7] font-medium underline"
+                            >
+                              Usar esta plantilla
+                            </button>
                           </div>
                         </div>
                         
