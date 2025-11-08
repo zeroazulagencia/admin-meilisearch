@@ -18,9 +18,6 @@ import {
   DocumentTextIcon,
   TrashIcon,
   Cog6ToothIcon,
-  InboxIcon,
-  ArchiveBoxIcon,
-  TagIcon,
   FilmIcon,
   PaperAirplaneIcon,
   PhoneIcon
@@ -128,38 +125,6 @@ const whatsappActions: WhatsAppAction[] = [
     icon: Cog6ToothIcon,
     category: 'configuracion',
     color: 'bg-slate-500'
-  },
-  {
-    id: 'get-conversations',
-    title: 'Obtener Conversaciones',
-    description: 'Listar todas las conversaciones activas',
-    icon: InboxIcon,
-    category: 'conversaciones',
-    color: 'bg-amber-500'
-  },
-  {
-    id: 'archive-conversation',
-    title: 'Archivar Conversación',
-    description: 'Archivar una conversación específica',
-    icon: ArchiveBoxIcon,
-    category: 'conversaciones',
-    color: 'bg-gray-500'
-  },
-  {
-    id: 'unarchive-conversation',
-    title: 'Desarchivar Conversación',
-    description: 'Restaurar una conversación archivada',
-    icon: InboxIcon,
-    category: 'conversaciones',
-    color: 'bg-lime-500'
-  },
-  {
-    id: 'tag-conversation',
-    title: 'Etiquetar Conversación',
-    description: 'Agregar o modificar etiquetas en una conversación',
-    icon: TagIcon,
-    category: 'conversaciones',
-    color: 'bg-fuchsia-500'
   },
   {
     id: 'get-media',
