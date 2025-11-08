@@ -9,6 +9,7 @@ import NoticeModal from '@/components/ui/NoticeModal';
 import AgentSelector from '@/components/ui/AgentSelector';
 import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { ChevronDownIcon } from '@heroicons/react/16/solid';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface Client {
   id: number;
@@ -79,6 +80,7 @@ export default function EditarAgente() {
     type: 'info',
   });
   const [verifyingWhatsApp, setVerifyingWhatsApp] = useState(false);
+  const [refreshingData, setRefreshingData] = useState(false);
 
   useEffect(() => {
     // Cargar clientes desde MySQL
@@ -296,6 +298,35 @@ export default function EditarAgente() {
     }
   };
 
+  const handleRefreshData = async () => {
+    setRefreshingData(true);
+    try {
+      // Recargar todos los datos de Meilisearch y n8n
+      await Promise.all([
+        loadIndexes(),
+        loadWorkflows(),
+        loadConversationAgents(),
+        loadReportAgents()
+      ]);
+      setAlertModal({
+        isOpen: true,
+        title: 'Datos actualizados',
+        message: 'Los datos de Meilisearch y n8n se han actualizado correctamente.',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al actualizar los datos. Por favor, intenta nuevamente.',
+        type: 'error'
+      });
+    } finally {
+      setRefreshingData(false);
+    }
+  };
+
   const handleImageUpload = async (file: File) => {
                         if (file.size > 1 * 1024 * 1024) {
                           setAlertModal({
@@ -413,26 +444,50 @@ export default function EditarAgente() {
     if (!currentAgent) return;
     try {
       console.log('[EDIT AGENT] Submitting with reports_agent_name:', selectedReportAgent);
+      
+      // Construir el objeto de datos, excluyendo campos undefined
+      const requestData: any = {
+        client_id: formData.client_id,
+        name: formData.name,
+        description: formData.description,
+        photo: formData.photo,
+        knowledge: { indexes: selectedIndexes },
+        workflows: { workflowIds: selectedWorkflows },
+        conversation_agent_name: selectedConversationAgent || null,
+        reports_agent_name: selectedReportAgent || null,
+        whatsapp_business_account_id: formData.whatsapp_business_account_id || null,
+        whatsapp_phone_number_id: formData.whatsapp_phone_number_id || null,
+      };
+      
+      // CRÍTICO: Solo incluir tokens si tienen un valor nuevo (no vacío y no enmascarado)
+      // Si están vacíos, NO incluirlos en el body para que el backend mantenga los valores existentes
+      // Usar Object.entries y filter para excluir campos undefined antes de JSON.stringify
+      if (formData.whatsapp_access_token && formData.whatsapp_access_token.trim() !== '' && !formData.whatsapp_access_token.endsWith('...')) {
+        requestData.whatsapp_access_token = formData.whatsapp_access_token;
+      }
+      if (formData.whatsapp_webhook_verify_token && formData.whatsapp_webhook_verify_token.trim() !== '' && !formData.whatsapp_webhook_verify_token.endsWith('...')) {
+        requestData.whatsapp_webhook_verify_token = formData.whatsapp_webhook_verify_token;
+      }
+      if (formData.whatsapp_app_secret && formData.whatsapp_app_secret.trim() !== '' && !formData.whatsapp_app_secret.endsWith('...')) {
+        requestData.whatsapp_app_secret = formData.whatsapp_app_secret;
+      }
+      
+      // Filtrar campos undefined antes de enviar
+      const filteredData = Object.fromEntries(
+        Object.entries(requestData).filter(([_, value]) => value !== undefined)
+      );
+      
+      console.log('[EDIT AGENT] Request data (filtered):', filteredData);
+      console.log('[EDIT AGENT] Tokens included:', {
+        whatsapp_access_token: filteredData.whatsapp_access_token ? 'YES' : 'NO',
+        whatsapp_webhook_verify_token: filteredData.whatsapp_webhook_verify_token ? 'YES' : 'NO',
+        whatsapp_app_secret: filteredData.whatsapp_app_secret ? 'YES' : 'NO'
+      });
+      
       const res = await fetch(`/api/agents/${currentAgent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          client_id: formData.client_id,
-          name: formData.name,
-          description: formData.description,
-          photo: formData.photo,
-          knowledge: { indexes: selectedIndexes },
-          workflows: { workflowIds: selectedWorkflows },
-          conversation_agent_name: selectedConversationAgent || null,
-          reports_agent_name: selectedReportAgent || null,
-          whatsapp_business_account_id: formData.whatsapp_business_account_id || null,
-          whatsapp_phone_number_id: formData.whatsapp_phone_number_id || null,
-          // Solo enviar tokens si tienen un valor nuevo (no vacío y no enmascarado)
-          // Si están vacíos, no enviarlos para que el backend mantenga los valores existentes
-          whatsapp_access_token: formData.whatsapp_access_token && formData.whatsapp_access_token.trim() !== '' && !formData.whatsapp_access_token.endsWith('...') ? formData.whatsapp_access_token : undefined,
-          whatsapp_webhook_verify_token: formData.whatsapp_webhook_verify_token && formData.whatsapp_webhook_verify_token.trim() !== '' && !formData.whatsapp_webhook_verify_token.endsWith('...') ? formData.whatsapp_webhook_verify_token : undefined,
-          whatsapp_app_secret: formData.whatsapp_app_secret && formData.whatsapp_app_secret.trim() !== '' && !formData.whatsapp_app_secret.endsWith('...') ? formData.whatsapp_app_secret : undefined
-        })
+        body: JSON.stringify(filteredData)
       });
       const data = await res.json();
       console.log('[EDIT AGENT] Response:', data);
@@ -675,10 +730,25 @@ export default function EditarAgente() {
 
           {/* Conocimiento y Flujos */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
-            <h2 className="text-base/7 font-semibold text-gray-900">Conocimiento y Flujos</h2>
-            <p className="mt-1 text-sm/6 text-gray-600">
-              Configura los índices de conocimiento y los flujos de n8n disponibles para este agente.
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex-1">
+                <h2 className="text-base/7 font-semibold text-gray-900">Conocimiento y Flujos</h2>
+                <p className="mt-1 text-sm/6 text-gray-600">
+                  Configura los índices de conocimiento y los flujos de n8n disponibles para este agente.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRefreshData}
+                disabled={refreshingData}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-900 bg-[#5DE1E5] border border-transparent rounded-md shadow-sm hover:bg-[#4BC5C9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+              >
+                <ArrowPathIcon 
+                  className={`h-5 w-5 ${refreshingData ? 'animate-spin' : ''}`} 
+                />
+                <span>{refreshingData ? 'Actualizando...' : 'Actualizar Datos'}</span>
+              </button>
+            </div>
             
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2">
           {/* Configuración de Conocimiento */}

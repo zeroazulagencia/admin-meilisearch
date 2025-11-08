@@ -119,60 +119,104 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     );
     const currentAgent = currentRows && currentRows.length > 0 ? currentRows[0] : null;
     
-    // CRÍTICO: Solo actualizar tokens si se envía un valor nuevo explícito
+    // CRÍTICO: Solo actualizar tokens si se envía un valor nuevo explícito Y es diferente del actual
     // Si no se envía el campo (undefined), mantener el valor existente
     // Si se envía null, vacío, o enmascarado, mantener el valor existente
+    // Si el valor nuevo es igual al actual, NO actualizar
     let encryptedAccessToken: string | null | undefined = undefined;
     let encryptedWebhookToken: string | null | undefined = undefined;
     let encryptedAppSecret: string | null | undefined = undefined;
     
-    // Solo procesar si el campo está presente en el body
+    const currentAccessToken = currentAgent?.whatsapp_access_token || null;
+    const currentWebhookToken = currentAgent?.whatsapp_webhook_verify_token || null;
+    const currentAppSecret = currentAgent?.whatsapp_app_secret || null;
+    
+    // Función helper para enmascarar tokens en logs
+    const maskForLog = (token: string | null): string => {
+      if (!token) return 'null';
+      if (token.length <= 8) return '***';
+      return token.substring(0, 4) + '...' + token.substring(token.length - 4);
+    };
+    
+    // Procesar whatsapp_access_token
     if ('whatsapp_access_token' in body) {
       const accessToken = body.whatsapp_access_token;
       if (accessToken && typeof accessToken === 'string' && accessToken.trim() !== '' && !accessToken.endsWith('...')) {
         // Hay un valor nuevo explícito
+        let newEncryptedToken: string;
         if (!isEncrypted(accessToken)) {
-          encryptedAccessToken = encrypt(accessToken);
+          newEncryptedToken = encrypt(accessToken);
         } else {
-          encryptedAccessToken = accessToken;
+          newEncryptedToken = accessToken;
+        }
+        
+        // CRÍTICO: Solo actualizar si el valor nuevo es diferente del actual
+        if (newEncryptedToken !== currentAccessToken) {
+          encryptedAccessToken = newEncryptedToken;
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: Cambio detectado. Actual: ${maskForLog(currentAccessToken)}, Nuevo: ${maskForLog(newEncryptedToken)}`);
+        } else {
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: Valor nuevo es igual al actual, omitiendo actualización. Valor: ${maskForLog(currentAccessToken)}`);
+          // NO establecer encryptedAccessToken, dejar como undefined para no actualizar
         }
       } else {
-        // Mantener el valor existente
-        encryptedAccessToken = currentAgent?.whatsapp_access_token || null;
+        // Mantener el valor existente (campo vacío, null, o enmascarado)
+        console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: Campo vacío/enmascarado, manteniendo valor existente. Valor actual: ${maskForLog(currentAccessToken)}`);
+        // NO establecer encryptedAccessToken, dejar como undefined para no actualizar
       }
     } else {
-      // Campo no presente, mantener el valor existente
-      encryptedAccessToken = currentAgent?.whatsapp_access_token || null;
+      // Campo no presente en body, mantener el valor existente
+      console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: Campo no presente en body, manteniendo valor existente. Valor actual: ${maskForLog(currentAccessToken)}`);
+      // NO establecer encryptedAccessToken, dejar como undefined para no actualizar
     }
     
+    // Procesar whatsapp_webhook_verify_token
     if ('whatsapp_webhook_verify_token' in body) {
       const webhookToken = body.whatsapp_webhook_verify_token;
       if (webhookToken && typeof webhookToken === 'string' && webhookToken.trim() !== '' && !webhookToken.endsWith('...')) {
+        let newEncryptedToken: string;
         if (!isEncrypted(webhookToken)) {
-          encryptedWebhookToken = encrypt(webhookToken);
+          newEncryptedToken = encrypt(webhookToken);
         } else {
-          encryptedWebhookToken = webhookToken;
+          newEncryptedToken = webhookToken;
+        }
+        
+        // CRÍTICO: Solo actualizar si el valor nuevo es diferente del actual
+        if (newEncryptedToken !== currentWebhookToken) {
+          encryptedWebhookToken = newEncryptedToken;
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: Cambio detectado. Actual: ${maskForLog(currentWebhookToken)}, Nuevo: ${maskForLog(newEncryptedToken)}`);
+        } else {
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: Valor nuevo es igual al actual, omitiendo actualización. Valor: ${maskForLog(currentWebhookToken)}`);
         }
       } else {
-        encryptedWebhookToken = currentAgent?.whatsapp_webhook_verify_token || null;
+        console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: Campo vacío/enmascarado, manteniendo valor existente. Valor actual: ${maskForLog(currentWebhookToken)}`);
       }
     } else {
-      encryptedWebhookToken = currentAgent?.whatsapp_webhook_verify_token || null;
+      console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: Campo no presente en body, manteniendo valor existente. Valor actual: ${maskForLog(currentWebhookToken)}`);
     }
     
+    // Procesar whatsapp_app_secret
     if ('whatsapp_app_secret' in body) {
       const appSecret = body.whatsapp_app_secret;
       if (appSecret && typeof appSecret === 'string' && appSecret.trim() !== '' && !appSecret.endsWith('...')) {
+        let newEncryptedSecret: string;
         if (!isEncrypted(appSecret)) {
-          encryptedAppSecret = encrypt(appSecret);
+          newEncryptedSecret = encrypt(appSecret);
         } else {
-          encryptedAppSecret = appSecret;
+          newEncryptedSecret = appSecret;
+        }
+        
+        // CRÍTICO: Solo actualizar si el valor nuevo es diferente del actual
+        if (newEncryptedSecret !== currentAppSecret) {
+          encryptedAppSecret = newEncryptedSecret;
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Cambio detectado. Actual: ${maskForLog(currentAppSecret)}, Nuevo: ${maskForLog(newEncryptedSecret)}`);
+        } else {
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Valor nuevo es igual al actual, omitiendo actualización. Valor: ${maskForLog(currentAppSecret)}`);
         }
       } else {
-        encryptedAppSecret = currentAgent?.whatsapp_app_secret || null;
+        console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Campo vacío/enmascarado, manteniendo valor existente. Valor actual: ${maskForLog(currentAppSecret)}`);
       }
     } else {
-      encryptedAppSecret = currentAgent?.whatsapp_app_secret || null;
+      console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Campo no presente en body, manteniendo valor existente. Valor actual: ${maskForLog(currentAppSecret)}`);
     }
     
     // Verificar si las columnas de WhatsApp existen antes de intentar actualizar
@@ -220,18 +264,27 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           updateValues.push(body.whatsapp_phone_number_id || null);
         }
         
-        // CRÍTICO: Solo actualizar tokens si se envió un valor nuevo explícito
+        // CRÍTICO: Solo actualizar tokens si se envió un valor nuevo explícito Y es diferente del actual
         if (encryptedAccessToken !== undefined) {
           updateFields.push('whatsapp_access_token = ?');
           updateValues.push(encryptedAccessToken);
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: Agregado a query UPDATE`);
+        } else {
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_access_token: NO agregado a query UPDATE (manteniendo valor existente)`);
         }
         if (encryptedWebhookToken !== undefined) {
           updateFields.push('whatsapp_webhook_verify_token = ?');
           updateValues.push(encryptedWebhookToken);
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: Agregado a query UPDATE`);
+        } else {
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_webhook_verify_token: NO agregado a query UPDATE (manteniendo valor existente)`);
         }
         if (encryptedAppSecret !== undefined) {
           updateFields.push('whatsapp_app_secret = ?');
           updateValues.push(encryptedAppSecret);
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Agregado a query UPDATE`);
+        } else {
+          console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: NO agregado a query UPDATE (manteniendo valor existente)`);
         }
         
         // Agregar el id al final para el WHERE

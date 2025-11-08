@@ -90,15 +90,31 @@ export async function POST(
     // Filtrar solo las columnas que existen en la tabla
     // Excluir campos automáticos: created_at, updated_at
     const autoFields = ['created_at', 'updated_at'];
+    // CRÍTICO: Campos protegidos de WhatsApp que NO pueden crearse directamente desde db-manager
+    const protectedWhatsAppFields = ['whatsapp_access_token', 'whatsapp_webhook_verify_token', 'whatsapp_app_secret'];
     const validColumns = columns.map((col: any) => col.COLUMN_NAME);
     const filteredData: any = {};
     
+    // Verificar si se intenta crear con campos protegidos de WhatsApp
+    const attemptedProtectedFields: string[] = [];
     for (const key in body) {
+      if (tableName === 'agents' && protectedWhatsAppFields.includes(key)) {
+        attemptedProtectedFields.push(key);
+        continue; // Excluir estos campos del filteredData
+      }
       if (validColumns.includes(key) && 
           key !== 'id' && 
           !autoFields.includes(key)) {
         filteredData[key] = body[key];
       }
+    }
+    
+    // Si se intentó crear con campos protegidos, retornar error
+    if (attemptedProtectedFields.length > 0) {
+      return NextResponse.json({ 
+        ok: false, 
+        error: `No se pueden crear registros con campos protegidos de WhatsApp directamente desde db-manager: ${attemptedProtectedFields.join(', ')}. Use el endpoint /api/agents para crear agentes con estos campos.` 
+      }, { status: 400 });
     }
 
     if (Object.keys(filteredData).length === 0) {
@@ -161,15 +177,31 @@ export async function PUT(
 
     // Filtrar solo las columnas que existen en la tabla (excluir clave primaria y campos automáticos)
     const autoFields = ['created_at', 'updated_at'];
+    // CRÍTICO: Campos protegidos de WhatsApp que NO pueden actualizarse directamente desde db-manager
+    const protectedWhatsAppFields = ['whatsapp_access_token', 'whatsapp_webhook_verify_token', 'whatsapp_app_secret'];
     const validColumns = columns.map((col: any) => col.COLUMN_NAME);
     const filteredData: any = {};
     
+    // Verificar si se intenta actualizar campos protegidos de WhatsApp
+    const attemptedProtectedFields: string[] = [];
     for (const key in body) {
+      if (tableName === 'agents' && protectedWhatsAppFields.includes(key)) {
+        attemptedProtectedFields.push(key);
+        continue; // Excluir estos campos del filteredData
+      }
       if (validColumns.includes(key) && 
           key !== pkColumn && 
           !autoFields.includes(key)) {
         filteredData[key] = body[key];
       }
+    }
+    
+    // Si se intentó actualizar campos protegidos, retornar error
+    if (attemptedProtectedFields.length > 0) {
+      return NextResponse.json({ 
+        ok: false, 
+        error: `No se pueden actualizar campos protegidos de WhatsApp directamente desde db-manager: ${attemptedProtectedFields.join(', ')}. Use el endpoint /api/agents/[id] para actualizar estos campos.` 
+      }, { status: 400 });
     }
 
     if (Object.keys(filteredData).length === 0) {
