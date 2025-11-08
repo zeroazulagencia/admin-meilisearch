@@ -218,7 +218,7 @@ export default function Developers() {
     setDeletingDoc(true);
     setShowDeleteConfirm(false);
     try {
-      const res = await fetch(`/api/developer-docs/${doc.id}`, {
+      const res = await fetch(`/api/developer-docs/${docToDelete.id}`, {
         method: 'DELETE',
       });
 
