@@ -286,11 +286,13 @@ export default function EditarAgente() {
     });
   };
 
-  const loadIndexes = async () => {
+  const loadIndexes = async (forceRefresh = false) => {
     setLoadingIndexes(true);
     try {
-      const indexes = await meilisearchAPI.getIndexes();
+      // Forzar recarga agregando timestamp para evitar caché
+      const indexes = await meilisearchAPI.getIndexes(forceRefresh ? Date.now() : undefined);
       setAvailableIndexes(indexes);
+      console.log('[LOAD INDEXES] Índices cargados:', indexes.length, indexes.map(i => i.uid));
     } catch (error) {
       console.error('Error loading indexes:', error);
     } finally {
@@ -301,9 +303,9 @@ export default function EditarAgente() {
   const handleRefreshData = async () => {
     setRefreshingData(true);
     try {
-      // Recargar todos los datos de Meilisearch y n8n
+      // Recargar todos los datos de Meilisearch y n8n con forceRefresh=true para evitar caché
       await Promise.all([
-        loadIndexes(),
+        loadIndexes(true), // Forzar recarga de índices
         loadWorkflows(),
         loadConversationAgents(),
         loadReportAgents()

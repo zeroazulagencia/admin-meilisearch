@@ -10,15 +10,32 @@ export async function GET(
     const path = params.path.join('/');
     const searchParams = request.nextUrl.searchParams;
     
+    // Remover parámetros de cache-busting antes de enviar a Meilisearch
+    const meilisearchParams: any = {};
+    searchParams.forEach((value, key) => {
+      if (key !== '_t') { // Ignorar timestamp de cache-busting
+        meilisearchParams[key] = value;
+      }
+    });
+    
     const response = await axios.get(`${MEILISEARCH_CONFIG.url}${path}`, {
       headers: {
         'Authorization': `Bearer ${MEILISEARCH_CONFIG.apiKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       },
-      params: Object.fromEntries(searchParams)
+      params: Object.keys(meilisearchParams).length > 0 ? meilisearchParams : undefined
     });
 
-    return NextResponse.json(response.data);
+    // Agregar headers para evitar caché en la respuesta
+    const responseHeaders = new Headers();
+    responseHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    responseHeaders.set('Pragma', 'no-cache');
+    responseHeaders.set('Expires', '0');
+
+    return NextResponse.json(response.data, { headers: responseHeaders });
   } catch (error: any) {
     console.error('Meilisearch API Error:', {
       message: error.message,

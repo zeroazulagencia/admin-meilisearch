@@ -50,8 +50,9 @@ export interface Document {
 
 export const meilisearchAPI = {
   // Obtener todos los índices
-  async getIndexes(): Promise<Index[]> {
-    const response = await api.get('/indexes');
+  async getIndexes(cacheBust?: number): Promise<Index[]> {
+    const params = cacheBust ? { _t: cacheBust } : {};
+    const response = await api.get('/indexes', { params });
     return response.data.results;
   },
 
