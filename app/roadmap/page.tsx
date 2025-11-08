@@ -147,10 +147,10 @@ export default function Roadmap() {
       completed: true,
     },
     {
-      date: 'Pendiente',
+      date: todayFormatted,
       title: 'CRUD de conocimiento Meilisearch',
       description: 'Implementar CRUD completo para crear, editar y eliminar índices de Meilisearch',
-      completed: false,
+      completed: true,
     },
   ];
 
