@@ -192,6 +192,18 @@ export default function WhatsAppManager() {
   const [templatesError, setTemplatesError] = useState<string | null>(null);
   const [showSendMessageModal, setShowSendMessageModal] = useState(false);
   const [showSendTemplateModal, setShowSendTemplateModal] = useState(false);
+  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+  const [creatingTemplate, setCreatingTemplate] = useState(false);
+  const [createTemplateForm, setCreateTemplateForm] = useState({
+    name: '',
+    language: '',
+    category: 'UTILITY',
+    header_text: '',
+    header_format: 'TEXT',
+    body_text: '',
+    footer_text: '',
+    buttons: [] as Array<{ type: string; text: string; url?: string; phone_number?: string }>
+  });
   const [messageType, setMessageType] = useState<'text' | 'image' | 'document' | 'buttons' | 'list'>('text');
   const [sendMessageForm, setSendMessageForm] = useState({ 
     phone_number: '', 
@@ -345,6 +357,27 @@ export default function WhatsAppManager() {
         return;
       }
       await loadTemplates();
+    } else if (actionId === 'create-template') {
+      if (!selectedAgent) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Agente requerido',
+          message: 'Por favor selecciona un agente primero',
+          type: 'warning',
+        });
+        return;
+      }
+      setShowCreateTemplateModal(true);
+      setCreateTemplateForm({
+        name: '',
+        language: '',
+        category: 'UTILITY',
+        header_text: '',
+        header_format: 'TEXT',
+        body_text: '',
+        footer_text: '',
+        buttons: []
+      });
     }
   };
 
@@ -632,6 +665,155 @@ export default function WhatsAppManager() {
       });
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const handleCreateTemplate = async () => {
+    if (!selectedAgent) return;
+
+    if (!createTemplateForm.name.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campo requerido',
+        message: 'Por favor ingresa el nombre de la plantilla',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (!createTemplateForm.language.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campo requerido',
+        message: 'Por favor selecciona el idioma de la plantilla',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (!createTemplateForm.body_text.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Campo requerido',
+        message: 'El cuerpo del mensaje es obligatorio',
+        type: 'warning',
+      });
+      return;
+    }
+
+    setCreatingTemplate(true);
+    try {
+      // Construir componentes de la plantilla
+      const components: any[] = [];
+
+      // HEADER (opcional)
+      if (createTemplateForm.header_text.trim()) {
+        if (createTemplateForm.header_format === 'TEXT') {
+          components.push({
+            type: 'HEADER',
+            format: 'TEXT',
+            text: createTemplateForm.header_text.trim()
+          });
+        } else {
+          // Para IMAGE, VIDEO, DOCUMENT se requiere un ejemplo con handle
+          components.push({
+            type: 'HEADER',
+            format: createTemplateForm.header_format
+          });
+        }
+      }
+
+      // BODY (obligatorio)
+      components.push({
+        type: 'BODY',
+        text: createTemplateForm.body_text.trim()
+      });
+
+      // FOOTER (opcional)
+      if (createTemplateForm.footer_text.trim()) {
+        components.push({
+          type: 'FOOTER',
+          text: createTemplateForm.footer_text.trim()
+        });
+      }
+
+      // BUTTONS (opcional, máximo 3)
+      if (createTemplateForm.buttons.length > 0) {
+        const validButtons = createTemplateForm.buttons
+          .filter(btn => btn.type && btn.text && btn.text.trim() !== '')
+          .slice(0, 3); // Máximo 3 botones
+
+        if (validButtons.length > 0) {
+          components.push({
+            type: 'BUTTONS',
+            buttons: validButtons.map(btn => {
+              const button: any = {
+                type: btn.type,
+                text: btn.text.trim()
+              };
+              if (btn.type === 'URL' && btn.url) {
+                button.url = btn.url.trim();
+              } else if (btn.type === 'PHONE_NUMBER' && btn.phone_number) {
+                button.phone_number = btn.phone_number.trim();
+              }
+              return button;
+            })
+          });
+        }
+      }
+
+      const res = await fetch('/api/whatsapp/create-template', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          agent_id: selectedAgent.id,
+          name: createTemplateForm.name.trim(),
+          language: createTemplateForm.language.trim(),
+          category: createTemplateForm.category,
+          components: components
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Plantilla Creada',
+          message: data.message || 'La plantilla ha sido creada exitosamente. Debe ser aprobada por WhatsApp antes de poder usarse.',
+          type: 'success',
+        });
+        setShowCreateTemplateModal(false);
+        setCreateTemplateForm({
+          name: '',
+          language: '',
+          category: 'UTILITY',
+          header_text: '',
+          header_format: 'TEXT',
+          body_text: '',
+          footer_text: '',
+          buttons: []
+        });
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error al crear plantilla',
+          message: data.error || 'Error desconocido al crear la plantilla',
+          type: 'error',
+        });
+      }
+    } catch (e: any) {
+      console.error('[WHATSAPP-MANAGER] Error creando plantilla:', e);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error al crear plantilla',
+        message: e?.message || 'Error al procesar la creación de la plantilla',
+        type: 'error',
+      });
+    } finally {
+      setCreatingTemplate(false);
     }
   };
 
@@ -1633,6 +1815,175 @@ export default function WhatsAppManager() {
                   Cerrar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Template Modal */}
+      {showCreateTemplateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Crear Plantilla de Mensaje</h2>
+              <p className="text-sm text-gray-600 mt-1">Crea una nueva plantilla de mensaje para WhatsApp Business</p>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              {/* Nombre */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre de la Plantilla *
+                </label>
+                <input
+                  type="text"
+                  value={createTemplateForm.name}
+                  onChange={(e) => setCreateTemplateForm({ ...createTemplateForm, name: e.target.value })}
+                  placeholder="Ej: bienvenida, confirmacion_pedido"
+                  disabled={creatingTemplate}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+                <p className="mt-1 text-xs text-gray-500 break-words overflow-wrap-anywhere">
+                  Sin espacios, usa guiones bajos. Ej: bienvenida_usuario
+                </p>
+              </div>
+
+              {/* Idioma */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Idioma *
+                </label>
+                <select
+                  value={createTemplateForm.language}
+                  onChange={(e) => setCreateTemplateForm({ ...createTemplateForm, language: e.target.value })}
+                  disabled={creatingTemplate}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">Seleccionar idioma...</option>
+                  <optgroup label="Español">
+                    <option value="es">Español (es)</option>
+                    <option value="es_MX">Español México (es_MX)</option>
+                    <option value="es_ES">Español España (es_ES)</option>
+                    <option value="es_AR">Español Argentina (es_AR)</option>
+                    <option value="es_CO">Español Colombia (es_CO)</option>
+                  </optgroup>
+                  <optgroup label="Inglés">
+                    <option value="en">Inglés (en)</option>
+                    <option value="en_US">Inglés Estados Unidos (en_US)</option>
+                    <option value="en_GB">Inglés Reino Unido (en_GB)</option>
+                  </optgroup>
+                  <optgroup label="Portugués">
+                    <option value="pt">Portugués (pt)</option>
+                    <option value="pt_BR">Portugués Brasil (pt_BR)</option>
+                    <option value="pt_PT">Portugués Portugal (pt_PT)</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Categoría */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Categoría *
+                </label>
+                <select
+                  value={createTemplateForm.category}
+                  onChange={(e) => setCreateTemplateForm({ ...createTemplateForm, category: e.target.value })}
+                  disabled={creatingTemplate}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="UTILITY">Utilidad (UTILITY)</option>
+                  <option value="MARKETING">Marketing (MARKETING)</option>
+                  <option value="AUTHENTICATION">Autenticación (AUTHENTICATION)</option>
+                </select>
+                <p className="mt-1 text-xs text-gray-500 break-words overflow-wrap-anywhere">
+                  UTILITY: Mensajes transaccionales. MARKETING: Promociones. AUTHENTICATION: Códigos de verificación.
+                </p>
+              </div>
+
+              {/* Header */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Encabezado (Opcional)
+                </label>
+                <select
+                  value={createTemplateForm.header_format}
+                  onChange={(e) => setCreateTemplateForm({ ...createTemplateForm, header_format: e.target.value })}
+                  disabled={creatingTemplate}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed mb-2"
+                >
+                  <option value="TEXT">Texto</option>
+                  <option value="IMAGE">Imagen</option>
+                  <option value="VIDEO">Video</option>
+                  <option value="DOCUMENT">Documento</option>
+                </select>
+                {createTemplateForm.header_format === 'TEXT' && (
+                  <input
+                    type="text"
+                    value={createTemplateForm.header_text}
+                    onChange={(e) => setCreateTemplateForm({ ...createTemplateForm, header_text: e.target.value })}
+                    placeholder="Texto del encabezado"
+                    disabled={creatingTemplate}
+                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                )}
+              </div>
+
+              {/* Body */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cuerpo del Mensaje *
+                </label>
+                <textarea
+                  value={createTemplateForm.body_text}
+                  onChange={(e) => setCreateTemplateForm({ ...createTemplateForm, body_text: e.target.value })}
+                  placeholder="Escribe el mensaje principal. Usa {{1}}, {{2}}, etc. para variables dinámicas."
+                  disabled={creatingTemplate}
+                  rows={4}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+                <p className="mt-1 text-xs text-gray-500 break-words overflow-wrap-anywhere">
+                  Ejemplo: Hola {{1}}, tu pedido {{2}} ha sido enviado.
+                </p>
+              </div>
+
+              {/* Footer */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pie de Página (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={createTemplateForm.footer_text}
+                  onChange={(e) => setCreateTemplateForm({ ...createTemplateForm, footer_text: e.target.value })}
+                  placeholder="Texto del pie de página"
+                  disabled={creatingTemplate}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200">
+              <button
+                onClick={() => setShowCreateTemplateModal(false)}
+                disabled={creatingTemplate}
+                className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateTemplate}
+                disabled={creatingTemplate || !createTemplateForm.name.trim() || !createTemplateForm.language.trim() || !createTemplateForm.body_text.trim()}
+                className="px-4 py-2 rounded-lg font-medium text-white bg-[#5DE1E5] hover:bg-[#4BC4C7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {creatingTemplate ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <span>Creando...</span>
+                  </>
+                ) : (
+                  <span>Crear Plantilla</span>
+                )}
+              </button>
             </div>
           </div>
         </div>
