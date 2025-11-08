@@ -957,34 +957,33 @@ export default function EditarAgente() {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Conocimiento y Flujos */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div className="flex-1">
-                <h2 className="text-base/7 font-semibold text-gray-900">Conocimiento y Flujos</h2>
-                <p className="mt-1 text-sm/6 text-gray-600">
-                  Configura los índices de conocimiento y los flujos de n8n disponibles para este agente.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleRefreshData}
-                disabled={refreshingData}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-900 bg-[#5DE1E5] border border-transparent rounded-md shadow-sm hover:bg-[#4BC5C9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-              >
-                <ArrowPathIcon 
-                  className={`h-5 w-5 ${refreshingData ? 'animate-spin' : ''}`} 
-                />
-                <span>{refreshingData ? 'Actualizando...' : 'Actualizar Datos'}</span>
-              </button>
             </div>
-            
-            <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2">
-          {/* Configuración de Conocimiento */}
+          )}
+
+          {/* Tab: Conocimiento */}
+          {activeTab === 'conocimiento' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div className="flex-1">
+                  <h2 className="text-base/7 font-semibold text-gray-900">Conocimiento Meilisearch</h2>
+                  <p className="mt-1 text-sm/6 text-gray-600">
+                    Selecciona los índices de conocimiento que este agente puede consultar.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRefreshData}
+                  disabled={refreshingData}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-900 bg-[#5DE1E5] border border-transparent rounded-md shadow-sm hover:bg-[#4BC5C9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                >
+                  <ArrowPathIcon 
+                    className={`h-5 w-5 ${refreshingData ? 'animate-spin' : ''}`} 
+                  />
+                  <span>{refreshingData ? 'Actualizando...' : 'Actualizar Datos'}</span>
+                </button>
+              </div>
+              
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-4">Conocimiento del Agente</h3>
             
             {loadingIndexes ? (
               <div className="flex justify-center items-center py-8">
@@ -1073,11 +1072,34 @@ export default function EditarAgente() {
                 )}
               </>
             )}
-          </div>
+              </div>
+            </div>
+          )}
 
-          {/* Configuración de Flujos n8n */}
+          {/* Tab: Flujos */}
+          {activeTab === 'flujos' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div className="flex-1">
+                  <h2 className="text-base/7 font-semibold text-gray-900">Flujos n8n</h2>
+                  <p className="mt-1 text-sm/6 text-gray-600">
+                    Selecciona los flujos de n8n que este agente puede ejecutar.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRefreshData}
+                  disabled={refreshingData}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-900 bg-[#5DE1E5] border border-transparent rounded-md shadow-sm hover:bg-[#4BC5C9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                >
+                  <ArrowPathIcon 
+                    className={`h-5 w-5 ${refreshingData ? 'animate-spin' : ''}`} 
+                  />
+                  <span>{refreshingData ? 'Actualizando...' : 'Actualizar Datos'}</span>
+                </button>
+              </div>
+              
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-4">Flujos n8n del Agente</h3>
             
             {loadingWorkflows ? (
               <div className="flex justify-center items-center py-8">
@@ -1168,38 +1190,39 @@ export default function EditarAgente() {
             )}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* WhatsApp */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-base/7 font-semibold text-gray-900">WhatsApp Business API</h2>
-                <p className="mt-1 text-sm/6 text-gray-600">
-                  Configuración para interactuar con la API de Meta WhatsApp Business.
-                </p>
+          {/* Tab: WhatsApp */}
+          {activeTab === 'whatsapp' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-base/7 font-semibold text-gray-900">WhatsApp Business API</h2>
+                  <p className="mt-1 text-sm/6 text-gray-600">
+                    Configuración para interactuar con la API de Meta WhatsApp Business.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleVerifyWhatsApp}
+                  disabled={verifyingWhatsApp}
+                  className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {verifyingWhatsApp ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-gray-900 border-t-transparent rounded-full"></div>
+                      <span>Verificando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Verificar Conexión</span>
+                    </>
+                  )}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleVerifyWhatsApp}
-                disabled={verifyingWhatsApp}
-                className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-green-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {verifyingWhatsApp ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    <span>Verificando...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Verificar Conexión</span>
-                  </>
-                )}
-              </button>
-          </div>
 
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
               <div className="sm:col-span-3">
