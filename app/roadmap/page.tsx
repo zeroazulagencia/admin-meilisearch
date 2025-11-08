@@ -117,10 +117,10 @@ export default function Roadmap() {
       completed: false,
     },
     {
-      date: 'Pendiente',
+      date: 'Completado',
       title: 'Rango de fecha default en conversaciones',
       description: 'Configurar el rango de fechas por defecto en conversaciones para mostrar este mes hasta hoy',
-      completed: false,
+      completed: true,
     },
     {
       date: 'Pendiente',
