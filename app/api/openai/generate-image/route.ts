@@ -73,7 +73,11 @@ export async function POST(request: NextRequest) {
       formData.append('folder', 'agents');
 
       // Subir la imagen usando nuestro endpoint de upload
-      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/upload`, {
+      // Usar la URL base del servidor actual
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+      
+      const uploadResponse = await fetch(`${baseUrl}/api/upload`, {
         method: 'POST',
         body: formData,
       });
