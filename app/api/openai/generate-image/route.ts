@@ -57,55 +57,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Descargar la imagen y subirla a nuestro servidor
-    try {
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error('Error al descargar la imagen generada');
-      }
-
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
-      
-      // Crear FormData para subir la imagen
-      const formData = new FormData();
-      formData.append('file', imageBlob, 'ai-generated-avatar.png');
-      formData.append('folder', 'agents');
-
-      // Subir la imagen usando nuestro endpoint de upload
-      // Usar la URL base del servidor actual
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-      
-      const uploadResponse = await fetch(`${baseUrl}/api/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        const uploadError = await uploadResponse.json().catch(() => ({ error: 'Error al subir imagen' }));
-        throw new Error(uploadError.error || 'Error al subir la imagen');
-      }
-
-      const uploadData = await uploadResponse.json();
-      
-      if (uploadData.ok && uploadData.url) {
-        return NextResponse.json({ 
-          ok: true, 
-          url: uploadData.url 
-        });
-      } else {
-        throw new Error(uploadData.error || 'Error al subir la imagen');
-      }
-    } catch (uploadError: any) {
-      console.error('Error uploading generated image:', uploadError);
-      // Si falla la subida, retornar la URL directa de OpenAI como fallback
-      return NextResponse.json({ 
-        ok: true, 
-        url: imageUrl,
-        warning: 'La imagen se generó pero no se pudo subir al servidor. Se usará la URL temporal de OpenAI.'
-      });
-    }
+    // Retornar la URL directa de OpenAI
+    // La imagen se subirá automáticamente cuando el usuario guarde el agente
+    return NextResponse.json({ 
+      ok: true, 
+      url: imageUrl
+    });
   } catch (error: any) {
     console.error('Error generating image:', error);
     return NextResponse.json(
