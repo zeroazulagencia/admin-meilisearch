@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Descargar la imagen y subirla al servidor usando upload-agent-avatar
+    // Descargar la imagen y subirla al servidor
     try {
       const imageResponse = await fetch(imageUrl);
       if (!imageResponse.ok) {
@@ -66,30 +66,33 @@ export async function POST(request: NextRequest) {
       const bytes = await imageBlob.arrayBuffer();
       const buffer = Buffer.from(bytes);
       
-      // Crear FormData para subir la imagen
-      const FormData = require('form-data');
-      const formData = new FormData();
-      formData.append('file', buffer, {
-        filename: `ai-generated-${Date.now()}.png`,
-        contentType: 'image/png',
-      });
-
-      // Llamar al endpoint de upload-agent-avatar
-      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/upload-agent-avatar`, {
-        method: 'POST',
-        body: formData,
-        headers: formData.getHeaders(),
-      });
-
-      const uploadData = await uploadResponse.json();
+      // Guardar directamente en el servidor usando el mismo método que upload-agent-avatar
+      const { writeFile, mkdir } = require('fs/promises');
+      const { join } = require('path');
+      const { existsSync } = require('fs');
       
-      if (!uploadResponse.ok || !uploadData.url) {
-        throw new Error(uploadData.error || 'Error al subir imagen');
+      const AVATARS_DIR = join(process.cwd(), 'public', 'agent-avatars');
+      
+      // Asegurar que el directorio existe
+      if (!existsSync(AVATARS_DIR)) {
+        await mkdir(AVATARS_DIR, { recursive: true });
       }
-
+      
+      // Generar nombre único
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(7);
+      const fileName = `${timestamp}-${randomString}.png`;
+      const filePath = join(AVATARS_DIR, fileName);
+      
+      // Guardar el archivo
+      await writeFile(filePath, buffer);
+      
+      // Retornar la URL pública
+      const publicUrl = `/api/agent-avatars/${fileName}`;
+      
       return NextResponse.json({ 
         ok: true, 
-        url: uploadData.url 
+        url: publicUrl
       });
     } catch (uploadError: any) {
       console.error('Error uploading generated image:', uploadError);
