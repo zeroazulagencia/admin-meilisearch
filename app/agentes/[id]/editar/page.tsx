@@ -9,7 +9,7 @@ import NoticeModal from '@/components/ui/NoticeModal';
 import AgentSelector from '@/components/ui/AgentSelector';
 import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { ChevronDownIcon } from '@heroicons/react/16/solid';
-import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { isValidToken } from '@/utils/encryption';
 
 interface Client {
@@ -85,9 +85,6 @@ export default function EditarAgente() {
   const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
   const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores'>('general');
-  const [showAIImageModal, setShowAIImageModal] = useState(false);
-  const [aiImagePrompt, setAiImagePrompt] = useState('');
-  const [generatingImage, setGeneratingImage] = useState(false);
 
   useEffect(() => {
     // Cargar clientes desde MySQL
@@ -576,52 +573,6 @@ export default function EditarAgente() {
     }
   };
 
-  const handleGenerateAIImage = async () => {
-    if (!aiImagePrompt.trim()) {
-      setAlertModal({
-        isOpen: true,
-        title: 'Error',
-        message: 'Por favor ingresa un prompt para generar la imagen',
-        type: 'error',
-      });
-      return;
-    }
-
-    setGeneratingImage(true);
-    try {
-      const res = await fetch('/api/openai/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: aiImagePrompt }),
-      });
-
-      const data = await res.json();
-      if (data.ok && data.url) {
-        setFormData({ ...formData, photo: data.url });
-        setShowAIImageModal(false);
-        setAiImagePrompt('');
-        setAlertModal({
-          isOpen: true,
-          title: 'Éxito',
-          message: 'Imagen generada correctamente',
-          type: 'success',
-        });
-      } else {
-        throw new Error(data.error || 'Error al generar imagen');
-      }
-    } catch (error: any) {
-      console.error('Error generando imagen:', error);
-      setAlertModal({
-        isOpen: true,
-        title: 'Error',
-        message: error.message || 'Error al generar la imagen con IA',
-        type: 'error',
-      });
-    } finally {
-      setGeneratingImage(false);
-    }
-  };
-
   // Calcular tags del agente basados en configuración
   const agentTags: string[] = [];
   if (formData.whatsapp_access_token || formData.whatsapp_business_account_id || formData.whatsapp_phone_number_id) {
@@ -660,56 +611,45 @@ export default function EditarAgente() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
           <div className="flex flex-col md:flex-row md:items-start gap-8">
             {/* Avatar */}
-            <div className="flex flex-col items-center gap-3 flex-shrink-0">
-              <div className="relative group">
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="cursor-pointer relative"
-                >
-                  {formData.photo ? (
-                    <div className="relative">
-                      <img 
-                        src={formData.photo} 
-                        alt={formData.name || 'Avatar'} 
-                        className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-full transition-all flex items-center justify-center">
-                        <PhotoIcon className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
+            <div className="relative group flex-shrink-0">
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="cursor-pointer relative"
+              >
+                {formData.photo ? (
+                  <div className="relative">
+                    <img 
+                      src={formData.photo} 
+                      alt={formData.name || 'Avatar'} 
+                      className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-full transition-all flex items-center justify-center">
+                      <PhotoIcon className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                  ) : (
-                    <div className="w-32 h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center group-hover:bg-gray-300 transition-colors">
-                      <UserCircleIcon className="w-24 h-24 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleImageUpload(file);
-                    }
-                  }}
-                />
-                {uploading && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                    <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full"></div>
+                  </div>
+                ) : (
+                  <div className="w-32 h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center group-hover:bg-gray-300 transition-colors">
+                    <UserCircleIcon className="w-24 h-24 text-gray-400" />
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => setShowAIImageModal(true)}
-                className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-900 bg-[#5DE1E5] rounded-md hover:bg-[#4BC5C9] transition-colors"
-                title="Generar avatar con IA"
-              >
-                <SparklesIcon className="w-4 h-4" />
-                <span>Generar con IA</span>
-              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleImageUpload(file);
+                  }
+                }}
+              />
+              {uploading && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                  <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full"></div>
+                </div>
+              )}
             </div>
 
             {/* Información Principal */}
@@ -759,6 +699,37 @@ export default function EditarAgente() {
 
             {/* Acciones Principales */}
             <div className="flex flex-col gap-3 md:items-end flex-shrink-0">
+              <button
+                type="button"
+                onClick={handleVerifyWhatsApp}
+                disabled={verifyingWhatsApp}
+                className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+              >
+                {verifyingWhatsApp ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-gray-900 border-t-transparent rounded-full"></div>
+                    <span>Verificando...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Verificar Conexión</span>
+                  </>
+                )}
+              </button>
+              
+              <button
+                type="button"
+                onClick={handleRefreshData}
+                disabled={refreshingData}
+                className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+              >
+                <ArrowPathIcon className={`h-4 w-4 ${refreshingData ? 'animate-spin' : ''}`} />
+                <span>{refreshingData ? 'Actualizando...' : 'Actualizar Datos'}</span>
+              </button>
+
               <button
                 type="submit"
                 className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] whitespace-nowrap"
@@ -1421,55 +1392,6 @@ export default function EditarAgente() {
           message={alertModal.message}
           type={alertModal.type}
         />
-
-        {/* Modal para generar imagen con IA */}
-        {showAIImageModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Avatar con IA</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Describe cómo quieres que se vea el avatar del agente. La IA generará una imagen única.
-              </p>
-              <textarea
-                value={aiImagePrompt}
-                onChange={(e) => setAiImagePrompt(e.target.value)}
-                placeholder="Ejemplo: Un robot amigable con colores azul y verde, estilo moderno y profesional"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] mb-4"
-                rows={4}
-              />
-              <div className="flex gap-3 justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAIImageModal(false);
-                    setAiImagePrompt('');
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGenerateAIImage}
-                  disabled={generatingImage || !aiImagePrompt.trim()}
-                  className="px-4 py-2 text-sm font-medium text-gray-900 bg-[#5DE1E5] rounded-md hover:bg-[#4BC5C9] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {generatingImage ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-gray-900 border-t-transparent rounded-full"></div>
-                      <span>Generando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <SparklesIcon className="w-4 h-4" />
-                      <span>Generar</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </ProtectedLayout>
     );
   }
