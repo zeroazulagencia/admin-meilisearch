@@ -85,6 +85,9 @@ export default function EditarAgente() {
   const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
   const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores'>('general');
+  const [showAIImageModal, setShowAIImageModal] = useState(false);
+  const [aiImagePrompt, setAiImagePrompt] = useState('');
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   useEffect(() => {
     // Cargar clientes desde MySQL
