@@ -9,7 +9,7 @@ import NoticeModal from '@/components/ui/NoticeModal';
 import AgentSelector from '@/components/ui/AgentSelector';
 import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { ChevronDownIcon } from '@heroicons/react/16/solid';
-import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { isValidToken } from '@/utils/encryption';
 
 interface Client {
