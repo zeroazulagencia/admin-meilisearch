@@ -202,6 +202,52 @@ export default function CrearAgente() {
     }
   };
 
+  const handleGenerateAIImage = async () => {
+    if (!aiImagePrompt.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Por favor ingresa un prompt para generar la imagen',
+        type: 'error',
+      });
+      return;
+    }
+
+    setGeneratingImage(true);
+    try {
+      const res = await fetch('/api/openai/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiImagePrompt }),
+      });
+
+      const data = await res.json();
+      if (data.ok && data.url) {
+        setFormData({ ...formData, photo: data.url });
+        setShowAIImageModal(false);
+        setAiImagePrompt('');
+        setAlertModal({
+          isOpen: true,
+          title: 'Éxito',
+          message: 'Imagen generada correctamente',
+          type: 'success',
+        });
+      } else {
+        throw new Error(data.error || 'Error al generar imagen');
+      }
+    } catch (error: any) {
+      console.error('Error generando imagen:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: error.message || 'Error al generar la imagen con IA',
+        type: 'error',
+      });
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
   const handleVerifyWhatsApp = async () => {
     setVerifyingWhatsApp(true);
     try {
