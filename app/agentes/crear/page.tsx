@@ -8,7 +8,7 @@ import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
 import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { ChevronDownIcon } from '@heroicons/react/16/solid';
-import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 interface Client {
   id: number;
@@ -57,6 +57,9 @@ export default function CrearAgente() {
   const [refreshingData, setRefreshingData] = useState(false);
   const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores'>('general');
   const [saving, setSaving] = useState(false);
+  const [showAIImageModal, setShowAIImageModal] = useState(false);
+  const [aiImagePrompt, setAiImagePrompt] = useState('');
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   useEffect(() => {
     // Cargar clientes desde MySQL
@@ -398,37 +401,6 @@ export default function CrearAgente() {
 
             {/* Botones de Acción */}
             <div className="flex flex-col gap-3 md:items-end flex-shrink-0">
-              <button
-                type="button"
-                onClick={handleVerifyWhatsApp}
-                disabled={verifyingWhatsApp}
-                className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
-              >
-                {verifyingWhatsApp ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-gray-900 border-t-transparent rounded-full"></div>
-                    <span>Verificando...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Verificar Conexión</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={handleRefreshData}
-                disabled={refreshingData}
-                className="rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-gray-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
-              >
-                <ArrowPathIcon 
-                  className={`h-4 w-4 ${refreshingData ? 'animate-spin' : ''}`} 
-                />
-                <span>Actualizar Datos</span>
-              </button>
               <button
                 type="submit"
                 disabled={saving}
