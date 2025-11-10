@@ -122,6 +122,10 @@ export default function Dashboard() {
     );
   }
 
+  // Verificar si es cliente
+  const permissions = getPermissions();
+  const isClient = permissions?.type === 'client';
+
   // Si no tiene acceso al dashboard, mostrar mensaje
   if (hasDashboardAccess === false) {
     return (
@@ -135,6 +139,25 @@ export default function Dashboard() {
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Sin permisos</h2>
             <p className="text-gray-600">No tienes permisos para ver contenido</p>
+          </div>
+        </div>
+      </ProtectedLayout>
+    );
+  }
+
+  // Si es cliente, mostrar mensaje de "en construcción"
+  if (isClient) {
+    return (
+      <ProtectedLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center max-w-md">
+            <div className="mb-4">
+              <svg className="w-16 h-16 mx-auto text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">En construcción</h2>
+            <p className="text-gray-600">Esta sección está en desarrollo y estará disponible pronto.</p>
           </div>
         </div>
       </ProtectedLayout>
