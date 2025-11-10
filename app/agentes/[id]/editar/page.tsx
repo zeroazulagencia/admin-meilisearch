@@ -86,6 +86,13 @@ export default function EditarAgente() {
   const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
   const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores'>('general');
+
+  // Si no puede editar y está en un tab no permitido, cambiar a 'general'
+  useEffect(() => {
+    if (!canEdit && (activeTab === 'whatsapp' || activeTab === 'flujos' || activeTab === 'identificadores')) {
+      setActiveTab('general');
+    }
+  }, [canEdit, activeTab]);
   const [showAIImageModal, setShowAIImageModal] = useState(false);
   const [aiImagePrompt, setAiImagePrompt] = useState('');
   const [generatingImage, setGeneratingImage] = useState(false);
@@ -696,16 +703,6 @@ export default function EditarAgente() {
 
   return (
     <ProtectedLayout>
-      {!canEdit && (
-        <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-yellow-800 font-medium">Modo solo lectura: No tienes permisos para editar este agente</p>
-          </div>
-        </div>
-      )}
       <form onSubmit={handleSubmit}>
         {/* Header de Perfil del Agente */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
@@ -715,7 +712,7 @@ export default function EditarAgente() {
               <div className="relative group">
                 <div 
                   onClick={() => canEdit && fileInputRef.current?.click()}
-                  className={`relative ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                  className={`relative ${canEdit ? 'cursor-pointer' : 'cursor-default'}`}
                 >
                   {formData.photo ? (
                     <div className="relative">
@@ -797,30 +794,40 @@ export default function EditarAgente() {
                 <span>{clientName}</span>
               </div>
 
-              {/* Métricas */}
-              <div className="flex gap-6">
-                <div className="text-sm">
-                  <span className="text-gray-500">Índices:</span>
-                  <span className="ml-2 font-semibold text-gray-900">{selectedIndexes.length}</span>
+              {/* Métricas - Solo mostrar si puede editar */}
+              {canEdit && (
+                <div className="flex gap-6">
+                  <div className="text-sm">
+                    <span className="text-gray-500">Índices:</span>
+                    <span className="ml-2 font-semibold text-gray-900">{selectedIndexes.length}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-gray-500">Flujos:</span>
+                    <span className="ml-2 font-semibold text-gray-900">{selectedWorkflows.length}</span>
+                  </div>
                 </div>
-                <div className="text-sm">
-                  <span className="text-gray-500">Flujos:</span>
-                  <span className="ml-2 font-semibold text-gray-900">{selectedWorkflows.length}</span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Botones de Acción */}
-            {canEdit && (
-              <div className="flex flex-col gap-3 md:items-end flex-shrink-0">
+            <div className="flex flex-col gap-3 md:items-end flex-shrink-0">
+              {canEdit ? (
                 <button
                   type="submit"
                   className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] whitespace-nowrap"
                 >
                   Guardar Cambios
                 </button>
-              </div>
-            )}
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => router.push('/agentes')}
+                  className="rounded-md bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 shadow-xs hover:bg-gray-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 whitespace-nowrap"
+                >
+                  Volver
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -839,17 +846,19 @@ export default function EditarAgente() {
               >
                 Información General
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('whatsapp')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
-                  activeTab === 'whatsapp'
-                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                WhatsApp
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('whatsapp')}
+                  className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                    activeTab === 'whatsapp'
+                      ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  WhatsApp
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setActiveTab('conocimiento')}
@@ -861,28 +870,32 @@ export default function EditarAgente() {
               >
                 Conocimiento
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('flujos')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
-                  activeTab === 'flujos'
-                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Flujos
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('identificadores')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
-                  activeTab === 'identificadores'
-                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Identificadores
-              </button>
+              {canEdit && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('flujos')}
+                    className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                      activeTab === 'flujos'
+                        ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Flujos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('identificadores')}
+                    className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                      activeTab === 'identificadores'
+                        ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Identificadores
+                  </button>
+                </>
+              )}
             </nav>
           </div>
         </div>
@@ -1055,21 +1068,25 @@ export default function EditarAgente() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div className="flex-1">
                   <h2 className="text-base/7 font-semibold text-gray-900">Conocimiento Meilisearch</h2>
-                  <p className="mt-1 text-sm/6 text-gray-600">
-                    Selecciona los índices de conocimiento que este agente puede consultar.
-                  </p>
+                  {canEdit && (
+                    <p className="mt-1 text-sm/6 text-gray-600">
+                      Selecciona los índices de Meilisearch que este agente puede consultar.
+                    </p>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={handleRefreshData}
-                  disabled={refreshingData}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-900 bg-[#5DE1E5] border border-transparent rounded-md shadow-sm hover:bg-[#4BC5C9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                >
-                  <ArrowPathIcon 
-                    className={`h-5 w-5 ${refreshingData ? 'animate-spin' : ''}`} 
-                  />
-                  <span>{refreshingData ? 'Actualizando...' : 'Actualizar Datos'}</span>
-                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={handleRefreshData}
+                    disabled={refreshingData}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-900 bg-[#5DE1E5] border border-transparent rounded-md shadow-sm hover:bg-[#4BC5C9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  >
+                    <ArrowPathIcon 
+                      className={`h-5 w-5 ${refreshingData ? 'animate-spin' : ''}`} 
+                    />
+                    <span>{refreshingData ? 'Actualizando...' : 'Actualizar Datos'}</span>
+                  </button>
+                )}
               </div>
               
               <div>
@@ -1080,65 +1097,89 @@ export default function EditarAgente() {
               </div>
             ) : (
               <>
-                <p className="text-sm text-gray-600 mb-4">
-                  Selecciona los índices de Meilisearch que este agente puede consultar:
-                </p>
-                
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    placeholder="Buscar índice..."
-                    disabled={!canEdit}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
-                  />
-                </div>
-                
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {availableIndexes
-                    .filter((index) => 
-                      index.uid.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      (index.name && index.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    )
-                    .sort((a, b) => {
-                      // Índices seleccionados primero
-                      const aSelected = selectedIndexes.includes(a.uid);
-                      const bSelected = selectedIndexes.includes(b.uid);
-                      if (aSelected && !bSelected) return -1;
-                      if (!aSelected && bSelected) return 1;
-                      return 0;
-                    })
-                    .map((index) => (
-                    <label
-                      key={index.uid}
-                      className={`flex items-center p-3 border-2 rounded-lg transition-all ${
-                        !canEdit ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-                      } ${
-                        selectedIndexes.includes(index.uid)
-                          ? 'border-blue-600 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
+                {canEdit ? (
+                  <>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Selecciona los índices de Meilisearch que este agente puede consultar:
+                    </p>
+                    
+                    <div className="mb-4">
                       <input
-                        type="checkbox"
-                        disabled={!canEdit}
-                        checked={selectedIndexes.includes(index.uid)}
-                        onChange={() => handleToggleIndex(index.uid)}
-                        className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        type="text"
+                        placeholder="Buscar índice..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
                       />
-                      <div className="ml-3 flex-1">
-                        <p className="font-medium text-gray-900">{index.uid}</p>
-                        {index.name && (
-                          <p className="text-sm text-gray-500">{index.name}</p>
-                        )}
-                      </div>
-                      {index.primaryKey && (
-                        <span className="text-xs text-gray-400">{index.primaryKey}</span>
-                      )}
-                    </label>
-                  ))}
-                </div>
+                    </div>
+                    
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {availableIndexes
+                        .filter((index) => 
+                          index.uid.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (index.name && index.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                        )
+                        .sort((a, b) => {
+                          // Índices seleccionados primero
+                          const aSelected = selectedIndexes.includes(a.uid);
+                          const bSelected = selectedIndexes.includes(b.uid);
+                          if (aSelected && !bSelected) return -1;
+                          if (!aSelected && bSelected) return 1;
+                          return 0;
+                        })
+                        .map((index) => (
+                        <label
+                          key={index.uid}
+                          className="flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all border-gray-200 hover:border-gray-300"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedIndexes.includes(index.uid)}
+                            onChange={() => handleToggleIndex(index.uid)}
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <div className="ml-3 flex-1">
+                            <p className="font-medium text-gray-900">{index.uid}</p>
+                            {index.name && (
+                              <p className="text-sm text-gray-500">{index.name}</p>
+                            )}
+                          </div>
+                          {index.primaryKey && (
+                            <span className="text-xs text-gray-400">{index.primaryKey}</span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  // Vista de solo lectura: lista simple de índices asignados
+                  <div className="space-y-2">
+                    {selectedIndexes.length > 0 ? (
+                      selectedIndexes.map((indexId) => {
+                        const index = availableIndexes.find(i => i.uid === indexId);
+                        if (!index) return null;
+                        return (
+                          <div
+                            key={index.uid}
+                            className="flex items-center p-3 border border-gray-200 rounded-lg bg-gray-50"
+                          >
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900">{index.uid}</p>
+                              {index.name && (
+                                <p className="text-sm text-gray-500">{index.name}</p>
+                              )}
+                            </div>
+                            {index.primaryKey && (
+                              <span className="text-xs text-gray-400">{index.primaryKey}</span>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-gray-500 text-center py-4">No hay índices asignados</p>
+                    )}
+                  </div>
+                )}
                 
                 {availableIndexes.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
