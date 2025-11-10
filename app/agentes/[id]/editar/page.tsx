@@ -86,13 +86,6 @@ export default function EditarAgente() {
   const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
   const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores'>('general');
-
-  // Si no puede editar y está en un tab no permitido, cambiar a 'general'
-  useEffect(() => {
-    if (!canEdit && (activeTab === 'whatsapp' || activeTab === 'flujos' || activeTab === 'identificadores')) {
-      setActiveTab('general');
-    }
-  }, [canEdit, activeTab]);
   const [showAIImageModal, setShowAIImageModal] = useState(false);
   const [aiImagePrompt, setAiImagePrompt] = useState('');
   const [generatingImage, setGeneratingImage] = useState(false);
