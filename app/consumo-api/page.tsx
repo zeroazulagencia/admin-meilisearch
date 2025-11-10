@@ -49,6 +49,11 @@ export default function ConsumoAPI() {
       name: 'RapidAPI',
       status: 'Activo',
       dashboardUrl: 'https://rapidapi.com/org/11034001/transactions/subscribed'
+    },
+    {
+      name: 'Claude (Anthropic)',
+      status: 'Activo',
+      dashboardUrl: 'https://platform.claude.com/settings/billing'
     }
   ];
 
