@@ -253,6 +253,14 @@ export default function Agentes() {
   const canEdit = permissions?.type === 'admin' || permissions?.agentes?.editOwn === true || permissions?.agentes?.editAll === true;
   const canDelete = permissions?.type === 'admin' || permissions?.agentes?.editOwn === true || permissions?.agentes?.editAll === true;
 
+  // Función para verificar si puede ver un agente específico
+  const canViewAgent = (agent: AgentDB) => {
+    if (permissions?.type === 'admin') return true;
+    if (permissions?.agentes?.viewAll === true) return true;
+    if (permissions?.agentes?.viewOwn === true && userId && agent.client_id === parseInt(userId)) return true;
+    return false;
+  };
+
   // Función para verificar si puede editar/eliminar un agente específico
   const canEditAgent = (agent: AgentDB) => {
     if (permissions?.type === 'admin') return true;
@@ -446,21 +454,27 @@ export default function Agentes() {
                   <p className="text-sm font-medium truncate" style={{ color: '#5DE1E5' }}>{clients.find(c => c.id === agent.client_id)?.name || 'Sin asignar'}</p>
                 </div>
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">{agent.description}</p>
-                {canEditAgent(agent) && (
+                {canViewAgent(agent) && (
                   <div className="flex gap-2">
                     <button
                       onClick={() => router.push(`/agentes/${agent.id}/editar`)}
-                      className="flex-1 px-3 py-2 text-gray-900 text-sm rounded-lg hover:opacity-90 transition-all"
-                      style={{ backgroundColor: '#5DE1E5' }}
+                      className={`flex-1 px-3 py-2 text-sm rounded-lg transition-all ${
+                        canEditAgent(agent)
+                          ? 'text-gray-900 hover:opacity-90'
+                          : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                      }`}
+                      style={canEditAgent(agent) ? { backgroundColor: '#5DE1E5' } : {}}
                     >
-                      Editar
+                      {canEditAgent(agent) ? 'Editar' : 'Ver Detalle'}
                     </button>
-                    <button
-                      onClick={() => handleDelete(agent.id)}
-                      className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      Eliminar
-                    </button>
+                    {canEditAgent(agent) && (
+                      <button
+                        onClick={() => handleDelete(agent.id)}
+                        className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
