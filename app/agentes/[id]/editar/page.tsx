@@ -630,10 +630,10 @@ export default function EditarAgente() {
     agentTags.push('WhatsApp');
   }
   if (selectedIndexes.length > 0) {
-    agentTags.push('Meilisearch');
+    agentTags.push('Conocimiento');
   }
   if (selectedWorkflows.length > 0) {
-    agentTags.push('n8n');
+    agentTags.push('Flujos');
   }
   if (selectedConversationAgent) {
     agentTags.push('Conversaciones');
@@ -1195,13 +1195,13 @@ export default function EditarAgente() {
           )}
 
           {/* Tab: Flujos */}
-          {activeTab === 'flujos' && (
+          {canEdit && activeTab === 'flujos' && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div className="flex-1">
-                  <h2 className="text-base/7 font-semibold text-gray-900">Flujos n8n</h2>
+                  <h2 className="text-base/7 font-semibold text-gray-900">Flujos de automatización</h2>
                   <p className="mt-1 text-sm/6 text-gray-600">
-                    Selecciona los flujos de n8n que este agente puede ejecutar.
+                    Selecciona los flujos de automatización que este agente puede ejecutar.
                   </p>
                 </div>
                 <button
@@ -1226,7 +1226,7 @@ export default function EditarAgente() {
             ) : (
               <>
                 <p className="text-sm text-gray-600 mb-4">
-                  Selecciona los flujos de n8n que este agente puede ejecutar:
+                  Selecciona los flujos de automatización que este agente puede ejecutar:
                 </p>
                 
                 <div className="mb-4">
@@ -1479,22 +1479,24 @@ export default function EditarAgente() {
         </div>
 
         {/* Botones de Acción Finales */}
-        <div className="mt-6 flex items-center justify-end gap-x-6">
+        {canEdit && (
+          <div className="mt-6 flex items-center justify-end gap-x-6">
             <button
               type="button"
               onClick={() => router.push('/agentes')}
-            className="text-sm/6 font-semibold text-gray-900"
+              className="text-sm/6 font-semibold text-gray-900"
             >
               Cancelar
             </button>
             <button
               type="submit"
-            className="rounded-md bg-[#5DE1E5] px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5]"
+              className="rounded-md bg-[#5DE1E5] px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5]"
             >
-            Guardar
+              Guardar
             </button>
           </div>
-        </form>
+        )}
+      </form>
 
         {/* Modal de confirmación para actualizar tokens */}
         {showTokenUpdateConfirm && pendingTokenUpdate && (
