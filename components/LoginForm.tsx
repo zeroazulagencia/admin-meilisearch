@@ -73,7 +73,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       onLogin(true);
       
       // Redirigir al primer módulo al que tiene acceso
-      const firstRoute = findFirstAccessibleRoute(data.user?.permissions || {});
+      const firstRoute = findFirstAccessibleRoute(permissionsWithType);
       router.push(firstRoute || '/dashboard');
     } catch (err) {
       console.error('ERROR COMPLETO:', err);
