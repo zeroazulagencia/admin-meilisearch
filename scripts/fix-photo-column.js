@@ -33,8 +33,8 @@ async function fixPhotoColumn() {
 
     connection = await mysql.createConnection(dbConfig);
 
-    console.log('Ejecutando migración: ALTER TABLE agents MODIFY COLUMN photo TEXT');
-    await connection.execute('ALTER TABLE agents MODIFY COLUMN photo TEXT');
+    console.log('Ejecutando migración: ALTER TABLE agents MODIFY COLUMN photo MEDIUMTEXT');
+    await connection.execute('ALTER TABLE agents MODIFY COLUMN photo MEDIUMTEXT');
     console.log('✅ Migración ejecutada exitosamente');
   } catch (error) {
     if (error.code === 'ER_DUP_FIELDNAME' || error.message.includes('already exists')) {

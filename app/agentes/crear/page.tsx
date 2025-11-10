@@ -303,8 +303,8 @@ export default function CrearAgente() {
         // Dibujar imagen redimensionada
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convertir a base64 con compresión (calidad 0.85)
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        // Convertir a base64 con compresión (calidad 0.7 para reducir tamaño)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
         resolve(compressedDataUrl);
       };
       img.onerror = () => reject(new Error('Error al cargar la imagen'));
