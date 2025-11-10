@@ -270,6 +270,48 @@ export default function CrearAgente() {
     }
   };
 
+  const processImage = (dataUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('No se pudo obtener contexto del canvas'));
+          return;
+        }
+
+        // Calcular dimensiones manteniendo aspecto (máximo 800x800)
+        let width = img.width;
+        let height = img.height;
+        const maxSize = 800;
+
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = (height / width) * maxSize;
+            width = maxSize;
+          } else {
+            width = (width / height) * maxSize;
+            height = maxSize;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Dibujar imagen redimensionada
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convertir a base64 con compresión (calidad 0.85)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => reject(new Error('Error al cargar la imagen'));
+      img.src = dataUrl;
+    });
+  };
+
   const handleGenerateAIImage = async () => {
     if (!aiImagePrompt.trim()) {
       setAlertModal({
@@ -291,13 +333,15 @@ export default function CrearAgente() {
 
       const data = await res.json();
       if (data.ok && data.url) {
-        setFormData({ ...formData, photo: data.url });
+        // Procesar la imagen: redimensionar y comprimir
+        const processedImage = await processImage(data.url);
+        setFormData({ ...formData, photo: processedImage });
         setShowAIImageModal(false);
         setAiImagePrompt('');
         setAlertModal({
           isOpen: true,
           title: 'Éxito',
-          message: 'Imagen generada correctamente',
+          message: `Imagen generada correctamente usando ${data.model || 'DALL-E 3'}. La imagen ha sido optimizada a máximo 800x800px.`,
           type: 'success',
         });
       } else {
@@ -1108,7 +1152,7 @@ export default function CrearAgente() {
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Avatar con IA</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Describe cómo quieres que se vea el avatar del agente. La IA generará una imagen única.
+              Describe cómo quieres que se vea el avatar del agente. La IA generará una imagen única usando <strong>DALL-E 3</strong>. La imagen será optimizada automáticamente a máximo 800x800px.
             </p>
             <textarea
               value={aiImagePrompt}

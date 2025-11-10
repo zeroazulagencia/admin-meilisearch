@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const MODEL = 'dall-e-3';
+
+// Función para redimensionar y comprimir imagen usando Canvas API del navegador
+// Como estamos en el servidor, usaremos una aproximación con fetch y conversión a base64
+async function processImage(imageUrl: string): Promise<string> {
+  try {
+    // Descargar la imagen
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error('Error al descargar la imagen');
+    }
+
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+    const mimeType = imageResponse.headers.get('content-type') || 'image/png';
+    const dataUrl = `data:${mimeType};base64,${imageBase64}`;
+
+    // Retornar la imagen en base64 (el procesamiento de redimensionado se hará en el frontend)
+    return dataUrl;
+  } catch (error: any) {
+    console.error('Error procesando imagen:', error);
+    throw new Error('Error al procesar la imagen');
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +53,7 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'dall-e-3',
+        model: MODEL,
         prompt: prompt.trim(),
         n: 1,
         size: '1024x1024',
@@ -57,11 +81,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Retornar la URL directa de OpenAI
-    // La imagen se subirá automáticamente cuando el usuario guarde el agente
+    // Procesar la imagen: descargar y convertir a base64
+    const processedImage = await processImage(imageUrl);
+
+    // Retornar la imagen procesada en base64 junto con información del modelo
     return NextResponse.json({ 
       ok: true, 
-      url: imageUrl
+      url: processedImage,
+      model: MODEL,
+      originalUrl: imageUrl
     });
   } catch (error: any) {
     console.error('Error generating image:', error);
