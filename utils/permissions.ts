@@ -53,7 +53,7 @@ export function hasAccessToRoute(route: string, permissions: any): boolean {
   
   console.log('[PERMISSIONS] Checking route:', route, 'normalized:', normalizedRoute, 'requiring perm:', requiredPerm);
   
-  // Verificar permisos del módulo (nuevo sistema simplificado)
+  // Verificar permisos del módulo (sistema completo con viewOwn/viewAll/editOwn/editAll)
   const modulePerms = permissions[requiredPerm];
   console.log('[PERMISSIONS] Module perms:', modulePerms);
   
@@ -62,9 +62,9 @@ export function hasAccessToRoute(route: string, permissions: any): boolean {
     return false;
   }
   
-  // Si tiene permiso de ver o editar, tiene acceso
-  const hasAccess = modulePerms.view || modulePerms.edit;
-  console.log('[PERMISSIONS] Has access:', hasAccess, 'view:', modulePerms.view, 'edit:', modulePerms.edit);
+  // Si tiene permiso de ver (propios o todos) o editar (propios o todos), tiene acceso
+  const hasAccess = modulePerms.viewOwn || modulePerms.viewAll || modulePerms.editOwn || modulePerms.editAll;
+  console.log('[PERMISSIONS] Has access:', hasAccess, 'viewOwn:', modulePerms.viewOwn, 'viewAll:', modulePerms.viewAll, 'editOwn:', modulePerms.editOwn, 'editAll:', modulePerms.editAll);
   
   return hasAccess;
 }

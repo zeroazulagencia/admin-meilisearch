@@ -103,18 +103,19 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
 
   // Filtrar items según permisos
   const navItems = allNavItems.filter(item => {
-    if (!permissions) return true;
+    if (!permissions) return false; // Si no hay permisos, no mostrar nada
     // Admin tiene acceso a todo
     if (permissions.type === 'admin') return true;
-    // Verificar permisos del módulo (nuevo sistema simplificado)
+    // Verificar si puede hacer login
+    if (permissions.canLogin === false) return false;
+    // Verificar permisos del módulo (sistema completo con viewOwn/viewAll/editOwn/editAll)
     const sectionPerms = permissions[item.perm];
-    // Si no hay permisos configurados para este módulo, permitir acceso (para nuevos módulos)
+    // Si no hay permisos configurados para este módulo, denegar acceso
     if (!sectionPerms) {
-      // Permitir acceso a módulos nuevos como developers si no hay permisos configurados
-      return item.perm === 'developers' || item.perm === 'roadmap';
+      return false;
     }
-    // Si tiene permiso de ver o editar, tiene acceso
-    return sectionPerms.view || sectionPerms.edit;
+    // Si tiene permiso de ver (propios o todos) o editar (propios o todos), tiene acceso
+    return sectionPerms.viewOwn || sectionPerms.viewAll || sectionPerms.editOwn || sectionPerms.editAll;
   });
 
   const toggleSidebar = () => {
