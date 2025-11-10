@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
@@ -38,7 +38,6 @@ export default function EditarCliente() {
     type: 'info',
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
 
   useEffect(() => {
     if (!params?.id) return;
@@ -236,10 +235,7 @@ export default function EditarCliente() {
     }));
   };
 
-  // Módulos exclusivos de admin (no se muestran para clientes)
-  const ADMIN_ONLY_MODULES = ['dbManager', 'consumoAPI', 'roadmap', 'developers'];
-
-  const ALL_MODULES = [
+  const MODULES = [
     { key: 'dashboard', label: 'Dashboard', supportsCreate: false },
     { key: 'clientes', label: 'Clientes', supportsCreate: true },
     { key: 'agentes', label: 'Agentes', supportsCreate: true },
@@ -255,13 +251,6 @@ export default function EditarCliente() {
     { key: 'developers', label: 'Developers', supportsCreate: true }
   ];
 
-  // Filtrar módulos según si es admin o no (usando useMemo para recalcular cuando cambie isCurrentUserAdmin)
-  const MODULES = useMemo(() => {
-    return isCurrentUserAdmin 
-      ? ALL_MODULES 
-      : ALL_MODULES.filter(module => !ADMIN_ONLY_MODULES.includes(module.key));
-  }, [isCurrentUserAdmin]);
-
   const generatePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
     let password = '';
@@ -271,21 +260,6 @@ export default function EditarCliente() {
     setFormData({ ...formData, clave: password });
   };
 
-  // Verificar permisos del usuario actual
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const userPerms = localStorage.getItem('admin-permissions');
-        if (userPerms) {
-          const perms = JSON.parse(userPerms);
-          console.log('[EDITAR CLIENTE] Permisos del usuario:', perms);
-          setIsCurrentUserAdmin(perms.type === 'admin');
-        }
-      } catch (e) {
-        console.error('[EDITAR CLIENTE] Error cargando permisos:', e);
-      }
-    }
-  }, []);
 
   if (!currentClient) {
     return (
@@ -478,107 +452,14 @@ export default function EditarCliente() {
 
             {/* Module Permissions - Organizado por secciones en 2 columnas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MODULES.map((module) => {
-                // Si es admin, mostrar todas las opciones
-                if (isCurrentUserAdmin) {
-                  return (
-                    <div key={module.key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <h3 className="font-semibold text-gray-900 mb-3 text-base">{module.label}</h3>
-                      
-                      {/* Ver */}
-                      <div className="mb-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Ver</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={permissions[module.key]?.viewOwn || false}
-                              onChange={() => togglePermission(module.key, 'viewOwn')}
-                              className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                              style={{ color: '#5DE1E5' }}
-                            />
-                            <span className="ml-2 text-sm text-gray-700">Propios</span>
-                          </label>
-                          <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={permissions[module.key]?.viewAll || false}
-                              onChange={() => togglePermission(module.key, 'viewAll')}
-                              className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                              style={{ color: '#5DE1E5' }}
-                            />
-                            <span className="ml-2 text-sm text-gray-700">Todos</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      {/* Editar */}
-                      <div className="mb-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Editar</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={permissions[module.key]?.editOwn || false}
-                              onChange={() => togglePermission(module.key, 'editOwn')}
-                              className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                              style={{ color: '#5DE1E5' }}
-                            />
-                            <span className="ml-2 text-sm text-gray-700">Propios</span>
-                          </label>
-                          <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={permissions[module.key]?.editAll || false}
-                              onChange={() => togglePermission(module.key, 'editAll')}
-                              className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                              style={{ color: '#5DE1E5' }}
-                            />
-                            <span className="ml-2 text-sm text-gray-700">Todos</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      {/* Crear (solo si el módulo lo soporta) */}
-                      {module.supportsCreate && (
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">Crear</h4>
-                          <div className="grid grid-cols-2 gap-3">
-                            <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={permissions[module.key]?.createOwn || false}
-                                onChange={() => togglePermission(module.key, 'createOwn')}
-                                className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                                style={{ color: '#5DE1E5' }}
-                              />
-                              <span className="ml-2 text-sm text-gray-700">Propios</span>
-                            </label>
-                            <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={permissions[module.key]?.createAll || false}
-                                onChange={() => togglePermission(module.key, 'createAll')}
-                                className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                                style={{ color: '#5DE1E5' }}
-                              />
-                              <span className="ml-2 text-sm text-gray-700">Todos</span>
-                            </label>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                // Cliente normal: solo mostrar "Ver Propios"
-                return (
-                  <div key={module.key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <h3 className="font-semibold text-gray-900 mb-3 text-base">{module.label}</h3>
-                    
-                    {/* Ver - Solo Propios */}
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Ver</h4>
+              {MODULES.map((module) => (
+                <div key={module.key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h3 className="font-semibold text-gray-900 mb-3 text-base">{module.label}</h3>
+                  
+                  {/* Ver */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Ver</h4>
+                    <div className="grid grid-cols-2 gap-3">
                       <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
                         <input
                           type="checkbox"
@@ -589,10 +470,76 @@ export default function EditarCliente() {
                         />
                         <span className="ml-2 text-sm text-gray-700">Propios</span>
                       </label>
+                      <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={permissions[module.key]?.viewAll || false}
+                          onChange={() => togglePermission(module.key, 'viewAll')}
+                          className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                          style={{ color: '#5DE1E5' }}
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Todos</span>
+                      </label>
                     </div>
                   </div>
-                );
-              })}
+
+                  {/* Editar */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Editar</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={permissions[module.key]?.editOwn || false}
+                          onChange={() => togglePermission(module.key, 'editOwn')}
+                          className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                          style={{ color: '#5DE1E5' }}
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Propios</span>
+                      </label>
+                      <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={permissions[module.key]?.editAll || false}
+                          onChange={() => togglePermission(module.key, 'editAll')}
+                          className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                          style={{ color: '#5DE1E5' }}
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Todos</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Crear (solo si el módulo lo soporta) */}
+                  {module.supportsCreate && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Crear</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={permissions[module.key]?.createOwn || false}
+                            onChange={() => togglePermission(module.key, 'createOwn')}
+                            className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                            style={{ color: '#5DE1E5' }}
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Propios</span>
+                        </label>
+                        <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={permissions[module.key]?.createAll || false}
+                            onChange={() => togglePermission(module.key, 'createAll')}
+                            className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                            style={{ color: '#5DE1E5' }}
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Todos</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
