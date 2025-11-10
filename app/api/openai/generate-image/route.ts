@@ -56,9 +56,7 @@ export async function POST(request: NextRequest) {
         model: MODEL,
         prompt: prompt.trim(),
         n: 1,
-        size: '1024x1024',
-        quality: 'standard',
-        response_format: 'url'
+        size: '1024x1024'
       })
     });
 
