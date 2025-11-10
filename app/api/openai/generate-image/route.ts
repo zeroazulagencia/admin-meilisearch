@@ -70,11 +70,21 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    const imageUrl = data.data?.[0]?.url;
+    console.log('OpenAI API response:', JSON.stringify(data, null, 2));
+    
+    // Intentar diferentes estructuras de respuesta
+    let imageUrl = data.data?.[0]?.url || data.url || data.image_url || data.imageUrl;
+    
+    // Si no hay URL, verificar si hay base64
+    if (!imageUrl && data.data?.[0]?.b64_json) {
+      const base64Image = data.data[0].b64_json;
+      imageUrl = `data:image/png;base64,${base64Image}`;
+    }
 
     if (!imageUrl) {
+      console.error('Estructura de respuesta inesperada:', data);
       return NextResponse.json(
-        { error: 'No se recibió URL de imagen de OpenAI' },
+        { error: 'No se recibió URL de imagen de OpenAI. Estructura de respuesta: ' + JSON.stringify(data) },
         { status: 500 }
       );
     }
