@@ -11,9 +11,12 @@ interface DocumentListProps {
   onLoadWeb?: () => void;
   uploadProgressCount?: number;
   onRefresh?: () => void;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
-export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadProgressCount = 0, onRefresh }: DocumentListProps) {
+export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadProgressCount = 0, onRefresh, canCreate = true, canEdit = true, canDelete = true }: DocumentListProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -317,7 +320,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               Documentos ({total})
             </h2>
             <div className="space-x-2 flex gap-2">
-              {selectedDocs.size > 0 && (
+              {canDelete && selectedDocs.size > 0 && (
                 <button
                   onClick={handleDeleteSelected}
                   disabled={deleting}
@@ -326,7 +329,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                   {deleting ? '⏳ Eliminando...' : `Eliminar Seleccionados (${selectedDocs.size})`}
                 </button>
               )}
-              {onLoadWeb && (
+              {canCreate && onLoadWeb && (
                 <button
                   onClick={onLoadWeb}
                   className="px-4 py-2 rounded-lg transition-colors"
@@ -335,7 +338,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                   Cargar desde URL
                 </button>
               )}
-              {onLoadPdf && (
+              {canCreate && onLoadPdf && (
                 <button
                   onClick={onLoadPdf}
                   className="px-4 py-2 rounded-lg transition-colors"
@@ -344,13 +347,15 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                   Cargar PDF {uploadProgressCount > 0 && <span className="ml-1 text-xs">({uploadProgressCount} errores)</span>}
                 </button>
               )}
-              <button
-                onClick={handleCreate}
-                className="px-4 py-2 rounded-lg transition-colors"
-                style={{ backgroundColor: '#5DE1E5', color: '#000000' }}
-              >
-                Nuevo Documento
-              </button>
+              {canCreate && (
+                <button
+                  onClick={handleCreate}
+                  className="px-4 py-2 rounded-lg transition-colors"
+                  style={{ backgroundColor: '#5DE1E5', color: '#000000' }}
+                >
+                  Nuevo Documento
+                </button>
+              )}
             </div>
           </div>
           
@@ -478,19 +483,21 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <input
-                    type="checkbox"
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedDocs(new Set(documents.map(d => String(Object.values(d)[0]))));
-                      } else {
-                        setSelectedDocs(new Set());
-                      }
-                    }}
-                    className="rounded"
-                  />
-                </th>
+                {canDelete && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedDocs(new Set(documents.map(d => String(Object.values(d)[0]))));
+                        } else {
+                          setSelectedDocs(new Set());
+                        }
+                      }}
+                      className="rounded"
+                    />
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Contenido
                 </th>
@@ -504,14 +511,16 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                 const docId = String(Object.values(doc)[0]);
                 return (
                   <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        checked={selectedDocs.has(docId)}
-                        onChange={() => toggleSelect(docId)}
-                        className="rounded"
-                      />
-                    </td>
+                    {canDelete && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedDocs.has(docId)}
+                          onChange={() => toggleSelect(docId)}
+                          className="rounded"
+                        />
+                      </td>
+                    )}
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 space-y-1">
                         {Object.entries(doc).slice(0, 3).map(([key, value]) => (
@@ -534,19 +543,23 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                      <button
-                        onClick={() => handleEdit(doc)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(doc)}
-                        disabled={deleting}
-                        className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {deleting ? '⏳...' : 'Eliminar'}
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => handleEdit(doc)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Editar
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(doc)}
+                          disabled={deleting}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {deleting ? '⏳...' : 'Eliminar'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

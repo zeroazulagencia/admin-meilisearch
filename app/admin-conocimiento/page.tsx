@@ -1891,21 +1891,39 @@ export default function AdminConocimiento() {
 
               <IndexProperties indexUid={selectedIndex.uid} />
               
-              <DocumentList 
-                indexUid={selectedIndex.uid}
-                onLoadPdf={() => {
-                  setShowPdfModal(true);
-                  // Si hay progreso, ir directamente al paso de revisión
-                  if (uploadProgress.length > 0) {
-                    setPdfStep('review');
-                  }
-                }}
-                onLoadWeb={() => {
-                  setShowWebUrlModal(true);
-                }}
-                uploadProgressCount={uploadProgress.filter(p => p.status === 'failed').length}
-                onRefresh={refreshIndex}
-              />
+              {(() => {
+                const permissions = getPermissions();
+                const canCreate = permissions?.type === 'admin' || 
+                                  permissions?.adminConocimiento?.createAll === true || 
+                                  permissions?.adminConocimiento?.createOwn === true;
+                const canEdit = permissions?.type === 'admin' || 
+                                permissions?.adminConocimiento?.editAll === true || 
+                                permissions?.adminConocimiento?.editOwn === true;
+                const canDelete = permissions?.type === 'admin' || 
+                                  permissions?.adminConocimiento?.editAll === true || 
+                                  permissions?.adminConocimiento?.editOwn === true;
+                
+                return (
+                  <DocumentList 
+                    indexUid={selectedIndex.uid}
+                    onLoadPdf={() => {
+                      setShowPdfModal(true);
+                      // Si hay progreso, ir directamente al paso de revisión
+                      if (uploadProgress.length > 0) {
+                        setPdfStep('review');
+                      }
+                    }}
+                    onLoadWeb={() => {
+                      setShowWebUrlModal(true);
+                    }}
+                    uploadProgressCount={uploadProgress.filter(p => p.status === 'failed').length}
+                    onRefresh={refreshIndex}
+                    canCreate={canCreate}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                  />
+                );
+              })()}
             </>
           )}
             </>
