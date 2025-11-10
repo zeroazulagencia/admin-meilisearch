@@ -254,7 +254,7 @@ export default function EditarCliente() {
   };
 
   // Módulos exclusivos de admin (no se muestran en el editor de permisos)
-  const ADMIN_ONLY_MODULES = ['dbManager', 'roadmap'];
+  const ADMIN_ONLY_MODULES = ['dbManager', 'roadmap', 'clientes', 'ejecuciones', 'whatsappManager', 'consumoAPI'];
   
   const MODULES = [
     { key: 'dashboard', label: 'Dashboard', onlyView: true },
