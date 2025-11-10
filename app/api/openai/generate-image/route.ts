@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const MODEL = 'gpt-image-1';
+const AVATARS_DIR = join(process.cwd(), 'public', 'agent-avatars');
+const MAX_SIZE = 800; // Máximo 800x800px
 
-// Función para redimensionar y comprimir imagen usando Canvas API del navegador
-// Como estamos en el servidor, usaremos una aproximación con fetch y conversión a base64
-async function processImage(imageUrl: string): Promise<string> {
+// Asegurar que el directorio existe
+async function ensureDir() {
+  if (!existsSync(AVATARS_DIR)) {
+    await mkdir(AVATARS_DIR, { recursive: true });
+  }
+}
+
+// Función para descargar, redimensionar y guardar imagen
+async function downloadAndSaveImage(imageUrl: string): Promise<string> {
   try {
     // Descargar la imagen
     const imageResponse = await fetch(imageUrl);
@@ -14,15 +25,29 @@ async function processImage(imageUrl: string): Promise<string> {
     }
 
     const imageBuffer = await imageResponse.arrayBuffer();
-    const imageBase64 = Buffer.from(imageBuffer).toString('base64');
-    const mimeType = imageResponse.headers.get('content-type') || 'image/png';
-    const dataUrl = `data:${mimeType};base64,${imageBase64}`;
-
-    // Retornar la imagen en base64 (el procesamiento de redimensionado se hará en el frontend)
-    return dataUrl;
+    const buffer = Buffer.from(imageBuffer);
+    
+    // Usar sharp si está disponible, sino usar canvas o simplemente guardar
+    // Por ahora, guardamos directamente y el frontend puede procesarla si es necesario
+    // En el futuro se puede agregar sharp para procesamiento en servidor
+    
+    await ensureDir();
+    
+    // Generar nombre único
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(7);
+    const fileName = `${timestamp}-${randomString}-ai.jpg`;
+    const filePath = join(AVATARS_DIR, fileName);
+    
+    // Guardar la imagen
+    await writeFile(filePath, buffer);
+    
+    // Retornar la URL pública usando la API route
+    const publicUrl = `/api/agent-avatars/${fileName}`;
+    return publicUrl;
   } catch (error: any) {
     console.error('Error procesando imagen:', error);
-    throw new Error('Error al procesar la imagen');
+    throw new Error('Error al procesar y guardar la imagen');
   }
 }
 
@@ -89,13 +114,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Procesar la imagen: descargar y convertir a base64
-    const processedImage = await processImage(imageUrl);
+    // Descargar, procesar y guardar la imagen en el sistema de archivos
+    const savedImageUrl = await downloadAndSaveImage(imageUrl);
 
-    // Retornar la imagen procesada en base64 junto con información del modelo
+    // Retornar la ruta del archivo guardado junto con información del modelo
     return NextResponse.json({ 
       ok: true, 
-      url: processedImage,
+      url: savedImageUrl,
       model: MODEL,
       originalUrl: imageUrl
     });
