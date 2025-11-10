@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import settings from '../../settings.json';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
+import { getPermissions, getUserId } from '@/utils/permissions';
 
 interface AgentDB {
   id: number;
@@ -71,11 +72,47 @@ export default function Agentes() {
         const data = await res.json();
         console.log('[AGENTES] Agents response ok?:', data?.ok, 'count:', Array.isArray(data?.agents) ? data.agents.length : 'n/a');
         if (data.ok && data.agents) {
+          let list: AgentDB[] = data.agents;
+          
+          // Aplicar filtros de permisos
+          const permissions = getPermissions();
+          const userId = getUserId();
+          console.log('[AGENTES] Permisos:', permissions, 'userId:', userId);
+          
+          if (permissions && userId && permissions.type !== 'admin') {
+            // Si no es admin, verificar permisos
+            const agentesPerms = permissions.agentes;
+            console.log('[AGENTES] Permisos de agentes:', agentesPerms);
+            
+            if (agentesPerms) {
+              // Si tiene viewAll, mostrar todos los agentes
+              if (agentesPerms.viewAll === true) {
+                console.log('[AGENTES] Tiene viewAll, mostrando todos los agentes');
+              } else if (agentesPerms.viewOwn === true) {
+                // Si solo tiene viewOwn, filtrar solo sus agentes
+                console.log('[AGENTES] Solo tiene viewOwn, filtrando agentes del cliente:', userId);
+                list = list.filter(a => a.client_id === parseInt(userId));
+                console.log('[AGENTES] Agentes filtrados:', list.length);
+              } else {
+                // No tiene permisos de ver, no mostrar nada
+                console.log('[AGENTES] No tiene permisos de ver agentes');
+                list = [];
+              }
+            } else {
+              // No hay permisos configurados, no mostrar nada
+              console.log('[AGENTES] No hay permisos configurados para agentes');
+              list = [];
+            }
+          } else if (permissions && permissions.type === 'admin') {
+            // Admin ve todos los agentes
+            console.log('[AGENTES] Usuario es admin, mostrando todos los agentes');
+          }
+          
           try {
-            const ids = data.agents.map((a: any) => a.id);
-            console.log('[AGENTES] Agents IDs:', ids);
+            const ids = list.map((a: any) => a.id);
+            console.log('[AGENTES] Agents IDs finales:', ids);
           } catch {}
-          setAgents(data.agents);
+          setAgents(list);
         }
       } catch (err) {
         console.error('[AGENTES] Error cargando agentes:', err);
@@ -209,17 +246,34 @@ export default function Agentes() {
   };
 
 
+  // Verificar permisos para mostrar/ocultar botones
+  const permissions = getPermissions();
+  const userId = getUserId();
+  const canCreate = permissions?.type === 'admin' || permissions?.agentes?.createOwn === true || permissions?.agentes?.createAll === true;
+  const canEdit = permissions?.type === 'admin' || permissions?.agentes?.editOwn === true || permissions?.agentes?.editAll === true;
+  const canDelete = permissions?.type === 'admin' || permissions?.agentes?.editOwn === true || permissions?.agentes?.editAll === true;
+
+  // Función para verificar si puede editar/eliminar un agente específico
+  const canEditAgent = (agent: AgentDB) => {
+    if (permissions?.type === 'admin') return true;
+    if (permissions?.agentes?.editAll === true) return true;
+    if (permissions?.agentes?.editOwn === true && userId && agent.client_id === parseInt(userId)) return true;
+    return false;
+  };
+
   return (
     <ProtectedLayout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Agentes</h1>
-        <button
-          onClick={() => router.push('/agentes/crear')}
-          className="px-4 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
-          style={{ backgroundColor: '#5DE1E5' }}
-        >
-          + Nuevo Agente
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => router.push('/agentes/crear')}
+            className="px-4 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
+            style={{ backgroundColor: '#5DE1E5' }}
+          >
+            + Nuevo Agente
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -392,21 +446,23 @@ export default function Agentes() {
                   <p className="text-sm font-medium truncate" style={{ color: '#5DE1E5' }}>{clients.find(c => c.id === agent.client_id)?.name || 'Sin asignar'}</p>
                 </div>
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">{agent.description}</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => router.push(`/agentes/${agent.id}/editar`)}
-                    className="flex-1 px-3 py-2 text-gray-900 text-sm rounded-lg hover:opacity-90 transition-all"
-                    style={{ backgroundColor: '#5DE1E5' }}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(agent.id)}
-                    className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    Eliminar
-                  </button>
-                </div>
+                {canEditAgent(agent) && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push(`/agentes/${agent.id}/editar`)}
+                      className="flex-1 px-3 py-2 text-gray-900 text-sm rounded-lg hover:opacity-90 transition-all"
+                      style={{ backgroundColor: '#5DE1E5' }}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(agent.id)}
+                      className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
