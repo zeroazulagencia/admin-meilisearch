@@ -467,11 +467,11 @@ export default function EditarCliente() {
               </label>
             </div>
 
-            {/* Module Permissions - Organizado por secciones */}
-            <div className="space-y-6">
+            {/* Module Permissions - Organizado por secciones en 2 columnas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {MODULES.map((module) => (
-                <div key={module.key} className="p-5 border border-gray-200 rounded-lg bg-gray-50">
-                  <h3 className="font-semibold text-gray-900 mb-4 text-lg">{module.label}</h3>
+                <div key={module.key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h3 className="font-semibold text-gray-900 mb-3 text-base">{module.label}</h3>
                   
                   {/* Ver */}
                   <div className="mb-4">
