@@ -1908,6 +1908,8 @@ export default function AdminConocimiento() {
               {(() => {
                 const permissions = getPermissions();
                 const isClient = permissions?.type !== 'admin';
+                // Ocultar completamente IndexProperties para clientes
+                if (isClient) return null;
                 return (
                   <IndexProperties indexUid={selectedIndex.uid} isClient={isClient} />
                 );

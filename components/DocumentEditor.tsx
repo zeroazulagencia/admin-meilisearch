@@ -11,6 +11,7 @@ interface DocumentEditorProps {
   readOnly?: boolean;
   canAddFields?: boolean;
   canRemoveFields?: boolean;
+  primaryKey?: string | null;
 }
 
 function detectFieldType(value: any): string {
@@ -22,7 +23,7 @@ function detectFieldType(value: any): string {
   return 'string';
 }
 
-export default function DocumentEditor({ document, indexUid, onSave, onCancel, readOnly = false, canAddFields = true, canRemoveFields = true }: DocumentEditorProps) {
+export default function DocumentEditor({ document, indexUid, onSave, onCancel, readOnly = false, canAddFields = true, canRemoveFields = true, primaryKey = null }: DocumentEditorProps) {
   const [formData, setFormData] = useState<Document>({});
 
   useEffect(() => {

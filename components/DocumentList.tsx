@@ -674,6 +674,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               readOnly={!canEdit}
               canAddFields={canCreate}
               canRemoveFields={canDelete}
+              primaryKey={primaryKey}
             />
           </div>
         </div>
