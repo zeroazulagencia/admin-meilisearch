@@ -11,6 +11,7 @@ import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { ChevronDownIcon } from '@heroicons/react/16/solid';
 import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { isValidToken } from '@/utils/encryption';
+import { getPermissions, getUserId } from '@/utils/permissions';
 
 interface Client {
   id: number;
@@ -644,6 +645,19 @@ export default function EditarAgente() {
   // Obtener nombre del cliente
   const clientName = clients.find(c => c.id === formData.client_id)?.name || 'Sin cliente asignado';
 
+  // Verificar permisos
+  const permissions = getPermissions();
+  const userId = getUserId();
+  const canView = permissions?.type === 'admin' || 
+                  permissions?.agentes?.viewAll === true || 
+                  permissions?.agentes?.viewOwn === true;
+  const canEdit = permissions?.type === 'admin' || 
+                  permissions?.agentes?.editAll === true || 
+                  (permissions?.agentes?.editOwn === true && userId && currentAgent?.client_id === parseInt(userId));
+  const canViewThisAgent = permissions?.type === 'admin' || 
+                           permissions?.agentes?.viewAll === true || 
+                           (permissions?.agentes?.viewOwn === true && userId && currentAgent?.client_id === parseInt(userId));
+
   if (!currentAgent) {
     return (
       <ProtectedLayout>
@@ -654,8 +668,44 @@ export default function EditarAgente() {
     );
   }
 
+  // Si no tiene acceso de ver este agente, mostrar error
+  if (!canViewThisAgent) {
+    return (
+      <ProtectedLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center max-w-md">
+            <div className="mb-4">
+              <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Sin permisos</h2>
+            <p className="text-gray-600 mb-4">No tienes permisos para ver este agente</p>
+            <button
+              onClick={() => router.push('/agentes')}
+              className="px-4 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
+              style={{ backgroundColor: '#5DE1E5' }}
+            >
+              Volver a Agentes
+            </button>
+          </div>
+        </div>
+      </ProtectedLayout>
+    );
+  }
+
   return (
     <ProtectedLayout>
+      {!canEdit && (
+        <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-yellow-800 font-medium">Modo solo lectura: No tienes permisos para editar este agente</p>
+          </div>
+        </div>
+      )}
       <form onSubmit={handleSubmit}>
         {/* Header de Perfil del Agente */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
@@ -664,8 +714,8 @@ export default function EditarAgente() {
             <div className="flex flex-col items-center gap-3 flex-shrink-0">
               <div className="relative group">
                 <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="cursor-pointer relative"
+                  onClick={() => canEdit && fileInputRef.current?.click()}
+                  className={`relative ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                 >
                   {formData.photo ? (
                     <div className="relative">
@@ -702,15 +752,17 @@ export default function EditarAgente() {
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => setShowAIImageModal(true)}
-                className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-900 bg-[#5DE1E5] rounded-md hover:bg-[#4BC5C9] transition-colors"
-                title="Generar avatar con IA"
-              >
-                <SparklesIcon className="w-4 h-4" />
-                <span>Generar con IA</span>
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => setShowAIImageModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-900 bg-[#5DE1E5] rounded-md hover:bg-[#4BC5C9] transition-colors"
+                  title="Generar avatar con IA"
+                >
+                  <SparklesIcon className="w-4 h-4" />
+                  <span>Generar con IA</span>
+                </button>
+              )}
             </div>
 
             {/* Información Principal */}
@@ -759,14 +811,16 @@ export default function EditarAgente() {
             </div>
 
             {/* Botones de Acción */}
-            <div className="flex flex-col gap-3 md:items-end flex-shrink-0">
-              <button
-                type="submit"
-                className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] whitespace-nowrap"
-              >
-                Guardar Cambios
-              </button>
-            </div>
+            {canEdit && (
+              <div className="flex flex-col gap-3 md:items-end flex-shrink-0">
+                <button
+                  type="submit"
+                  className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] whitespace-nowrap"
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -854,9 +908,10 @@ export default function EditarAgente() {
                     name="name"
                     type="text"
                     required
+                    disabled={!canEdit}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                    className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                   />
                 </div>
               </div>
@@ -870,9 +925,10 @@ export default function EditarAgente() {
                     id="client_id"
                     name="client_id"
                     required
+                    disabled={!canEdit}
                     value={formData.client_id}
                     onChange={(e) => setFormData({ ...formData, client_id: parseInt(e.target.value) })}
-                    className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                    className={`col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                   >
                     <option value={0}>Seleccionar cliente</option>
                     {clients.map((client) => (
@@ -897,9 +953,10 @@ export default function EditarAgente() {
                     id="description"
                     name="description"
                     rows={6}
+                    disabled={!canEdit}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                    className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                     placeholder="Descripción del agente y su propósito..."
                   />
                 </div>
@@ -932,9 +989,10 @@ export default function EditarAgente() {
                 <select
                         id="conversation_agent_name"
                         name="conversation_agent_name"
+                        disabled={!canEdit}
                   value={selectedConversationAgent}
                   onChange={(e) => setSelectedConversationAgent(e.target.value)}
-                        className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                        className={`col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                 >
                         <option value="">Seleccionar agente...</option>
                   {availableConversationAgents.map((agent) => (
@@ -967,9 +1025,10 @@ export default function EditarAgente() {
                       <select
                         id="reports_agent_name"
                         name="reports_agent_name"
+                        disabled={!canEdit}
                         value={selectedReportAgent}
                         onChange={(e) => setSelectedReportAgent(e.target.value)}
-                        className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                        className={`col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                       >
                         <option value="">Seleccionar agente...</option>
                         {availableReportAgents.map((agent) => (
@@ -1029,9 +1088,10 @@ export default function EditarAgente() {
                   <input
                     type="text"
                     placeholder="Buscar índice..."
+                    disabled={!canEdit}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                    className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                   />
                 </div>
                 
@@ -1052,7 +1112,9 @@ export default function EditarAgente() {
                     .map((index) => (
                     <label
                       key={index.uid}
-                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                      className={`flex items-center p-3 border-2 rounded-lg transition-all ${
+                        !canEdit ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                      } ${
                         selectedIndexes.includes(index.uid)
                           ? 'border-blue-600 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300'
@@ -1060,6 +1122,7 @@ export default function EditarAgente() {
                     >
                       <input
                         type="checkbox"
+                        disabled={!canEdit}
                         checked={selectedIndexes.includes(index.uid)}
                         onChange={() => handleToggleIndex(index.uid)}
                         className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
@@ -1166,7 +1229,9 @@ export default function EditarAgente() {
                     .map((workflow) => (
                     <label
                       key={workflow.id}
-                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                      className={`flex items-center p-3 border-2 rounded-lg transition-all ${
+                        !canEdit ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                      } ${
                         selectedWorkflows.includes(workflow.id)
                           ? 'border-blue-600 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300'
@@ -1174,6 +1239,7 @@ export default function EditarAgente() {
                     >
                       <input
                         type="checkbox"
+                        disabled={!canEdit}
                         checked={selectedWorkflows.includes(workflow.id)}
                         onChange={() => handleToggleWorkflow(workflow.id)}
                         className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
@@ -1232,12 +1298,13 @@ export default function EditarAgente() {
                     Configuración para interactuar con la API de Meta WhatsApp Business.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleVerifyWhatsApp}
-                  disabled={verifyingWhatsApp}
-                  className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={handleVerifyWhatsApp}
+                    disabled={verifyingWhatsApp}
+                    className="rounded-md bg-[#5DE1E5] px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs hover:bg-[#4BC5C9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5DE1E5] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
                   {verifyingWhatsApp ? (
                     <>
                       <div className="animate-spin h-4 w-4 border-2 border-gray-900 border-t-transparent rounded-full"></div>
@@ -1251,7 +1318,8 @@ export default function EditarAgente() {
                       <span>Verificar Conexión</span>
                     </>
                   )}
-                </button>
+                  </button>
+                )}
               </div>
 
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
@@ -1264,9 +1332,10 @@ export default function EditarAgente() {
                     id="whatsapp_business_account_id"
                     name="whatsapp_business_account_id"
                     type="text"
+                    disabled={!canEdit}
                     value={formData.whatsapp_business_account_id}
                     onChange={(e) => setFormData({ ...formData, whatsapp_business_account_id: e.target.value })}
-                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                    className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                     placeholder="123456789"
                   />
                 </div>
@@ -1281,9 +1350,10 @@ export default function EditarAgente() {
                     id="whatsapp_phone_number_id"
                     name="whatsapp_phone_number_id"
                     type="text"
+                    disabled={!canEdit}
                     value={formData.whatsapp_phone_number_id}
                     onChange={(e) => setFormData({ ...formData, whatsapp_phone_number_id: e.target.value })}
-                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                    className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                     placeholder="1234567890"
                   />
                 </div>
@@ -1298,6 +1368,7 @@ export default function EditarAgente() {
                     id="whatsapp_access_token"
                     name="whatsapp_access_token"
                     rows={3}
+                    disabled={!canEdit}
                     value={formData.whatsapp_access_token}
                     onChange={(e) => {
                       const newValue = e.target.value;
@@ -1307,7 +1378,7 @@ export default function EditarAgente() {
                       }
                       setFormData({ ...formData, whatsapp_access_token: newValue });
                     }}
-                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                    className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                     placeholder={tokenPrefix.access_token ? `${tokenPrefix.access_token}... (token guardado)` : "EAA..."}
                   />
                   {tokenPrefix.access_token && !formData.whatsapp_access_token && (
@@ -1327,6 +1398,7 @@ export default function EditarAgente() {
                     id="whatsapp_webhook_verify_token"
                     name="whatsapp_webhook_verify_token"
                     type="text"
+                    disabled={!canEdit}
                     value={formData.whatsapp_webhook_verify_token}
                     onChange={(e) => {
                       const newValue = e.target.value;
@@ -1336,7 +1408,7 @@ export default function EditarAgente() {
                       }
                       setFormData({ ...formData, whatsapp_webhook_verify_token: newValue });
                     }}
-                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                    className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                     placeholder={tokenPrefix.webhook_token ? `${tokenPrefix.webhook_token}... (token guardado)` : "mi_token_secreto"}
                   />
                   {tokenPrefix.webhook_token && !formData.whatsapp_webhook_verify_token && (
@@ -1356,6 +1428,7 @@ export default function EditarAgente() {
                     id="whatsapp_app_secret"
                     name="whatsapp_app_secret"
                     type="text"
+                    disabled={!canEdit}
                     value={formData.whatsapp_app_secret}
                     onChange={(e) => {
                       const newValue = e.target.value;
@@ -1365,7 +1438,7 @@ export default function EditarAgente() {
                       }
                       setFormData({ ...formData, whatsapp_app_secret: newValue });
                     }}
-                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6"
+                    className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                     placeholder={tokenPrefix.app_secret ? `${tokenPrefix.app_secret}... (token guardado)` : "abc123..."}
                   />
                   {tokenPrefix.app_secret && !formData.whatsapp_app_secret && (
