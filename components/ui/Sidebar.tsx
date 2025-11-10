@@ -90,7 +90,7 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     { href: '/clientes', label: 'Clientes', perm: 'clientes', icon: <UsersIcon className="w-5 h-5" /> },
     { href: '/agentes', label: 'Agentes', perm: 'agentes', icon: <UserGroupIcon className="w-5 h-5" /> },
     { href: '/ejecuciones', label: 'Ejecuciones', perm: 'ejecuciones', icon: <PlayIcon className="w-5 h-5" /> },
-    { href: '/admin-conocimiento', label: 'Admin Conocimiento', perm: 'conocimiento', icon: <BookOpenIcon className="w-5 h-5" /> },
+    { href: '/admin-conocimiento', label: 'Admin Conocimiento', perm: 'adminConocimiento', icon: <BookOpenIcon className="w-5 h-5" /> },
     { href: '/reportes', label: 'Reportes', perm: 'reportes', icon: <DocumentTextIcon className="w-5 h-5" /> },
     { href: '/conversaciones', label: 'Conversaciones', perm: 'conversaciones', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
     { href: '/whatsapp-manager', label: 'WhatsApp Manager', perm: 'whatsappManager', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
