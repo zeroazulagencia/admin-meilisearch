@@ -28,6 +28,11 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
   const [formData, setFormData] = useState<Document>({});
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
 
   useEffect(() => {
     if (document) {
@@ -42,9 +47,14 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
         setFormData(document);
       }
     } else {
-      setFormData({});
+      // Si es un nuevo documento y tiene permisos de crear, agregar el primaryKey como campo obligatorio
+      if (canAddFields && primaryKey) {
+        setFormData({ [primaryKey]: '' });
+      } else {
+        setFormData({});
+      }
     }
-  }, [document, primaryKey]);
+  }, [document, primaryKey, canAddFields]);
 
   const updateField = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -199,18 +209,22 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
       </div>
       
       <div className="p-6 space-y-4 max-h-[600px] overflow-y-auto">
-        {Object.entries(formData).map(([key, value]) => (
+        {Object.entries(formData).map(([key, value]) => {
+          const isPrimaryKey = key === primaryKey;
+          const isRequired = !document && canAddFields && isPrimaryKey;
+          return (
           <div key={key} className="space-y-2 border border-gray-200 rounded-lg p-4 bg-gray-50">
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium text-gray-700">
                 {key}
+                {isRequired && <span className="ml-1 text-red-500">*</span>}
                 {!readOnly && (
                   <span className="ml-2 text-xs text-gray-500">
                     ({detectFieldType(value)})
                   </span>
                 )}
               </label>
-              {!readOnly && canRemoveFields && (
+              {!readOnly && canRemoveFields && !isPrimaryKey && (
                 <button
                   onClick={() => removeField(key)}
                   className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
@@ -222,7 +236,8 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
             </div>
             {renderFieldEditor(key, value)}
           </div>
-        ))}
+          );
+        })}
 
         {!readOnly && canAddFields && (
           <button
@@ -244,6 +259,11 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
         {!readOnly && (
           <button
             onClick={() => {
+              // Validar que si es un nuevo documento, tenga el primaryKey
+              if (!document && canAddFields && primaryKey && (!formData[primaryKey] || !formData[primaryKey].toString().trim())) {
+                alert('El campo ID es obligatorio para crear un nuevo documento');
+                return;
+              }
               onSave(formData);
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
