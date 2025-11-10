@@ -39,8 +39,9 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
     const permissions = getPermissions();
     const isClient = permissions?.type !== 'admin';
     
-    // Verificar si es un nuevo documento (document es null, undefined, o un objeto vacío sin primary key)
-    const isNewDocument = !document || (Object.keys(document).length === 0) || (primaryKey && !document[primaryKey]);
+    // Verificar si es un nuevo documento (document es null, undefined, o un objeto vacío)
+    // O si tiene campos pero el primary key está vacío (template nuevo)
+    const isNewDocument = !document || (Object.keys(document).length === 0) || (primaryKey && (!document[primaryKey] || document[primaryKey] === ''));
     
     console.log('[DOCUMENT-EDITOR] Permisos:', permissions);
     console.log('[DOCUMENT-EDITOR] ¿Es cliente?', isClient);
@@ -49,13 +50,26 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
     console.log('[DOCUMENT-EDITOR] ¿Es nuevo documento?', isNewDocument);
     
     if (isNewDocument) {
-      // Si es un nuevo documento y tiene permisos de crear, agregar el primaryKey como campo obligatorio
-      if (canAddFields && primaryKey) {
-        console.log('[DOCUMENT-EDITOR] Nuevo documento - agregando primary key:', primaryKey);
-        setFormData({ [primaryKey]: '' });
+      // Si es un nuevo documento, usar el template completo (todos los campos)
+      // y asegurar que el primary key esté presente si es necesario
+      if (document && Object.keys(document).length > 0) {
+        // Hay un template con campos, usarlo completo
+        const template = { ...document };
+        // Si falta el primary key y tiene permisos de crear, agregarlo
+        if (canAddFields && primaryKey && !template[primaryKey]) {
+          template[primaryKey] = '';
+        }
+        console.log('[DOCUMENT-EDITOR] Nuevo documento - usando template completo:', template);
+        setFormData(template);
       } else {
-        console.log('[DOCUMENT-EDITOR] Nuevo documento - sin primary key');
-        setFormData({});
+        // No hay template, crear uno básico
+        if (canAddFields && primaryKey) {
+          console.log('[DOCUMENT-EDITOR] Nuevo documento - solo primary key:', primaryKey);
+          setFormData({ [primaryKey]: '' });
+        } else {
+          console.log('[DOCUMENT-EDITOR] Nuevo documento - sin campos');
+          setFormData({});
+        }
       }
     } else {
       // Si es un documento existente y es cliente, filtrar el primary key
