@@ -1,5 +1,24 @@
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 const mysql = require('mysql2/promise');
+
+// Leer variables de entorno del archivo .env
+function loadEnv() {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      const match = line.match(/^([^=]+)=(.*)$/);
+      if (match) {
+        const key = match[1].trim();
+        const value = match[2].trim().replace(/^["']|["']$/g, '');
+        process.env[key] = value;
+      }
+    });
+  }
+}
+
+loadEnv();
 
 async function fixPhotoColumn() {
   let connection;
