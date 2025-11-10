@@ -1684,6 +1684,9 @@ export default function AdminConocimiento() {
       {(() => {
         const permissions = getPermissions();
         const isClient = permissions?.type !== 'admin';
+        console.log('[ADMIN-CONOCIMIENTO] Permisos:', permissions);
+        console.log('[ADMIN-CONOCIMIENTO] Tipo de usuario:', permissions?.type);
+        console.log('[ADMIN-CONOCIMIENTO] ¿Es cliente?', isClient);
         return (
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
@@ -1908,8 +1911,15 @@ export default function AdminConocimiento() {
               {(() => {
                 const permissions = getPermissions();
                 const isClient = permissions?.type !== 'admin';
+                console.log('[ADMIN-CONOCIMIENTO] IndexProperties - Permisos:', permissions);
+                console.log('[ADMIN-CONOCIMIENTO] IndexProperties - ¿Es cliente?', isClient);
+                console.log('[ADMIN-CONOCIMIENTO] IndexProperties - selectedIndex:', selectedIndex?.uid);
                 // Ocultar completamente IndexProperties para clientes
-                if (isClient) return null;
+                if (isClient) {
+                  console.log('[ADMIN-CONOCIMIENTO] IndexProperties - OCULTANDO para cliente');
+                  return null;
+                }
+                console.log('[ADMIN-CONOCIMIENTO] IndexProperties - RENDERIZANDO para admin');
                 return (
                   <IndexProperties indexUid={selectedIndex.uid} isClient={isClient} />
                 );

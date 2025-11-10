@@ -40,11 +40,17 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
       // Si es cliente y hay primaryKey, filtrarlo
       const permissions = getPermissions();
       const isClient = permissions?.type !== 'admin';
+      console.log('[DOCUMENT-EDITOR] Permisos:', permissions);
+      console.log('[DOCUMENT-EDITOR] ¿Es cliente?', isClient);
+      console.log('[DOCUMENT-EDITOR] Primary key:', primaryKey);
+      console.log('[DOCUMENT-EDITOR] Documento original:', document);
       if (isClient && primaryKey && document[primaryKey] !== undefined) {
         const filtered = { ...document };
         delete filtered[primaryKey];
+        console.log('[DOCUMENT-EDITOR] Filtrando primary key, documento filtrado:', filtered);
         setFormData(filtered);
       } else {
+        console.log('[DOCUMENT-EDITOR] No filtrando, usando documento completo');
         setFormData(document);
       }
     } else {

@@ -415,17 +415,21 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               )}
             </div>
             
-            {searchQuery && canEdit && (
-              <div className="flex items-center gap-4 text-sm">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={useAI}
-                    onChange={(e) => setUseAI(e.target.checked)}
-                    className="rounded border-gray-300 text-gray-600 focus:ring-gray-500"
-                  />
-                  <span className="text-gray-700">Buscar con IA</span>
-                </label>
+            {(() => {
+              const permissions = getPermissions();
+              const isClient = permissions?.type !== 'admin';
+              console.log('[DOCUMENT-LIST] Buscar con IA - searchQuery:', searchQuery, 'canEdit:', canEdit, 'isClient:', isClient);
+              return searchQuery && canEdit && (
+                <div className="flex items-center gap-4 text-sm">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={useAI}
+                      onChange={(e) => setUseAI(e.target.checked)}
+                      className="rounded border-gray-300 text-gray-600 focus:ring-gray-500"
+                    />
+                    <span className="text-gray-700">Buscar con IA</span>
+                  </label>
                 
                 {useAI && (
                   <>
@@ -493,7 +497,8 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                   </>
                 )}
               </div>
-            )}
+            );
+            })()}
           </div>
         </div>
 
@@ -544,10 +549,14 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                         {(() => {
                           const permissions = getPermissions();
                           const isClient = permissions?.type !== 'admin';
+                          console.log('[DOCUMENT-LIST] Permisos:', permissions);
+                          console.log('[DOCUMENT-LIST] ¿Es cliente?', isClient);
+                          console.log('[DOCUMENT-LIST] Primary key:', primaryKey);
                           // Filtrar primary key si es cliente
                           const filteredEntries = isClient && primaryKey 
                             ? Object.entries(doc).filter(([key]) => key !== primaryKey)
                             : Object.entries(doc);
+                          console.log('[DOCUMENT-LIST] Entradas filtradas:', filteredEntries.length, 'de', Object.entries(doc).length);
                           const displayedEntries = filteredEntries.slice(0, 3);
                           const totalFilteredFields = filteredEntries.length;
                           

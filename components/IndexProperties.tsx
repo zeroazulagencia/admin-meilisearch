@@ -10,6 +10,7 @@ interface IndexPropertiesProps {
 }
 
 export default function IndexProperties({ indexUid, isClient = false }: IndexPropertiesProps) {
+  console.log('[INDEX-PROPERTIES] Renderizando con isClient:', isClient, 'indexUid:', indexUid);
   const [index, setIndex] = useState<Index | null>(null);
   const [stats, setStats] = useState<IndexStats | null>(null);
   const [settings, setSettings] = useState<IndexSettings | null>(null);
@@ -380,9 +381,11 @@ export default function IndexProperties({ indexUid, isClient = false }: IndexPro
   }
 
   if (!index || !stats) {
+    console.log('[INDEX-PROPERTIES] No hay index o stats, retornando null');
     return null;
   }
 
+  console.log('[INDEX-PROPERTIES] Renderizando componente completo, isClient:', isClient);
   return (
     <div className="bg-white rounded-lg shadow">
       <div 
