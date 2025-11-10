@@ -19,7 +19,7 @@ function detectFieldType(value: any): string {
   return 'string';
 }
 
-export default function DocumentEditor({ document, indexUid, onSave, onCancel }: DocumentEditorProps) {
+export default function DocumentEditor({ document, indexUid, onSave, onCancel, readOnly = false }: DocumentEditorProps) {
   const [formData, setFormData] = useState<Document>({});
 
   useEffect(() => {
@@ -53,6 +53,7 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
     const type = detectFieldType(value);
     const stringValue = typeof value === 'string' ? value : String(value);
     const isLongString = stringValue.length > 100 || stringValue.includes('\n');
+    const disabledClass = readOnly ? 'bg-gray-50 cursor-not-allowed opacity-60' : '';
 
     switch (type) {
       case 'array':
@@ -60,6 +61,7 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
           <textarea
             value={JSON.stringify(value, null, 2)}
             onChange={(e) => {
+              if (readOnly) return;
               try {
                 const parsed = JSON.parse(e.target.value);
                 updateField(key, parsed);
@@ -67,7 +69,8 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
                 updateField(key, e.target.value);
               }
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded font-mono text-sm"
+            disabled={readOnly}
+            className={`w-full px-3 py-2 border border-gray-300 rounded font-mono text-sm ${disabledClass}`}
             rows={6}
           />
         );
@@ -77,6 +80,7 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
           <textarea
             value={JSON.stringify(value, null, 2)}
             onChange={(e) => {
+              if (readOnly) return;
               try {
                 const parsed = JSON.parse(e.target.value);
                 updateField(key, parsed);
@@ -84,7 +88,8 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
                 updateField(key, e.target.value);
               }
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded font-mono text-sm"
+            disabled={readOnly}
+            className={`w-full px-3 py-2 border border-gray-300 rounded font-mono text-sm ${disabledClass}`}
             rows={8}
           />
         );
@@ -93,8 +98,12 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
         return (
           <textarea
             value={value}
-            onChange={(e) => updateField(key, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded font-mono text-sm"
+            onChange={(e) => {
+              if (readOnly) return;
+              updateField(key, e.target.value);
+            }}
+            disabled={readOnly}
+            className={`w-full px-3 py-2 border border-gray-300 rounded font-mono text-sm ${disabledClass}`}
             rows={8}
           />
         );
@@ -103,8 +112,12 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
         return (
           <select
             value={value.toString()}
-            onChange={(e) => updateField(key, e.target.value === 'true')}
-            className="w-full px-3 py-2 border border-gray-300 rounded"
+            onChange={(e) => {
+              if (readOnly) return;
+              updateField(key, e.target.value === 'true');
+            }}
+            disabled={readOnly}
+            className={`w-full px-3 py-2 border border-gray-300 rounded ${disabledClass}`}
           >
             <option value="true">true</option>
             <option value="false">false</option>
@@ -116,8 +129,12 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
           <input
             type="number"
             value={value}
-            onChange={(e) => updateField(key, parseFloat(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-gray-300 rounded"
+            onChange={(e) => {
+              if (readOnly) return;
+              updateField(key, parseFloat(e.target.value) || 0);
+            }}
+            disabled={readOnly}
+            className={`w-full px-3 py-2 border border-gray-300 rounded ${disabledClass}`}
           />
         );
 
@@ -126,8 +143,12 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
           return (
             <textarea
               value={value}
-              onChange={(e) => updateField(key, e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded"
+              onChange={(e) => {
+                if (readOnly) return;
+                updateField(key, e.target.value);
+              }}
+              disabled={readOnly}
+              className={`w-full px-3 py-2 border border-gray-300 rounded ${disabledClass}`}
               rows={4}
             />
           );
@@ -136,8 +157,12 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
           <input
             type="text"
             value={value}
-            onChange={(e) => updateField(key, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded"
+            onChange={(e) => {
+              if (readOnly) return;
+              updateField(key, e.target.value);
+            }}
+            disabled={readOnly}
+            className={`w-full px-3 py-2 border border-gray-300 rounded ${disabledClass}`}
           />
         );
     }
@@ -147,7 +172,7 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
     <div className="bg-white rounded-lg shadow-lg">
       <div className="p-6 border-b border-gray-200">
         <h2 className="text-xl font-semibold text-gray-800">
-          {document ? 'Editar Documento' : 'Nuevo Documento'}
+          {readOnly ? 'Ver Documento' : (document ? 'Editar Documento' : 'Nuevo Documento')}
         </h2>
       </div>
       
@@ -161,24 +186,28 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
                   ({detectFieldType(value)})
                 </span>
               </label>
-              <button
-                onClick={() => removeField(key)}
-                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
-                title="Eliminar campo"
-              >
-                ✕ Eliminar
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={() => removeField(key)}
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                  title="Eliminar campo"
+                >
+                  ✕ Eliminar
+                </button>
+              )}
             </div>
             {renderFieldEditor(key, value)}
           </div>
         ))}
 
-        <button
-          onClick={addField}
-          className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-        >
-          + Agregar Campo
-        </button>
+        {!readOnly && (
+          <button
+            onClick={addField}
+            className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            + Agregar Campo
+          </button>
+        )}
       </div>
 
       <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
@@ -186,17 +215,19 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel }:
           onClick={onCancel}
           className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
         >
-          Cancelar
+          {readOnly ? 'Cerrar' : 'Cancelar'}
         </button>
-        <button
-          onClick={() => {
-            onSave(formData);
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
-        >
-          <span className="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full hidden" id="save-spinner"></span>
-          Guardar
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => {
+              onSave(formData);
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
+          >
+            <span className="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full hidden" id="save-spinner"></span>
+            Guardar
+          </button>
+        )}
       </div>
     </div>
   );

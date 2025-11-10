@@ -1780,27 +1780,33 @@ export default function AdminConocimiento() {
           </div>
         ) : selectedAgent && availableIndexes.length > 0 ? (
           <>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Seleccionar Índice
-              </label>
-              <select
-                value={selectedIndex?.uid || ''}
-                onChange={(e) => {
-                  const index = availableIndexes.find(i => i.uid === e.target.value);
-                  setSelectedIndex(index || null);
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-              >
-                <option value="">Seleccionar índice...</option>
-                {availableIndexes.map((index) => (
-                  <option key={index.uid} value={index.uid}>
-                    {index.uid} {index.name ? `- ${index.name}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {(() => {
+              const permissions = getPermissions();
+              const isClient = permissions?.type !== 'admin';
+              return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {isClient ? 'Seleccionar Conocimiento del Agente' : 'Seleccionar Índice'}
+                  </label>
+                  <select
+                    value={selectedIndex?.uid || ''}
+                    onChange={(e) => {
+                      const index = availableIndexes.find(i => i.uid === e.target.value);
+                      setSelectedIndex(index || null);
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+                  >
+                    <option value="">{isClient ? 'Seleccionar conocimiento...' : 'Seleccionar índice...'}</option>
+                    {availableIndexes.map((index) => (
+                      <option key={index.uid} value={index.uid}>
+                        {index.uid} {index.name ? `- ${index.name}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })()}
 
           {selectedIndex && (
             <>
@@ -1889,7 +1895,13 @@ export default function AdminConocimiento() {
                     </div>
                   )}
 
-              <IndexProperties indexUid={selectedIndex.uid} />
+              {(() => {
+                const permissions = getPermissions();
+                const isClient = permissions?.type !== 'admin';
+                return (
+                  <IndexProperties indexUid={selectedIndex.uid} isClient={isClient} />
+                );
+              })()}
               
               {(() => {
                 const permissions = getPermissions();

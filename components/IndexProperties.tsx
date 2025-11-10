@@ -6,9 +6,10 @@ import NoticeModal from './ui/NoticeModal';
 
 interface IndexPropertiesProps {
   indexUid: string;
+  isClient?: boolean;
 }
 
-export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
+export default function IndexProperties({ indexUid, isClient = false }: IndexPropertiesProps) {
   const [index, setIndex] = useState<Index | null>(null);
   const [stats, setStats] = useState<IndexStats | null>(null);
   const [settings, setSettings] = useState<IndexSettings | null>(null);
@@ -389,7 +390,9 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-800">Propiedades del Índice</h2>
+          <h2 className="text-xl font-semibold text-gray-800">
+            {isClient ? 'Conocimiento del Agente' : 'Propiedades del Índice'}
+          </h2>
           <div className="flex items-center space-x-2">
             {index && stats && (
               <div className="text-sm text-gray-500">
@@ -409,38 +412,44 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
       </div>
       {!isCollapsed && (
         <div className="p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-gray-600">UID</p>
-            <p className="text-lg font-medium text-gray-900">{index.uid}</p>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-gray-600">Clave Primaria</p>
-              <div className="group relative">
-                <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                </svg>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                  Campo único que identifica cada documento
-                </div>
+          <div className={`grid gap-4 ${isClient ? 'grid-cols-1' : 'grid-cols-2'}`}>
+          {!isClient && (
+            <>
+              <div>
+                <p className="text-sm text-gray-600">UID</p>
+                <p className="text-lg font-medium text-gray-900">{index.uid}</p>
               </div>
-            </div>
-            <p className="text-lg font-medium text-gray-900">{index.primaryKey || 'No definida'}</p>
-          </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-600">Clave Primaria</p>
+                  <div className="group relative">
+                    <svg className="w-4 h-4 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      Campo único que identifica cada documento
+                    </div>
+                  </div>
+                </div>
+                <p className="text-lg font-medium text-gray-900">{index.primaryKey || 'No definida'}</p>
+              </div>
+            </>
+          )}
           <div>
             <p className="text-sm text-gray-600">Documentos</p>
             <p className="text-lg font-medium text-gray-900">{stats.numberOfDocuments}</p>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">Estado</p>
-            <p className="text-lg font-medium text-gray-900">
-              {stats.isIndexing ? 'Indexando' : 'Listo'}
-            </p>
-          </div>
+          {!isClient && (
+            <div>
+              <p className="text-sm text-gray-600">Estado</p>
+              <p className="text-lg font-medium text-gray-900">
+                {stats.isIndexing ? 'Indexando' : 'Listo'}
+              </p>
+            </div>
+          )}
         </div>
 
-        {settings && (
+        {settings && !isClient && (
           <>
             {settings.embedders && Object.keys(settings.embedders).length > 0 ? (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -506,7 +515,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
               </div>
             )}
 
-            {settings.filterableAttributes && settings.filterableAttributes.length > 0 && (
+            {!isClient && settings.filterableAttributes && settings.filterableAttributes.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-gray-700 mb-3">Campos Filtrables</p>
                 <div className="flex flex-wrap gap-2">
@@ -519,7 +528,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
               </div>
             )}
 
-            {settings.searchableAttributes && settings.searchableAttributes.length > 0 && (
+            {!isClient && settings.searchableAttributes && settings.searchableAttributes.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-gray-700 mb-3">Campos Buscables</p>
                 <div className="flex flex-wrap gap-2">
@@ -532,7 +541,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
               </div>
             )}
 
-            {settings.sortableAttributes && settings.sortableAttributes.length > 0 && (
+            {!isClient && settings.sortableAttributes && settings.sortableAttributes.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-gray-700 mb-3">Campos Ordenables</p>
                 <div className="flex flex-wrap gap-2">
@@ -547,7 +556,7 @@ export default function IndexProperties({ indexUid }: IndexPropertiesProps) {
           </>
         )}
         
-        {Object.keys(stats.fieldDistribution).length > 0 && (
+        {!isClient && Object.keys(stats.fieldDistribution).length > 0 && (
           <div>
             <p className="text-sm font-semibold text-gray-700 mb-3">Distribución de Campos</p>
             <div className="space-y-2">

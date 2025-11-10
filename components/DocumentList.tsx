@@ -159,6 +159,11 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     setShowEditor(true);
   };
 
+  const handleView = (doc: Document) => {
+    setEditingDoc(doc);
+    setShowEditor(true);
+  };
+
   const handleCreate = () => {
     // Crear plantilla basada en el último documento guardado
     if (documents.length > 0) {
@@ -543,12 +548,19 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                      {canEdit && (
+                      {canEdit ? (
                         <button
                           onClick={() => handleEdit(doc)}
                           className="text-blue-600 hover:text-blue-900"
                         >
                           Editar
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleView(doc)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Ver
                         </button>
                       )}
                       {canDelete && (
@@ -631,6 +643,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                 setShowEditor(false);
                 setEditingDoc(null);
               }}
+              readOnly={!canEdit}
             />
           </div>
         </div>
