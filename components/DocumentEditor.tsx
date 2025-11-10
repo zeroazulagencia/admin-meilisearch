@@ -36,14 +36,29 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
   });
 
   useEffect(() => {
-    if (document) {
-      // Si es cliente y hay primaryKey, filtrarlo
-      const permissions = getPermissions();
-      const isClient = permissions?.type !== 'admin';
-      console.log('[DOCUMENT-EDITOR] Permisos:', permissions);
-      console.log('[DOCUMENT-EDITOR] ¿Es cliente?', isClient);
-      console.log('[DOCUMENT-EDITOR] Primary key:', primaryKey);
-      console.log('[DOCUMENT-EDITOR] Documento original:', document);
+    const permissions = getPermissions();
+    const isClient = permissions?.type !== 'admin';
+    
+    // Verificar si es un nuevo documento (document es null, undefined, o un objeto vacío sin primary key)
+    const isNewDocument = !document || (Object.keys(document).length === 0) || (primaryKey && !document[primaryKey]);
+    
+    console.log('[DOCUMENT-EDITOR] Permisos:', permissions);
+    console.log('[DOCUMENT-EDITOR] ¿Es cliente?', isClient);
+    console.log('[DOCUMENT-EDITOR] Primary key:', primaryKey);
+    console.log('[DOCUMENT-EDITOR] Documento original:', document);
+    console.log('[DOCUMENT-EDITOR] ¿Es nuevo documento?', isNewDocument);
+    
+    if (isNewDocument) {
+      // Si es un nuevo documento y tiene permisos de crear, agregar el primaryKey como campo obligatorio
+      if (canAddFields && primaryKey) {
+        console.log('[DOCUMENT-EDITOR] Nuevo documento - agregando primary key:', primaryKey);
+        setFormData({ [primaryKey]: '' });
+      } else {
+        console.log('[DOCUMENT-EDITOR] Nuevo documento - sin primary key');
+        setFormData({});
+      }
+    } else {
+      // Si es un documento existente y es cliente, filtrar el primary key
       if (isClient && primaryKey && document[primaryKey] !== undefined) {
         const filtered = { ...document };
         delete filtered[primaryKey];
@@ -52,13 +67,6 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
       } else {
         console.log('[DOCUMENT-EDITOR] No filtrando, usando documento completo');
         setFormData(document);
-      }
-    } else {
-      // Si es un nuevo documento y tiene permisos de crear, agregar el primaryKey como campo obligatorio
-      if (canAddFields && primaryKey) {
-        setFormData({ [primaryKey]: '' });
-      } else {
-        setFormData({});
       }
     }
   }, [document, primaryKey, canAddFields]);
@@ -266,8 +274,11 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
         {!readOnly && (
           <button
             onClick={() => {
+              // Verificar si es un nuevo documento
+              const isNewDocument = !document || (Object.keys(document).length === 0) || (primaryKey && !document[primaryKey]);
+              
               // Validar que si es un nuevo documento, tenga el primaryKey
-              if (!document && canAddFields && primaryKey && (!formData[primaryKey] || !formData[primaryKey].toString().trim())) {
+              if (isNewDocument && canAddFields && primaryKey && (!formData[primaryKey] || !formData[primaryKey].toString().trim())) {
                 setAlertModal({
                   isOpen: true,
                   title: 'Campo obligatorio',

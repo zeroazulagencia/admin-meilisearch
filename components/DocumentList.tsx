@@ -419,7 +419,8 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               const permissions = getPermissions();
               const isClient = permissions?.type !== 'admin';
               console.log('[DOCUMENT-LIST] Buscar con IA - searchQuery:', searchQuery, 'canEdit:', canEdit, 'isClient:', isClient);
-              return searchQuery && canEdit && (
+              // Solo mostrar "Buscar con IA" para admins, no para clientes
+              return searchQuery && canEdit && !isClient && (
                 <div className="flex items-center gap-4 text-sm">
                   <label className="flex items-center gap-2">
                     <input
