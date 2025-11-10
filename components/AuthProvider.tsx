@@ -59,8 +59,19 @@ export default function AuthProvider({ children }: AuthProviderProps) {
           // Verificar permisos de acceso a la ruta actual
           const permissions = getPermissions();
           if (permissions && pathname && !hasAccessToRoute(pathname, permissions)) {
-            // Sin acceso a esta ruta, redirigir al dashboard
-            router.push('/dashboard');
+            // Sin acceso a esta ruta, verificar si tiene acceso al dashboard
+            if (hasAccessToRoute('/dashboard', permissions)) {
+              router.push('/dashboard');
+            } else {
+              // No tiene acceso ni a esta ruta ni al dashboard, cerrar sesión
+              localStorage.removeItem('admin-authenticated');
+              localStorage.removeItem('admin-user');
+              localStorage.removeItem('admin-login-time');
+              localStorage.removeItem('admin-user-id');
+              localStorage.removeItem('admin-permissions');
+              setIsAuthenticated(false);
+              router.push('/');
+            }
           }
         } else {
           // Sesión expirada
