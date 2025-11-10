@@ -29,11 +29,20 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
 
   useEffect(() => {
     if (document) {
-      setFormData(document);
+      // Si es cliente y hay primaryKey, filtrarlo
+      const permissions = getPermissions();
+      const isClient = permissions?.type !== 'admin';
+      if (isClient && primaryKey && document[primaryKey] !== undefined) {
+        const filtered = { ...document };
+        delete filtered[primaryKey];
+        setFormData(filtered);
+      } else {
+        setFormData(document);
+      }
     } else {
       setFormData({});
     }
-  }, [document]);
+  }, [document, primaryKey]);
 
   const updateField = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
