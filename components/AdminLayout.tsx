@@ -15,20 +15,47 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   useEffect(() => {
     // Cargar permisos desde localStorage
-    try {
-      const perms = localStorage.getItem('admin-permissions');
-      if (perms) {
-        setPermissions(JSON.parse(perms));
-      } else {
-        // Fallback: intentar obtener permisos desde utils
-        const permsFromUtils = getPermissions();
-        if (permsFromUtils) {
-          setPermissions(permsFromUtils);
+    const loadPermissions = () => {
+      try {
+        const perms = localStorage.getItem('admin-permissions');
+        if (perms) {
+          const parsed = JSON.parse(perms);
+          console.log('[ADMIN_LAYOUT] Permisos cargados:', parsed);
+          setPermissions(parsed);
+        } else {
+          // Fallback: intentar obtener permisos desde utils
+          const permsFromUtils = getPermissions();
+          if (permsFromUtils) {
+            console.log('[ADMIN_LAYOUT] Permisos desde utils:', permsFromUtils);
+            setPermissions(permsFromUtils);
+          }
         }
+      } catch (e) {
+        console.error('[ADMIN_LAYOUT] Error loading permissions:', e);
       }
-    } catch (e) {
-      console.error('Error loading permissions:', e);
-    }
+    };
+
+    loadPermissions();
+
+    // Escuchar cambios en localStorage para actualizar permisos
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'admin-permissions') {
+        console.log('[ADMIN_LAYOUT] Permisos actualizados en localStorage');
+        loadPermissions();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // También verificar periódicamente (por si acaso)
+    const interval = setInterval(() => {
+      loadPermissions();
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   return (

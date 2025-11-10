@@ -46,6 +46,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
       const authenticated = localStorage.getItem('admin-authenticated');
       const loginTime = localStorage.getItem('admin-login-time');
+      const permissions = localStorage.getItem('admin-permissions');
       
       if (authenticated === 'true' && loginTime) {
         // Verificar si la sesión no ha expirado (24 horas)
@@ -54,13 +55,14 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         const hoursDiff = (now.getTime() - loginDate.getTime()) / (1000 * 60 * 60);
         
         if (hoursDiff < 24) {
+          // Sesión válida, establecer como autenticado
           setIsAuthenticated(true);
           
           // Verificar permisos de acceso a la ruta actual
-          const permissions = getPermissions();
-          if (permissions && pathname && !hasAccessToRoute(pathname, permissions)) {
+          const userPermissions = getPermissions();
+          if (userPermissions && pathname && !hasAccessToRoute(pathname, userPermissions)) {
             // Sin acceso a esta ruta, verificar si tiene acceso al dashboard
-            if (hasAccessToRoute('/dashboard', permissions)) {
+            if (hasAccessToRoute('/dashboard', userPermissions)) {
               router.push('/dashboard');
             } else {
               // No tiene acceso ni a esta ruta ni al dashboard, cerrar sesión
@@ -74,11 +76,17 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             }
           }
         } else {
-          // Sesión expirada
+          // Sesión expirada, limpiar todo
           localStorage.removeItem('admin-authenticated');
           localStorage.removeItem('admin-user');
           localStorage.removeItem('admin-login-time');
+          localStorage.removeItem('admin-user-id');
+          localStorage.removeItem('admin-permissions');
+          setIsAuthenticated(false);
         }
+      } else {
+        // No hay sesión válida
+        setIsAuthenticated(false);
       }
       
       setIsLoading(false);

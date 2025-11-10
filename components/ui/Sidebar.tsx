@@ -103,7 +103,10 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
 
   // Filtrar items según permisos
   const navItems = allNavItems.filter(item => {
-    if (!permissions) return false; // Si no hay permisos, no mostrar nada
+    if (!permissions) {
+      console.log('[SIDEBAR] No hay permisos');
+      return false; // Si no hay permisos, no mostrar nada
+    }
     
     // Clientes solo para admins
     if (item.perm === 'clientes') {
@@ -119,16 +122,25 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     if (permissions.type === 'admin') return true;
     
     // Verificar si puede hacer login
-    if (permissions.canLogin === false) return false;
+    if (permissions.canLogin === false) {
+      console.log('[SIDEBAR] Login deshabilitado para:', item.perm);
+      return false;
+    }
     
     // Verificar permisos del módulo (sistema completo con viewOwn/viewAll/editOwn/editAll)
     const sectionPerms = permissions[item.perm];
+    console.log('[SIDEBAR] Verificando módulo:', item.perm, 'permisos:', sectionPerms);
+    
     // Si no hay permisos configurados para este módulo, denegar acceso
     if (!sectionPerms) {
+      console.log('[SIDEBAR] No hay permisos configurados para:', item.perm);
       return false;
     }
+    
     // Si tiene permiso de ver (propios o todos) o editar (propios o todos), tiene acceso
-    return sectionPerms.viewOwn || sectionPerms.viewAll || sectionPerms.editOwn || sectionPerms.editAll;
+    const hasAccess = sectionPerms.viewOwn === true || sectionPerms.viewAll === true || sectionPerms.editOwn === true || sectionPerms.editAll === true;
+    console.log('[SIDEBAR] Módulo:', item.perm, 'tiene acceso:', hasAccess, 'viewOwn:', sectionPerms.viewOwn, 'viewAll:', sectionPerms.viewAll);
+    return hasAccess;
   });
 
   const toggleSidebar = () => {
