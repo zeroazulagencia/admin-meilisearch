@@ -8,6 +8,7 @@ interface DocumentEditorProps {
   indexUid: string;
   onSave: (formData: Document) => void;
   onCancel: () => void;
+  readOnly?: boolean;
 }
 
 function detectFieldType(value: any): string {
