@@ -262,7 +262,12 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
             onClick={() => {
               // Validar que si es un nuevo documento, tenga el primaryKey
               if (!document && canAddFields && primaryKey && (!formData[primaryKey] || !formData[primaryKey].toString().trim())) {
-                alert('El campo ID es obligatorio para crear un nuevo documento');
+                setAlertModal({
+                  isOpen: true,
+                  title: 'Campo obligatorio',
+                  message: `El campo "${primaryKey}" es obligatorio para crear un nuevo documento`,
+                  type: 'error',
+                });
                 return;
               }
               onSave(formData);
