@@ -541,23 +541,38 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                     )}
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 space-y-1">
-                        {Object.entries(doc).slice(0, 3).map(([key, value]) => (
-                          <div key={key} className="line-clamp-2">
-                            <span className="font-medium text-gray-700">{key}:</span>{' '}
-                            <span className="text-gray-600">
-                              {typeof value === 'string' && value.length > 50 
-                                ? `${value.substring(0, 50)}...` 
-                                : typeof value === 'object' 
-                                  ? JSON.stringify(value).substring(0, 50) + '...'
-                                  : String(value)}
-                            </span>
-                          </div>
-                        ))}
-                        {Object.keys(doc).length > 3 && (
-                          <div className="text-xs text-gray-400 italic">
-                            +{Object.keys(doc).length - 3} campos más
-                          </div>
-                        )}
+                        {(() => {
+                          const permissions = getPermissions();
+                          const isClient = permissions?.type !== 'admin';
+                          // Filtrar primary key si es cliente
+                          const filteredEntries = isClient && primaryKey 
+                            ? Object.entries(doc).filter(([key]) => key !== primaryKey)
+                            : Object.entries(doc);
+                          const displayedEntries = filteredEntries.slice(0, 3);
+                          const totalFilteredFields = filteredEntries.length;
+                          
+                          return (
+                            <>
+                              {displayedEntries.map(([key, value]) => (
+                                <div key={key} className="line-clamp-2">
+                                  <span className="font-medium text-gray-700">{key}:</span>{' '}
+                                  <span className="text-gray-600">
+                                    {typeof value === 'string' && value.length > 50 
+                                      ? `${value.substring(0, 50)}...` 
+                                      : typeof value === 'object' 
+                                        ? JSON.stringify(value).substring(0, 50) + '...'
+                                        : String(value)}
+                                  </span>
+                                </div>
+                              ))}
+                              {totalFilteredFields > 3 && (
+                                <div className="text-xs text-gray-400 italic">
+                                  +{totalFilteredFields - 3} campos más
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
