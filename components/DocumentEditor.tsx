@@ -26,6 +26,8 @@ function detectFieldType(value: any): string {
 
 export default function DocumentEditor({ document, indexUid, onSave, onCancel, readOnly = false, canAddFields = true, canRemoveFields = true, primaryKey = null }: DocumentEditorProps) {
   const [formData, setFormData] = useState<Document>({});
+  const [showAddFieldModal, setShowAddFieldModal] = useState(false);
+  const [newFieldName, setNewFieldName] = useState('');
 
   useEffect(() => {
     if (document) {
@@ -49,9 +51,15 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
   };
 
   const addField = () => {
-    const newKey = prompt('Nombre del nuevo campo:');
-    if (newKey) {
-      setFormData(prev => ({ ...prev, [newKey]: '' }));
+    setShowAddFieldModal(true);
+    setNewFieldName('');
+  };
+
+  const handleAddField = () => {
+    if (newFieldName && newFieldName.trim()) {
+      setFormData(prev => ({ ...prev, [newFieldName.trim()]: '' }));
+      setShowAddFieldModal(false);
+      setNewFieldName('');
     }
   };
 
