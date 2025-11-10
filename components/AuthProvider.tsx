@@ -3,7 +3,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import LoginForm from './LoginForm';
-import { hasAccessToRoute, getPermissions } from '@/utils/permissions';
+import { hasAccessToRoute, getPermissions, findFirstAccessibleRoute } from '@/utils/permissions';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -61,18 +61,24 @@ export default function AuthProvider({ children }: AuthProviderProps) {
           // Verificar permisos de acceso a la ruta actual
           const userPermissions = getPermissions();
           if (userPermissions && pathname && !hasAccessToRoute(pathname, userPermissions)) {
-            // Sin acceso a esta ruta, verificar si tiene acceso al dashboard
-            if (hasAccessToRoute('/dashboard', userPermissions)) {
-              router.push('/dashboard');
+            // Sin acceso a esta ruta, buscar la primera ruta a la que tiene acceso
+            const firstRoute = findFirstAccessibleRoute(userPermissions);
+            if (firstRoute) {
+              router.push(firstRoute);
             } else {
-              // No tiene acceso ni a esta ruta ni al dashboard, cerrar sesión
-              localStorage.removeItem('admin-authenticated');
-              localStorage.removeItem('admin-user');
-              localStorage.removeItem('admin-login-time');
-              localStorage.removeItem('admin-user-id');
-              localStorage.removeItem('admin-permissions');
-              setIsAuthenticated(false);
-              router.push('/');
+              // No tiene acceso a ninguna ruta, pero tiene canLogin, dejarlo en dashboard con mensaje
+              if (userPermissions.canLogin === true) {
+                router.push('/dashboard');
+              } else {
+                // No tiene acceso ni canLogin, cerrar sesión
+                localStorage.removeItem('admin-authenticated');
+                localStorage.removeItem('admin-user');
+                localStorage.removeItem('admin-login-time');
+                localStorage.removeItem('admin-user-id');
+                localStorage.removeItem('admin-permissions');
+                setIsAuthenticated(false);
+                router.push('/');
+              }
             }
           }
         } else {

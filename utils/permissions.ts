@@ -114,3 +114,59 @@ export function getUserId(): string | null {
   return localStorage.getItem('admin-user-id');
 }
 
+// Encontrar la primera ruta a la que el usuario tiene acceso
+export function findFirstAccessibleRoute(permissions: any): string | null {
+  if (!permissions) return null;
+  
+  // Admin siempre puede ir al dashboard
+  if (permissions.type === 'admin') {
+    return '/dashboard';
+  }
+  
+  // Verificar si puede hacer login
+  if (permissions.canLogin === false) {
+    return null;
+  }
+  
+  // Orden de prioridad de rutas
+  const routeOrder = [
+    '/dashboard',
+    '/agentes',
+    '/ejecuciones',
+    '/admin-conocimiento',
+    '/reportes',
+    '/conversaciones',
+    '/whatsapp-manager',
+    '/facturacion',
+    '/consumo-api',
+    '/developers'
+  ];
+  
+  // Buscar la primera ruta a la que tiene acceso (sin logs excesivos)
+  for (const route of routeOrder) {
+    // Verificación rápida sin logs
+    if (route.startsWith('/clientes') || route.startsWith('/db-manager') || route.startsWith('/roadmap')) {
+      continue; // Estas rutas son solo para admins
+    }
+    
+    const requiredPerm = routePermissions[route];
+    if (!requiredPerm) continue;
+    
+    const modulePerms = permissions[requiredPerm];
+    if (!modulePerms) continue;
+    
+    const hasAccess = modulePerms.viewOwn === true || 
+                      modulePerms.viewAll === true || 
+                      modulePerms.editOwn === true || 
+                      modulePerms.editAll === true;
+    
+    if (hasAccess) {
+      console.log('[PERMISSIONS] Primera ruta accesible encontrada:', route);
+      return route;
+    }
+  }
+  
+  console.log('[PERMISSIONS] No se encontró ninguna ruta accesible');
+  return null;
+}
+

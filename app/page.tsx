@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import NoticeModal from '@/components/ui/NoticeModal';
+import { findFirstAccessibleRoute } from '@/utils/permissions';
 
 // Componente ImageWithSkeleton
 function ImageWithSkeleton({ 
@@ -586,7 +587,10 @@ export default function Home() {
       handleLogin(true);
       setShowLoginModal(false);
       setError('');
-      router.push('/dashboard');
+      
+      // Redirigir al primer módulo al que tiene acceso
+      const firstRoute = findFirstAccessibleRoute(data.user?.permissions || {});
+      router.push(firstRoute || '/dashboard');
     } catch (err) {
       console.error('ERROR COMPLETO:', err);
       setError(`Error al iniciar sesión: ${err}`);

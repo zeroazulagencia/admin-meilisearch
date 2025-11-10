@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { findFirstAccessibleRoute } from '@/utils/permissions';
 
 interface LoginFormProps {
   onLogin: (isAuthenticated: boolean) => void;
@@ -64,7 +65,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       localStorage.setItem('admin-permissions', JSON.stringify(data.user?.permissions || {}));
 
       onLogin(true);
-      router.push('/dashboard');
+      
+      // Redirigir al primer módulo al que tiene acceso
+      const firstRoute = findFirstAccessibleRoute(data.user?.permissions || {});
+      router.push(firstRoute || '/dashboard');
     } catch (err) {
       console.error('ERROR COMPLETO:', err);
       setError(`Error al iniciar sesión: ${err}`);
