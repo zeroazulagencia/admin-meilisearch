@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
+import { getPermissions } from '@/utils/permissions';
 
 interface Client {
   id: number;
@@ -40,6 +41,21 @@ export default function EditarCliente() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
+    // Verificar si el usuario es admin
+    const permissions = getPermissions();
+    if (permissions) {
+      const userIsAdmin = permissions.type === 'admin';
+      if (!userIsAdmin) {
+        // No es admin, redirigir al dashboard
+        router.push('/dashboard');
+        return;
+      }
+    } else {
+      // No hay permisos, redirigir al dashboard
+      router.push('/dashboard');
+      return;
+    }
+
     if (!params?.id) return;
     
     const clientId = params.id as string;
@@ -76,8 +92,9 @@ export default function EditarCliente() {
                 viewAll: perms[module.key]?.viewAll || false,
                 editOwn: perms[module.key]?.editOwn || perms[module.key]?.edit || false,
                 editAll: perms[module.key]?.editAll || false,
-                createOwn: module.supportsCreate ? (perms[module.key]?.createOwn || perms[module.key]?.create || false) : false,
-                createAll: module.supportsCreate ? (perms[module.key]?.createAll || false) : false
+                createOwn: !module.onlyView ? (perms[module.key]?.createOwn || perms[module.key]?.create || false) : false,
+                createAll: !module.onlyView ? (perms[module.key]?.createAll || false) : false,
+                deleteOwn: !module.onlyView ? (perms[module.key]?.deleteOwn || false) : false
               };
             });
             setPermissions(defaultPerms);
@@ -89,8 +106,9 @@ export default function EditarCliente() {
                 viewAll: false,
                 editOwn: false, 
                 editAll: false,
-                createOwn: module.supportsCreate ? false : undefined,
-                createAll: module.supportsCreate ? false : undefined
+                createOwn: !module.onlyView ? false : undefined,
+                createAll: !module.onlyView ? false : undefined,
+                deleteOwn: !module.onlyView ? false : undefined
               };
             });
             setPermissions(defaultPerms);
@@ -225,7 +243,7 @@ export default function EditarCliente() {
     }
   };
 
-  const togglePermission = (module: string, action: 'viewOwn' | 'viewAll' | 'editOwn' | 'editAll' | 'createOwn' | 'createAll') => {
+  const togglePermission = (module: string, action: 'viewOwn' | 'viewAll' | 'editOwn' | 'editAll' | 'createOwn' | 'createAll' | 'deleteOwn') => {
     setPermissions((prev: any) => ({
       ...prev,
       [module]: {
@@ -235,21 +253,22 @@ export default function EditarCliente() {
     }));
   };
 
+  // Módulos exclusivos de admin (no se muestran en el editor de permisos)
+  const ADMIN_ONLY_MODULES = ['dbManager', 'roadmap'];
+  
   const MODULES = [
-    { key: 'dashboard', label: 'Dashboard', supportsCreate: false },
-    { key: 'clientes', label: 'Clientes', supportsCreate: true },
-    { key: 'agentes', label: 'Agentes', supportsCreate: true },
-    { key: 'ejecuciones', label: 'Ejecuciones', supportsCreate: false },
-    { key: 'adminConocimiento', label: 'Admin Conocimiento', supportsCreate: true },
-    { key: 'reportes', label: 'Reportes', supportsCreate: true },
-    { key: 'conversaciones', label: 'Conversaciones', supportsCreate: false },
-    { key: 'whatsappManager', label: 'WhatsApp Manager', supportsCreate: false },
-    { key: 'facturacion', label: 'Facturación', supportsCreate: false },
-    { key: 'dbManager', label: 'DB Manager', supportsCreate: false },
-    { key: 'consumoAPI', label: 'Consumo API', supportsCreate: false },
-    { key: 'roadmap', label: 'Roadmap', supportsCreate: false },
-    { key: 'developers', label: 'Developers', supportsCreate: true }
-  ];
+    { key: 'dashboard', label: 'Dashboard', onlyView: true },
+    { key: 'clientes', label: 'Clientes', onlyView: true },
+    { key: 'agentes', label: 'Agentes', onlyView: true },
+    { key: 'ejecuciones', label: 'Ejecuciones', onlyView: true },
+    { key: 'adminConocimiento', label: 'Admin Conocimiento', onlyView: false },
+    { key: 'reportes', label: 'Reportes', onlyView: true },
+    { key: 'conversaciones', label: 'Conversaciones', onlyView: true },
+    { key: 'whatsappManager', label: 'WhatsApp Manager', onlyView: true },
+    { key: 'facturacion', label: 'Facturación', onlyView: true },
+    { key: 'consumoAPI', label: 'Consumo API', onlyView: true },
+    { key: 'developers', label: 'Developers', onlyView: true }
+  ].filter(module => !ADMIN_ONLY_MODULES.includes(module.key));
 
   const generatePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
@@ -452,14 +471,39 @@ export default function EditarCliente() {
 
             {/* Module Permissions - Organizado por secciones en 2 columnas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MODULES.map((module) => (
-                <div key={module.key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h3 className="font-semibold text-gray-900 mb-3 text-base">{module.label}</h3>
-                  
-                  {/* Ver */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Ver</h4>
-                    <div className="grid grid-cols-2 gap-3">
+              {MODULES.map((module) => {
+                // Si es solo VER, mostrar solo viewOwn
+                if (module.onlyView) {
+                  return (
+                    <div key={module.key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <h3 className="font-semibold text-gray-900 mb-3 text-base">{module.label}</h3>
+                      
+                      {/* Ver - Solo Propios */}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Ver</h4>
+                        <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={permissions[module.key]?.viewOwn || false}
+                            onChange={() => togglePermission(module.key, 'viewOwn')}
+                            className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                            style={{ color: '#5DE1E5' }}
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Propios</span>
+                        </label>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Admin Conocimiento: mostrar viewOwn, editOwn, createOwn, deleteOwn
+                return (
+                  <div key={module.key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <h3 className="font-semibold text-gray-900 mb-3 text-base">{module.label}</h3>
+                    
+                    {/* Ver */}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Ver</h4>
                       <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
                         <input
                           type="checkbox"
@@ -470,23 +514,11 @@ export default function EditarCliente() {
                         />
                         <span className="ml-2 text-sm text-gray-700">Propios</span>
                       </label>
-                      <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={permissions[module.key]?.viewAll || false}
-                          onChange={() => togglePermission(module.key, 'viewAll')}
-                          className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                          style={{ color: '#5DE1E5' }}
-                        />
-                        <span className="ml-2 text-sm text-gray-700">Todos</span>
-                      </label>
                     </div>
-                  </div>
 
-                  {/* Editar */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Editar</h4>
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Editar */}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Editar</h4>
                       <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
                         <input
                           type="checkbox"
@@ -497,49 +529,40 @@ export default function EditarCliente() {
                         />
                         <span className="ml-2 text-sm text-gray-700">Propios</span>
                       </label>
+                    </div>
+
+                    {/* Crear */}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Crear</h4>
                       <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
                         <input
                           type="checkbox"
-                          checked={permissions[module.key]?.editAll || false}
-                          onChange={() => togglePermission(module.key, 'editAll')}
+                          checked={permissions[module.key]?.createOwn || false}
+                          onChange={() => togglePermission(module.key, 'createOwn')}
                           className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
                           style={{ color: '#5DE1E5' }}
                         />
-                        <span className="ml-2 text-sm text-gray-700">Todos</span>
+                        <span className="ml-2 text-sm text-gray-700">Propios</span>
+                      </label>
+                    </div>
+
+                    {/* Eliminar */}
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Eliminar</h4>
+                      <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={permissions[module.key]?.deleteOwn || false}
+                          onChange={() => togglePermission(module.key, 'deleteOwn')}
+                          className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                          style={{ color: '#5DE1E5' }}
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Propios</span>
                       </label>
                     </div>
                   </div>
-
-                  {/* Crear (solo si el módulo lo soporta) */}
-                  {module.supportsCreate && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Crear</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={permissions[module.key]?.createOwn || false}
-                            onChange={() => togglePermission(module.key, 'createOwn')}
-                            className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                            style={{ color: '#5DE1E5' }}
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Propios</span>
-                        </label>
-                        <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={permissions[module.key]?.createAll || false}
-                            onChange={() => togglePermission(module.key, 'createAll')}
-                            className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                            style={{ color: '#5DE1E5' }}
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Todos</span>
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

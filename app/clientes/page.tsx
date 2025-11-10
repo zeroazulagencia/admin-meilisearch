@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
+import { getPermissions } from '@/utils/permissions';
 
 interface ClientDB {
   id: number;
@@ -34,6 +35,7 @@ export default function Clientes() {
     message: '',
     type: 'info',
   });
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +133,25 @@ export default function Clientes() {
   };
 
   useEffect(() => {
-    // Cargar clientes desde MySQL
+    // Verificar si el usuario es admin
+    const permissions = getPermissions();
+    if (permissions) {
+      const userIsAdmin = permissions.type === 'admin';
+      setIsAdmin(userIsAdmin);
+      if (!userIsAdmin) {
+        // No es admin, redirigir al dashboard
+        setLoading(false);
+        router.push('/dashboard');
+        return;
+      }
+    } else {
+      // No hay permisos, redirigir al dashboard
+      setLoading(false);
+      router.push('/dashboard');
+      return;
+    }
+
+    // Cargar clientes desde MySQL (solo si es admin)
     const loadClients = async () => {
       try {
         console.log('Loading clients...');
@@ -149,7 +169,7 @@ export default function Clientes() {
     };
     
     loadClients();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (

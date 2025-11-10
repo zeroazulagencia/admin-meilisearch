@@ -34,8 +34,26 @@ export function hasAccessToRoute(route: string, permissions: any): boolean {
     return false;
   }
   
+  // Clientes solo para admins
+  if (route.startsWith('/clientes')) {
+    if (permissions.type !== 'admin') {
+      console.log('[PERMISSIONS] Clientes solo para admins');
+      return false;
+    }
+    return true;
+  }
+
+  // DB Manager y Roadmap solo para admins
+  if (route.startsWith('/db-manager') || route.startsWith('/roadmap')) {
+    if (permissions.type !== 'admin') {
+      console.log('[PERMISSIONS] DB Manager y Roadmap solo para admins');
+      return false;
+    }
+    return true;
+  }
+
   // Normalizar la ruta para manejar rutas dinámicas
-  // Ejemplo: /clientes/1/editar -> /clientes
+  // Ejemplo: /agentes/1/editar -> /agentes
   let normalizedRoute = route;
   for (const [baseRoute] of Object.entries(routePermissions)) {
     if (route.startsWith(baseRoute)) {

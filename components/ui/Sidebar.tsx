@@ -104,10 +104,23 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
   // Filtrar items según permisos
   const navItems = allNavItems.filter(item => {
     if (!permissions) return false; // Si no hay permisos, no mostrar nada
+    
+    // Clientes solo para admins
+    if (item.perm === 'clientes') {
+      return permissions.type === 'admin';
+    }
+    
+    // DB Manager y Roadmap solo para admins
+    if (item.perm === 'dbManager' || item.perm === 'roadmap') {
+      return permissions.type === 'admin';
+    }
+    
     // Admin tiene acceso a todo
     if (permissions.type === 'admin') return true;
+    
     // Verificar si puede hacer login
     if (permissions.canLogin === false) return false;
+    
     // Verificar permisos del módulo (sistema completo con viewOwn/viewAll/editOwn/editAll)
     const sectionPerms = permissions[item.perm];
     // Si no hay permisos configurados para este módulo, denegar acceso
