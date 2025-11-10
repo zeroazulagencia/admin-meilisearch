@@ -658,6 +658,13 @@ export default function EditarAgente() {
                            permissions?.agentes?.viewAll === true || 
                            (permissions?.agentes?.viewOwn === true && userId && currentAgent?.client_id === parseInt(userId));
 
+  // Si no puede editar y está en un tab no permitido, cambiar a 'general'
+  useEffect(() => {
+    if (!canEdit && (activeTab === 'whatsapp' || activeTab === 'flujos' || activeTab === 'identificadores')) {
+      setActiveTab('general');
+    }
+  }, [canEdit, activeTab]);
+
   if (!currentAgent) {
     return (
       <ProtectedLayout>
