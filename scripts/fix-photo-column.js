@@ -23,12 +23,15 @@ loadEnv();
 async function fixPhotoColumn() {
   let connection;
   try {
-    connection = await mysql.createConnection({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    });
+    // Usar variables MYSQL_* o DB_* según estén disponibles
+    const dbConfig = {
+      host: process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
+      user: process.env.MYSQL_USER || process.env.DB_USER || 'root',
+      password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || '',
+      database: process.env.MYSQL_DATABASE || process.env.DB_NAME || 'admin_dworkers',
+    };
+
+    connection = await mysql.createConnection(dbConfig);
 
     console.log('Ejecutando migración: ALTER TABLE agents MODIFY COLUMN photo TEXT');
     await connection.execute('ALTER TABLE agents MODIFY COLUMN photo TEXT');
