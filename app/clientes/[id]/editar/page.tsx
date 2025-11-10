@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
@@ -236,7 +236,10 @@ export default function EditarCliente() {
     }));
   };
 
-  const MODULES = [
+  // Módulos exclusivos de admin (no se muestran para clientes)
+  const ADMIN_ONLY_MODULES = ['dbManager', 'consumoAPI', 'roadmap', 'developers'];
+
+  const ALL_MODULES = [
     { key: 'dashboard', label: 'Dashboard', supportsCreate: false },
     { key: 'clientes', label: 'Clientes', supportsCreate: true },
     { key: 'agentes', label: 'Agentes', supportsCreate: true },
@@ -251,6 +254,13 @@ export default function EditarCliente() {
     { key: 'roadmap', label: 'Roadmap', supportsCreate: false },
     { key: 'developers', label: 'Developers', supportsCreate: true }
   ];
+
+  // Filtrar módulos según si es admin o no (usando useMemo para recalcular cuando cambie isCurrentUserAdmin)
+  const MODULES = useMemo(() => {
+    return isCurrentUserAdmin 
+      ? ALL_MODULES 
+      : ALL_MODULES.filter(module => !ADMIN_ONLY_MODULES.includes(module.key));
+  }, [isCurrentUserAdmin]);
 
   const generatePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
@@ -468,242 +478,72 @@ export default function EditarCliente() {
 
             {/* Module Permissions - Organizado por secciones en 2 columnas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MODULES.filter(module => {
-                // Si no es admin, ocultar módulos exclusivos de admin
-                if (!isCurrentUserAdmin) {
-                  const adminOnlyModules = ['dbManager', 'consumoAPI', 'roadmap', 'developers'];
-                  return !adminOnlyModules.includes(module.key);
-                }
-                return true;
-              }).map((module) => {
-                // Determinar qué permisos mostrar según el módulo y si es admin
-                const getAvailablePermissions = () => {
-                  if (isCurrentUserAdmin) {
-                    // Admin ve todas las opciones
-                    return {
-                      showView: true,
-                      showViewOwn: true,
-                      showViewAll: true,
-                      showEdit: true,
-                      showEditOwn: true,
-                      showEditAll: true,
-                      showCreate: module.supportsCreate,
-                      showCreateOwn: module.supportsCreate,
-                      showCreateAll: module.supportsCreate
-                    };
-                  }
-                  
-                  // Cliente normal: permisos específicos por módulo
-                  switch (module.key) {
-                    case 'dashboard':
-                      return {
-                        showView: true,
-                        showViewOwn: true,
-                        showViewAll: false,
-                        showEdit: false,
-                        showEditOwn: false,
-                        showEditAll: false,
-                        showCreate: false,
-                        showCreateOwn: false,
-                        showCreateAll: false
-                      };
-                    case 'clientes':
-                      return {
-                        showView: true,
-                        showViewOwn: true,
-                        showViewAll: false,
-                        showEdit: true,
-                        showEditOwn: true,
-                        showEditAll: false,
-                        showCreate: false,
-                        showCreateOwn: false,
-                        showCreateAll: false
-                      };
-                    case 'agentes':
-                      return {
-                        showView: true,
-                        showViewOwn: true,
-                        showViewAll: false,
-                        showEdit: true,
-                        showEditOwn: true,
-                        showEditAll: false,
-                        showCreate: false,
-                        showCreateOwn: false,
-                        showCreateAll: false
-                      };
-                    case 'ejecuciones':
-                      return {
-                        showView: true,
-                        showViewOwn: true,
-                        showViewAll: false,
-                        showEdit: false,
-                        showEditOwn: false,
-                        showEditAll: false,
-                        showCreate: false,
-                        showCreateOwn: false,
-                        showCreateAll: false
-                      };
-                    case 'adminConocimiento':
-                      return {
-                        showView: true,
-                        showViewOwn: true,
-                        showViewAll: false,
-                        showEdit: true,
-                        showEditOwn: true,
-                        showEditAll: false,
-                        showCreate: true,
-                        showCreateOwn: true,
-                        showCreateAll: false
-                      };
-                    case 'reportes':
-                      return {
-                        showView: true,
-                        showViewOwn: true,
-                        showViewAll: false,
-                        showEdit: false,
-                        showEditOwn: false,
-                        showEditAll: false,
-                        showCreate: false,
-                        showCreateOwn: false,
-                        showCreateAll: false
-                      };
-                    case 'conversaciones':
-                      return {
-                        showView: true,
-                        showViewOwn: true,
-                        showViewAll: false,
-                        showEdit: false,
-                        showEditOwn: false,
-                        showEditAll: false,
-                        showCreate: false,
-                        showCreateOwn: false,
-                        showCreateAll: false
-                      };
-                    case 'whatsappManager':
-                      return {
-                        showView: true,
-                        showViewOwn: true,
-                        showViewAll: false,
-                        showEdit: false,
-                        showEditOwn: false,
-                        showEditAll: false,
-                        showCreate: false,
-                        showCreateOwn: false,
-                        showCreateAll: false
-                      };
-                    case 'facturacion':
-                      return {
-                        showView: true,
-                        showViewOwn: true,
-                        showViewAll: false,
-                        showEdit: false,
-                        showEditOwn: false,
-                        showEditAll: false,
-                        showCreate: false,
-                        showCreateOwn: false,
-                        showCreateAll: false
-                      };
-                    default:
-                      return {
-                        showView: true,
-                        showViewOwn: true,
-                        showViewAll: false,
-                        showEdit: true,
-                        showEditOwn: true,
-                        showEditAll: false,
-                        showCreate: false,
-                        showCreateOwn: false,
-                        showCreateAll: false
-                      };
-                  }
-                };
-                
-                const availablePerms = getAvailablePermissions();
-                
-                return (
-                  <div key={module.key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <h3 className="font-semibold text-gray-900 mb-3 text-base">{module.label}</h3>
-                    
-                    {/* Ver */}
-                    {availablePerms.showView && (
+              {MODULES.map((module) => {
+                // Si es admin, mostrar todas las opciones
+                if (isCurrentUserAdmin) {
+                  return (
+                    <div key={module.key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <h3 className="font-semibold text-gray-900 mb-3 text-base">{module.label}</h3>
+                      
+                      {/* Ver */}
                       <div className="mb-4">
                         <h4 className="text-sm font-medium text-gray-700 mb-2">Ver</h4>
-                        <div className={availablePerms.showViewAll ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"}>
-                          {availablePerms.showViewOwn && (
-                            <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={permissions[module.key]?.viewOwn || false}
-                                onChange={() => togglePermission(module.key, 'viewOwn')}
-                                className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                                style={{ color: '#5DE1E5' }}
-                              />
-                              <span className="ml-2 text-sm text-gray-700">
-                                Propios
-                              </span>
-                            </label>
-                          )}
-                          {availablePerms.showViewAll && (
-                            <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={permissions[module.key]?.viewAll || false}
-                                onChange={() => togglePermission(module.key, 'viewAll')}
-                                className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                                style={{ color: '#5DE1E5' }}
-                              />
-                              <span className="ml-2 text-sm text-gray-700">
-                                Todos
-                              </span>
-                            </label>
-                          )}
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={permissions[module.key]?.viewOwn || false}
+                              onChange={() => togglePermission(module.key, 'viewOwn')}
+                              className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                              style={{ color: '#5DE1E5' }}
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Propios</span>
+                          </label>
+                          <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={permissions[module.key]?.viewAll || false}
+                              onChange={() => togglePermission(module.key, 'viewAll')}
+                              className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                              style={{ color: '#5DE1E5' }}
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Todos</span>
+                          </label>
                         </div>
                       </div>
-                    )}
 
-                    {/* Editar */}
-                    {availablePerms.showEdit && (
+                      {/* Editar */}
                       <div className="mb-4">
                         <h4 className="text-sm font-medium text-gray-700 mb-2">Editar</h4>
-                        <div className={availablePerms.showEditAll ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"}>
-                          {availablePerms.showEditOwn && (
-                            <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={permissions[module.key]?.editOwn || false}
-                                onChange={() => togglePermission(module.key, 'editOwn')}
-                                className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                                style={{ color: '#5DE1E5' }}
-                              />
-                              <span className="ml-2 text-sm text-gray-700">
-                                Propios
-                              </span>
-                            </label>
-                          )}
-                          {availablePerms.showEditAll && (
-                            <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={permissions[module.key]?.editAll || false}
-                                onChange={() => togglePermission(module.key, 'editAll')}
-                                className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
-                                style={{ color: '#5DE1E5' }}
-                              />
-                              <span className="ml-2 text-sm text-gray-700">
-                                Todos
-                              </span>
-                            </label>
-                          )}
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={permissions[module.key]?.editOwn || false}
+                              onChange={() => togglePermission(module.key, 'editOwn')}
+                              className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                              style={{ color: '#5DE1E5' }}
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Propios</span>
+                          </label>
+                          <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={permissions[module.key]?.editAll || false}
+                              onChange={() => togglePermission(module.key, 'editAll')}
+                              className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                              style={{ color: '#5DE1E5' }}
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Todos</span>
+                          </label>
                         </div>
                       </div>
-                    )}
 
-                    {/* Crear */}
-                    {availablePerms.showCreate && (
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Crear</h4>
-                        <div className={availablePerms.showCreateAll ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"}>
-                          {availablePerms.showCreateOwn && (
+                      {/* Crear (solo si el módulo lo soporta) */}
+                      {module.supportsCreate && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Crear</h4>
+                          <div className="grid grid-cols-2 gap-3">
                             <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
                               <input
                                 type="checkbox"
@@ -712,12 +552,8 @@ export default function EditarCliente() {
                                 className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
                                 style={{ color: '#5DE1E5' }}
                               />
-                              <span className="ml-2 text-sm text-gray-700">
-                                Propios
-                              </span>
+                              <span className="ml-2 text-sm text-gray-700">Propios</span>
                             </label>
-                          )}
-                          {availablePerms.showCreateAll && (
                             <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
                               <input
                                 type="checkbox"
@@ -726,14 +562,34 @@ export default function EditarCliente() {
                                 className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
                                 style={{ color: '#5DE1E5' }}
                               />
-                              <span className="ml-2 text-sm text-gray-700">
-                                Todos
-                              </span>
+                              <span className="ml-2 text-sm text-gray-700">Todos</span>
                             </label>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  );
+                }
+
+                // Cliente normal: solo mostrar "Ver Propios"
+                return (
+                  <div key={module.key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <h3 className="font-semibold text-gray-900 mb-3 text-base">{module.label}</h3>
+                    
+                    {/* Ver - Solo Propios */}
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Ver</h4>
+                      <label className="flex items-center cursor-pointer p-2 rounded hover:bg-white transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={permissions[module.key]?.viewOwn || false}
+                          onChange={() => togglePermission(module.key, 'viewOwn')}
+                          className="w-4 h-4 text-[#5DE1E5] rounded focus:ring-[#5DE1E5]"
+                          style={{ color: '#5DE1E5' }}
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Propios</span>
+                      </label>
+                    </div>
                   </div>
                 );
               })}
