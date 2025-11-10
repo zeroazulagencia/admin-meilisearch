@@ -1626,7 +1626,7 @@ export default function AdminConocimiento() {
               } else if (adminConocimientoPerms.viewOwn === true) {
                 // Si solo tiene viewOwn, filtrar solo sus agentes
                 console.log('[ADMIN-CONOCIMIENTO] Solo tiene viewOwn, filtrando agentes del cliente:', userId);
-                normalized = normalized.filter(a => a.client_id === parseInt(userId));
+                normalized = normalized.filter((a: AgentDB) => a.client_id === parseInt(userId));
                 console.log('[ADMIN-CONOCIMIENTO] Agentes filtrados:', normalized.length);
               } else {
                 // No tiene permisos de ver, no mostrar nada
