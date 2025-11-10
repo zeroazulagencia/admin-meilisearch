@@ -93,10 +93,10 @@ export default function Roadmap() {
       completed: true,
     },
     {
-      date: 'Pendiente',
+      date: todayFormatted,
       title: 'Limpiar mensaje Amavu en amistoso',
       description: 'Mejorar y simplificar los mensajes de Amavu para que sean más amigables',
-      completed: false,
+      completed: true,
     },
     {
       date: 'Pendiente',
