@@ -1067,7 +1067,9 @@ export default function EditarAgente() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div className="flex-1">
-                  <h2 className="text-base/7 font-semibold text-gray-900">Conocimiento Meilisearch</h2>
+                  <h2 className="text-base/7 font-semibold text-gray-900">
+                    {canEdit ? 'Conocimiento Meilisearch' : 'Conocimiento'}
+                  </h2>
                   {canEdit && (
                     <p className="mt-1 text-sm/6 text-gray-600">
                       Selecciona los índices de Meilisearch que este agente puede consultar.
@@ -1181,27 +1183,9 @@ export default function EditarAgente() {
                   </div>
                 )}
                 
-                {availableIndexes.length === 0 && (
+                {availableIndexes.length === 0 && canEdit && (
                   <div className="text-center py-8 text-gray-500">
                     No hay índices disponibles
-                  </div>
-                )}
-
-                {selectedIndexes.length > 0 && (
-                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm font-medium text-blue-900 mb-2">
-                      Índices seleccionados: {selectedIndexes.length}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedIndexes.map((indexId) => {
-                        const index = availableIndexes.find(i => i.uid === indexId);
-                        return (
-                          <span key={indexId} className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">
-                            {index?.uid}
-                          </span>
-                        );
-                      })}
-                    </div>
                   </div>
                 )}
               </>

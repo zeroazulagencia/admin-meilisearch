@@ -7,6 +7,7 @@ import DocumentList from '@/components/DocumentList';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
 import AgentSelector from '@/components/ui/AgentSelector';
+import { getPermissions, getUserId } from '@/utils/permissions';
 
 interface AgentDB {
   id: number;
@@ -1412,7 +1413,47 @@ export default function AdminConocimiento() {
   const loadAllIndexes = async () => {
     setLoadingAllIndexes(true);
     try {
-      const indexes = await meilisearchAPI.getIndexes();
+      let indexes = await meilisearchAPI.getIndexes();
+      
+      // Aplicar filtros de permisos
+      const permissions = getPermissions();
+      const userId = getUserId();
+      
+      if (permissions && userId && permissions.type !== 'admin') {
+        const adminConocimientoPerms = permissions.adminConocimiento;
+        
+        if (adminConocimientoPerms) {
+          // Si tiene viewAll, mostrar todos los índices
+          if (adminConocimientoPerms.viewAll === true) {
+            console.log('[ADMIN-CONOCIMIENTO] Tiene viewAll, mostrando todos los índices');
+          } else if (adminConocimientoPerms.viewOwn === true) {
+            // Si solo tiene viewOwn, filtrar solo índices de sus agentes
+            console.log('[ADMIN-CONOCIMIENTO] Solo tiene viewOwn, filtrando índices del cliente:', userId);
+            // Obtener todos los índices de los agentes del cliente
+            const clientAgentIndexes = new Set<string>();
+            agents.forEach(agent => {
+              if (agent.client_id === parseInt(userId)) {
+                const agentIndexes = agent.knowledge?.indexes || [];
+                agentIndexes.forEach((indexUid: string) => clientAgentIndexes.add(indexUid));
+              }
+            });
+            indexes = indexes.filter(index => clientAgentIndexes.has(index.uid));
+            console.log('[ADMIN-CONOCIMIENTO] Índices filtrados:', indexes.length);
+          } else {
+            // No tiene permisos de ver, no mostrar nada
+            console.log('[ADMIN-CONOCIMIENTO] No tiene permisos de ver índices');
+            indexes = [];
+          }
+        } else {
+          // No hay permisos configurados, no mostrar nada
+          console.log('[ADMIN-CONOCIMIENTO] No hay permisos configurados para adminConocimiento');
+          indexes = [];
+        }
+      } else if (permissions && permissions.type === 'admin') {
+        // Admin ve todos los índices
+        console.log('[ADMIN-CONOCIMIENTO] Usuario es admin, mostrando todos los índices');
+      }
+      
       setAllIndexes(indexes);
       
       // Cargar estadísticas para cada índice
@@ -1550,7 +1591,7 @@ export default function AdminConocimiento() {
         const data = await res.json();
         if (data.ok && data.agents) {
           // Normalizar knowledge para garantizar estructura consistente
-          const normalized = data.agents.map((a: any) => {
+          let normalized = data.agents.map((a: any) => {
             let knowledge: any = { indexes: [] };
             try {
               if (a.knowledge) {
@@ -1568,6 +1609,40 @@ export default function AdminConocimiento() {
             if (!Array.isArray(knowledge.indexes)) knowledge.indexes = [];
             return { ...a, knowledge } as AgentDB;
           });
+
+          // Aplicar filtros de permisos
+          const permissions = getPermissions();
+          const userId = getUserId();
+          console.log('[ADMIN-CONOCIMIENTO] Permisos:', permissions, 'userId:', userId);
+
+          if (permissions && userId && permissions.type !== 'admin') {
+            const adminConocimientoPerms = permissions.adminConocimiento;
+            console.log('[ADMIN-CONOCIMIENTO] Permisos de adminConocimiento:', adminConocimientoPerms);
+
+            if (adminConocimientoPerms) {
+              // Si tiene viewAll, mostrar todos los agentes
+              if (adminConocimientoPerms.viewAll === true) {
+                console.log('[ADMIN-CONOCIMIENTO] Tiene viewAll, mostrando todos los agentes');
+              } else if (adminConocimientoPerms.viewOwn === true) {
+                // Si solo tiene viewOwn, filtrar solo sus agentes
+                console.log('[ADMIN-CONOCIMIENTO] Solo tiene viewOwn, filtrando agentes del cliente:', userId);
+                normalized = normalized.filter(a => a.client_id === parseInt(userId));
+                console.log('[ADMIN-CONOCIMIENTO] Agentes filtrados:', normalized.length);
+              } else {
+                // No tiene permisos de ver, no mostrar nada
+                console.log('[ADMIN-CONOCIMIENTO] No tiene permisos de ver agentes');
+                normalized = [];
+              }
+            } else {
+              // No hay permisos configurados, no mostrar nada
+              console.log('[ADMIN-CONOCIMIENTO] No hay permisos configurados para adminConocimiento');
+              normalized = [];
+            }
+          } else if (permissions && permissions.type === 'admin') {
+            // Admin ve todos los agentes
+            console.log('[ADMIN-CONOCIMIENTO] Usuario es admin, mostrando todos los agentes');
+          }
+
           // Filtrar solo agentes con índices asociados
           const agentsWithIndexes = normalized.filter((a: AgentDB) => {
             const indexes = a.knowledge?.indexes || [];
@@ -1620,30 +1695,38 @@ export default function AdminConocimiento() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-6 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('agentes')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'agentes'
-                ? 'border-[#5DE1E5] text-[#5DE1E5]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Agentes
-          </button>
-          <button
-            onClick={() => setActiveTab('admin')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'admin'
-                ? 'border-[#5DE1E5] text-[#5DE1E5]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Administración General
-          </button>
-        </nav>
-      </div>
+      {(() => {
+        const permissions = getPermissions();
+        const canViewAll = permissions?.type === 'admin' || permissions?.adminConocimiento?.viewAll === true;
+        return (
+          <div className="mb-6 border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('agentes')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'agentes'
+                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Agentes
+              </button>
+              {canViewAll && (
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'admin'
+                      ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Administración General
+                </button>
+              )}
+            </nav>
+          </div>
+        );
+      })()}
       
       <div className="space-y-6">
         {/* Tab: Agentes */}
@@ -1837,22 +1920,32 @@ export default function AdminConocimiento() {
         )}
 
         {/* Tab: Administración General */}
-        {activeTab === 'admin' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Gestión de Índices de Meilisearch</h2>
-                <button
-                  onClick={() => {
-                    setNewIndexForm({ uid: '', primaryKey: '' });
-                    setShowCreateIndexModal(true);
-                  }}
-                  className="px-4 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-all"
-                  style={{ backgroundColor: '#5DE1E5' }}
-                >
-                  + Crear Índice
-                </button>
-              </div>
+        {(() => {
+          const permissions = getPermissions();
+          const canViewAll = permissions?.type === 'admin' || permissions?.adminConocimiento?.viewAll === true;
+          const canEdit = permissions?.type === 'admin' || permissions?.adminConocimiento?.editAll === true;
+          const canCreate = permissions?.type === 'admin' || permissions?.adminConocimiento?.createAll === true;
+          
+          if (activeTab !== 'admin' || !canViewAll) return null;
+          
+          return (
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Gestión de Índices de Meilisearch</h2>
+                  {canCreate && (
+                    <button
+                      onClick={() => {
+                        setNewIndexForm({ uid: '', primaryKey: '' });
+                        setShowCreateIndexModal(true);
+                      }}
+                      className="px-4 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-all"
+                      style={{ backgroundColor: '#5DE1E5' }}
+                    >
+                      + Crear Índice
+                    </button>
+                  )}
+                </div>
 
               {loadingAllIndexes ? (
                 <div className="flex justify-center items-center py-8">
@@ -1924,20 +2017,24 @@ export default function AdminConocimiento() {
                             >
                               {downloadingJson === index.uid ? 'Descargando...' : '📥 JSON'}
                             </button>
-                            <button
-                              onClick={() => openEditIndexModal(index)}
-                              className="px-3 py-1.5 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
-                              title="Editar índice"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => openDeleteIndexModal(index)}
-                              className="px-3 py-1.5 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                              title="Eliminar índice"
-                            >
-                              Eliminar
-                            </button>
+                            {canEdit && (
+                              <>
+                                <button
+                                  onClick={() => openEditIndexModal(index)}
+                                  className="px-3 py-1.5 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+                                  title="Editar índice"
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  onClick={() => openDeleteIndexModal(index)}
+                                  className="px-3 py-1.5 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                  title="Eliminar índice"
+                                >
+                                  Eliminar
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1947,7 +2044,8 @@ export default function AdminConocimiento() {
               )}
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Modal para Cargar PDF */}
