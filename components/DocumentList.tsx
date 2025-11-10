@@ -14,9 +14,10 @@ interface DocumentListProps {
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  isClient?: boolean;
 }
 
-export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadProgressCount = 0, onRefresh, canCreate = true, canEdit = true, canDelete = true }: DocumentListProps) {
+export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadProgressCount = 0, onRefresh, canCreate = true, canEdit = true, canDelete = true, isClient = false }: DocumentListProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -53,6 +54,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     if (indexUid) {
       loadDocuments();
       detectEmbedderName();
+      loadIndexInfo();
     }
   }, [indexUid, offset]);
 
