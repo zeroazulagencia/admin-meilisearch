@@ -393,13 +393,13 @@ export default function IndexProperties({ indexUid, isClient = false }: IndexPro
           <h2 className="text-xl font-semibold text-gray-800">
             {isClient ? 'Conocimiento del Agente' : 'Propiedades del Índice'}
           </h2>
-          <div className="flex items-center space-x-2">
-            {!isClient && index && stats && (
-              <div className="text-sm text-gray-500">
-                {stats.numberOfDocuments} docs • {stats.isIndexing ? 'Indexando' : 'Listo'}
-              </div>
-            )}
-            {!isClient && (
+          {!isClient && (
+            <div className="flex items-center space-x-2">
+              {index && stats && (
+                <div className="text-sm text-gray-500">
+                  {stats.numberOfDocuments} docs • {stats.isIndexing ? 'Indexando' : 'Listo'}
+                </div>
+              )}
               <svg 
                 className={`w-5 h-5 text-gray-500 transition-transform ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}
                 fill="none" 
@@ -408,8 +408,8 @@ export default function IndexProperties({ indexUid, isClient = false }: IndexPro
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
       {!isCollapsed && (

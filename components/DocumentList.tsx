@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import DocumentEditor from './DocumentEditor';
 import NoticeModal from './ui/NoticeModal';
+import { getPermissions } from '@/utils/permissions';
 
 interface DocumentListProps {
   indexUid: string;
@@ -14,10 +15,9 @@ interface DocumentListProps {
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
-  isClient?: boolean;
 }
 
-export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadProgressCount = 0, onRefresh, canCreate = true, canEdit = true, canDelete = true, isClient = false }: DocumentListProps) {
+export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadProgressCount = 0, onRefresh, canCreate = true, canEdit = true, canDelete = true }: DocumentListProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -49,12 +49,13 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     hybrid: null as any,
     embedderName: 'openai' // Nombre del embedder, se detectará automáticamente
   });
+  const [primaryKey, setPrimaryKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (indexUid) {
       loadDocuments();
       detectEmbedderName();
-      loadIndexInfo();
+      loadPrimaryKey();
     }
   }, [indexUid, offset]);
 
@@ -72,6 +73,16 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     } catch (err) {
       console.error('Error detectando embedder:', err);
       setUseAI(false); // Desmarcar en caso de error
+    }
+  };
+
+  const loadPrimaryKey = async () => {
+    try {
+      const index = await meilisearchAPI.getIndex(indexUid);
+      setPrimaryKey(index.primaryKey || null);
+    } catch (err) {
+      console.error('Error cargando primary key:', err);
+      setPrimaryKey(null);
     }
   };
 
