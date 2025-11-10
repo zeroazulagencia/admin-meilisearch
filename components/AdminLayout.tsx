@@ -20,13 +20,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         const perms = localStorage.getItem('admin-permissions');
         if (perms) {
           const parsed = JSON.parse(perms);
-          console.log('[ADMIN_LAYOUT] Permisos cargados:', parsed);
           setPermissions(parsed);
         } else {
           // Fallback: intentar obtener permisos desde utils
           const permsFromUtils = getPermissions();
           if (permsFromUtils) {
-            console.log('[ADMIN_LAYOUT] Permisos desde utils:', permsFromUtils);
             setPermissions(permsFromUtils);
           }
         }
@@ -40,7 +38,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     // Escuchar cambios en localStorage para actualizar permisos
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'admin-permissions') {
-        console.log('[ADMIN_LAYOUT] Permisos actualizados en localStorage');
         loadPermissions();
       }
     };
