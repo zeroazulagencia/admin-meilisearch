@@ -329,6 +329,15 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
           </div>
         </div>
       )}
+
+      {/* Modal de alertas */}
+      <NoticeModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 }
