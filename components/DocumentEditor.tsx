@@ -183,9 +183,11 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium text-gray-700">
                 {key}
-                <span className="ml-2 text-xs text-gray-500">
-                  ({detectFieldType(value)})
-                </span>
+                {!readOnly && (
+                  <span className="ml-2 text-xs text-gray-500">
+                    ({detectFieldType(value)})
+                  </span>
+                )}
               </label>
               {!readOnly && (
                 <button

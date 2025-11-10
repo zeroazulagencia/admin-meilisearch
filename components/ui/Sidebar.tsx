@@ -141,6 +141,12 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     const hasAccess = sectionPerms.viewOwn === true || sectionPerms.viewAll === true || sectionPerms.editOwn === true || sectionPerms.editAll === true;
     console.log('[SIDEBAR] Módulo:', item.perm, 'tiene acceso:', hasAccess, 'viewOwn:', sectionPerms.viewOwn, 'viewAll:', sectionPerms.viewAll);
     return hasAccess;
+  }).map(item => {
+    // Cambiar label para clientes
+    if (item.perm === 'adminConocimiento' && permissions && permissions.type !== 'admin') {
+      return { ...item, label: 'Conocimiento' };
+    }
+    return item;
   });
 
   const toggleSidebar = () => {

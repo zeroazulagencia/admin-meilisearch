@@ -402,7 +402,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               )}
             </div>
             
-            {searchQuery && (
+            {searchQuery && canEdit && (
               <div className="flex items-center gap-4 text-sm">
                 <label className="flex items-center gap-2">
                   <input
