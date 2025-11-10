@@ -112,13 +112,30 @@ export default function CrearAgente() {
   const loadConversationAgents = async () => {
     setLoadingConversationAgents(true);
     try {
-      const res = await fetch('/api/conversations/agents');
-      const data = await res.json();
-      if (data.ok && data.agents) {
-        setAvailableConversationAgents(data.agents);
+      const INDEX_UID = 'bd_conversations_dworkers';
+      const uniqueAgents = new Set<string>();
+      let currentOffset = 0;
+      const batchLimit = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
+        data.results.forEach((doc: any) => {
+          if (doc.agent && typeof doc.agent === 'string') {
+            uniqueAgents.add(doc.agent);
+          }
+        });
+        if (data.results.length < batchLimit) {
+          hasMore = false;
+        } else {
+          currentOffset += batchLimit;
+        }
       }
+      
+      const sortedAgents = Array.from(uniqueAgents).sort();
+      setAvailableConversationAgents(sortedAgents);
     } catch (error) {
-      console.error('Error cargando agentes de conversaciones:', error);
+      console.error('Error loading conversation agents:', error);
     } finally {
       setLoadingConversationAgents(false);
     }
@@ -127,13 +144,30 @@ export default function CrearAgente() {
   const loadReportAgents = async () => {
     setLoadingReportAgents(true);
     try {
-      const res = await fetch('/api/reports/agents');
-      const data = await res.json();
-      if (data.ok && data.agents) {
-        setAvailableReportAgents(data.agents);
+      const INDEX_UID = 'bd_reports_dworkers';
+      const uniqueAgents = new Set<string>();
+      let currentOffset = 0;
+      const batchLimit = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
+        data.results.forEach((doc: any) => {
+          if (doc.agent && typeof doc.agent === 'string') {
+            uniqueAgents.add(doc.agent);
+          }
+        });
+        if (data.results.length < batchLimit) {
+          hasMore = false;
+        } else {
+          currentOffset += batchLimit;
+        }
       }
+      
+      const sortedAgents = Array.from(uniqueAgents).sort();
+      setAvailableReportAgents(sortedAgents);
     } catch (error) {
-      console.error('Error cargando agentes de informes:', error);
+      console.error('Error loading report agents:', error);
     } finally {
       setLoadingReportAgents(false);
     }
