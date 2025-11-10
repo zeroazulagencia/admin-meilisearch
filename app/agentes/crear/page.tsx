@@ -1101,6 +1101,55 @@ export default function CrearAgente() {
         message={alertModal.message}
         type={alertModal.type}
       />
+
+      {/* Modal para generar imagen con IA */}
+      {showAIImageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Avatar con IA</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Describe cómo quieres que se vea el avatar del agente. La IA generará una imagen única.
+            </p>
+            <textarea
+              value={aiImagePrompt}
+              onChange={(e) => setAiImagePrompt(e.target.value)}
+              placeholder="Ejemplo: Un robot amigable con colores azul y verde, estilo moderno y profesional"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] mb-4"
+              rows={4}
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAIImageModal(false);
+                  setAiImagePrompt('');
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateAIImage}
+                disabled={generatingImage || !aiImagePrompt.trim()}
+                className="px-4 py-2 text-sm font-medium text-gray-900 bg-[#5DE1E5] rounded-md hover:bg-[#4BC5C9] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {generatingImage ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-gray-900 border-t-transparent rounded-full"></div>
+                    <span>Generando...</span>
+                  </>
+                ) : (
+                  <>
+                    <SparklesIcon className="w-4 h-4" />
+                    <span>Generar</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedLayout>
   );
 }
