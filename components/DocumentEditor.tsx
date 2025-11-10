@@ -9,6 +9,8 @@ interface DocumentEditorProps {
   onSave: (formData: Document) => void;
   onCancel: () => void;
   readOnly?: boolean;
+  canAddFields?: boolean;
+  canRemoveFields?: boolean;
 }
 
 function detectFieldType(value: any): string {
@@ -20,7 +22,7 @@ function detectFieldType(value: any): string {
   return 'string';
 }
 
-export default function DocumentEditor({ document, indexUid, onSave, onCancel, readOnly = false }: DocumentEditorProps) {
+export default function DocumentEditor({ document, indexUid, onSave, onCancel, readOnly = false, canAddFields = true, canRemoveFields = true }: DocumentEditorProps) {
   const [formData, setFormData] = useState<Document>({});
 
   useEffect(() => {
@@ -189,7 +191,7 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
                   </span>
                 )}
               </label>
-              {!readOnly && (
+              {!readOnly && canRemoveFields && (
                 <button
                   onClick={() => removeField(key)}
                   className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
@@ -203,7 +205,7 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
           </div>
         ))}
 
-        {!readOnly && (
+        {!readOnly && canAddFields && (
           <button
             onClick={addField}
             className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"

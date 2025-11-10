@@ -1921,9 +1921,10 @@ export default function AdminConocimiento() {
                 const canEdit = permissions?.type === 'admin' || 
                                 permissions?.adminConocimiento?.editAll === true || 
                                 permissions?.adminConocimiento?.editOwn === true;
+                // Solo permitir eliminar si tiene permisos explícitos de eliminar, no solo editar
                 const canDelete = permissions?.type === 'admin' || 
-                                  permissions?.adminConocimiento?.editAll === true || 
-                                  permissions?.adminConocimiento?.editOwn === true;
+                                  (permissions?.adminConocimiento?.deleteAll === true || 
+                                   permissions?.adminConocimiento?.deleteOwn === true);
                 
                 return (
                   <DocumentList 
