@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Document } from '@/utils/meilisearch';
+import { getPermissions } from '@/utils/permissions';
 
 interface DocumentEditorProps {
   document: Document | null;
