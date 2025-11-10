@@ -1915,7 +1915,6 @@ export default function AdminConocimiento() {
               
               {(() => {
                 const permissions = getPermissions();
-                const isClient = permissions?.type !== 'admin';
                 const canCreate = permissions?.type === 'admin' || 
                                   permissions?.adminConocimiento?.createAll === true || 
                                   permissions?.adminConocimiento?.createOwn === true;
@@ -1945,7 +1944,6 @@ export default function AdminConocimiento() {
                     canCreate={canCreate}
                     canEdit={canEdit}
                     canDelete={canDelete}
-                    isClient={isClient}
                   />
                 );
               })()}
