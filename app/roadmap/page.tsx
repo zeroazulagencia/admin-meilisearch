@@ -75,10 +75,10 @@ export default function Roadmap() {
       completed: true,
     },
     {
-      date: 'Pendiente',
+      date: todayFormatted,
       title: 'Sistema de permisos clientes funcional',
       description: 'Implementar y verificar que el sistema de permisos para clientes funcione correctamente',
-      completed: false,
+      completed: true,
     },
     {
       date: 'Pendiente',

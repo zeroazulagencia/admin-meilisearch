@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { meilisearchAPI } from '@/utils/meilisearch';
 import ProtectedLayout from '@/components/ProtectedLayout';
-import { getPermissions } from '@/utils/permissions';
+import { getPermissions, getUserId } from '@/utils/permissions';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -74,29 +74,62 @@ export default function Dashboard() {
       const loadStats = async () => {
         try {
           console.log('[DASHBOARD] Cargando estadísticas...');
-          // Cargar estadísticas de clientes y agentes desde MySQL
-          const [clientsRes, agentsRes] = await Promise.all([
-            fetch('/api/clients'),
-            fetch('/api/agents')
-          ]);
+          const permissions = getPermissions();
+          const isClient = permissions?.type === 'client';
           
-          const clientsData = await clientsRes.json();
-          const agentsData = await agentsRes.json();
-          
-          // Cargar total de conversaciones desde Meilisearch
-          let conversations = 0;
-          try {
-            const stats = await meilisearchAPI.getIndexStats('bd_conversations_dworkers');
-            conversations = stats.numberOfDocuments || 0;
-          } catch (err) {
-            console.error('Error loading conversations stats:', err);
+          if (isClient) {
+            // Para clientes: cargar solo sus agentes
+            const userId = getUserId();
+            if (userId) {
+              const agentsRes = await fetch('/api/agents');
+              const agentsData = await agentsRes.json();
+              
+              if (agentsData.ok && agentsData.agents) {
+                const clientAgents = agentsData.agents.filter((a: any) => a.client_id === parseInt(userId));
+                setStats({
+                  clients: 0,
+                  agents: clientAgents.length,
+                  conversations: 0
+                });
+              } else {
+                setStats({
+                  clients: 0,
+                  agents: 0,
+                  conversations: 0
+                });
+              }
+            } else {
+              setStats({
+                clients: 0,
+                agents: 0,
+                conversations: 0
+              });
+            }
+          } else {
+            // Para admin: cargar todas las estadísticas
+            const [clientsRes, agentsRes] = await Promise.all([
+              fetch('/api/clients'),
+              fetch('/api/agents')
+            ]);
+            
+            const clientsData = await clientsRes.json();
+            const agentsData = await agentsRes.json();
+            
+            // Cargar total de conversaciones desde Meilisearch
+            let conversations = 0;
+            try {
+              const stats = await meilisearchAPI.getIndexStats('bd_conversations_dworkers');
+              conversations = stats.numberOfDocuments || 0;
+            } catch (err) {
+              console.error('Error loading conversations stats:', err);
+            }
+            
+            setStats({
+              clients: clientsData.ok ? clientsData.clients.length : 0,
+              agents: agentsData.ok ? agentsData.agents.length : 0,
+              conversations
+            });
           }
-          
-          setStats({
-            clients: clientsData.ok ? clientsData.clients.length : 0,
-            agents: agentsData.ok ? agentsData.agents.length : 0,
-            conversations
-          });
         } catch (err) {
           console.error('Error loading stats:', err);
         } finally {
@@ -145,19 +178,26 @@ export default function Dashboard() {
     );
   }
 
-  // Si es cliente, mostrar mensaje de "en construcción"
+  // Si es cliente, mostrar solo cantidad de agentes
   if (isClient) {
     return (
       <ProtectedLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center max-w-md">
-            <div className="mb-4">
-              <svg className="w-16 h-16 mx-auto text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
+        
+        {/* Estadísticas para cliente */}
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 max-w-md">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Agentes</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.agents}</p>
+              </div>
+              <div className="bg-green-100 rounded-full p-3">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">En construcción</h2>
-            <p className="text-gray-600">Esta sección está en desarrollo y estará disponible pronto.</p>
           </div>
         </div>
       </ProtectedLayout>
