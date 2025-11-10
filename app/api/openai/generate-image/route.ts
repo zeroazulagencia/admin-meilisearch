@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const MODEL = 'dall-e-3';
+const MODEL = 'gpt-image-1';
 
 // Función para redimensionar y comprimir imagen usando Canvas API del navegador
 // Como estamos en el servidor, usaremos una aproximación con fetch y conversión a base64
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Llamar a la API de OpenAI DALL-E 3
+    // Llamar a la API de OpenAI GPT Image 1
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {

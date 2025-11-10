@@ -647,7 +647,7 @@ export default function EditarAgente() {
         setAlertModal({
           isOpen: true,
           title: 'Éxito',
-          message: `Imagen generada correctamente usando ${data.model || 'DALL-E 3'}. La imagen ha sido optimizada a máximo 800x800px.`,
+          message: `Imagen generada correctamente usando ${data.model || 'GPT Image 1'}. La imagen ha sido optimizada a máximo 800x800px.`,
           type: 'success',
         });
       } else {
@@ -1472,7 +1472,7 @@ export default function EditarAgente() {
             <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Avatar con IA</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Describe cómo quieres que se vea el avatar del agente. La IA generará una imagen única usando <strong>DALL-E 3</strong>. La imagen será optimizada automáticamente a máximo 800x800px.
+              Describe cómo quieres que se vea el avatar del agente. La IA generará una imagen única usando <strong>GPT Image 1</strong>. La imagen será optimizada automáticamente a máximo 800x800px.
             </p>
               <textarea
                 value={aiImagePrompt}
