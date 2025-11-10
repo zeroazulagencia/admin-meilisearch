@@ -58,11 +58,17 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
       console.log('Login exitoso!');
       // Guardar sesión completa en localStorage incluyendo permisos
+      // Agregar campo type al objeto de permisos
+      const permissionsWithType = {
+        ...(data.user?.permissions || {}),
+        type: (data.user?.permissions?.type === 'admin') ? 'admin' : 'client'
+      };
+      
       localStorage.setItem('admin-authenticated', 'true');
       localStorage.setItem('admin-user', data.user?.email || '');
       localStorage.setItem('admin-login-time', new Date().toISOString());
       localStorage.setItem('admin-user-id', String(data.user?.id || ''));
-      localStorage.setItem('admin-permissions', JSON.stringify(data.user?.permissions || {}));
+      localStorage.setItem('admin-permissions', JSON.stringify(permissionsWithType));
 
       onLogin(true);
       
