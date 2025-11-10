@@ -63,10 +63,15 @@ export function hasAccessToRoute(route: string, permissions: any): boolean {
   }
   
   // Si tiene permiso de ver (propios o todos) o editar (propios o todos), tiene acceso
-  const hasAccess = modulePerms.viewOwn || modulePerms.viewAll || modulePerms.editOwn || modulePerms.editAll;
+  // Usar comparación explícita con true para evitar undefined
+  const hasAccess = modulePerms.viewOwn === true || 
+                    modulePerms.viewAll === true || 
+                    modulePerms.editOwn === true || 
+                    modulePerms.editAll === true;
   console.log('[PERMISSIONS] Has access:', hasAccess, 'viewOwn:', modulePerms.viewOwn, 'viewAll:', modulePerms.viewAll, 'editOwn:', modulePerms.editOwn, 'editAll:', modulePerms.editAll);
   
-  return hasAccess;
+  // Asegurar que siempre devolvemos un booleano
+  return hasAccess === true;
 }
 
 // Obtener permisos del localStorage
