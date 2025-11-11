@@ -74,9 +74,9 @@ export default function DeveloperEditor({ content, onChange, disabled = false }:
   }
 
   // Componentes para iconos de encabezados
-  const H1Icon = () => <span className="text-sm font-bold text-gray-700">H1</span>;
-  const H2Icon = () => <span className="text-sm font-bold text-gray-700">H2</span>;
-  const H3Icon = () => <span className="text-sm font-bold text-gray-700">H3</span>;
+  const H1Icon = ({ className }: { className?: string }) => <span className="text-sm font-bold text-gray-700">H1</span>;
+  const H2Icon = ({ className }: { className?: string }) => <span className="text-sm font-bold text-gray-700">H2</span>;
+  const H3Icon = ({ className }: { className?: string }) => <span className="text-sm font-bold text-gray-700">H3</span>;
 
   const MenuButton = ({ 
     onClick, 
