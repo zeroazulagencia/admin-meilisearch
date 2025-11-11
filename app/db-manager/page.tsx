@@ -76,6 +76,7 @@ export default function DBManager() {
   
   // Estados para herramientas y filtros
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set());
+  const [columnOrder, setColumnOrder] = useState<string[]>([]); // Orden original de las columnas
   const [filters, setFilters] = useState<Array<{ id: string; column: string; operator: string; value: string }>>([]);
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -117,14 +118,24 @@ export default function DBManager() {
 
   // Inicializar columnas visibles cuando se cargan documentos
   useEffect(() => {
-    if (meilisearchDocuments.length > 0 && visibleColumns.size === 0) {
+    if (meilisearchDocuments.length > 0) {
       const allKeys = new Set<string>();
       meilisearchDocuments.forEach(doc => {
         Object.keys(doc).forEach(key => allKeys.add(key));
       });
-      setVisibleColumns(new Set(Array.from(allKeys).sort()));
+      const sortedKeys = Array.from(allKeys).sort();
+      
+      // Si no hay orden guardado o el orden ha cambiado, actualizar
+      if (columnOrder.length === 0 || !sortedKeys.every((key, idx) => columnOrder[idx] === key)) {
+        setColumnOrder(sortedKeys);
+      }
+      
+      // Si no hay columnas visibles seleccionadas, mostrar todas
+      if (visibleColumns.size === 0) {
+        setVisibleColumns(new Set(sortedKeys));
+      }
     }
-  }, [meilisearchDocuments, visibleColumns.size]);
+  }, [meilisearchDocuments]);
 
   // ========== FUNCIONES BASE DE DATOS ==========
   const loadTables = async () => {
@@ -485,12 +496,21 @@ export default function DBManager() {
       ? doc[primaryKey] 
       : doc.id || Object.values(doc)[0];
     
+    let isExecuting = false;
+    
     setConfirmModal({
       isOpen: true,
       title: 'Confirmar eliminación',
       message: `¿Estás seguro de eliminar este documento?`,
       type: 'warning',
       onConfirm: async () => {
+        // Prevenir ejecuciones múltiples
+        if (isExecuting) return;
+        isExecuting = true;
+        
+        // Cerrar el modal inmediatamente
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        
         try {
           await meilisearchAPI.deleteDocument(selectedIndex, String(docId));
           showAlert('Documento eliminado exitosamente', 'success');
@@ -501,6 +521,8 @@ export default function DBManager() {
           }
         } catch (e: any) {
           showAlert('Error al eliminar documento: ' + e.message, 'error');
+        } finally {
+          isExecuting = false;
         }
       }
     });
@@ -540,11 +562,24 @@ export default function DBManager() {
 
   // Obtener todas las claves de los documentos para mostrar columnas
   const getMeilisearchColumns = (): string[] => {
+    if (columnOrder.length > 0) {
+      return columnOrder;
+    }
     const allKeys = new Set<string>();
     meilisearchDocuments.forEach(doc => {
       Object.keys(doc).forEach(key => allKeys.add(key));
     });
     return Array.from(allKeys).sort();
+  };
+
+  // Obtener columnas visibles manteniendo el orden original
+  const getVisibleColumnsOrdered = (): string[] => {
+    const allColumns = getMeilisearchColumns();
+    if (visibleColumns.size === 0) {
+      return allColumns;
+    }
+    // Mantener el orden original, filtrando solo las visibles
+    return allColumns.filter(column => visibleColumns.has(column));
   };
 
   // Aplicar filtros a los documentos
@@ -1136,7 +1171,7 @@ export default function DBManager() {
                                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                                     Acciones
                                   </th>
-                                  {(visibleColumns.size === 0 ? getMeilisearchColumns() : Array.from(visibleColumns)).map(column => (
+                                  {getVisibleColumnsOrdered().map(column => (
                                     <th
                                       key={column}
                                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -1155,7 +1190,7 @@ export default function DBManager() {
                               <tbody className="bg-white divide-y divide-gray-200">
                                 {meilisearchDocuments.length === 0 ? (
                                   <tr>
-                                    <td colSpan={(visibleColumns.size === 0 ? getMeilisearchColumns().length : visibleColumns.size) + 1} className="px-6 py-8 text-center text-gray-500">
+                                    <td colSpan={getVisibleColumnsOrdered().length + 1} className="px-6 py-8 text-center text-gray-500">
                                       No hay documentos en este índice
                                     </td>
                                   </tr>
@@ -1180,7 +1215,7 @@ export default function DBManager() {
                                           </button>
                                         </div>
                                       </td>
-                                      {(visibleColumns.size === 0 ? getMeilisearchColumns() : Array.from(visibleColumns)).map(column => (
+                                      {getVisibleColumnsOrdered().map(column => (
                                         <td key={column} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                           {renderMeilisearchField(column, doc[column])}
                                         </td>
