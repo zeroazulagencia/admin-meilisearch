@@ -42,6 +42,7 @@ export default function DeveloperEditor({ content, onChange, disabled = false }:
     extensions: [
       StarterKit.configure({
         codeBlock: false, // Usaremos CodeBlockLowlight en su lugar
+        link: false, // Deshabilitar Link de StarterKit para usar nuestra configuración personalizada
       }),
       CodeBlockLowlight.configure({
         lowlight,
@@ -80,26 +81,15 @@ export default function DeveloperEditor({ content, onChange, disabled = false }:
   }: { 
     onClick: () => void; 
     isActive?: boolean; 
-    icon: any; 
+    icon: React.ComponentType<{ className?: string }> | React.ReactNode; 
     title: string;
   }) => {
     const renderIcon = () => {
-      // Si es una función que retorna JSX (como los H1, H2, H3)
-      if (typeof Icon === 'function' && Icon.length === 0) {
-        try {
-          const result = Icon();
-          if (result && typeof result === 'object' && 'type' in result) {
-            return result;
-          }
-        } catch {
-          // Si falla, intentar como componente
-        }
-      }
       // Si es un componente de React (Heroicons)
       if (typeof Icon === 'function') {
         return <Icon className="w-5 h-5 text-gray-700" />;
       }
-      // Si ya es JSX
+      // Si ya es JSX/ReactNode (como los H1, H2, H3)
       return Icon;
     };
 
@@ -149,19 +139,19 @@ export default function DeveloperEditor({ content, onChange, disabled = false }:
           <MenuButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             isActive={editor.isActive('heading', { level: 1 })}
-            icon={() => <span className="text-sm font-bold">H1</span>}
+            icon={<span className="text-sm font-bold text-gray-700">H1</span>}
             title="Título 1"
           />
           <MenuButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             isActive={editor.isActive('heading', { level: 2 })}
-            icon={() => <span className="text-sm font-bold">H2</span>}
+            icon={<span className="text-sm font-bold text-gray-700">H2</span>}
             title="Título 2"
           />
           <MenuButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             isActive={editor.isActive('heading', { level: 3 })}
-            icon={() => <span className="text-sm font-bold">H3</span>}
+            icon={<span className="text-sm font-bold text-gray-700">H3</span>}
             title="Título 3"
           />
         </div>
