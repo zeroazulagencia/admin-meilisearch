@@ -290,80 +290,60 @@ export default function DBManager() {
       
       // Construir filtros para Meilisearch
       const meilisearchFilters: string[] = [];
+      const clientFilters: Array<{ column: string; operator: string; value: string }> = [];
+      
       filters.forEach(filter => {
         if (filter.column && filter.value) {
           const filterStr = buildMeilisearchFilter(filter);
           if (filterStr) {
             meilisearchFilters.push(filterStr);
+          } else {
+            // Filtro que requiere procesamiento en cliente
+            clientFilters.push(filter);
           }
         }
       });
       
-      // Si hay filtros que no se pueden aplicar en Meilisearch, usar búsqueda vacía y filtrar en cliente
-      const hasClientFilters = filters.some(f => f.column && f.value && !buildMeilisearchFilter(f));
-      
-      if (hasClientFilters || filters.some(f => f.operator === 'contains' || f.operator === 'not_contains' || f.operator === 'starts_with' || f.operator === 'ends_with')) {
-        // Usar búsqueda vacía y filtrar en cliente
-        const data = await meilisearchAPI.getDocuments(selectedIndex, meilisearchLimit * 2, 0); // Obtener más para filtrar
-        let documents = data.results || [];
+      // Si hay filtros (de cualquier tipo), obtener todos los documentos primero
+      if (filters.length > 0 || sortColumn) {
+        let allDocuments: Document[] = [];
         
-        // Aplicar filtros en cliente
-        if (filters.length > 0) {
-          documents = applyFilters(documents);
-        }
-        
-        // Aplicar ordenamiento
-        if (sortColumn) {
-          documents = applySorting(documents);
-        }
-        
-        // Paginar manualmente
-        const start = offset;
-        const end = start + meilisearchLimit;
-        const paginatedDocs = documents.slice(start, end);
-        
-        setMeilisearchDocuments(paginatedDocs);
-        setMeilisearchTotal(documents.length);
-      } else {
-        // Usar búsqueda con filtros de Meilisearch
-        const searchParams: any = {
-          q: '',
-          hitsPerPage: meilisearchLimit,
-          page: Math.floor(offset / meilisearchLimit) + 1
-        };
-        
+        // Si hay filtros de Meilisearch, usarlos para obtener resultados filtrados
         if (meilisearchFilters.length > 0) {
-          searchParams.filter = meilisearchFilters.join(' AND ');
-        }
-        
-        // Intentar ordenamiento en Meilisearch, si falla hacerlo en cliente
-        let useClientSort = false;
-        if (sortColumn) {
-          try {
-            searchParams.sort = [`${sortColumn}:${sortDirection}`];
-            const data = await meilisearchAPI.searchDocuments(selectedIndex, '', meilisearchLimit, offset, searchParams);
-            setMeilisearchDocuments(data.hits || []);
-            setMeilisearchTotal(data.totalHits || 0);
-          } catch (sortError: any) {
-            // Si el sort falla (campo no sortable), hacer ordenamiento en cliente
-            console.warn('Sort en Meilisearch falló, usando ordenamiento en cliente:', sortError.message);
-            useClientSort = true;
-          }
-        } else {
-          const data = await meilisearchAPI.searchDocuments(selectedIndex, '', meilisearchLimit, offset, searchParams);
-          setMeilisearchDocuments(data.hits || []);
-          setMeilisearchTotal(data.totalHits || 0);
-        }
-        
-        // Si el sort falló, obtener más documentos y ordenar en cliente
-        if (useClientSort) {
-          // Obtener todos los documentos para ordenar correctamente
-          let allDocuments: Document[] = [];
+          // Obtener todos los documentos que pasan los filtros de Meilisearch
           let currentOffset = 0;
           const batchSize = 1000;
           let hasMore = true;
           
-          // Obtener todos los documentos en lotes
+          while (hasMore) {
+            try {
+              const searchParams: any = {
+                q: '',
+                hitsPerPage: batchSize,
+                page: Math.floor(currentOffset / batchSize) + 1,
+                filter: meilisearchFilters.join(' AND ')
+              };
+              
+              const data = await meilisearchAPI.searchDocuments(selectedIndex, '', batchSize, currentOffset, searchParams);
+              if (data.hits && data.hits.length > 0) {
+                allDocuments.push(...data.hits);
+                currentOffset += batchSize;
+                if (data.hits.length < batchSize || allDocuments.length >= (data.totalHits || 0)) {
+                  hasMore = false;
+                }
+              } else {
+                hasMore = false;
+              }
+            } catch (e) {
+              hasMore = false;
+            }
+          }
+        } else {
+          // No hay filtros de Meilisearch, obtener todos los documentos
+          let currentOffset = 0;
+          const batchSize = 1000;
+          let hasMore = true;
+          
           while (hasMore) {
             const data = await meilisearchAPI.getDocuments(selectedIndex, batchSize, currentOffset);
             if (data.results && data.results.length > 0) {
@@ -376,26 +356,63 @@ export default function DBManager() {
               hasMore = false;
             }
           }
-          
-          // Aplicar filtros si hay
-          if (meilisearchFilters.length > 0) {
-            // Los filtros ya se aplicaron en Meilisearch, pero por si acaso
-            allDocuments = applyFilters(allDocuments);
-          }
-          
-          // Aplicar ordenamiento en cliente
-          if (sortColumn) {
-            allDocuments = applySorting(allDocuments);
-          }
-          
-          // Paginar manualmente
-          const start = offset;
-          const end = start + meilisearchLimit;
-          const paginatedDocs = allDocuments.slice(start, end);
-          
-          setMeilisearchDocuments(paginatedDocs);
-          setMeilisearchTotal(allDocuments.length);
         }
+        
+        // Aplicar filtros de cliente si hay
+        if (clientFilters.length > 0) {
+          allDocuments = allDocuments.filter(doc => {
+            return clientFilters.every(filter => {
+              if (!filter.column || !filter.value) return true;
+              
+              const docValue = doc[filter.column];
+              const filterValue = filter.value.toLowerCase();
+              const docValueStr = docValue !== null && docValue !== undefined ? String(docValue).toLowerCase() : '';
+              
+              switch (filter.operator) {
+                case 'contains':
+                  return docValueStr.includes(filterValue);
+                case 'not_contains':
+                  return !docValueStr.includes(filterValue);
+                case 'equals':
+                  return docValueStr === filterValue;
+                case 'not_equals':
+                  return docValueStr !== filterValue;
+                case 'greater_than':
+                  return Number(docValue) > Number(filter.value);
+                case 'less_than':
+                  return Number(docValue) < Number(filter.value);
+                case 'greater_equal':
+                  return Number(docValue) >= Number(filter.value);
+                case 'less_equal':
+                  return Number(docValue) <= Number(filter.value);
+                case 'starts_with':
+                  return docValueStr.startsWith(filterValue);
+                case 'ends_with':
+                  return docValueStr.endsWith(filterValue);
+                default:
+                  return true;
+              }
+            });
+          });
+        }
+        
+        // Aplicar ordenamiento en cliente (siempre, porque ya tenemos todos los documentos)
+        if (sortColumn) {
+          allDocuments = applySorting(allDocuments);
+        }
+        
+        // Paginar manualmente
+        const start = offset;
+        const end = start + meilisearchLimit;
+        const paginatedDocs = allDocuments.slice(start, end);
+        
+        setMeilisearchDocuments(paginatedDocs);
+        setMeilisearchTotal(allDocuments.length);
+      } else {
+        // No hay filtros ni ordenamiento, usar paginación normal de Meilisearch
+        const data = await meilisearchAPI.getDocuments(selectedIndex, meilisearchLimit, offset);
+        setMeilisearchDocuments(data.results || []);
+        setMeilisearchTotal(data.total || 0);
       }
     } catch (e: any) {
       showAlert('Error al cargar documentos: ' + e.message, 'error');
@@ -419,102 +436,120 @@ export default function DBManager() {
       setIsSearching(true);
       const offset = (meilisearchCurrentPage - 1) * meilisearchLimit;
       
-      // Construir filtros para Meilisearch
+      // Construir filtros para Meilisearch y cliente
       const meilisearchFilters: string[] = [];
+      const clientFilters: Array<{ column: string; operator: string; value: string }> = [];
+      
       filters.forEach(filter => {
         if (filter.column && filter.value) {
           const filterStr = buildMeilisearchFilter(filter);
           if (filterStr) {
             meilisearchFilters.push(filterStr);
+          } else {
+            clientFilters.push(filter);
           }
         }
       });
       
-      const searchParams: any = {
-        q: searchQuery,
-        hitsPerPage: meilisearchLimit,
-        page: Math.floor(offset / meilisearchLimit) + 1
-      };
-      
-      if (meilisearchFilters.length > 0) {
-        searchParams.filter = meilisearchFilters.join(' AND ');
-      }
-      
-      // Intentar ordenamiento en Meilisearch, si falla hacerlo en cliente
-      let useClientSort = false;
-      let documents: Document[] = [];
-      let totalHits = 0;
-      
-      if (sortColumn) {
-        try {
-          searchParams.sort = [`${sortColumn}:${sortDirection}`];
-          const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, meilisearchLimit, offset, searchParams);
-          documents = data.hits || [];
-          totalHits = data.totalHits || 0;
-        } catch (sortError: any) {
-          // Si el sort falla (campo no sortable), hacer ordenamiento en cliente
-          console.warn('Sort en Meilisearch falló, usando ordenamiento en cliente:', sortError.message);
-          useClientSort = true;
-          // Obtener todos los resultados sin sort
-          let allResults: Document[] = [];
-          let currentOffset = 0;
-          const batchSize = 1000;
-          let hasMore = true;
-          
-          // Obtener todos los resultados en lotes
-          while (hasMore) {
-            try {
-              const batchParams: any = {
-                q: searchQuery,
-                hitsPerPage: batchSize,
-                page: Math.floor(currentOffset / batchSize) + 1
-              };
-              if (searchParams.filter) {
-                batchParams.filter = searchParams.filter;
-              }
-              const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, batchSize, currentOffset, batchParams);
-              if (data.hits && data.hits.length > 0) {
-                allResults.push(...data.hits);
-                currentOffset += batchSize;
-                if (data.hits.length < batchSize || allResults.length >= (data.totalHits || 0)) {
-                  hasMore = false;
-                  totalHits = data.totalHits || allResults.length;
-                }
-              } else {
-                hasMore = false;
-                totalHits = allResults.length;
-              }
-            } catch (e) {
-              hasMore = false;
-              totalHits = allResults.length;
+      // Si hay filtros o sort, obtener todos los resultados primero
+      if (filters.length > 0 || sortColumn) {
+        let allDocuments: Document[] = [];
+        let currentOffset = 0;
+        const batchSize = 1000;
+        let hasMore = true;
+        let totalHitsFromSearch = 0;
+        
+        // Obtener todos los resultados de búsqueda en lotes
+        while (hasMore) {
+          try {
+            const batchParams: any = {
+              q: searchQuery,
+              hitsPerPage: batchSize,
+              page: Math.floor(currentOffset / batchSize) + 1
+            };
+            
+            if (meilisearchFilters.length > 0) {
+              batchParams.filter = meilisearchFilters.join(' AND ');
             }
+            
+            const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, batchSize, currentOffset, batchParams);
+            if (data.hits && data.hits.length > 0) {
+              allDocuments.push(...data.hits);
+              totalHitsFromSearch = data.totalHits || allDocuments.length;
+              currentOffset += batchSize;
+              if (data.hits.length < batchSize || allDocuments.length >= totalHitsFromSearch) {
+                hasMore = false;
+              }
+            } else {
+              hasMore = false;
+            }
+          } catch (e) {
+            hasMore = false;
           }
-          
-          documents = allResults;
         }
-      } else {
-        const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, meilisearchLimit, offset, searchParams);
-        documents = data.hits || [];
-        totalHits = data.totalHits || 0;
-      }
-      
-      // Aplicar filtros adicionales en el cliente si es necesario
-      if (filters.length > 0) {
-        documents = applyFilters(documents);
-      }
-      
-      // Si el sort falló, ordenar en cliente
-      if (useClientSort && sortColumn) {
-        documents = applySorting(documents);
+        
+        // Aplicar filtros de cliente si hay
+        if (clientFilters.length > 0) {
+          allDocuments = allDocuments.filter(doc => {
+            return clientFilters.every(filter => {
+              if (!filter.column || !filter.value) return true;
+              
+              const docValue = doc[filter.column];
+              const filterValue = filter.value.toLowerCase();
+              const docValueStr = docValue !== null && docValue !== undefined ? String(docValue).toLowerCase() : '';
+              
+              switch (filter.operator) {
+                case 'contains':
+                  return docValueStr.includes(filterValue);
+                case 'not_contains':
+                  return !docValueStr.includes(filterValue);
+                case 'equals':
+                  return docValueStr === filterValue;
+                case 'not_equals':
+                  return docValueStr !== filterValue;
+                case 'greater_than':
+                  return Number(docValue) > Number(filter.value);
+                case 'less_than':
+                  return Number(docValue) < Number(filter.value);
+                case 'greater_equal':
+                  return Number(docValue) >= Number(filter.value);
+                case 'less_equal':
+                  return Number(docValue) <= Number(filter.value);
+                case 'starts_with':
+                  return docValueStr.startsWith(filterValue);
+                case 'ends_with':
+                  return docValueStr.endsWith(filterValue);
+                default:
+                  return true;
+              }
+            });
+          });
+        }
+        
+        // Aplicar ordenamiento en cliente
+        if (sortColumn) {
+          allDocuments = applySorting(allDocuments);
+        }
+        
         // Paginar manualmente
         const start = offset;
         const end = start + meilisearchLimit;
-        documents = documents.slice(start, end);
-        totalHits = documents.length;
+        const paginatedDocs = allDocuments.slice(start, end);
+        
+        setMeilisearchDocuments(paginatedDocs);
+        setMeilisearchTotal(allDocuments.length);
+      } else {
+        // No hay filtros ni sort, usar búsqueda normal con paginación
+        const searchParams: any = {
+          q: searchQuery,
+          hitsPerPage: meilisearchLimit,
+          page: Math.floor(offset / meilisearchLimit) + 1
+        };
+        
+        const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, meilisearchLimit, offset, searchParams);
+        setMeilisearchDocuments(data.hits || []);
+        setMeilisearchTotal(data.totalHits || 0);
       }
-      
-      setMeilisearchDocuments(documents);
-      setMeilisearchTotal(totalHits);
     } catch (e: any) {
       showAlert('Error al buscar documentos: ' + e.message, 'error');
       setMeilisearchDocuments([]);
