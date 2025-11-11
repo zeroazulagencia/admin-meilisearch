@@ -58,13 +58,18 @@ export default function Conversaciones() {
   const [includeUnknownConversations, setIncludeUnknownConversations] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
 
-  const INDEX_UID = 'bd_conversations_dworkers';
-
   // Detectar si es admin para habilitar vista especial
   useEffect(() => {
     const permissions = getPermissions();
-    setIsAdminUser(permissions?.type === 'admin');
+    const isAdmin = permissions?.type === 'admin';
+    setIsAdminUser(isAdmin);
+    // Activar por defecto para administradores
+    if (isAdmin) {
+      setIncludeUnknownConversations(true);
+    }
   }, []);
+
+  const INDEX_UID = 'bd_conversations_dworkers';
 
   useEffect(() => {
     if (!isAdminUser) {
