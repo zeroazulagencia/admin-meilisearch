@@ -1,14 +1,88 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import ProtectedLayout from '@/components/ProtectedLayout';
+import { getPermissions } from '@/utils/permissions';
 
 interface ServiceInfo {
   name: string;
   status: string;
-  dashboardUrl: string;
+  dashboardUrl?: string;
+  isOnline?: boolean;
+  isLoading?: boolean;
 }
 
 export default function ConsumoAPI() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminServices, setAdminServices] = useState<ServiceInfo[]>([]);
+
+  useEffect(() => {
+    const permissions = getPermissions();
+    const admin = permissions?.type === 'admin';
+    setIsAdmin(admin || false);
+
+    if (admin) {
+      // Servicios solo para admin con verificación de estado
+      const services: ServiceInfo[] = [
+        {
+          name: 'Meilisearch',
+          status: 'Verificando...',
+          isLoading: true
+        },
+        {
+          name: 'N8N',
+          status: 'Verificando...',
+          isLoading: true
+        },
+        {
+          name: 'Alegra',
+          status: 'Verificando...',
+          isLoading: true
+        },
+        {
+          name: 'Stripe',
+          status: 'Verificando...',
+          isLoading: true
+        }
+      ];
+      setAdminServices(services);
+
+      // Verificar estado de cada servicio
+      services.forEach((service, index) => {
+        checkServiceStatus(service.name.toLowerCase(), index);
+      });
+    }
+  }, []);
+
+  const checkServiceStatus = async (serviceName: string, index: number) => {
+    try {
+      const response = await fetch(`/api/services/status?service=${serviceName}`);
+      const data = await response.json();
+      
+      setAdminServices(prev => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          status: data.message || 'OFFLINE',
+          isOnline: data.online || false,
+          isLoading: false
+        };
+        return updated;
+      });
+    } catch (error) {
+      setAdminServices(prev => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          status: 'OFFLINE',
+          isOnline: false,
+          isLoading: false
+        };
+        return updated;
+      });
+    }
+  };
+
   const services: ServiceInfo[] = [
     {
       name: 'OpenAI',
@@ -67,6 +141,39 @@ export default function ConsumoAPI() {
         </p>
       </div>
 
+      {/* Servicios solo para Admin */}
+      {isAdmin && adminServices.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Estado de Servicios (Solo Admin)</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {adminServices.map((service, index) => (
+              <div key={`admin-${index}`} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">{service.name}</h3>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    service.isLoading
+                      ? 'bg-gray-100 text-gray-600'
+                      : service.isOnline
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {service.status}
+                  </span>
+                </div>
+                
+                {service.isLoading && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#5DE1E5]"></div>
+                    Verificando...
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Dashboards de Servicios</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {services.map((service, index) => (
           <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
