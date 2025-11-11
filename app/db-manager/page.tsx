@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
 import Modal from '@/components/ui/Modal';
@@ -81,6 +81,7 @@ export default function DBManager() {
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isApplyingSort, setIsApplyingSort] = useState(false); // Flag para evitar múltiples ejecuciones
+  const isDeletingRef = useRef(false); // Ref para prevenir eliminaciones múltiples
 
   // Cargar lista de tablas (solo si el tab de BD está activo)
   useEffect(() => {
@@ -608,25 +609,24 @@ export default function DBManager() {
 
   const handleMeilisearchDelete = async (doc: Document) => {
     if (!selectedIndex) return;
+    if (isDeletingRef.current) return; // Prevenir múltiples llamadas
     
     const docId = primaryKey && doc[primaryKey] 
       ? doc[primaryKey] 
       : doc.id || Object.values(doc)[0];
     
-    let isExecuting = false;
-    
     setConfirmModal({
       isOpen: true,
       title: 'Confirmar eliminación',
-      message: `¿Estás seguro de eliminar este documento?`,
+      message: `¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.`,
       type: 'warning',
       onConfirm: async () => {
         // Prevenir ejecuciones múltiples
-        if (isExecuting) return;
-        isExecuting = true;
+        if (isDeletingRef.current) return;
+        isDeletingRef.current = true;
         
-        // Cerrar el modal inmediatamente
-        setConfirmModal({ ...confirmModal, isOpen: false });
+        // Cerrar el modal
+        setConfirmModal({ isOpen: false, message: '', type: 'warning' });
         
         try {
           await meilisearchAPI.deleteDocument(selectedIndex, String(docId));
@@ -639,7 +639,10 @@ export default function DBManager() {
         } catch (e: any) {
           showAlert('Error al eliminar documento: ' + e.message, 'error');
         } finally {
-          isExecuting = false;
+          // Resetear el flag después de un delay para permitir nuevas eliminaciones
+          setTimeout(() => {
+            isDeletingRef.current = false;
+          }, 1000);
         }
       }
     });
