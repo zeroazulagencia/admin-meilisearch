@@ -85,6 +85,14 @@ export default function EditarCliente() {
           });
           try {
             const perms = typeof client.permissions === 'string' ? JSON.parse(client.permissions) : (client.permissions || {});
+            
+            // Establecer el rol del cliente
+            if (perms.type === 'admin') {
+              setUserRole('admin');
+            } else {
+              setUserRole('cliente');
+            }
+            
             // Inicializar permisos con estructura completa
             const defaultPerms: any = {
               canLogin: perms.canLogin !== false,
@@ -199,6 +207,12 @@ export default function EditarCliente() {
         permissions
       });
       
+      // Preparar permisos con el tipo de rol
+      const permissionsToSave = {
+        ...permissions,
+        type: userRole
+      };
+      
       const res = await fetch(`/api/clients/${currentClient.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -209,7 +223,7 @@ export default function EditarCliente() {
           company: formData.company,
           nit: formData.nit,
           clave: formData.clave,
-          permissions
+          permissions: permissionsToSave
         })
       });
       
@@ -431,6 +445,27 @@ export default function EditarCliente() {
                   placeholder="123456789-0"
                 />
               </div>
+
+              {/* Select de Rol - Solo visible para admin */}
+              {isEditingAdmin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Rol *
+                  </label>
+                  <select
+                    value={userRole}
+                    onChange={(e) => setUserRole(e.target.value as 'admin' | 'cliente')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+                  >
+                    <option value="cliente">Cliente</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Los usuarios Admin tienen acceso completo al sistema
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
