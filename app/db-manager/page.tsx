@@ -80,6 +80,7 @@ export default function DBManager() {
   const [filters, setFilters] = useState<Array<{ id: string; column: string; operator: string; value: string }>>([]);
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [isApplyingSort, setIsApplyingSort] = useState(false); // Flag para evitar múltiples ejecuciones
 
   // Cargar lista de tablas (solo si el tab de BD está activo)
   useEffect(() => {
@@ -846,18 +847,25 @@ export default function DBManager() {
 
   // Aplicar filtros y ordenamiento
   const applyFiltersAndSort = () => {
+    if (isApplyingSort) return; // Evitar múltiples ejecuciones simultáneas
+    setIsApplyingSort(true);
     setMeilisearchCurrentPage(1);
     if (isSearching) {
       handleMeilisearchSearch();
     } else {
       loadMeilisearchDocuments();
     }
+    // Resetear el flag después de un breve delay
+    setTimeout(() => setIsApplyingSort(false), 500);
   };
 
   // Efecto para aplicar automáticamente cuando cambia el ordenamiento
   useEffect(() => {
-    if (selectedIndex && sortColumn) {
-      applyFiltersAndSort();
+    if (selectedIndex && sortColumn && !isApplyingSort) {
+      const timer = setTimeout(() => {
+        applyFiltersAndSort();
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [sortColumn, sortDirection]);
 
@@ -1177,10 +1185,7 @@ export default function DBManager() {
                           {sortColumn && (
                             <>
                               <button
-                                onClick={() => {
-                                  setSortDirection('asc');
-                                  setTimeout(() => applyFiltersAndSort(), 100);
-                                }}
+                                onClick={() => setSortDirection('asc')}
                                 className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                                   sortDirection === 'asc'
                                     ? 'bg-[#5DE1E5] text-gray-900 border-[#5DE1E5]'
@@ -1190,10 +1195,7 @@ export default function DBManager() {
                                 ASC
                               </button>
                               <button
-                                onClick={() => {
-                                  setSortDirection('desc');
-                                  setTimeout(() => applyFiltersAndSort(), 100);
-                                }}
+                                onClick={() => setSortDirection('desc')}
                                 className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                                   sortDirection === 'desc'
                                     ? 'bg-[#5DE1E5] text-gray-900 border-[#5DE1E5]'
