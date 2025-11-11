@@ -334,13 +334,44 @@ export default function DBManager() {
           searchParams.filter = meilisearchFilters.join(' AND ');
         }
         
+        // Intentar ordenamiento en Meilisearch, si falla hacerlo en cliente
+        let useClientSort = false;
         if (sortColumn) {
-          searchParams.sort = [`${sortColumn}:${sortDirection}`];
+          try {
+            searchParams.sort = [`${sortColumn}:${sortDirection}`];
+            const data = await meilisearchAPI.searchDocuments(selectedIndex, '', meilisearchLimit, offset, searchParams);
+            setMeilisearchDocuments(data.hits || []);
+            setMeilisearchTotal(data.totalHits || 0);
+          } catch (sortError: any) {
+            // Si el sort falla (campo no sortable), hacer ordenamiento en cliente
+            console.warn('Sort en Meilisearch falló, usando ordenamiento en cliente:', sortError.message);
+            useClientSort = true;
+          }
+        } else {
+          const data = await meilisearchAPI.searchDocuments(selectedIndex, '', meilisearchLimit, offset, searchParams);
+          setMeilisearchDocuments(data.hits || []);
+          setMeilisearchTotal(data.totalHits || 0);
         }
         
-        const data = await meilisearchAPI.searchDocuments(selectedIndex, '', meilisearchLimit, offset, searchParams);
-        setMeilisearchDocuments(data.hits || []);
-        setMeilisearchTotal(data.totalHits || 0);
+        // Si el sort falló, obtener más documentos y ordenar en cliente
+        if (useClientSort) {
+          // Obtener más documentos para ordenar en cliente
+          const data = await meilisearchAPI.getDocuments(selectedIndex, meilisearchLimit * 3, 0);
+          let documents = data.results || [];
+          
+          // Aplicar ordenamiento en cliente
+          if (sortColumn) {
+            documents = applySorting(documents);
+          }
+          
+          // Paginar manualmente
+          const start = offset;
+          const end = start + meilisearchLimit;
+          const paginatedDocs = documents.slice(start, end);
+          
+          setMeilisearchDocuments(paginatedDocs);
+          setMeilisearchTotal(documents.length);
+        }
       }
     } catch (e: any) {
       showAlert('Error al cargar documentos: ' + e.message, 'error');
@@ -384,20 +415,49 @@ export default function DBManager() {
         searchParams.filter = meilisearchFilters.join(' AND ');
       }
       
-      if (sortColumn) {
-        searchParams.sort = [`${sortColumn}:${sortDirection}`];
-      }
+      // Intentar ordenamiento en Meilisearch, si falla hacerlo en cliente
+      let useClientSort = false;
+      let documents: Document[] = [];
+      let totalHits = 0;
       
-      const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, meilisearchLimit, offset, searchParams);
-      let documents = data.hits || [];
+      if (sortColumn) {
+        try {
+          searchParams.sort = [`${sortColumn}:${sortDirection}`];
+          const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, meilisearchLimit, offset, searchParams);
+          documents = data.hits || [];
+          totalHits = data.totalHits || 0;
+        } catch (sortError: any) {
+          // Si el sort falla (campo no sortable), hacer ordenamiento en cliente
+          console.warn('Sort en Meilisearch falló, usando ordenamiento en cliente:', sortError.message);
+          useClientSort = true;
+          // Obtener resultados sin sort
+          const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, meilisearchLimit * 3, 0, { filter: searchParams.filter });
+          documents = data.hits || [];
+          totalHits = data.totalHits || 0;
+        }
+      } else {
+        const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, meilisearchLimit, offset, searchParams);
+        documents = data.hits || [];
+        totalHits = data.totalHits || 0;
+      }
       
       // Aplicar filtros adicionales en el cliente si es necesario
       if (filters.length > 0) {
         documents = applyFilters(documents);
       }
       
+      // Si el sort falló, ordenar en cliente
+      if (useClientSort && sortColumn) {
+        documents = applySorting(documents);
+        // Paginar manualmente
+        const start = offset;
+        const end = start + meilisearchLimit;
+        documents = documents.slice(start, end);
+        totalHits = documents.length;
+      }
+      
       setMeilisearchDocuments(documents);
-      setMeilisearchTotal(data.totalHits || 0);
+      setMeilisearchTotal(totalHits);
     } catch (e: any) {
       showAlert('Error al buscar documentos: ' + e.message, 'error');
       setMeilisearchDocuments([]);
