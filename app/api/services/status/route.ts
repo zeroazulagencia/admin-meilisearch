@@ -22,12 +22,14 @@ export async function GET(request: NextRequest) {
         }
 
         try {
-          const response = await fetch(`${url}health`, {
+          // Endpoint simple para verificar estado
+          const cleanUrl = url.endsWith('/') ? url : `${url}/`;
+          const response = await fetch(`${cleanUrl}health`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${apiKey}`
             },
-            signal: AbortSignal.timeout(5000) // 5 segundos timeout
+            signal: AbortSignal.timeout(5000)
           });
           
           return NextResponse.json({ 
