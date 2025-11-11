@@ -99,10 +99,10 @@ export default function Roadmap() {
       completed: true,
     },
     {
-      date: 'Pendiente',
+      date: todayFormatted,
       title: 'Simplificar vistas para cliente',
       description: 'Optimizar y simplificar las vistas de la interfaz para mejorar la experiencia del cliente',
-      completed: false,
+      completed: true,
     },
     {
       date: 'Completado',
