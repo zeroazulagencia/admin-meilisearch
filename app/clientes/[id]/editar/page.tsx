@@ -472,7 +472,8 @@ export default function EditarCliente() {
             </div>
           </div>
 
-          {/* Permisos */}
+          {/* Permisos - Solo mostrar si NO es admin */}
+          {!isClientAdmin && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Permisos del Sistema</h2>
             <p className="text-sm text-gray-500 mb-4">Selecciona los permisos que tendrá este cliente</p>
@@ -589,6 +590,7 @@ export default function EditarCliente() {
               })}
             </div>
           </div>
+          )}
 
           {/* Agentes Asociados */}
           {associatedAgents.length > 0 && (
