@@ -121,6 +121,7 @@ export const meilisearchAPI = {
     
     if (params) {
       if (params.filter) searchParams.filter = params.filter;
+      if (params.sort) searchParams.sort = params.sort;
       if (params.matchingStrategy) searchParams.matchingStrategy = params.matchingStrategy;
       if (params.rankingScoreThreshold !== undefined) searchParams.rankingScoreThreshold = params.rankingScoreThreshold;
       if (params.hybridEmbedder) searchParams.hybridEmbedder = params.hybridEmbedder;

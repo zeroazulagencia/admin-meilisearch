@@ -1018,7 +1018,10 @@ export default function DBManager() {
                           {sortColumn && (
                             <>
                               <button
-                                onClick={() => setSortDirection('asc')}
+                                onClick={() => {
+                                  setSortDirection('asc');
+                                  setTimeout(() => applyFiltersAndSort(), 100);
+                                }}
                                 className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                                   sortDirection === 'asc'
                                     ? 'bg-[#5DE1E5] text-gray-900 border-[#5DE1E5]'
@@ -1028,7 +1031,10 @@ export default function DBManager() {
                                 ASC
                               </button>
                               <button
-                                onClick={() => setSortDirection('desc')}
+                                onClick={() => {
+                                  setSortDirection('desc');
+                                  setTimeout(() => applyFiltersAndSort(), 100);
+                                }}
                                 className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                                   sortDirection === 'desc'
                                     ? 'bg-[#5DE1E5] text-gray-900 border-[#5DE1E5]'
