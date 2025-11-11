@@ -402,6 +402,7 @@ export default function DBManager() {
       setMeilisearchTotal(0);
     } finally {
       setMeilisearchLoading(false);
+      setIsApplyingSort(false); // Resetear flag al terminar
     }
   };
 
@@ -519,6 +520,7 @@ export default function DBManager() {
       setMeilisearchTotal(0);
     } finally {
       setMeilisearchLoading(false);
+      setIsApplyingSort(false); // Resetear flag al terminar
     }
   };
 
