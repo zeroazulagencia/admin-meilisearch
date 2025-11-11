@@ -12,6 +12,9 @@ interface ConversationGroup {
   lastMessage: string;
   lastDate: string;
   messages: Document[];
+  isUnknown?: boolean;
+  display_user_id?: string;
+  display_phone_id?: string;
 }
 
 interface AgentDB {
@@ -52,8 +55,22 @@ export default function Conversaciones() {
   const [dateTo, setDateTo] = useState<string>(defaultDates.todayStr);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showCodeModal, setShowCodeModal] = useState(false);
+  const [includeUnknownConversations, setIncludeUnknownConversations] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   const INDEX_UID = 'bd_conversations_dworkers';
+
+  // Detectar si es admin para habilitar vista especial
+  useEffect(() => {
+    const permissions = getPermissions();
+    setIsAdminUser(permissions?.type === 'admin');
+  }, []);
+
+  useEffect(() => {
+    if (!isAdminUser) {
+      setIncludeUnknownConversations(false);
+    }
+  }, [isAdminUser]);
 
   // Asegurar que las fechas se actualicen si cambian (por si acaso)
   useEffect(() => {
@@ -106,7 +123,7 @@ export default function Conversaciones() {
     if (selectedAgent !== 'all') {
       loadConversations();
     }
-  }, [selectedAgent, dateFrom, dateTo, searchQuery]);
+  }, [selectedAgent, dateFrom, dateTo, searchQuery, includeUnknownConversations, isAdminUser]);
 
   const loadAgents = async () => {
     try {
@@ -232,6 +249,7 @@ export default function Conversaciones() {
       
       // Agrupar por user_id, filtrando los que no tienen user_id, son null, vacío o 'unknown'
       const groups = new Map<string, Document[]>();
+      const allowUnknown = includeUnknownConversations && isAdminUser;
       
       allDocuments.forEach(doc => {
         // Determinar ID de usuario válido
@@ -251,6 +269,12 @@ export default function Conversaciones() {
             }
             groups.get(userId)!.push(doc);
           }
+        } else if (allowUnknown && doc.id) {
+          const fallbackKey = `unknown:${String(doc.id)}`;
+          if (!groups.has(fallbackKey)) {
+            groups.set(fallbackKey, []);
+          }
+          groups.get(fallbackKey)!.push(doc);
         }
       });
       
@@ -266,7 +290,14 @@ export default function Conversaciones() {
         });
         
         const lastMessage = sortedMessages[sortedMessages.length - 1];
-        const phoneId = lastMessage.phone_number_id || lastMessage.phone_id || '';
+        const rawPhoneId = lastMessage.phone_number_id || lastMessage.phone_id || '';
+        const phoneId = rawPhoneId ? String(rawPhoneId) : '';
+        const isUnknownGroup = iduser.startsWith('unknown:');
+        const fallbackSuffix = isUnknownGroup ? iduser.split(':')[1] || '' : '';
+        const displayUserId = isUnknownGroup
+          ? `Sin identificar${fallbackSuffix ? ` • ${fallbackSuffix.slice(-6)}` : ''}`
+          : iduser;
+        const displayPhoneId = phoneId && phoneId.trim().length > 0 ? phoneId : (isUnknownGroup ? 'Sin datos' : '');
         
         // Obtener último mensaje de texto (Human o AI)
         let lastMessageText = '';
@@ -281,9 +312,15 @@ export default function Conversaciones() {
           phone_number_id: phoneId,
           lastMessage: lastMessageText,
           lastDate: lastMessage.datetime || '',
-          messages: sortedMessages
+          messages: sortedMessages,
+          isUnknown: isUnknownGroup,
+          display_user_id: displayUserId,
+          display_phone_id: displayPhoneId
         };
       }).filter(group => {
+        if (group.isUnknown) {
+          return allowUnknown;
+        }
         const phoneIdRaw = group.phone_number_id;
         if (phoneIdRaw === null || phoneIdRaw === undefined) return false;
         const phoneIdStr = String(phoneIdRaw).trim();
@@ -480,6 +517,20 @@ export default function Conversaciones() {
                   Limpiar búsqueda
                 </button>
               )}
+              {isAdminUser && (
+                <div className="mt-4 flex items-center gap-3">
+                  <label className="inline-flex items-center text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={includeUnknownConversations}
+                      onChange={(e) => setIncludeUnknownConversations(e.target.checked)}
+                      className="rounded border-gray-300 text-[#5DE1E5] focus:ring-[#5DE1E5]"
+                    />
+                    <span className="ml-2">Incluir conversaciones sin identificar</span>
+                  </label>
+                  <span className="text-xs text-gray-400">Solo visible para administradores</span>
+                </div>
+              )}
             </div>
 
             {/* Filtro de Fechas */}
@@ -621,40 +672,38 @@ export default function Conversaciones() {
                   <p className="text-sm text-gray-500">{conversationGroups.length} conversaciones</p>
                 </div>
                 <div className="flex-1 overflow-y-auto">
-                  {conversationGroups.map((group, index) => (
-                    <div
-                      key={index}
-                      onClick={() => setSelectedConversation(group)}
-                      className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                        selectedConversation?.user_id === group.user_id ? 'bg-blue-50' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {/* Avatar circular como WhatsApp */}
-                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
-                          {group.phone_number_id ? (
-                            <span className="text-lg font-semibold text-gray-600">
-                              {group.phone_number_id.substring(group.phone_number_id.length - 1)}
-                            </span>
-                          ) : (
-                            <span className="text-lg font-semibold text-gray-600">
-                              {group.user_id.substring(group.user_id.length - 1)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-1">
-                            <span className="font-semibold text-gray-900 truncate">{group.user_id}</span>
-                            <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{formatTime(group.lastDate)}</span>
+                  {conversationGroups.map((group, index) => {
+                    const displayUserId = group.display_user_id || group.user_id;
+                    const displayPhoneId = group.display_phone_id || group.phone_number_id || '';
+                    const avatarSource = displayPhoneId && displayPhoneId !== 'Sin datos' ? displayPhoneId : displayUserId;
+                    const avatarChar = avatarSource ? avatarSource.substring(avatarSource.length - 1) : '?';
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => setSelectedConversation(group)}
+                        className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                          selectedConversation?.user_id === group.user_id ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Avatar circular como WhatsApp */}
+                          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+                            <span className="text-lg font-semibold text-gray-600">{avatarChar}</span>
                           </div>
-                          <p className="text-xs text-gray-500 mb-1 truncate">{group.phone_number_id}</p>
-                          <p className="text-sm text-gray-600 truncate">
-                            {searchQuery ? highlightSearchText(group.lastMessage, searchQuery) : group.lastMessage}...
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between mb-1">
+                              <span className="font-semibold text-gray-900 truncate">{displayUserId}</span>
+                              <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{formatTime(group.lastDate)}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 mb-1 truncate">{displayPhoneId}</p>
+                            <p className="text-sm text-gray-600 truncate">
+                              {searchQuery ? highlightSearchText(group.lastMessage, searchQuery) : group.lastMessage}...
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -663,8 +712,8 @@ export default function Conversaciones() {
                 {selectedConversation ? (
                   <>
                     <div className="p-4 bg-gray-50 border-b border-gray-200">
-                      <h3 className="font-semibold text-gray-900">{selectedConversation.user_id}</h3>
-                      <p className="text-xs text-gray-500">{selectedConversation.phone_number_id}</p>
+                      <h3 className="font-semibold text-gray-900">{selectedConversation.display_user_id || selectedConversation.user_id}</h3>
+                      <p className="text-xs text-gray-500">{selectedConversation.display_phone_id || selectedConversation.phone_number_id}</p>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                       {selectedConversation.messages.map((message, index) => (
