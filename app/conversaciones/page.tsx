@@ -269,8 +269,10 @@ export default function Conversaciones() {
             }
             groups.get(userId)!.push(doc);
           }
-        } else if (allowUnknown && doc.id) {
-          const fallbackKey = `unknown:${String(doc.id)}`;
+        } else if (allowUnknown) {
+          // Si allowUnknown está activo, agrupar conversaciones sin user_id válido
+          // Usar el ID del documento como identificador único para agrupar
+          const fallbackKey = doc.id ? `unknown:${String(doc.id)}` : `unknown:${Date.now()}-${Math.random()}`;
           if (!groups.has(fallbackKey)) {
             groups.set(fallbackKey, []);
           }
@@ -318,8 +320,15 @@ export default function Conversaciones() {
           display_phone_id: displayPhoneId
         };
       }).filter(group => {
+        // Si es un grupo "unknown" y allowUnknown está activo, incluirlo
         if (group.isUnknown) {
           return allowUnknown;
+        }
+        // Para grupos normales, verificar que tengan phone_id válido
+        // PERO si allowUnknown está activo, también permitir grupos sin phone_id
+        if (allowUnknown) {
+          // Si allowUnknown está activo, permitir grupos sin phone_id válido
+          return true;
         }
         const phoneIdRaw = group.phone_number_id;
         if (phoneIdRaw === null || phoneIdRaw === undefined) return false;
