@@ -53,6 +53,9 @@ MEILISEARCH_URL=https://server-search.zeroazul.com/
 MEILISEARCH_API_KEY=tu_api_key_meilisearch
 N8N_URL=https://automation.zeroazul.com/
 N8N_API_KEY=tu_api_key_n8n
+ALEGRA_EMAIL=tu-email-alegra@ejemplo.com
+ALEGRA_API_TOKEN=tu_token_alegra_aqui
+STRIPE_SECRET_KEY=tu_stripe_secret_key_aqui
 ```
 
 **⚠️ CRÍTICO - ENCRYPTION_KEY:**
