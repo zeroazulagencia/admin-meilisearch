@@ -234,12 +234,16 @@ export default function Conversaciones() {
       const groups = new Map<string, Document[]>();
       
       allDocuments.forEach(doc => {
-        // Procesar si tiene iduser válido (string o número, no null, undefined, vacío o 'unknown')
-        const userIdRaw = doc.iduser || doc.user_id; // Intentar ambos nombres de campo
-        
-        if (userIdRaw !== null && userIdRaw !== undefined && userIdRaw !== '' && userIdRaw !== 'unknown') {
+        // Determinar ID de usuario válido
+        const userIdFromDoc = (doc.user_id !== undefined && doc.user_id !== null) ? doc.user_id : undefined;
+        const hasUnknownUser = typeof userIdFromDoc === 'string' && userIdFromDoc.toLowerCase() === 'unknown';
+        const userIdCandidate = (!hasUnknownUser && userIdFromDoc !== undefined && userIdFromDoc !== '')
+          ? userIdFromDoc
+          : ((userIdFromDoc === undefined || userIdFromDoc === null || userIdFromDoc === '') ? doc.iduser : undefined);
+
+        if (userIdCandidate !== null && userIdCandidate !== undefined && userIdCandidate !== '' && userIdCandidate !== 'unknown') {
           // Convertir a string para usar como key
-          const userId = String(userIdRaw);
+          const userId = String(userIdCandidate);
           
           if (userId && userId.length > 0) {
             if (!groups.has(userId)) {
@@ -279,6 +283,13 @@ export default function Conversaciones() {
           lastDate: lastMessage.datetime || '',
           messages: sortedMessages
         };
+      }).filter(group => {
+        const phoneIdRaw = group.phone_number_id;
+        if (phoneIdRaw === null || phoneIdRaw === undefined) return false;
+        const phoneIdStr = String(phoneIdRaw).trim();
+        if (phoneIdStr.length === 0) return false;
+        if (phoneIdStr.toLowerCase() === 'unknown') return false;
+        return true;
       }).sort((a, b) => {
         const dateA = new Date(a.lastDate).getTime();
         const dateB = new Date(b.lastDate).getTime();
