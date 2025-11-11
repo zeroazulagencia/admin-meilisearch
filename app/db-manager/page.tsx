@@ -702,15 +702,6 @@ export default function DBManager() {
     }
   }, [sortColumn, sortDirection]);
 
-  // Efecto para aplicar automáticamente cuando se elimina un filtro
-  useEffect(() => {
-    if (selectedIndex && filters.length >= 0) {
-      const timer = setTimeout(() => {
-        applyFiltersAndSort();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [filters.length]);
 
   return (
     <ProtectedLayout>
