@@ -398,13 +398,17 @@ export default function DBManager() {
         
         // Aplicar ordenamiento en cliente (siempre, porque ya tenemos todos los documentos)
         if (sortColumn) {
+          console.log('[LOAD] Antes de ordenar:', { totalDocs: allDocuments.length, sortColumn, sortDirection, first3: allDocuments.slice(0, 3).map(d => ({ id: d.id, datetime: d.datetime })) });
           allDocuments = applySorting(allDocuments);
+          console.log('[LOAD] Después de ordenar:', { totalDocs: allDocuments.length, first3: allDocuments.slice(0, 3).map(d => ({ id: d.id, datetime: d.datetime })) });
         }
         
         // Paginar manualmente
         const start = offset;
         const end = start + meilisearchLimit;
         const paginatedDocs = allDocuments.slice(start, end);
+        
+        console.log('[LOAD] Paginando:', { start, end, totalDocs: allDocuments.length, paginatedCount: paginatedDocs.length });
         
         setMeilisearchDocuments(paginatedDocs);
         setMeilisearchTotal(allDocuments.length);
@@ -779,19 +783,27 @@ export default function DBManager() {
   const applySorting = (docs: Document[]): Document[] => {
     if (!sortColumn) return docs;
     
+    console.log('[SORT] Aplicando ordenamiento:', { sortColumn, sortDirection, totalDocs: docs.length });
+    
     return [...docs].sort((a, b) => {
       const aVal = a[sortColumn];
       const bVal = b[sortColumn];
       
-      if (aVal === null || aVal === undefined) return 1;
-      if (bVal === null || bVal === undefined) return -1;
+      // Manejar valores nulos/undefined - ponerlos al final
+      if (aVal === null || aVal === undefined) {
+        return sortDirection === 'asc' ? 1 : -1;
+      }
+      if (bVal === null || bVal === undefined) {
+        return sortDirection === 'asc' ? -1 : 1;
+      }
       
       // Manejar números
       if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+        const diff = aVal - bVal;
+        return sortDirection === 'asc' ? diff : -diff;
       }
       
-      // Manejar fechas (ISO strings)
+      // Manejar fechas (ISO strings) - intentar parsear como fecha primero
       const aDate = new Date(aVal);
       const bDate = new Date(bVal);
       if (!isNaN(aDate.getTime()) && !isNaN(bDate.getTime())) {
