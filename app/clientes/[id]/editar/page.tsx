@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
@@ -256,30 +256,43 @@ export default function EditarCliente() {
   // Módulos exclusivos de admin (solo se muestran si el cliente es admin)
   const ADMIN_ONLY_MODULES = ['dbManager', 'roadmap', 'clientes', 'ejecuciones', 'whatsappManager', 'consumoAPI'];
   
-  // Verificar si el cliente actual es admin
-  const isClientAdmin = currentClient?.permissions && 
-    (typeof currentClient.permissions === 'string' 
-      ? JSON.parse(currentClient.permissions)?.type === 'admin'
-      : currentClient.permissions?.type === 'admin');
+  // Verificar si el cliente actual es admin (usando useMemo para recalcular cuando cambie currentClient o permissions)
+  const isClientAdmin = useMemo(() => {
+    if (!currentClient) return false;
+    
+    try {
+      const clientPerms = typeof currentClient.permissions === 'string' 
+        ? JSON.parse(currentClient.permissions) 
+        : (currentClient.permissions || {});
+      
+      return clientPerms?.type === 'admin';
+    } catch {
+      return false;
+    }
+  }, [currentClient, permissions]);
   
-  const MODULES = [
-    { key: 'dashboard', label: 'Dashboard', onlyView: true },
-    { key: 'clientes', label: 'Clientes', onlyView: true },
-    { key: 'agentes', label: 'Agentes', onlyView: true },
-    { key: 'ejecuciones', label: 'Ejecuciones', onlyView: true },
-    { key: 'adminConocimiento', label: 'Admin Conocimiento', onlyView: false },
-    { key: 'reportes', label: 'Reportes', onlyView: true },
-    { key: 'conversaciones', label: 'Conversaciones', onlyView: true },
-    { key: 'whatsappManager', label: 'WhatsApp Manager', onlyView: true },
-    { key: 'facturacion', label: 'Facturación', onlyView: true },
-    { key: 'consumoAPI', label: 'Consumo API', onlyView: true },
-    { key: 'developers', label: 'Developers', onlyView: true },
-    { key: 'dbManager', label: 'DB Manager', onlyView: true }
-  ].filter(module => {
+  const MODULES = useMemo(() => {
+    const allModules = [
+      { key: 'dashboard', label: 'Dashboard', onlyView: true },
+      { key: 'clientes', label: 'Clientes', onlyView: true },
+      { key: 'agentes', label: 'Agentes', onlyView: true },
+      { key: 'ejecuciones', label: 'Ejecuciones', onlyView: true },
+      { key: 'adminConocimiento', label: 'Admin Conocimiento', onlyView: false },
+      { key: 'reportes', label: 'Reportes', onlyView: true },
+      { key: 'conversaciones', label: 'Conversaciones', onlyView: true },
+      { key: 'whatsappManager', label: 'WhatsApp Manager', onlyView: true },
+      { key: 'facturacion', label: 'Facturación', onlyView: true },
+      { key: 'consumoAPI', label: 'Consumo API', onlyView: true },
+      { key: 'developers', label: 'Developers', onlyView: true },
+      { key: 'dbManager', label: 'DB Manager', onlyView: true }
+    ];
+    
     // Si el cliente es admin, mostrar todos los módulos
     // Si no es admin, filtrar los módulos exclusivos de admin
-    return isClientAdmin || !ADMIN_ONLY_MODULES.includes(module.key);
-  });
+    return allModules.filter(module => {
+      return isClientAdmin || !ADMIN_ONLY_MODULES.includes(module.key);
+    });
+  }, [isClientAdmin]);
 
   const generatePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
