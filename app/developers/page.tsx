@@ -3,6 +3,7 @@
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AgentSelector from '@/components/ui/AgentSelector';
 import NoticeModal from '@/components/ui/NoticeModal';
+import DeveloperEditor from '@/components/DeveloperEditor';
 import { useState, useEffect } from 'react';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import {
@@ -145,9 +146,15 @@ export default function Developers() {
 
   const handleEditDoc = (doc: DeveloperDoc) => {
     setEditingDoc(doc);
+    // Si el contenido es texto plano, convertirlo a HTML básico
+    let content = doc.content;
+    if (content && !content.trim().startsWith('<')) {
+      // Convertir texto plano a HTML básico
+      content = '<p>' + content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+    }
     setDocForm({
       title: doc.title,
-      content: doc.content,
+      content: content || '<p></p>',
     });
     setShowEditModal(true);
   };
@@ -415,17 +422,11 @@ export default function Developers() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Contenido *
                 </label>
-                <textarea
-                  value={docForm.content}
-                  onChange={(e) => setDocForm({ ...docForm, content: e.target.value })}
-                  placeholder="Describe el proceso, configuración, o funcionalidad..."
+                <DeveloperEditor
+                  content={docForm.content}
+                  onChange={(content) => setDocForm({ ...docForm, content })}
                   disabled={savingDoc}
-                  rows={12}
-                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#5DE1E5] sm:text-sm/6 disabled:bg-gray-100 disabled:cursor-not-allowed font-mono text-sm"
                 />
-                <p className="mt-1 text-xs text-gray-500 break-words overflow-wrap-anywhere">
-                  Puedes usar Markdown para formatear el contenido
-                </p>
               </div>
             </div>
 
