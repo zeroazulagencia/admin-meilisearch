@@ -75,7 +75,6 @@ export default function DBManager() {
   const [primaryKey, setPrimaryKey] = useState<string | null>(null);
   
   // Estados para herramientas y filtros
-  const [showToolsPanel, setShowToolsPanel] = useState(true);
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<Array<{ id: string; column: string; operator: string; value: string }>>([]);
   const [sortColumn, setSortColumn] = useState<string>('');
@@ -275,21 +274,63 @@ export default function DBManager() {
     try {
       setMeilisearchLoading(true);
       const offset = (meilisearchCurrentPage - 1) * meilisearchLimit;
-      const data = await meilisearchAPI.getDocuments(selectedIndex, meilisearchLimit, offset);
-      let documents = data.results || [];
       
-      // Aplicar filtros
-      if (filters.length > 0) {
-        documents = applyFilters(documents);
+      // Construir filtros para Meilisearch
+      const meilisearchFilters: string[] = [];
+      filters.forEach(filter => {
+        if (filter.column && filter.value) {
+          const filterStr = buildMeilisearchFilter(filter);
+          if (filterStr) {
+            meilisearchFilters.push(filterStr);
+          }
+        }
+      });
+      
+      // Si hay filtros que no se pueden aplicar en Meilisearch, usar búsqueda vacía y filtrar en cliente
+      const hasClientFilters = filters.some(f => f.column && f.value && !buildMeilisearchFilter(f));
+      
+      if (hasClientFilters || filters.some(f => f.operator === 'contains' || f.operator === 'not_contains' || f.operator === 'starts_with' || f.operator === 'ends_with')) {
+        // Usar búsqueda vacía y filtrar en cliente
+        const data = await meilisearchAPI.getDocuments(selectedIndex, meilisearchLimit * 2, 0); // Obtener más para filtrar
+        let documents = data.results || [];
+        
+        // Aplicar filtros en cliente
+        if (filters.length > 0) {
+          documents = applyFilters(documents);
+        }
+        
+        // Aplicar ordenamiento
+        if (sortColumn) {
+          documents = applySorting(documents);
+        }
+        
+        // Paginar manualmente
+        const start = offset;
+        const end = start + meilisearchLimit;
+        const paginatedDocs = documents.slice(start, end);
+        
+        setMeilisearchDocuments(paginatedDocs);
+        setMeilisearchTotal(documents.length);
+      } else {
+        // Usar búsqueda con filtros de Meilisearch
+        const searchParams: any = {
+          q: '',
+          hitsPerPage: meilisearchLimit,
+          page: Math.floor(offset / meilisearchLimit) + 1
+        };
+        
+        if (meilisearchFilters.length > 0) {
+          searchParams.filter = meilisearchFilters.join(' AND ');
+        }
+        
+        if (sortColumn) {
+          searchParams.sort = [`${sortColumn}:${sortDirection}`];
+        }
+        
+        const data = await meilisearchAPI.searchDocuments(selectedIndex, '', meilisearchLimit, offset, searchParams);
+        setMeilisearchDocuments(data.hits || []);
+        setMeilisearchTotal(data.totalHits || 0);
       }
-      
-      // Aplicar ordenamiento
-      if (sortColumn) {
-        documents = applySorting(documents);
-      }
-      
-      setMeilisearchDocuments(documents);
-      setMeilisearchTotal(data.total || 0);
     } catch (e: any) {
       showAlert('Error al cargar documentos: ' + e.message, 'error');
       setMeilisearchDocuments([]);
@@ -605,12 +646,32 @@ export default function DBManager() {
 
   // Eliminar filtro
   const removeFilter = (id: string) => {
-    setFilters(filters.filter(f => f.id !== id));
+    const updatedFilters = filters.filter(f => f.id !== id);
+    setFilters(updatedFilters);
+    // Aplicar automáticamente
+    setTimeout(() => {
+      setMeilisearchCurrentPage(1);
+      if (isSearching) {
+        handleMeilisearchSearch();
+      } else {
+        loadMeilisearchDocuments();
+      }
+    }, 100);
   };
 
   // Actualizar filtro
   const updateFilter = (id: string, field: 'column' | 'operator' | 'value', value: string) => {
-    setFilters(filters.map(f => f.id === id ? { ...f, [field]: value } : f));
+    const updatedFilters = filters.map(f => f.id === id ? { ...f, [field]: value } : f);
+    setFilters(updatedFilters);
+    // Aplicar automáticamente cuando cambia un filtro
+    setTimeout(() => {
+      setMeilisearchCurrentPage(1);
+      if (isSearching) {
+        handleMeilisearchSearch();
+      } else {
+        loadMeilisearchDocuments();
+      }
+    }, 300); // Debounce de 300ms
   };
 
   // Toggle columna visible
@@ -633,6 +694,23 @@ export default function DBManager() {
       loadMeilisearchDocuments();
     }
   };
+
+  // Efecto para aplicar automáticamente cuando cambia el ordenamiento
+  useEffect(() => {
+    if (selectedIndex && sortColumn) {
+      applyFiltersAndSort();
+    }
+  }, [sortColumn, sortDirection]);
+
+  // Efecto para aplicar automáticamente cuando se elimina un filtro
+  useEffect(() => {
+    if (selectedIndex && filters.length >= 0) {
+      const timer = setTimeout(() => {
+        applyFiltersAndSort();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [filters.length]);
 
   return (
     <ProtectedLayout>
@@ -859,333 +937,288 @@ export default function DBManager() {
                 {/* Búsqueda y acciones */}
                 {selectedIndex && (
                   <>
-                    <div className="flex gap-4">
-                      {/* Panel lateral izquierdo */}
-                      {showToolsPanel && (
-                        <div className="w-80 bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-900">Herramientas</h3>
-                            <button
-                              onClick={() => setShowToolsPanel(false)}
-                              className="text-gray-400 hover:text-gray-600"
-                            >
-                              <XMarkIcon className="w-5 h-5" />
-                            </button>
-                          </div>
+                    {/* Barra de herramientas horizontal */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
+                      {/* Búsqueda */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              setMeilisearchCurrentPage(1);
+                              handleMeilisearchSearch();
+                            }
+                          }}
+                          placeholder="Buscar documentos..."
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                        />
+                        <button
+                          onClick={() => {
+                            setMeilisearchCurrentPage(1);
+                            handleMeilisearchSearch();
+                          }}
+                          className="px-4 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-medium flex items-center gap-2"
+                        >
+                          <MagnifyingGlassIcon className="w-5 h-5" />
+                          Buscar
+                        </button>
+                        {searchQuery && (
+                          <button
+                            onClick={() => {
+                              setSearchQuery('');
+                              setIsSearching(false);
+                              setMeilisearchCurrentPage(1);
+                              loadMeilisearchDocuments();
+                            }}
+                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            Limpiar
+                          </button>
+                        )}
+                        <button
+                          onClick={handleMeilisearchCreate}
+                          className="flex items-center gap-2 px-4 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-medium"
+                        >
+                          <PlusIcon className="w-5 h-5" />
+                          Nuevo Documento
+                        </button>
+                      </div>
 
-                          {/* Columnas visibles */}
-                          <div className="border-t border-gray-200 pt-4">
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">Columnas visibles</h4>
-                            <div className="space-y-2 max-h-40 overflow-y-auto">
-                              {getMeilisearchColumns().map(column => (
-                                <label key={column} className="flex items-center gap-2 text-sm">
-                                  <input
-                                    type="checkbox"
-                                    checked={visibleColumns.has(column) || visibleColumns.size === 0}
-                                    onChange={() => toggleColumnVisibility(column)}
-                                    className="rounded border-gray-300 text-[#5DE1E5] focus:ring-[#5DE1E5]"
-                                  />
-                                  <span className="text-gray-700">{column}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Ordenamiento */}
-                          <div className="border-t border-gray-200 pt-4">
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">Ordenar por</h4>
-                            <div className="space-y-2">
-                              <select
-                                value={sortColumn}
-                                onChange={(e) => {
-                                  setSortColumn(e.target.value);
-                                  applyFiltersAndSort();
-                                }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm"
-                              >
-                                <option value="">Sin ordenar</option>
-                                {getMeilisearchColumns().map(column => (
-                                  <option key={column} value={column}>{column}</option>
-                                ))}
-                              </select>
-                              {sortColumn && (
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setSortDirection('asc');
-                                      applyFiltersAndSort();
-                                    }}
-                                    className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
-                                      sortDirection === 'asc'
-                                        ? 'bg-[#5DE1E5] text-gray-900 border-[#5DE1E5]'
-                                        : 'border-gray-300 hover:bg-gray-50'
-                                    }`}
-                                  >
-                                    ASC
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setSortDirection('desc');
-                                      applyFiltersAndSort();
-                                    }}
-                                    className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
-                                      sortDirection === 'desc'
-                                        ? 'bg-[#5DE1E5] text-gray-900 border-[#5DE1E5]'
-                                        : 'border-gray-300 hover:bg-gray-50'
-                                    }`}
-                                  >
-                                    DESC
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Filtros */}
-                          <div className="border-t border-gray-200 pt-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-sm font-medium text-gray-900">Filtros</h4>
+                      {/* Columnas visibles - Badges/Pills */}
+                      <div className="border-t border-gray-200 pt-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">Columnas visibles</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {getMeilisearchColumns().map(column => {
+                            const isVisible = visibleColumns.size === 0 || visibleColumns.has(column);
+                            return (
                               <button
-                                onClick={addFilter}
-                                className="text-[#5DE1E5] hover:text-[#4BC5C9] text-sm font-medium"
+                                key={column}
+                                onClick={() => toggleColumnVisibility(column)}
+                                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                                  isVisible
+                                    ? 'bg-[#5DE1E5] text-gray-900'
+                                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                }`}
                               >
-                                + Agregar
+                                {column}
+                                {column === primaryKey && <span className="ml-1 text-blue-600">*</span>}
                               </button>
-                            </div>
-                            <div className="space-y-2 max-h-60 overflow-y-auto">
-                              {filters.map(filter => (
-                                <div key={filter.id} className="p-2 bg-gray-50 rounded-lg space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs text-gray-500">Filtro</span>
-                                    <button
-                                      onClick={() => removeFilter(filter.id)}
-                                      className="text-red-600 hover:text-red-700"
-                                    >
-                                      <XMarkIcon className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                  <select
-                                    value={filter.column}
-                                    onChange={(e) => updateFilter(filter.id, 'column', e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
-                                  >
-                                    <option value="">Seleccionar columna</option>
-                                    {getMeilisearchColumns().map(column => (
-                                      <option key={column} value={column}>{column}</option>
-                                    ))}
-                                  </select>
-                                  <select
-                                    value={filter.operator}
-                                    onChange={(e) => updateFilter(filter.id, 'operator', e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
-                                  >
-                                    <option value="contains">Contiene</option>
-                                    <option value="not_contains">No contiene</option>
-                                    <option value="equals">Igual a</option>
-                                    <option value="not_equals">No es igual a</option>
-                                    <option value="greater_than">Mayor que</option>
-                                    <option value="less_than">Menor que</option>
-                                    <option value="greater_equal">Mayor o igual</option>
-                                    <option value="less_equal">Menor o igual</option>
-                                    <option value="starts_with">Empieza con</option>
-                                    <option value="ends_with">Termina con</option>
-                                  </select>
-                                  <input
-                                    type="text"
-                                    value={filter.value}
-                                    onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-                                    onKeyPress={(e) => {
-                                      if (e.key === 'Enter') {
-                                        applyFiltersAndSort();
-                                      }
-                                    }}
-                                    placeholder="Valor"
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
-                                  />
-                                </div>
-                              ))}
-                              {filters.length === 0 && (
-                                <p className="text-xs text-gray-500 text-center py-2">No hay filtros</p>
-                              )}
-                            </div>
-                            {filters.length > 0 && (
-                              <button
-                                onClick={applyFiltersAndSort}
-                                className="w-full mt-2 px-3 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors text-sm font-medium"
-                              >
-                                Aplicar filtros
-                              </button>
-                            )}
-                          </div>
+                            );
+                          })}
                         </div>
-                      )}
+                      </div>
 
-                      {/* Contenido principal */}
-                      <div className={`flex-1 space-y-4 ${showToolsPanel ? '' : ''}`}>
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                          <div className="flex gap-2">
-                            {!showToolsPanel && (
-                              <button
-                                onClick={() => setShowToolsPanel(true)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
-                                title="Mostrar herramientas"
-                              >
-                                <FunnelIcon className="w-5 h-5" />
-                              </button>
-                            )}
-                            <input
-                              type="text"
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  setMeilisearchCurrentPage(1);
-                                  handleMeilisearchSearch();
-                                }
-                              }}
-                              placeholder="Buscar documentos..."
-                              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
-                            />
-                            <button
-                              onClick={() => {
-                                setMeilisearchCurrentPage(1);
-                                handleMeilisearchSearch();
-                              }}
-                              className="px-4 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-medium flex items-center gap-2"
-                            >
-                              <MagnifyingGlassIcon className="w-5 h-5" />
-                              Buscar
-                            </button>
-                            {searchQuery && (
-                              <button
-                                onClick={() => {
-                                  setSearchQuery('');
-                                  setIsSearching(false);
-                                  setMeilisearchCurrentPage(1);
-                                  loadMeilisearchDocuments();
-                                }}
-                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                              >
-                                Limpiar
-                              </button>
-                            )}
-                            <button
-                              onClick={handleMeilisearchCreate}
-                              className="flex items-center gap-2 px-4 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-medium"
-                            >
-                              <PlusIcon className="w-5 h-5" />
-                              Nuevo Documento
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Tabla de documentos */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                            <h2 className="text-lg font-semibold text-gray-900">Documentos de: {selectedIndex}</h2>
-                            <p className="text-sm text-gray-500 mt-1">
-                              Total: {meilisearchTotal} documentos | Página {meilisearchCurrentPage} de {getMeilisearchTotalPages()}
-                              {sortColumn && ` | Ordenado por: ${sortColumn} (${sortDirection.toUpperCase()})`}
-                              {filters.length > 0 && ` | ${filters.length} filtro(s) activo(s)`}
-                            </p>
-                          </div>
-
-                          {meilisearchLoading ? (
-                            <div className="p-8 text-center">
-                              <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-t-transparent border-[#5DE1E5]"></div>
-                              <p className="mt-4 text-gray-500">Cargando documentos...</p>
-                            </div>
-                          ) : (
+                      {/* Ordenamiento */}
+                      <div className="border-t border-gray-200 pt-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">Ordenar por</h4>
+                        <div className="flex gap-2 items-center">
+                          <select
+                            value={sortColumn}
+                            onChange={(e) => setSortColumn(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm"
+                          >
+                            <option value="">Sin ordenar</option>
+                            {getMeilisearchColumns().map(column => (
+                              <option key={column} value={column}>{column}</option>
+                            ))}
+                          </select>
+                          {sortColumn && (
                             <>
-                              <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                  <thead className="bg-gray-50">
-                                    <tr>
-                                      {(visibleColumns.size === 0 ? getMeilisearchColumns() : Array.from(visibleColumns)).map(column => (
-                                        <th
-                                          key={column}
-                                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                        >
-                                          <div className="flex items-center gap-2">
-                                            {column}
-                                            {column === primaryKey && <span className="text-blue-600">*</span>}
-                                            {column === sortColumn && (
-                                              <ArrowsUpDownIcon className={`w-4 h-4 ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />
-                                            )}
-                                          </div>
-                                        </th>
-                                      ))}
-                                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Acciones
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="bg-white divide-y divide-gray-200">
-                                    {meilisearchDocuments.length === 0 ? (
-                                      <tr>
-                                        <td colSpan={(visibleColumns.size === 0 ? getMeilisearchColumns().length : visibleColumns.size) + 1} className="px-6 py-8 text-center text-gray-500">
-                                          No hay documentos en este índice
-                                        </td>
-                                      </tr>
-                                    ) : (
-                                      meilisearchDocuments.map((doc, idx) => (
-                                        <tr key={idx} className="hover:bg-gray-50">
-                                          {(visibleColumns.size === 0 ? getMeilisearchColumns() : Array.from(visibleColumns)).map(column => (
-                                            <td key={column} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                              {renderMeilisearchField(column, doc[column])}
-                                            </td>
-                                          ))}
-                                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div className="flex items-center gap-2">
-                                              <button
-                                                onClick={() => handleMeilisearchEdit(doc)}
-                                                className="text-[#5DE1E5] hover:text-[#4BC5C9] transition-colors"
-                                                title="Editar"
-                                              >
-                                                <PencilIcon className="w-5 h-5" />
-                                              </button>
-                                              <button
-                                                onClick={() => handleMeilisearchDelete(doc)}
-                                                className="text-red-600 hover:text-red-700 transition-colors"
-                                                title="Eliminar"
-                                              >
-                                                <TrashIcon className="w-5 h-5" />
-                                              </button>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      ))
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-
-                              {/* Paginación */}
-                              {getMeilisearchTotalPages() > 1 && (
-                                <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                                  <button
-                                    onClick={() => setMeilisearchCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={meilisearchCurrentPage === 1}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                                  >
-                                    Anterior
-                                  </button>
-                                  <span className="text-sm text-gray-700">
-                                    Página {meilisearchCurrentPage} de {getMeilisearchTotalPages()}
-                                  </span>
-                                  <button
-                                    onClick={() => setMeilisearchCurrentPage(p => Math.min(getMeilisearchTotalPages(), p + 1))}
-                                    disabled={meilisearchCurrentPage === getMeilisearchTotalPages()}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                                  >
-                                    Siguiente
-                                  </button>
-                                </div>
-                              )}
+                              <button
+                                onClick={() => setSortDirection('asc')}
+                                className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                                  sortDirection === 'asc'
+                                    ? 'bg-[#5DE1E5] text-gray-900 border-[#5DE1E5]'
+                                    : 'border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                ASC
+                              </button>
+                              <button
+                                onClick={() => setSortDirection('desc')}
+                                className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                                  sortDirection === 'desc'
+                                    ? 'bg-[#5DE1E5] text-gray-900 border-[#5DE1E5]'
+                                    : 'border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                DESC
+                              </button>
                             </>
                           )}
                         </div>
                       </div>
+
+                      {/* Filtros */}
+                      <div className="border-t border-gray-200 pt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-medium text-gray-900">Filtros</h4>
+                          <button
+                            onClick={addFilter}
+                            className="text-[#5DE1E5] hover:text-[#4BC5C9] text-sm font-medium"
+                          >
+                            + Agregar
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {filters.map(filter => (
+                            <div key={filter.id} className="flex gap-2 items-end p-2 bg-gray-50 rounded-lg">
+                              <select
+                                value={filter.column}
+                                onChange={(e) => updateFilter(filter.id, 'column', e.target.value)}
+                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                              >
+                                <option value="">Seleccionar columna</option>
+                                {getMeilisearchColumns().map(column => (
+                                  <option key={column} value={column}>{column}</option>
+                                ))}
+                              </select>
+                              <select
+                                value={filter.operator}
+                                onChange={(e) => updateFilter(filter.id, 'operator', e.target.value)}
+                                className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                              >
+                                <option value="contains">Contiene</option>
+                                <option value="not_contains">No contiene</option>
+                                <option value="equals">Igual a</option>
+                                <option value="not_equals">No es igual a</option>
+                                <option value="greater_than">Mayor que</option>
+                                <option value="less_than">Menor que</option>
+                                <option value="greater_equal">Mayor o igual</option>
+                                <option value="less_equal">Menor o igual</option>
+                                <option value="starts_with">Empieza con</option>
+                                <option value="ends_with">Termina con</option>
+                              </select>
+                              <input
+                                type="text"
+                                value={filter.value}
+                                onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
+                                placeholder="Valor"
+                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                              />
+                              <button
+                                onClick={() => removeFilter(filter.id)}
+                                className="text-red-600 hover:text-red-700 p-1"
+                                title="Eliminar filtro"
+                              >
+                                <XMarkIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                          {filters.length === 0 && (
+                            <p className="text-xs text-gray-500 text-center py-2">No hay filtros</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tabla de documentos */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h2 className="text-lg font-semibold text-gray-900">Documentos de: {selectedIndex}</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Total: {meilisearchTotal} documentos | Página {meilisearchCurrentPage} de {getMeilisearchTotalPages()}
+                          {sortColumn && ` | Ordenado por: ${sortColumn} (${sortDirection.toUpperCase()})`}
+                          {filters.length > 0 && ` | ${filters.length} filtro(s) activo(s)`}
+                        </p>
+                      </div>
+
+                      {meilisearchLoading ? (
+                        <div className="p-8 text-center">
+                          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-t-transparent border-[#5DE1E5]"></div>
+                          <p className="mt-4 text-gray-500">Cargando documentos...</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                                    Acciones
+                                  </th>
+                                  {(visibleColumns.size === 0 ? getMeilisearchColumns() : Array.from(visibleColumns)).map(column => (
+                                    <th
+                                      key={column}
+                                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {column}
+                                        {column === primaryKey && <span className="text-blue-600">*</span>}
+                                        {column === sortColumn && (
+                                          <ArrowsUpDownIcon className={`w-4 h-4 ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />
+                                        )}
+                                      </div>
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {meilisearchDocuments.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={(visibleColumns.size === 0 ? getMeilisearchColumns().length : visibleColumns.size) + 1} className="px-6 py-8 text-center text-gray-500">
+                                      No hay documentos en este índice
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  meilisearchDocuments.map((doc, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50">
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            onClick={() => handleMeilisearchEdit(doc)}
+                                            className="text-[#5DE1E5] hover:text-[#4BC5C9] transition-colors"
+                                            title="Editar"
+                                          >
+                                            <PencilIcon className="w-5 h-5" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleMeilisearchDelete(doc)}
+                                            className="text-red-600 hover:text-red-700 transition-colors"
+                                            title="Eliminar"
+                                          >
+                                            <TrashIcon className="w-5 h-5" />
+                                          </button>
+                                        </div>
+                                      </td>
+                                      {(visibleColumns.size === 0 ? getMeilisearchColumns() : Array.from(visibleColumns)).map(column => (
+                                        <td key={column} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                          {renderMeilisearchField(column, doc[column])}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Paginación */}
+                          {getMeilisearchTotalPages() > 1 && (
+                            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                              <button
+                                onClick={() => setMeilisearchCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={meilisearchCurrentPage === 1}
+                                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                              >
+                                Anterior
+                              </button>
+                              <span className="text-sm text-gray-700">
+                                Página {meilisearchCurrentPage} de {getMeilisearchTotalPages()}
+                              </span>
+                              <button
+                                onClick={() => setMeilisearchCurrentPage(p => Math.min(getMeilisearchTotalPages(), p + 1))}
+                                disabled={meilisearchCurrentPage === getMeilisearchTotalPages()}
+                                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                              >
+                                Siguiente
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </>
                 )}
