@@ -253,8 +253,14 @@ export default function EditarCliente() {
     }));
   };
 
-  // Módulos exclusivos de admin (no se muestran en el editor de permisos)
+  // Módulos exclusivos de admin (solo se muestran si el cliente es admin)
   const ADMIN_ONLY_MODULES = ['dbManager', 'roadmap', 'clientes', 'ejecuciones', 'whatsappManager', 'consumoAPI'];
+  
+  // Verificar si el cliente actual es admin
+  const isClientAdmin = currentClient?.permissions && 
+    (typeof currentClient.permissions === 'string' 
+      ? JSON.parse(currentClient.permissions)?.type === 'admin'
+      : currentClient.permissions?.type === 'admin');
   
   const MODULES = [
     { key: 'dashboard', label: 'Dashboard', onlyView: true },
@@ -267,8 +273,13 @@ export default function EditarCliente() {
     { key: 'whatsappManager', label: 'WhatsApp Manager', onlyView: true },
     { key: 'facturacion', label: 'Facturación', onlyView: true },
     { key: 'consumoAPI', label: 'Consumo API', onlyView: true },
-    { key: 'developers', label: 'Developers', onlyView: true }
-  ].filter(module => !ADMIN_ONLY_MODULES.includes(module.key));
+    { key: 'developers', label: 'Developers', onlyView: true },
+    { key: 'dbManager', label: 'DB Manager', onlyView: true }
+  ].filter(module => {
+    // Si el cliente es admin, mostrar todos los módulos
+    // Si no es admin, filtrar los módulos exclusivos de admin
+    return isClientAdmin || !ADMIN_ONLY_MODULES.includes(module.key);
+  });
 
   const generatePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
