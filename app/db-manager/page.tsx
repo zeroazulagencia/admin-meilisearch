@@ -355,22 +355,44 @@ export default function DBManager() {
         
         // Si el sort falló, obtener más documentos y ordenar en cliente
         if (useClientSort) {
-          // Obtener más documentos para ordenar en cliente
-          const data = await meilisearchAPI.getDocuments(selectedIndex, meilisearchLimit * 3, 0);
-          let documents = data.results || [];
+          // Obtener todos los documentos para ordenar correctamente
+          let allDocuments: Document[] = [];
+          let currentOffset = 0;
+          const batchSize = 1000;
+          let hasMore = true;
+          
+          // Obtener todos los documentos en lotes
+          while (hasMore) {
+            const data = await meilisearchAPI.getDocuments(selectedIndex, batchSize, currentOffset);
+            if (data.results && data.results.length > 0) {
+              allDocuments.push(...data.results);
+              currentOffset += batchSize;
+              if (data.results.length < batchSize) {
+                hasMore = false;
+              }
+            } else {
+              hasMore = false;
+            }
+          }
+          
+          // Aplicar filtros si hay
+          if (meilisearchFilters.length > 0) {
+            // Los filtros ya se aplicaron en Meilisearch, pero por si acaso
+            allDocuments = applyFilters(allDocuments);
+          }
           
           // Aplicar ordenamiento en cliente
           if (sortColumn) {
-            documents = applySorting(documents);
+            allDocuments = applySorting(allDocuments);
           }
           
           // Paginar manualmente
           const start = offset;
           const end = start + meilisearchLimit;
-          const paginatedDocs = documents.slice(start, end);
+          const paginatedDocs = allDocuments.slice(start, end);
           
           setMeilisearchDocuments(paginatedDocs);
-          setMeilisearchTotal(documents.length);
+          setMeilisearchTotal(allDocuments.length);
         }
       }
     } catch (e: any) {
@@ -430,10 +452,42 @@ export default function DBManager() {
           // Si el sort falla (campo no sortable), hacer ordenamiento en cliente
           console.warn('Sort en Meilisearch falló, usando ordenamiento en cliente:', sortError.message);
           useClientSort = true;
-          // Obtener resultados sin sort
-          const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, meilisearchLimit * 3, 0, { filter: searchParams.filter });
-          documents = data.hits || [];
-          totalHits = data.totalHits || 0;
+          // Obtener todos los resultados sin sort
+          let allResults: Document[] = [];
+          let currentOffset = 0;
+          const batchSize = 1000;
+          let hasMore = true;
+          
+          // Obtener todos los resultados en lotes
+          while (hasMore) {
+            try {
+              const batchParams: any = {
+                q: searchQuery,
+                hitsPerPage: batchSize,
+                page: Math.floor(currentOffset / batchSize) + 1
+              };
+              if (searchParams.filter) {
+                batchParams.filter = searchParams.filter;
+              }
+              const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, batchSize, currentOffset, batchParams);
+              if (data.hits && data.hits.length > 0) {
+                allResults.push(...data.hits);
+                currentOffset += batchSize;
+                if (data.hits.length < batchSize || allResults.length >= (data.totalHits || 0)) {
+                  hasMore = false;
+                  totalHits = data.totalHits || allResults.length;
+                }
+              } else {
+                hasMore = false;
+                totalHits = allResults.length;
+              }
+            } catch (e) {
+              hasMore = false;
+              totalHits = allResults.length;
+            }
+          }
+          
+          documents = allResults;
         }
       } else {
         const data = await meilisearchAPI.searchDocuments(selectedIndex, searchQuery, meilisearchLimit, offset, searchParams);
@@ -691,10 +745,20 @@ export default function DBManager() {
       if (aVal === null || aVal === undefined) return 1;
       if (bVal === null || bVal === undefined) return -1;
       
+      // Manejar números
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
       }
       
+      // Manejar fechas (ISO strings)
+      const aDate = new Date(aVal);
+      const bDate = new Date(bVal);
+      if (!isNaN(aDate.getTime()) && !isNaN(bDate.getTime())) {
+        const diff = aDate.getTime() - bDate.getTime();
+        return sortDirection === 'asc' ? diff : -diff;
+      }
+      
+      // Manejar strings
       const aStr = String(aVal).toLowerCase();
       const bStr = String(bVal).toLowerCase();
       
