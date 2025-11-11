@@ -29,6 +29,8 @@ export default function EditarCliente() {
     nit: '',
     clave: ''
   });
+  const [userRole, setUserRole] = useState<'admin' | 'cliente'>('cliente');
+  const [isEditingAdmin, setIsEditingAdmin] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [associatedAgents, setAssociatedAgents] = useState<any[]>([]);
@@ -41,10 +43,11 @@ export default function EditarCliente() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    // Verificar si el usuario es admin
+    // Verificar si el usuario que está editando es admin
     const permissions = getPermissions();
     if (permissions) {
       const userIsAdmin = permissions.type === 'admin';
+      setIsEditingAdmin(userIsAdmin);
       if (!userIsAdmin) {
         // No es admin, redirigir al dashboard
         router.push('/dashboard');
