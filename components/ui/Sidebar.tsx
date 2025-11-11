@@ -16,7 +16,6 @@ import {
   DocumentTextIcon,
   CurrencyDollarIcon,
   CircleStackIcon,
-  MapIcon,
   CodeBracketIcon,
 } from '@heroicons/react/24/outline';
 import SidebarItem from './SidebarItem';
@@ -98,7 +97,6 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     { href: '/db-manager', label: 'DB Manager', perm: 'dbManager', icon: <CircleStackIcon className="w-5 h-5" /> },
     { href: '/consumo-api', label: 'Consumo API', perm: 'consumoApi', icon: <ChartBarIcon className="w-5 h-5" /> },
     { href: '/developers', label: 'Developers', perm: 'developers', icon: <CodeBracketIcon className="w-5 h-5" /> },
-    { href: '/roadmap', label: 'Roadmap', perm: 'roadmap', icon: <MapIcon className="w-5 h-5" /> },
   ];
 
   // Filtrar items según permisos
@@ -112,8 +110,8 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
       return permissions.type === 'admin';
     }
     
-    // DB Manager y Roadmap solo para admins
-    if (item.perm === 'dbManager' || item.perm === 'roadmap') {
+    // DB Manager solo para admins
+    if (item.perm === 'dbManager') {
       return permissions.type === 'admin';
     }
     
