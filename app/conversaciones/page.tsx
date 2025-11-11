@@ -250,6 +250,7 @@ export default function Conversaciones() {
       // Agrupar por user_id, filtrando los que no tienen user_id, son null, vacío o 'unknown'
       const groups = new Map<string, Document[]>();
       const allowUnknown = includeUnknownConversations && isAdminUser;
+      console.log('[CONVERSACIONES] allowUnknown:', allowUnknown, 'includeUnknownConversations:', includeUnknownConversations, 'isAdminUser:', isAdminUser);
       
       allDocuments.forEach(doc => {
         // Determinar ID de usuario válido
@@ -322,19 +323,32 @@ export default function Conversaciones() {
       }).filter(group => {
         // Si es un grupo "unknown" y allowUnknown está activo, incluirlo
         if (group.isUnknown) {
-          return allowUnknown;
+          const result = allowUnknown;
+          console.log('[CONVERSACIONES] Filtro unknown group:', group.user_id, 'result:', result);
+          return result;
         }
         // Para grupos normales, verificar que tengan phone_id válido
         // PERO si allowUnknown está activo, también permitir grupos sin phone_id
         if (allowUnknown) {
           // Si allowUnknown está activo, permitir grupos sin phone_id válido
+          console.log('[CONVERSACIONES] Filtro normal group con allowUnknown activo:', group.user_id, 'phone_id:', group.phone_number_id);
           return true;
         }
         const phoneIdRaw = group.phone_number_id;
-        if (phoneIdRaw === null || phoneIdRaw === undefined) return false;
+        if (phoneIdRaw === null || phoneIdRaw === undefined) {
+          console.log('[CONVERSACIONES] Filtro rechazado - phone_id null/undefined:', group.user_id);
+          return false;
+        }
         const phoneIdStr = String(phoneIdRaw).trim();
-        if (phoneIdStr.length === 0) return false;
-        if (phoneIdStr.toLowerCase() === 'unknown') return false;
+        if (phoneIdStr.length === 0) {
+          console.log('[CONVERSACIONES] Filtro rechazado - phone_id vacío:', group.user_id);
+          return false;
+        }
+        if (phoneIdStr.toLowerCase() === 'unknown') {
+          console.log('[CONVERSACIONES] Filtro rechazado - phone_id unknown:', group.user_id);
+          return false;
+        }
+        console.log('[CONVERSACIONES] Filtro aceptado:', group.user_id, 'phone_id:', phoneIdStr);
         return true;
       }).sort((a, b) => {
         const dateA = new Date(a.lastDate).getTime();
