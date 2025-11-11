@@ -816,27 +816,35 @@ export default function Conversaciones() {
                       {selectedConversation.phone_number_id && selectedConversation.phone_number_id.trim() !== '' && (
                         <p className="text-xs text-gray-500">{selectedConversation.phone_number_id}</p>
                       )}
+                      {selectedConversation.lastDate && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {formatDate(selectedConversation.lastDate)}
+                        </p>
+                      )}
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                       {selectedConversation.messages.map((message, index) => {
-                        // Determinar el tipo de mensaje y su contenido
-                        const messageType = message['message-Human'] ? 'human' : 
-                                          message['message-AI'] ? 'ai' : 
-                                          message['message'] ? (message.type === 'user' ? 'human' : 'ai') : null;
-                        const messageContent = message['message-Human'] || message['message-AI'] || message['message'] || '';
+                        const hasHuman = message['message-Human'] && message['message-Human'].trim() !== '';
+                        const hasAI = message['message-AI'] && message['message-AI'].trim() !== '';
+                        const hasMessage = message['message'] && message['message'].trim() !== '';
                         
-                        if (!messageContent) return null;
+                        // Si no tiene ningún mensaje, no mostrar nada
+                        if (!hasHuman && !hasAI && !hasMessage) return null;
                         
                         return (
-                          <div key={index} className="flex flex-col gap-1">
-                            {/* Mensaje Human */}
-                            {messageType === 'human' && (
+                          <div key={index} className="flex flex-col gap-2">
+                            {/* Mensaje Human - mostrar si existe message-Human o message con type user */}
+                            {(hasHuman || (hasMessage && message.type === 'user')) && (
                               <div className="flex justify-end">
                                 <div className="max-w-[70%] bg-green-500 text-white rounded-lg px-4 py-2">
                                   <p className="text-sm">
                                     {searchQuery 
-                                      ? highlightSearchText(messageContent, searchQuery, true)
-                                      : messageContent
+                                      ? highlightSearchText(
+                                          message['message-Human'] || message['message'] || '', 
+                                          searchQuery, 
+                                          true
+                                        )
+                                      : (message['message-Human'] || message['message'] || '')
                                     }
                                   </p>
                                   <p className="text-xs text-green-100 mt-1 text-right">
@@ -846,14 +854,17 @@ export default function Conversaciones() {
                               </div>
                             )}
                             
-                            {/* Mensaje AI */}
-                            {messageType === 'ai' && (
+                            {/* Mensaje AI - mostrar si existe message-AI o message con type agent */}
+                            {(hasAI || (hasMessage && message.type === 'agent')) && (
                               <div className="flex justify-start">
                                 <div className="max-w-[70%] bg-white rounded-lg px-4 py-2 shadow-sm">
                                   <p className="text-sm text-gray-800">
                                     {searchQuery 
-                                      ? highlightSearchText(messageContent, searchQuery)
-                                      : messageContent
+                                      ? highlightSearchText(
+                                          message['message-AI'] || message['message'] || '', 
+                                          searchQuery
+                                        )
+                                      : (message['message-AI'] || message['message'] || '')
                                     }
                                   </p>
                                   <p className="text-xs text-gray-500 mt-1">
