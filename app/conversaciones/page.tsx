@@ -159,9 +159,9 @@ export default function Conversaciones() {
       if (searchQuery && searchQuery.trim()) {
         try {
           // Construir filtros para Meilisearch (formato string)
+          // Nota: type no es buscable en Meilisearch, se filtra manualmente después
           const filters: string[] = [];
           filters.push(`agent = "${selectedAgent}"`);
-          filters.push(`type = "agent"`);
           
           // Meilisearch necesita fechas como strings ISO, no timestamps
           if (dateFrom && dateTo) {
@@ -180,8 +180,25 @@ export default function Conversaciones() {
             { filter: filters.join(' AND ') }
           );
           
-          allDocuments.push(...(searchResults.hits as Document[]));
-          console.log(`Búsqueda encontrada: ${allDocuments.length} documentos`);
+          // Filtrar manualmente por type (agent o user) y rango de fechas
+          // porque type no es buscable en Meilisearch
+          const filteredResults = (searchResults.hits as Document[]).filter((doc: Document) => {
+            const isTypeAgent = doc.type === 'agent' || doc.type === 'user';
+            
+            // Filtro de fechas
+            let isInDateRange = true;
+            if (dateFrom && doc.datetime) {
+              const docDate = new Date(doc.datetime);
+              const fromDate = new Date(dateFrom + 'T00:00:00');
+              const toDate = new Date(dateTo + 'T23:59:59');
+              isInDateRange = docDate >= fromDate && docDate <= toDate;
+            }
+            
+            return isTypeAgent && isInDateRange;
+          });
+          
+          allDocuments.push(...filteredResults);
+          console.log(`Búsqueda encontrada: ${filteredResults.length} documentos (filtrados de ${searchResults.hits.length})`);
         } catch (err: any) {
           // Si la búsqueda con filtros falla, continuar silenciosamente con carga normal
           // Esto es esperado cuando Meilisearch no puede procesar ciertos filtros
@@ -200,10 +217,10 @@ export default function Conversaciones() {
         while (hasMore) {
           const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
           
-          // Filtrar por agente, por type === 'agent' y por rango de fechas
+          // Filtrar por agente, por type === 'agent' o 'user' y por rango de fechas
           const filtered = data.results.filter((doc: Document) => {
             const isAgent = doc.agent === selectedAgent;
-            const isTypeAgent = doc.type === 'agent';
+            const isTypeAgent = doc.type === 'agent' || doc.type === 'user';
             
             // Filtro de fechas
             let isInDateRange = true;
@@ -230,36 +247,57 @@ export default function Conversaciones() {
       console.log(`Total de documentos cargados: ${allDocuments.length}`);
       console.log('Ejemplos de documentos:', allDocuments.slice(0, 3));
       
-      // Agrupar por user_id, SOLO los que tienen user_id válido (no "unknown", no null, no vacío)
+      // Agrupar por phone_id/session_id (prioridad) o user_id (respaldo)
       const groups = new Map<string, Document[]>();
       
       allDocuments.forEach(doc => {
-        // Verificar que tenga user_id válido (no "unknown", no null, no vacío)
-        const userIdFromDoc = doc.user_id;
-        const userIdFromIdUser = doc.iduser;
+        // Prioridad 1: phone_id o phone_number_id
+        const phoneId = doc.phone_id || doc.phone_number_id;
+        let groupKey: string | null = null;
         
-        // Determinar user_id válido
-        let validUserId: string | null = null;
-        
-        if (userIdFromDoc && userIdFromDoc !== 'unknown' && String(userIdFromDoc).trim().length > 0) {
-          validUserId = String(userIdFromDoc).trim();
-        } else if (userIdFromIdUser && userIdFromIdUser !== 'unknown' && String(userIdFromIdUser).trim().length > 0) {
-          validUserId = String(userIdFromIdUser).trim();
+        if (phoneId && phoneId !== 'unknown' && String(phoneId).trim().length > 0) {
+          groupKey = `phone_${String(phoneId).trim()}`;
+        } else {
+          // Prioridad 2: session_id
+          const sessionId = doc.session_id;
+          if (sessionId && sessionId !== 'unknown' && String(sessionId).trim().length > 0) {
+            groupKey = `session_${String(sessionId).trim()}`;
+          } else {
+            // Prioridad 3: user_id o sus variaciones
+            const possibleUserFields = [
+              doc.user_id,
+              doc.iduser,
+              doc.userid,
+              doc.i_user,
+              doc.id_user,
+              doc.userId,
+              doc.userID,
+              doc.IDuser,
+              doc.ID_user
+            ];
+            
+            for (const userIdValue of possibleUserFields) {
+              if (userIdValue && userIdValue !== 'unknown' && String(userIdValue).trim().length > 0) {
+                groupKey = `user_${String(userIdValue).trim()}`;
+                break; // Usar el primer campo válido encontrado
+              }
+            }
+          }
         }
         
-        // Solo agrupar si tiene user_id válido
-        if (validUserId) {
-          if (!groups.has(validUserId)) {
-            groups.set(validUserId, []);
+        // Solo agrupar si tiene una clave válida
+        if (groupKey) {
+          if (!groups.has(groupKey)) {
+            groups.set(groupKey, []);
           }
-          groups.get(validUserId)!.push(doc);
+          groups.get(groupKey)!.push(doc);
         }
       });
       
       console.log(`Total de conversaciones agrupadas: ${groups.size}`);
       
       // Convertir a array y ordenar
-      const conversationGroupsArray: ConversationGroup[] = Array.from(groups.entries()).map(([iduser, messages]) => {
+      const conversationGroupsArray: ConversationGroup[] = Array.from(groups.entries()).map(([groupKey, messages]) => {
         // Ordenar mensajes por datetime
         const sortedMessages = messages.sort((a, b) => {
           const dateA = a.datetime ? new Date(a.datetime).getTime() : 0;
@@ -268,38 +306,135 @@ export default function Conversaciones() {
         });
         
         const lastMessage = sortedMessages[sortedMessages.length - 1];
+        
+        // Extraer phone_id, session_id y user_id del grupo
         const rawPhoneId = lastMessage.phone_number_id || lastMessage.phone_id || '';
         const phoneId = rawPhoneId ? String(rawPhoneId).trim() : '';
+        const sessionId = lastMessage.session_id ? String(lastMessage.session_id).trim() : '';
         
-        // Obtener último mensaje de texto (Human o AI)
+        // Determinar user_id de todas las variaciones posibles
+        let userId = '';
+        const possibleUserFields = [
+          lastMessage.user_id,
+          lastMessage.iduser,
+          lastMessage.userid,
+          lastMessage.i_user,
+          lastMessage.id_user,
+          lastMessage.userId,
+          lastMessage.userID,
+          lastMessage.IDuser,
+          lastMessage.ID_user
+        ];
+        
+        for (const userIdValue of possibleUserFields) {
+          if (userIdValue && userIdValue !== 'unknown' && String(userIdValue).trim().length > 0) {
+            userId = String(userIdValue).trim();
+            break;
+          }
+        }
+        
+        // Si no hay userId del último mensaje, buscar en todos los mensajes del grupo
+        if (!userId) {
+          for (const msg of sortedMessages) {
+            const possibleUserFields = [
+              msg.user_id,
+              msg.iduser,
+              msg.userid,
+              msg.i_user,
+              msg.id_user,
+              msg.userId,
+              msg.userID,
+              msg.IDuser,
+              msg.ID_user
+            ];
+            
+            for (const userIdValue of possibleUserFields) {
+              if (userIdValue && userIdValue !== 'unknown' && String(userIdValue).trim().length > 0) {
+                userId = String(userIdValue).trim();
+                break;
+              }
+            }
+            if (userId) break;
+          }
+        }
+        
+        // Si aún no hay userId, extraerlo de la clave del grupo (sin el prefijo)
+        if (!userId && groupKey) {
+          const parts = groupKey.split('_');
+          if (parts.length > 1) {
+            userId = parts.slice(1).join('_'); // Tomar todo después del prefijo
+          } else {
+            userId = groupKey;
+          }
+        }
+        
+        // Si aún no hay userId, usar 'unknown' como último recurso
+        if (!userId) {
+          userId = 'unknown';
+        }
+        
+        // Debug: mostrar información de extracción
+        console.log('[MAPEO] Grupo:', {
+          groupKey,
+          userId,
+          phoneId,
+          sessionId,
+          lastMessageKeys: Object.keys(lastMessage)
+        });
+        
+        // Obtener último mensaje de texto (Human, AI o message genérico)
         let lastMessageText = '';
         if (lastMessage['message-Human']) {
           lastMessageText = lastMessage['message-Human'].substring(0, 50);
         } else if (lastMessage['message-AI']) {
           lastMessageText = lastMessage['message-AI'].substring(0, 50);
+        } else if (lastMessage['message']) {
+          lastMessageText = lastMessage['message'].substring(0, 50);
         }
         
+        // Debug: mostrar información final del grupo
+        console.log('[MAPEO] Grupo final:', {
+          groupKey,
+          userId,
+          phoneId,
+          sessionId,
+          phone_number_id: phoneId || sessionId || ''
+        });
+        
         return {
-          user_id: iduser,
-          phone_number_id: phoneId,
+          user_id: userId,
+          phone_number_id: phoneId || sessionId || '',
           lastMessage: lastMessageText,
           lastDate: lastMessage.datetime || '',
           messages: sortedMessages
         };
       }).filter(group => {
-        // Filtrar: solo mostrar si tiene phone_id válido (no vacío, no null, no "unknown")
-        const phoneIdRaw = group.phone_number_id;
-        if (!phoneIdRaw || phoneIdRaw === null || phoneIdRaw === undefined) {
-          return false;
+        // Filtrar: mostrar si tiene user_id válido (phone_id es opcional)
+        const userIdRaw = group.user_id;
+        
+        // Debug: mostrar información del grupo
+        console.log('[FILTRO] Grupo:', {
+          user_id: userIdRaw,
+          phone_number_id: group.phone_number_id,
+          hasUserId: !!userIdRaw,
+          userIdType: typeof userIdRaw,
+          userIdLength: userIdRaw ? String(userIdRaw).length : 0
+        });
+        
+        // Mostrar si tiene user_id válido (no null, no undefined, no vacío, no "unknown")
+        if (userIdRaw && userIdRaw !== null && userIdRaw !== undefined) {
+          const userIdStr = String(userIdRaw).trim();
+          if (userIdStr.length > 0 && userIdStr.toLowerCase() !== 'unknown') {
+            console.log('[FILTRO] Aceptado por user_id:', userIdStr);
+            return true;
+          } else {
+            console.log('[FILTRO] Rechazado - user_id inválido:', userIdStr);
+          }
+        } else {
+          console.log('[FILTRO] Rechazado - user_id es null/undefined:', userIdRaw);
         }
-        const phoneIdStr = String(phoneIdRaw).trim();
-        if (phoneIdStr.length === 0) {
-          return false;
-        }
-        if (phoneIdStr.toLowerCase() === 'unknown') {
-          return false;
-        }
-        return true;
+        
+        return false;
       }).sort((a, b) => {
         const dateA = new Date(a.lastDate).getTime();
         const dateB = new Date(b.lastDate).getTime();
@@ -315,8 +450,10 @@ export default function Conversaciones() {
           return group.messages.some(message => {
             const humanMsg = message['message-Human'] || '';
             const aiMsg = message['message-AI'] || '';
+            const genericMsg = message['message'] || '';
             return humanMsg.toLowerCase().includes(queryLower) || 
-                   aiMsg.toLowerCase().includes(queryLower);
+                   aiMsg.toLowerCase().includes(queryLower) ||
+                   genericMsg.toLowerCase().includes(queryLower);
           });
         });
         console.log(`Conversaciones filtradas por búsqueda: ${filteredConversations.length} de ${conversationGroupsArray.length}`);
@@ -657,7 +794,9 @@ export default function Conversaciones() {
                             <span className="font-semibold text-gray-900 truncate">{group.user_id}</span>
                             <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{formatTime(group.lastDate)}</span>
                           </div>
-                          <p className="text-xs text-gray-500 mb-1 truncate">{group.phone_number_id}</p>
+                          {group.phone_number_id && group.phone_number_id.trim() !== '' && (
+                            <p className="text-xs text-gray-500 mb-1 truncate">{group.phone_number_id}</p>
+                          )}
                           <p className="text-sm text-gray-600 truncate">
                             {searchQuery ? highlightSearchText(group.lastMessage, searchQuery) : group.lastMessage}...
                           </p>
@@ -674,46 +813,58 @@ export default function Conversaciones() {
                   <>
                     <div className="p-4 bg-gray-50 border-b border-gray-200">
                       <h3 className="font-semibold text-gray-900">{selectedConversation.user_id}</h3>
-                      <p className="text-xs text-gray-500">{selectedConversation.phone_number_id}</p>
+                      {selectedConversation.phone_number_id && selectedConversation.phone_number_id.trim() !== '' && (
+                        <p className="text-xs text-gray-500">{selectedConversation.phone_number_id}</p>
+                      )}
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                      {selectedConversation.messages.map((message, index) => (
-                        <div key={index} className="flex flex-col gap-1">
-                          {/* Mensaje Human */}
-                          {message['message-Human'] && (
-                            <div className="flex justify-end">
-                              <div className="max-w-[70%] bg-green-500 text-white rounded-lg px-4 py-2">
-                                <p className="text-sm">
-                                  {searchQuery 
-                                    ? highlightSearchText(message['message-Human'], searchQuery, true)
-                                    : message['message-Human']
-                                  }
-                                </p>
-                                <p className="text-xs text-green-100 mt-1 text-right">
-                                  {formatTime(message.datetime)}
-                                </p>
+                      {selectedConversation.messages.map((message, index) => {
+                        // Determinar el tipo de mensaje y su contenido
+                        const messageType = message['message-Human'] ? 'human' : 
+                                          message['message-AI'] ? 'ai' : 
+                                          message['message'] ? (message.type === 'user' ? 'human' : 'ai') : null;
+                        const messageContent = message['message-Human'] || message['message-AI'] || message['message'] || '';
+                        
+                        if (!messageContent) return null;
+                        
+                        return (
+                          <div key={index} className="flex flex-col gap-1">
+                            {/* Mensaje Human */}
+                            {messageType === 'human' && (
+                              <div className="flex justify-end">
+                                <div className="max-w-[70%] bg-green-500 text-white rounded-lg px-4 py-2">
+                                  <p className="text-sm">
+                                    {searchQuery 
+                                      ? highlightSearchText(messageContent, searchQuery, true)
+                                      : messageContent
+                                    }
+                                  </p>
+                                  <p className="text-xs text-green-100 mt-1 text-right">
+                                    {formatTime(message.datetime)}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          )}
-                          
-                          {/* Mensaje AI */}
-                          {message['message-AI'] && (
-                            <div className="flex justify-start">
-                              <div className="max-w-[70%] bg-white rounded-lg px-4 py-2 shadow-sm">
-                                <p className="text-sm text-gray-800">
-                                  {searchQuery 
-                                    ? highlightSearchText(message['message-AI'], searchQuery)
-                                    : message['message-AI']
-                                  }
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {formatTime(message.datetime)}
-                                </p>
+                            )}
+                            
+                            {/* Mensaje AI */}
+                            {messageType === 'ai' && (
+                              <div className="flex justify-start">
+                                <div className="max-w-[70%] bg-white rounded-lg px-4 py-2 shadow-sm">
+                                  <p className="text-sm text-gray-800">
+                                    {searchQuery 
+                                      ? highlightSearchText(messageContent, searchQuery)
+                                      : messageContent
+                                    }
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {formatTime(message.datetime)}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 ) : (
