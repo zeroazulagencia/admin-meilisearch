@@ -143,6 +143,10 @@ export default function Developers() {
     setEditingDoc(null);
     setShowCreateModal(true);
   };
+  const getContentPreview = (html: string) => {
+    if (!html) return '';
+    return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  };
 
   const handleEditDoc = (doc: DeveloperDoc) => {
     setEditingDoc(doc);
@@ -344,7 +348,7 @@ export default function Developers() {
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 mb-3 line-clamp-3 break-words overflow-wrap-anywhere">
-                      {doc.content}
+                      {getContentPreview(doc.content)}
                     </p>
                     <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                       <span>
