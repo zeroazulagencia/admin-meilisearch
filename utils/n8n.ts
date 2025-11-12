@@ -83,9 +83,24 @@ export const n8nAPI = {
   async getDataTables(): Promise<DataTable[]> {
     try {
       const response = await api.get('/data-tables');
-      return response.data.data || [];
+      // La respuesta de n8n puede venir en diferentes formatos
+      // Intentar diferentes estructuras posibles
+      if (response.data && Array.isArray(response.data)) {
+        return response.data;
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      } else if (response.data && response.data.tables && Array.isArray(response.data.tables)) {
+        return response.data.tables;
+      }
+      return [];
     } catch (error: any) {
       console.error('Error obteniendo datatables de n8n:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        url: error?.config?.url
+      });
       // Si la API no existe o hay error, retornar array vacío
       return [];
     }
