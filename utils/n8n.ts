@@ -80,20 +80,52 @@ export const n8nAPI = {
   },
 
   // Obtener todas las datatables de n8n
+  // NOTA: Las datatables pueden no estar disponibles vía API pública de n8n
+  // Están diseñadas para usarse dentro de workflows, no a través de la API
   async getDataTables(): Promise<DataTable[]> {
     try {
-      const response = await api.get('/data-tables');
-      // La respuesta de n8n puede venir en diferentes formatos
-      // Intentar diferentes estructuras posibles
-      if (response.data && Array.isArray(response.data)) {
-        return response.data;
-      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        return response.data.data;
-      } else if (response.data && response.data.tables && Array.isArray(response.data.tables)) {
-        return response.data.tables;
+      // Intentar diferentes endpoints posibles (aunque probablemente no existan)
+      const endpoints = [
+        '/data-tables',
+        '/dataTables',
+        '/data_tables',
+        '/tables'
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await api.get(endpoint);
+          // La respuesta de n8n puede venir en diferentes formatos
+          if (response.data && Array.isArray(response.data)) {
+            return response.data;
+          } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+            return response.data.data;
+          } else if (response.data && response.data.tables && Array.isArray(response.data.tables)) {
+            return response.data.tables;
+          }
+        } catch (endpointError: any) {
+          // Si es 404, este endpoint no existe, intentar el siguiente
+          if (endpointError?.response?.status === 404) {
+            continue;
+          }
+          // Si es otro error, loguearlo pero continuar
+          console.log(`[N8N] Endpoint ${endpoint} falló:`, endpointError?.response?.status);
+          continue;
+        }
       }
+      
+      // Si todos los endpoints fallaron (404), las datatables no están disponibles vía API
+      // Esto es normal - las datatables están diseñadas para workflows, no para API pública
+      console.warn('[N8N] Las datatables no están disponibles vía API. Esto es normal - las datatables están diseñadas para usarse dentro de workflows de n8n, no a través de la API pública.');
       return [];
     } catch (error: any) {
+      // Si es un 404, las datatables simplemente no están disponibles vía API (comportamiento esperado)
+      if (error?.response?.status === 404) {
+        console.warn('[N8N] Endpoint de datatables no encontrado (404). Las datatables no están expuestas en la API pública de n8n - esto es el comportamiento esperado.');
+        return [];
+      }
+      
+      // Si hay otro error, loguearlo
       console.error('Error obteniendo datatables de n8n:', error);
       console.error('Error details:', {
         message: error?.message,
@@ -101,7 +133,6 @@ export const n8nAPI = {
         status: error?.response?.status,
         url: error?.config?.url
       });
-      // Si la API no existe o hay error, retornar array vacío
       return [];
     }
   }
