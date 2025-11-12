@@ -8,7 +8,7 @@ export async function GET() {
     // Intentar cargar con todos los campos posibles, con manejo de errores para campos que pueden no existir
     try {
       const [rows] = await query<any>(
-        'SELECT id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name, reports_agent_name, whatsapp_business_account_id, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret FROM agents ORDER BY id'
+        'SELECT id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name, reports_agent_name, whatsapp_business_account_id, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret, n8n_data_table_id FROM agents ORDER BY id'
       );
       return NextResponse.json({ ok: true, agents: rows });
     } catch (e: any) {
@@ -25,7 +25,8 @@ export async function GET() {
           whatsapp_phone_number_id: null,
           whatsapp_access_token: null,
           whatsapp_webhook_verify_token: null,
-          whatsapp_app_secret: null
+          whatsapp_app_secret: null,
+          n8n_data_table_id: null
         }));
         return NextResponse.json({ ok: true, agents: agentsWithDefaults });
       } catch (e2: any) {
@@ -42,7 +43,8 @@ export async function GET() {
           whatsapp_phone_number_id: null,
           whatsapp_access_token: null,
           whatsapp_webhook_verify_token: null,
-          whatsapp_app_secret: null
+          whatsapp_app_secret: null,
+          n8n_data_table_id: null
         }));
         return NextResponse.json({ ok: true, agents: agentsWithDefaults });
       }

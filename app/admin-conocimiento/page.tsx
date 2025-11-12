@@ -70,13 +70,7 @@ export default function AdminConocimiento() {
   const [deletingIndex, setDeletingIndex] = useState(false);
   const [newIndexForm, setNewIndexForm] = useState({ uid: '', primaryKey: '' });
   const [editIndexForm, setEditIndexForm] = useState({ primaryKey: '' });
-  const [activeTab, setActiveTab] = useState<'agentes' | 'admin'>('agentes');
-  
-  // Estados para Administración General
-  const [allIndexes, setAllIndexes] = useState<Index[]>([]);
-  const [loadingAllIndexes, setLoadingAllIndexes] = useState(false);
-  const [indexStats, setIndexStats] = useState<Record<string, { numberOfDocuments: number; hasEmbedder: boolean; primaryKey?: string; createdAt: string; updatedAt: string }>>({});
-  const [downloadingJson, setDownloadingJson] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'agentes'>('agentes');
   
   // Función para cargar contenido desde URL
   const handleLoadWeb = async () => {
@@ -1289,12 +1283,8 @@ export default function AdminConocimiento() {
       setShowCreateIndexModal(false);
       setNewIndexForm({ uid: '', primaryKey: '' });
       
-      // Recargar índices según el tab activo
-      if (activeTab === 'admin') {
-        await loadAllIndexes();
-      } else {
-        await loadAgentIndexes();
-      }
+      // Recargar índices del agente
+      await loadAgentIndexes();
     } catch (error: any) {
       console.error('Error creating index:', error);
       setAlertModal({
@@ -1330,12 +1320,8 @@ export default function AdminConocimiento() {
       setIndexToEdit(null);
       setEditIndexForm({ primaryKey: '' });
       
-      // Recargar índices según el tab activo
-      if (activeTab === 'admin') {
-        await loadAllIndexes();
-      } else {
-        await loadAgentIndexes();
-      }
+      // Recargar índices del agente
+      await loadAgentIndexes();
     } catch (error: any) {
       console.error('Error updating index:', error);
       setAlertModal({
@@ -1372,12 +1358,8 @@ export default function AdminConocimiento() {
         setSelectedIndex(null);
       }
       
-      // Recargar índices según el tab activo
-      if (activeTab === 'admin') {
-        await loadAllIndexes();
-      } else {
-        await loadAgentIndexes();
-      }
+      // Recargar índices del agente
+      await loadAgentIndexes();
     } catch (error: any) {
       console.error('Error deleting index:', error);
       setAlertModal({
@@ -1409,178 +1391,6 @@ export default function AdminConocimiento() {
     }
   };
 
-  // Cargar todos los índices para Administración General
-  const loadAllIndexes = async () => {
-    setLoadingAllIndexes(true);
-    try {
-      let indexes = await meilisearchAPI.getIndexes();
-      
-      // Aplicar filtros de permisos
-      const permissions = getPermissions();
-      const userId = getUserId();
-      
-      if (permissions && userId && permissions.type !== 'admin') {
-        const adminConocimientoPerms = permissions.adminConocimiento;
-        
-        if (adminConocimientoPerms) {
-          // Si tiene viewAll, mostrar todos los índices
-          if (adminConocimientoPerms.viewAll === true) {
-            console.log('[ADMIN-CONOCIMIENTO] Tiene viewAll, mostrando todos los índices');
-          } else if (adminConocimientoPerms.viewOwn === true) {
-            // Si solo tiene viewOwn, filtrar solo índices de sus agentes
-            console.log('[ADMIN-CONOCIMIENTO] Solo tiene viewOwn, filtrando índices del cliente:', userId);
-            // Obtener todos los índices de los agentes del cliente
-            const clientAgentIndexes = new Set<string>();
-            agents.forEach(agent => {
-              if (agent.client_id === parseInt(userId)) {
-                const agentIndexes = agent.knowledge?.indexes || [];
-                agentIndexes.forEach((indexUid: string) => clientAgentIndexes.add(indexUid));
-              }
-            });
-            indexes = indexes.filter(index => clientAgentIndexes.has(index.uid));
-            console.log('[ADMIN-CONOCIMIENTO] Índices filtrados:', indexes.length);
-          } else {
-            // No tiene permisos de ver, no mostrar nada
-            console.log('[ADMIN-CONOCIMIENTO] No tiene permisos de ver índices');
-            indexes = [];
-          }
-        } else {
-          // No hay permisos configurados, no mostrar nada
-          console.log('[ADMIN-CONOCIMIENTO] No hay permisos configurados para adminConocimiento');
-          indexes = [];
-        }
-      } else if (permissions && permissions.type === 'admin') {
-        // Admin ve todos los índices
-        console.log('[ADMIN-CONOCIMIENTO] Usuario es admin, mostrando todos los índices');
-      }
-      
-      setAllIndexes(indexes);
-      
-      // Cargar estadísticas para cada índice
-      const statsPromises = indexes.map(async (index) => {
-        try {
-          const stats = await meilisearchAPI.getIndexStats(index.uid);
-          const settings = await meilisearchAPI.getIndexSettings(index.uid);
-          const hasEmbedder = settings.embedders && Object.keys(settings.embedders).length > 0;
-          
-          return {
-            uid: index.uid,
-            stats: {
-              numberOfDocuments: stats.numberOfDocuments || 0,
-              hasEmbedder: hasEmbedder || false,
-              primaryKey: index.primaryKey,
-              createdAt: index.createdAt,
-              updatedAt: index.updatedAt,
-            }
-          };
-        } catch (error) {
-          console.error(`Error cargando estadísticas de ${index.uid}:`, error);
-          return {
-            uid: index.uid,
-            stats: {
-              numberOfDocuments: 0,
-              hasEmbedder: false,
-              primaryKey: index.primaryKey,
-              createdAt: index.createdAt,
-              updatedAt: index.updatedAt,
-            }
-          };
-        }
-      });
-      
-      const statsResults = await Promise.all(statsPromises);
-      const statsMap: Record<string, { numberOfDocuments: number; hasEmbedder: boolean; primaryKey?: string; createdAt: string; updatedAt: string }> = {};
-      statsResults.forEach(({ uid, stats }) => {
-        statsMap[uid] = stats;
-      });
-      setIndexStats(statsMap);
-    } catch (error) {
-      console.error('Error cargando todos los índices:', error);
-      setAlertModal({
-        isOpen: true,
-        title: 'Error',
-        message: 'Error al cargar los índices',
-        type: 'error',
-      });
-    } finally {
-      setLoadingAllIndexes(false);
-    }
-  };
-
-  // Descargar JSON del contenido de un índice
-  const handleDownloadJson = async (indexUid: string) => {
-    setDownloadingJson(indexUid);
-    try {
-      // Obtener todos los documentos del índice
-      let allDocuments: any[] = [];
-      let offset = 0;
-      const limit = 100;
-      
-      while (true) {
-        const result = await meilisearchAPI.getDocuments(indexUid, limit, offset);
-        allDocuments.push(...result.results);
-        
-        if (result.results.length < limit || allDocuments.length >= result.total) {
-          break;
-        }
-        offset += limit;
-      }
-      
-      // Crear objeto JSON con metadata
-      const jsonData = {
-        indexUid,
-        totalDocuments: allDocuments.length,
-        exportedAt: new Date().toISOString(),
-        documents: allDocuments
-      };
-      
-      // Crear blob y descargar
-      const jsonString = JSON.stringify(jsonData, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${indexUid}_${new Date().toISOString().split('T')[0]}.json`;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      
-      // Pequeño delay para asegurar que el navegador procese el elemento
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      a.click();
-      
-      // Limpiar después de un delay
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 200);
-      
-      setAlertModal({
-        isOpen: true,
-        title: 'Éxito',
-        message: `JSON descargado exitosamente. ${allDocuments.length} documentos exportados.\n\nEl archivo se descargará automáticamente. Si no se descarga, verifica la configuración de descargas de tu navegador.`,
-        type: 'success',
-      });
-    } catch (error: any) {
-      console.error('Error descargando JSON:', error);
-      setAlertModal({
-        isOpen: true,
-        title: 'Error',
-        message: error?.response?.data?.message || error?.message || 'Error al descargar el JSON',
-        type: 'error',
-      });
-    } finally {
-      setDownloadingJson(null);
-    }
-  };
-
-  // Cargar índices cuando se cambia al tab de administración
-  useEffect(() => {
-    if (activeTab === 'admin') {
-      loadAllIndexes();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
 
   // No seleccionar agente por defecto
 
@@ -1708,38 +1518,20 @@ export default function AdminConocimiento() {
       })()}
 
       {/* Tabs */}
-      {(() => {
-        const permissions = getPermissions();
-        const canViewAll = permissions?.type === 'admin' || permissions?.adminConocimiento?.viewAll === true;
-        return (
-          <div className="mb-6 border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('agentes')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'agentes'
-                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Agentes
-              </button>
-              {canViewAll && (
-                <button
-                  onClick={() => setActiveTab('admin')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'admin'
-                      ? 'border-[#5DE1E5] text-[#5DE1E5]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  Administración General
-                </button>
-              )}
-            </nav>
-          </div>
-        );
-      })()}
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('agentes')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'agentes'
+                ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Agentes
+          </button>
+        </nav>
+      </div>
       
       <div className="space-y-6">
         {/* Tab: Agentes */}
@@ -1978,133 +1770,6 @@ export default function AdminConocimiento() {
           </>
         )}
 
-        {/* Tab: Administración General */}
-        {(() => {
-          const permissions = getPermissions();
-          const canViewAll = permissions?.type === 'admin' || permissions?.adminConocimiento?.viewAll === true;
-          const canEdit = permissions?.type === 'admin' || permissions?.adminConocimiento?.editAll === true;
-          const canCreate = permissions?.type === 'admin' || permissions?.adminConocimiento?.createAll === true;
-          
-          if (activeTab !== 'admin' || !canViewAll) return null;
-          
-          return (
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Gestión de Índices de Meilisearch</h2>
-                  {canCreate && (
-                    <button
-                      onClick={() => {
-                        setNewIndexForm({ uid: '', primaryKey: '' });
-                        setShowCreateIndexModal(true);
-                      }}
-                      className="px-4 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-all"
-                      style={{ backgroundColor: '#5DE1E5' }}
-                    >
-                      + Crear Índice
-                    </button>
-                  )}
-                </div>
-
-              {loadingAllIndexes ? (
-                <div className="flex justify-center items-center py-8">
-                  <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
-                </div>
-              ) : allIndexes.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No hay índices disponibles
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {allIndexes.map((index) => {
-                    const stats = indexStats[index.uid] || {
-                      numberOfDocuments: 0,
-                      hasEmbedder: false,
-                      primaryKey: index.primaryKey,
-                      createdAt: index.createdAt,
-                      updatedAt: index.updatedAt,
-                    };
-                    
-                    return (
-                      <div key={index.uid} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">{index.uid}</h3>
-                              {stats.hasEmbedder && (
-                                <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium">
-                                  ✓ Embedder
-                                </span>
-                              )}
-                              {!stats.hasEmbedder && (
-                                <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full font-medium">
-                                  ⚠ Sin Embedder
-                                </span>
-                              )}
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-sm">
-                              <div>
-                                <span className="text-gray-500">Documentos:</span>
-                                <span className="ml-2 font-semibold text-gray-900">{stats.numberOfDocuments.toLocaleString()}</span>
-                              </div>
-                              {stats.primaryKey && (
-                                <div>
-                                  <span className="text-gray-500">Primary Key:</span>
-                                  <span className="ml-2 font-mono text-gray-900">{stats.primaryKey}</span>
-                                </div>
-                              )}
-                              <div>
-                                <span className="text-gray-500">Creado:</span>
-                                <span className="ml-2 text-gray-900">
-                                  {new Date(stats.createdAt).toLocaleDateString('es-ES')}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Actualizado:</span>
-                                <span className="ml-2 text-gray-900">
-                                  {new Date(stats.updatedAt).toLocaleDateString('es-ES')}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            <button
-                              onClick={() => handleDownloadJson(index.uid)}
-                              disabled={downloadingJson === index.uid}
-                              className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Descargar JSON del contenido"
-                            >
-                              {downloadingJson === index.uid ? 'Descargando...' : '📥 JSON'}
-                            </button>
-                            {canEdit && (
-                              <>
-                                <button
-                                  onClick={() => openEditIndexModal(index)}
-                                  className="px-3 py-1.5 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
-                                  title="Editar índice"
-                                >
-                                  Editar
-                                </button>
-                                <button
-                                  onClick={() => openDeleteIndexModal(index)}
-                                  className="px-3 py-1.5 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                                  title="Eliminar índice"
-                                >
-                                  Eliminar
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-          );
-        })()}
       </div>
 
       {/* Modal para Cargar PDF */}

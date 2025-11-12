@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { meilisearchAPI, Index } from '@/utils/meilisearch';
-import { n8nAPI, Workflow } from '@/utils/n8n';
+import { n8nAPI, Workflow, DataTable } from '@/utils/n8n';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
 import AgentSelector from '@/components/ui/AgentSelector';
@@ -39,6 +39,7 @@ interface AgentDB {
   whatsapp_access_token?: string;
   whatsapp_webhook_verify_token?: string;
   whatsapp_app_secret?: string;
+  n8n_data_table_id?: string;
 }
 
 export default function EditarAgente() {
@@ -85,10 +86,13 @@ export default function EditarAgente() {
   const [refreshingData, setRefreshingData] = useState(false);
   const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
   const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores' | 'conexiones-bd'>('general');
   const [showAIImageModal, setShowAIImageModal] = useState(false);
   const [aiImagePrompt, setAiImagePrompt] = useState('');
   const [generatingImage, setGeneratingImage] = useState(false);
+  const [availableDataTables, setAvailableDataTables] = useState<DataTable[]>([]);
+  const [loadingDataTables, setLoadingDataTables] = useState(false);
+  const [selectedDataTable, setSelectedDataTable] = useState<string>('');
 
   useEffect(() => {
     // Cargar clientes desde MySQL
@@ -153,6 +157,7 @@ export default function EditarAgente() {
           }
           setSelectedConversationAgent(agent.conversation_agent_name || '');
           setSelectedReportAgent(agent.reports_agent_name || '');
+          setSelectedDataTable(agent.n8n_data_table_id || '');
         } else {
           router.push('/agentes');
         }
@@ -169,7 +174,20 @@ export default function EditarAgente() {
     loadWorkflows();
     loadConversationAgents();
     loadReportAgents();
+    loadDataTables();
   }, []);
+
+  const loadDataTables = async () => {
+    setLoadingDataTables(true);
+    try {
+      const dataTables = await n8nAPI.getDataTables();
+      setAvailableDataTables(dataTables);
+    } catch (error) {
+      console.error('Error loading data tables:', error);
+    } finally {
+      setLoadingDataTables(false);
+    }
+  };
 
   // Recargar valores seleccionados cuando los datos estén disponibles
   useEffect(() => {
@@ -466,6 +484,7 @@ export default function EditarAgente() {
         reports_agent_name: selectedReportAgent || null,
         whatsapp_business_account_id: formData.whatsapp_business_account_id || null,
         whatsapp_phone_number_id: formData.whatsapp_phone_number_id || null,
+        n8n_data_table_id: selectedDataTable || null,
       };
       
       // CRÍTICO: Validar y preparar tokens para actualización
@@ -894,6 +913,17 @@ export default function EditarAgente() {
                   >
                     Identificadores
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('conexiones-bd')}
+                    className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                      activeTab === 'conexiones-bd'
+                        ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Conexiones BD
+                  </button>
                 </>
               )}
             </nav>
@@ -1309,6 +1339,62 @@ export default function EditarAgente() {
                 )}
               </>
             )}
+              </div>
+            </div>
+          )}
+
+          {/* Tab: Conexiones BD */}
+          {activeTab === 'conexiones-bd' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
+              <h2 className="text-base/7 font-semibold text-gray-900 mb-6">Conexiones de Base de Datos</h2>
+              <p className="mt-1 text-sm/6 text-gray-600 mb-8">
+                Configura las conexiones de base de datos para este agente.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Columna 1: DataTables de n8n */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-900">DataTables de n8n</h3>
+                  {loadingDataTables ? (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <div className="animate-spin h-5 w-5 border-2 border-gray-300 border-t-transparent rounded-full"></div>
+                      <p className="text-sm">Cargando datatables...</p>
+                    </div>
+                  ) : (
+                    <div className="mt-2 grid grid-cols-1">
+                      <select
+                        id="n8n_data_table_id"
+                        name="n8n_data_table_id"
+                        disabled={!canEdit}
+                        value={selectedDataTable}
+                        onChange={(e) => setSelectedDataTable(e.target.value)}
+                        className={`col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
+                      >
+                        <option value="">Seleccionar datatable...</option>
+                        {availableDataTables.map((table) => (
+                          <option key={table.id} value={table.id}>
+                            {table.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon
+                        aria-hidden="true"
+                        className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4"
+                      />
+                    </div>
+                  )}
+                  {availableDataTables.length === 0 && !loadingDataTables && (
+                    <p className="text-sm text-gray-500 mt-2">No hay datatables disponibles</p>
+                  )}
+                </div>
+
+                {/* Columna 2: Bases de datos externas */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-900">Bases de datos externas</h3>
+                  <div className="mt-2 p-4 bg-gray-50 border border-gray-200 rounded-md">
+                    <p className="text-sm text-gray-600">En construcción</p>
+                  </div>
+                </div>
               </div>
             </div>
           )}

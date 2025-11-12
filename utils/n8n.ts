@@ -40,6 +40,13 @@ export interface ExecutionsResponse {
   nextCursor?: string;
 }
 
+export interface DataTable {
+  id: string;
+  name: string;
+  columns: Array<{ name: string; type: string }>;
+  rowCount?: number;
+}
+
 export const n8nAPI = {
   // Obtener todos los workflows
   async getWorkflows(): Promise<Workflow[]> {
@@ -70,6 +77,18 @@ export const n8nAPI = {
       params: { includeData: true }
     });
     return response.data;
+  },
+
+  // Obtener todas las datatables de n8n
+  async getDataTables(): Promise<DataTable[]> {
+    try {
+      const response = await api.get('/data-tables');
+      return response.data.data || [];
+    } catch (error: any) {
+      console.error('Error obteniendo datatables de n8n:', error);
+      // Si la API no existe o hay error, retornar array vacío
+      return [];
+    }
   }
 };
 

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Primero intentar con reports_agent_name, si falla intentar sin él
     try {
       const [rows] = await query<any>(
-        'SELECT id, client_id, name, description, photo, status, knowledge, workflows, conversation_agent_name, reports_agent_name, whatsapp_business_account_id, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret FROM agents WHERE id = ? LIMIT 1',
+        'SELECT id, client_id, name, description, photo, status, knowledge, workflows, conversation_agent_name, reports_agent_name, whatsapp_business_account_id, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret, n8n_data_table_id FROM agents WHERE id = ? LIMIT 1',
         [id]
       );
       if (!rows || rows.length === 0) {
@@ -111,7 +111,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         whatsapp_phone_number_id: null,
         whatsapp_access_token: null,
         whatsapp_webhook_verify_token: null,
-        whatsapp_app_secret: null
+        whatsapp_app_secret: null,
+        n8n_data_table_id: null
       };
       
       return NextResponse.json({ ok: true, agent });
@@ -336,6 +337,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           body.reports_agent_name || null
         );
         
+        // Agregar n8n_data_table_id si existe
+        if (body.n8n_data_table_id !== undefined) {
+          updateFields.push('n8n_data_table_id = ?');
+          updateValues.push(body.n8n_data_table_id || null);
+        }
+        
         // Solo agregar campos de WhatsApp si se enviaron
         if (body.whatsapp_business_account_id !== undefined) {
           updateFields.push('whatsapp_business_account_id = ?');
@@ -410,20 +417,52 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
       if (reportsAgentNameExists) {
         try {
-          await query(
-            'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ? WHERE id = ?',
-            [
-              body.client_id,
-              body.name,
-              body.description || null,
-              body.photo || null,
-              JSON.stringify(body.knowledge || {}),
-              JSON.stringify(body.workflows || {}),
-              body.conversation_agent_name || null,
-              body.reports_agent_name || null,
-              id
-            ]
-          );
+          // Verificar si n8n_data_table_id existe
+          let n8nDataTableIdExists = false;
+          try {
+            const [n8nCheck] = await query<any>(
+              `SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS 
+               WHERE TABLE_SCHEMA = DATABASE() 
+               AND TABLE_NAME = 'agents' 
+               AND COLUMN_NAME = 'n8n_data_table_id'`
+            );
+            n8nDataTableIdExists = n8nCheck && n8nCheck.length > 0 && n8nCheck[0].count === 1;
+          } catch (checkError) {
+            n8nDataTableIdExists = false;
+          }
+          
+          if (n8nDataTableIdExists && body.n8n_data_table_id !== undefined) {
+            await query(
+              'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ?, n8n_data_table_id = ? WHERE id = ?',
+              [
+                body.client_id,
+                body.name,
+                body.description || null,
+                body.photo || null,
+                JSON.stringify(body.knowledge || {}),
+                JSON.stringify(body.workflows || {}),
+                body.conversation_agent_name || null,
+                body.reports_agent_name || null,
+                body.n8n_data_table_id || null,
+                id
+              ]
+            );
+          } else {
+            await query(
+              'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ? WHERE id = ?',
+              [
+                body.client_id,
+                body.name,
+                body.description || null,
+                body.photo || null,
+                JSON.stringify(body.knowledge || {}),
+                JSON.stringify(body.workflows || {}),
+                body.conversation_agent_name || null,
+                body.reports_agent_name || null,
+                id
+              ]
+            );
+          }
           console.log('[API AGENTS] Successfully updated without WhatsApp fields');
           return NextResponse.json({ ok: true });
         } catch (e2: any) {
