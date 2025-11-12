@@ -1384,7 +1384,16 @@ export default function EditarAgente() {
                     </div>
                   )}
                   {availableDataTables.length === 0 && !loadingDataTables && (
-                    <p className="text-sm text-gray-500 mt-2">No hay datatables disponibles</p>
+                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">
+                        Las datatables de n8n no están disponibles vía API. Esto puede deberse a que:
+                      </p>
+                      <ul className="text-xs text-yellow-700 mt-1 ml-4 list-disc">
+                        <li>El endpoint no está disponible en tu versión de n8n</li>
+                        <li>Las datatables no están expuestas en la API</li>
+                        <li>Se requiere configuración adicional en n8n</li>
+                      </ul>
+                    </div>
                   )}
                 </div>
 
