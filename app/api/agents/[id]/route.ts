@@ -318,6 +318,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       whatsappColumnsExist = false;
     }
 
+    // Verificar si la columna n8n_data_table_id existe
+    let n8nDataTableIdExists = false;
+    try {
+      const [n8nCheck] = await query<any>(
+        `SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'agents' 
+         AND COLUMN_NAME = 'n8n_data_table_id'`
+      );
+      n8nDataTableIdExists = n8nCheck && n8nCheck.length > 0 && n8nCheck[0].count === 1;
+    } catch (checkError) {
+      console.log('[API AGENTS] Error checking n8n_data_table_id column:', checkError);
+      n8nDataTableIdExists = false;
+    }
+
     // Intentar actualizar con todos los campos si las columnas existen
     if (whatsappColumnsExist) {
       try {
@@ -337,10 +352,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           body.reports_agent_name || null
         );
         
-        // Agregar n8n_data_table_id si existe
-        if (body.n8n_data_table_id !== undefined) {
+        // Agregar n8n_data_table_id solo si la columna existe en la BD
+        if (n8nDataTableIdExists && body.n8n_data_table_id !== undefined) {
           updateFields.push('n8n_data_table_id = ?');
           updateValues.push(body.n8n_data_table_id || null);
+        } else if (body.n8n_data_table_id !== undefined && !n8nDataTableIdExists) {
+          console.log('[API AGENTS] n8n_data_table_id presente en body pero columna no existe en BD, omitiendo');
         }
         
         // Solo agregar campos de WhatsApp si se enviaron
