@@ -248,40 +248,55 @@ export default function Conversaciones() {
       console.log('Ejemplos de documentos:', allDocuments.slice(0, 3));
       
       // Agrupar por phone_id/session_id (prioridad) o user_id (respaldo)
+      // IMPORTANTE: Para WhatsApp, múltiples usuarios pueden compartir el mismo phone_id
+      // Por eso combinamos phone_id + user_id cuando ambos están presentes
       const groups = new Map<string, Document[]>();
       
       allDocuments.forEach(doc => {
-        // Prioridad 1: phone_id o phone_number_id
+        // Obtener phone_id y user_id
         const phoneId = doc.phone_id || doc.phone_number_id;
+        
+        // Obtener user_id de todas las variaciones posibles
+        let userId: string | null = null;
+        const possibleUserFields = [
+          doc.user_id,
+          doc.iduser,
+          doc.userid,
+          doc.i_user,
+          doc.id_user,
+          doc.userId,
+          doc.userID,
+          doc.IDuser,
+          doc.ID_user
+        ];
+        
+        for (const userIdValue of possibleUserFields) {
+          if (userIdValue && userIdValue !== 'unknown' && String(userIdValue).trim().length > 0) {
+            userId = String(userIdValue).trim();
+            break; // Usar el primer campo válido encontrado
+          }
+        }
+        
         let groupKey: string | null = null;
         
-        if (phoneId && phoneId !== 'unknown' && String(phoneId).trim().length > 0) {
+        // Prioridad 1: Si hay phone_id Y user_id, combinar ambos (caso WhatsApp con múltiples usuarios)
+        if (phoneId && phoneId !== 'unknown' && String(phoneId).trim().length > 0 && 
+            userId && userId !== 'unknown' && userId.length > 0) {
+          groupKey = `phone_${String(phoneId).trim()}_user_${userId}`;
+        } 
+        // Prioridad 2: Si solo hay phone_id sin user_id válido, usar solo phone_id
+        else if (phoneId && phoneId !== 'unknown' && String(phoneId).trim().length > 0) {
           groupKey = `phone_${String(phoneId).trim()}`;
-        } else {
-          // Prioridad 2: session_id
+        } 
+        // Prioridad 3: session_id
+        else {
           const sessionId = doc.session_id;
           if (sessionId && sessionId !== 'unknown' && String(sessionId).trim().length > 0) {
             groupKey = `session_${String(sessionId).trim()}`;
-          } else {
-            // Prioridad 3: user_id o sus variaciones
-            const possibleUserFields = [
-              doc.user_id,
-              doc.iduser,
-              doc.userid,
-              doc.i_user,
-              doc.id_user,
-              doc.userId,
-              doc.userID,
-              doc.IDuser,
-              doc.ID_user
-            ];
-            
-            for (const userIdValue of possibleUserFields) {
-              if (userIdValue && userIdValue !== 'unknown' && String(userIdValue).trim().length > 0) {
-                groupKey = `user_${String(userIdValue).trim()}`;
-                break; // Usar el primer campo válido encontrado
-              }
-            }
+          } 
+          // Prioridad 4: Solo user_id (caso conversaciones no-WhatsApp)
+          else if (userId && userId !== 'unknown' && userId.length > 0) {
+            groupKey = `user_${userId}`;
           }
         }
         
