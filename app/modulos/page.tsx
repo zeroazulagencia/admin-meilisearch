@@ -29,7 +29,7 @@ export default function ModulosPage() {
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [formData, setFormData] = useState({ agent_id: '', title: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' }>({
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
     type: 'info',
