@@ -157,30 +157,19 @@ export const meilisearchAPI = {
     return response.data;
   },
 
-  // Actualizar un documento específico (reemplazar completamente)
+  // Actualizar un documento específico (usa POST /documents para compatibilidad total)
   async updateDocument(uid: string, documentId: string, document: Document): Promise<any> {
-    try {
-      const response = await api.put(`/indexes/${uid}/documents/${documentId}`, document);
-      return response.data;
-    } catch (error: any) {
-      // Algunos despliegues de Meilisearch (versiones anteriores) no soportan PUT en /documents/:id
-      // Si recibimos 404/405, intentamos el flujo legacy usando POST /documents con el doc actualizado
-      if (error?.response?.status === 404 || error?.response?.status === 405) {
-        const docWithId = Array.isArray(document) ? document : [{ ...document }];
-        const normalizedDocs = docWithId.map(doc => {
-          // Asegurar que el documento contenga el ID
-          if (!doc.id) {
-            doc.id = documentId;
-          }
-          return doc;
-        });
-
-        const fallbackResponse = await api.post(`/indexes/${uid}/documents`, normalizedDocs);
-        return fallbackResponse.data;
+    const docsArray = Array.isArray(document) ? document : [{ ...document }];
+    const normalizedDocs = docsArray.map(doc => {
+      const normalized = { ...doc };
+      if (!normalized.id) {
+        normalized.id = documentId;
       }
+      return normalized;
+    });
 
-      throw error;
-    }
+    const response = await api.post(`/indexes/${uid}/documents`, normalizedDocs);
+    return response.data;
   },
 
   // Eliminar un documento

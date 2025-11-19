@@ -635,6 +635,13 @@ export default function DBManager() {
     if (!selectedIndex) return;
     
     try {
+      console.log('[MEILISEARCH CRUD] Guardando documento', {
+        index: selectedIndex,
+        editing: !!editingMeilisearchDoc,
+        primaryKey,
+        dataSample: JSON.stringify(meilisearchFormData).slice(0, 500)
+      });
+
       if (editingMeilisearchDoc) {
         // Actualizar documento existente
         const docId = primaryKey && editingMeilisearchDoc[primaryKey] 
@@ -666,7 +673,8 @@ export default function DBManager() {
         loadMeilisearchDocuments();
       }
     } catch (e: any) {
-      showAlert('Error: ' + e.message, 'error');
+      console.error('[MEILISEARCH CRUD] Error al guardar', e?.response?.data || e);
+      showAlert('Error: ' + (e.message || 'Error desconocido'), 'error');
     }
   };
 
