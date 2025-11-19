@@ -34,6 +34,8 @@ export default function Agentes() {
   const [agents, setAgents] = useState<AgentDB[]>([]);
   const [agentsLoading, setAgentsLoading] = useState<boolean>(true);
   const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string>('all');
+  const [filteredAgents, setFilteredAgents] = useState<AgentDB[]>([]);
   
   useEffect(() => {
     // Cargar clientes desde MySQL
@@ -122,6 +124,23 @@ export default function Agentes() {
     };
     loadAgents();
   }, []);
+
+  // Función para aplicar filtro por cliente
+  const applyClientFilter = (agentsList: AgentDB[], clientId: string) => {
+    if (clientId === 'all') {
+      setFilteredAgents(agentsList);
+    } else {
+      const filtered = agentsList.filter(a => a.client_id === parseInt(clientId));
+      setFilteredAgents(filtered);
+    }
+  };
+
+  // Efecto para aplicar filtro cuando cambia selectedClientId o agents
+  useEffect(() => {
+    if (agents.length > 0) {
+      applyClientFilter(agents, selectedClientId);
+    }
+  }, [selectedClientId, agents]);
   const [showForm, setShowForm] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentDB | null>(null);
   const [formData, setFormData] = useState({
@@ -435,8 +454,27 @@ export default function Agentes() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {!agentsLoading && agents.map((agent) => (
+        {/* Filtro por Cliente */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Filtrar por Cliente
+          </label>
+          <select
+            value={selectedClientId}
+            onChange={(e) => setSelectedClientId(e.target.value)}
+            className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+          >
+            <option value="all">Todos los clientes</option>
+            {clients.map(client => (
+              <option key={client.id} value={client.id.toString()}>
+                {client.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          {!agentsLoading && filteredAgents.map((agent) => (
             <div key={agent.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               {agent.photo && (
                 <div className="w-full h-48 flex items-center justify-center bg-gray-100">

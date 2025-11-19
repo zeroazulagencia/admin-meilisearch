@@ -31,3 +31,5 @@ WHERE TABLE_SCHEMA = 'admin_dworkers'
 AND TABLE_NAME = 'agents' 
 AND COLUMN_NAME = 'n8n_data_table_id';
 
+
+

@@ -10,7 +10,7 @@ import AgentSelector from '@/components/ui/AgentSelector';
 import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { ChevronDownIcon } from '@heroicons/react/16/solid';
 import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { isValidToken } from '@/utils/encryption';
+import { isValidToken, isValidWhatsAppField } from '@/utils/encryption';
 import { getPermissions, getUserId } from '@/utils/permissions';
 
 interface Client {
@@ -388,7 +388,64 @@ export default function EditarAgente() {
         return;
       }
       
-      router.push('/agentes');
+      // Mostrar aviso de éxito y recargar datos
+      setAlertModal({
+        isOpen: true,
+        title: 'Éxito',
+        message: 'Agente actualizado correctamente',
+        type: 'success',
+      });
+      
+      // Recargar datos del agente para mostrar cambios actualizados
+      const loadAgent = async () => {
+        try {
+          const res = await fetch(`/api/agents/${currentAgent.id}`);
+          const data = await res.json();
+          if (data.ok && data.agent) {
+            const agent: AgentDB = data.agent;
+            setCurrentAgent(agent);
+            const accessToken = agent.whatsapp_access_token || '';
+            const webhookToken = agent.whatsapp_webhook_verify_token || '';
+            const appSecret = agent.whatsapp_app_secret || '';
+            
+            setTokenPrefix({
+              access_token: accessToken.endsWith('...') ? accessToken.substring(0, 4) : (accessToken.length > 0 ? accessToken.substring(0, 4) : undefined),
+              webhook_token: webhookToken.endsWith('...') ? webhookToken.substring(0, 4) : (webhookToken.length > 0 ? webhookToken.substring(0, 4) : undefined),
+              app_secret: appSecret.endsWith('...') ? appSecret.substring(0, 4) : (appSecret.length > 0 ? appSecret.substring(0, 4) : undefined)
+            });
+            
+            setFormData({
+              name: agent.name,
+              description: agent.description || '',
+              photo: agent.photo || '',
+              client_id: agent.client_id,
+              whatsapp_business_account_id: agent.whatsapp_business_account_id || '',
+              whatsapp_phone_number_id: agent.whatsapp_phone_number_id || '',
+              whatsapp_access_token: accessToken.endsWith('...') ? '' : accessToken,
+              whatsapp_webhook_verify_token: webhookToken.endsWith('...') ? '' : webhookToken,
+              whatsapp_app_secret: appSecret.endsWith('...') ? '' : appSecret
+            });
+            try {
+              const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {});
+              setSelectedIndexes(k.indexes || []);
+            } catch {
+              setSelectedIndexes([]);
+            }
+            try {
+              const w = typeof agent.workflows === 'string' ? JSON.parse(agent.workflows) : (agent.workflows || {});
+              setSelectedWorkflows(w.workflowIds || []);
+            } catch {
+              setSelectedWorkflows([]);
+            }
+            setSelectedConversationAgent(agent.conversation_agent_name || '');
+            setSelectedReportAgent(agent.reports_agent_name || '');
+            setSelectedDataTable(agent.n8n_data_table_id || '');
+          }
+        } catch (err) {
+          console.error('Error recargando agente:', err);
+        }
+      };
+      loadAgent();
     } catch (err: any) {
       console.error('[EDIT AGENT] Error:', err);
       setAlertModal({
@@ -482,10 +539,18 @@ export default function EditarAgente() {
         workflows: { workflowIds: selectedWorkflows },
         conversation_agent_name: selectedConversationAgent || null,
         reports_agent_name: selectedReportAgent || null,
-        whatsapp_business_account_id: formData.whatsapp_business_account_id || null,
-        whatsapp_phone_number_id: formData.whatsapp_phone_number_id || null,
         n8n_data_table_id: selectedDataTable || null,
       };
+      
+      // CRÍTICO: Protección de campos WhatsApp
+      // Solo incluir campos WhatsApp si tienen valores válidos (no vacíos, no solo espacios)
+      // Esto previene que se sobrescriban valores existentes con null o vacíos
+      if (isValidWhatsAppField(formData.whatsapp_business_account_id)) {
+        requestData.whatsapp_business_account_id = formData.whatsapp_business_account_id.trim();
+      }
+      if (isValidWhatsAppField(formData.whatsapp_phone_number_id)) {
+        requestData.whatsapp_phone_number_id = formData.whatsapp_phone_number_id.trim();
+      }
       
       // CRÍTICO: Validar y preparar tokens para actualización
       // Solo incluir tokens si tienen un valor nuevo válido (no vacío, no enmascarado, longitud mínima)
@@ -519,7 +584,9 @@ export default function EditarAgente() {
       );
       
       console.log('[EDIT AGENT] Request data (filtered):', filteredData);
-      console.log('[EDIT AGENT] Tokens included:', {
+      console.log('[EDIT AGENT] WhatsApp fields included:', {
+        whatsapp_business_account_id: filteredData.whatsapp_business_account_id ? 'YES' : 'NO (preservando valor existente)',
+        whatsapp_phone_number_id: filteredData.whatsapp_phone_number_id ? 'YES' : 'NO (preservando valor existente)',
         whatsapp_access_token: filteredData.whatsapp_access_token ? 'YES' : 'NO',
         whatsapp_webhook_verify_token: filteredData.whatsapp_webhook_verify_token ? 'YES' : 'NO',
         whatsapp_app_secret: filteredData.whatsapp_app_secret ? 'YES' : 'NO'
@@ -722,6 +789,20 @@ export default function EditarAgente() {
 
   return (
     <ProtectedLayout>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Editar Agente</h1>
+        </div>
+        <button
+          onClick={() => router.push('/agentes')}
+          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Volver a agentes
+        </button>
+      </div>
       <form onSubmit={handleSubmit}>
         {/* Header de Perfil del Agente */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">

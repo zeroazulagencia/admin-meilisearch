@@ -208,3 +208,27 @@ export function isValidToken(token: string | null | undefined, minLength: number
   return true;
 }
 
+/**
+ * Valida que un campo WhatsApp (no-token) tenga un valor válido
+ * Usado para whatsapp_business_account_id y whatsapp_phone_number_id
+ */
+export function isValidWhatsAppField(value: string | null | undefined, minLength: number = 1): boolean {
+  if (!value || typeof value !== 'string') {
+    return false;
+  }
+  
+  const trimmed = value.trim();
+  
+  // No debe estar vacío
+  if (trimmed === '') {
+    return false;
+  }
+  
+  // Debe tener longitud mínima
+  if (trimmed.length < minLength) {
+    return false;
+  }
+  
+  return true;
+}
+

@@ -237,9 +237,39 @@ export default function EditarCliente() {
           message: 'Cliente actualizado correctamente',
           type: 'success',
         });
-        setTimeout(() => {
-          router.push('/clientes');
-        }, 1000);
+        // Recargar datos del cliente para mostrar cambios actualizados
+        const loadClient = async () => {
+          try {
+            const res = await fetch(`/api/clients/${currentClient.id}`);
+            const data = await res.json();
+            if (data.ok && data.client) {
+              const client = data.client;
+              setCurrentClient(client);
+              setFormData({
+                name: client.name,
+                email: client.email || '',
+                phone: client.phone || '',
+                company: client.company || '',
+                nit: client.nit || '',
+                clave: client.clave || ''
+              });
+              try {
+                const perms = typeof client.permissions === 'string' ? JSON.parse(client.permissions) : (client.permissions || {});
+                if (perms.type === 'admin') {
+                  setUserRole('admin');
+                } else {
+                  setUserRole('cliente');
+                }
+                setPermissions(perms);
+              } catch {
+                setPermissions({});
+              }
+            }
+          } catch (err) {
+            console.error('Error recargando cliente:', err);
+          }
+        };
+        loadClient();
       } else {
         console.error('[EDITAR CLIENTE] Error en respuesta:', data.error);
         setAlertModal({
@@ -342,9 +372,20 @@ export default function EditarCliente() {
 
   return (
     <ProtectedLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Editar Cliente</h1>
-        <p className="mt-2 text-gray-600">Actualiza la información del cliente</p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Editar Cliente</h1>
+          <p className="mt-2 text-gray-600">Actualiza la información del cliente</p>
+        </div>
+        <button
+          onClick={() => router.push('/clientes')}
+          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Volver a clientes
+        </button>
       </div>
 
         <form 

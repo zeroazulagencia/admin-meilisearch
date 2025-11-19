@@ -5,6 +5,7 @@ import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AgentSelector from '@/components/ui/AgentSelector';
+import NoticeModal from '@/components/ui/NoticeModal';
 
 interface ConversationGroup {
   user_id: string;
@@ -34,6 +35,7 @@ export default function Conversaciones() {
   const [selectedConversation, setSelectedConversation] = useState<ConversationGroup | null>(null);
   const [currentAgent, setCurrentAgent] = useState<string>('');
   const [selectedPlatformAgent, setSelectedPlatformAgent] = useState<string>('all');
+  const [allDocumentsForCSV, setAllDocumentsForCSV] = useState<Document[]>([]);
   // Calcular fechas por defecto: primer día del mes actual hasta hoy
   const getDefaultDates = () => {
     const today = new Date();
@@ -104,9 +106,12 @@ export default function Conversaciones() {
 
   useEffect(() => {
     if (selectedAgent !== 'all') {
+      // NO cargar automáticamente cuando cambia searchQuery
+      // Solo cargar cuando cambia selectedAgent, dateFrom o dateTo
+      // La búsqueda se activará manualmente con el botón "Buscar"
       loadConversations();
     }
-  }, [selectedAgent, dateFrom, dateTo, searchQuery]);
+  }, [selectedAgent, dateFrom, dateTo]);
 
   const loadAgents = async () => {
     try {
@@ -246,6 +251,9 @@ export default function Conversaciones() {
       
       console.log(`Total de documentos cargados: ${allDocuments.length}`);
       console.log('Ejemplos de documentos:', allDocuments.slice(0, 3));
+      
+      // Guardar documentos para descarga CSV
+      setAllDocumentsForCSV(allDocuments);
       
       // Agrupar por phone_id/session_id (prioridad) o user_id (respaldo)
       // IMPORTANTE: Para WhatsApp, múltiples usuarios pueden compartir el mismo phone_id
@@ -524,6 +532,51 @@ export default function Conversaciones() {
     }
   };
 
+  const downloadCSV = () => {
+    if (allDocumentsForCSV.length === 0) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Información',
+        message: 'No hay conversaciones para descargar',
+        type: 'info',
+      });
+      return;
+    }
+
+    // Crear CSV con encabezados
+    const headers = ['user_id', 'phone_number_id', 'phone_id', 'session_id', 'agent', 'type', 'datetime', 'message', 'conversation_id'];
+    const csvRows = [headers.join(',')];
+
+    // Agregar filas de datos
+    allDocumentsForCSV.forEach(doc => {
+      const row = [
+        doc.user_id || doc.iduser || doc.userid || '',
+        doc.phone_number_id || '',
+        doc.phone_id || '',
+        doc.session_id || '',
+        doc.agent || '',
+        doc.type || '',
+        doc.datetime || '',
+        (doc.message || doc.text || '').replace(/"/g, '""'), // Escapar comillas
+        doc.conversation_id || ''
+      ];
+      // Envolver cada campo en comillas para manejar comas y saltos de línea
+      csvRows.push(row.map(field => `"${field}"`).join(','));
+    });
+
+    // Crear blob y descargar
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `conversaciones_${selectedAgent}_${dateFrom}_${dateTo}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const highlightSearchText = (text: string, searchQuery: string, isGreenBackground = false) => {
     if (!searchQuery || !text) return text;
     
@@ -556,17 +609,31 @@ export default function Conversaciones() {
     <ProtectedLayout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Conversaciones</h1>
-        {isAdmin && (
-          <button
-            onClick={() => setShowCodeModal(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-            title="Ver instrucciones de inserción"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-            </svg>
-          </button>
-        )}
+        <div className="flex gap-2">
+          {selectedAgent !== 'all' && (
+            <button
+              onClick={downloadCSV}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              title="Descargar conversaciones filtradas en CSV"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Descargar CSV
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setShowCodeModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+              title="Ver instrucciones de inserción"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
       
       {/* Selector de Agente de la Plataforma */}
@@ -631,22 +698,38 @@ export default function Conversaciones() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Buscar por Palabras Clave
               </label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar en conversaciones..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-              />
-              {searchQuery && (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      loadConversations();
+                    }
+                  }}
+                  placeholder="Buscar en conversaciones..."
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                  style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+                />
                 <button
-                  onClick={() => setSearchQuery('')}
-                  className="mt-2 px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                  onClick={() => loadConversations()}
+                  className="px-4 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:opacity-90 transition-all font-medium"
                 >
-                  Limpiar búsqueda
+                  Buscar
                 </button>
-              )}
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      loadConversations();
+                    }}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Filtro de Fechas */}
@@ -909,6 +992,13 @@ export default function Conversaciones() {
         )}
 
       {/* Modal de Instrucciones de Código */}
+      <NoticeModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ isOpen: false, message: '', type: 'info' })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
       {showCodeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">

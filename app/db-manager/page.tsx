@@ -245,6 +245,14 @@ export default function DBManager() {
         body: JSON.stringify(body)
       });
 
+      // Verificar si la respuesta es un error HTTP
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}: ${res.statusText}` }));
+        showAlert(`Error ${res.status}: ${errorData.error || res.statusText}`, 'error');
+        console.error('[DB MANAGER] Error response:', { status: res.status, statusText: res.statusText, data: errorData });
+        return;
+      }
+
       const data = await res.json();
       if (data.ok) {
         showAlert(editingRecord ? 'Registro actualizado exitosamente' : 'Registro creado exitosamente', 'success');
@@ -255,7 +263,8 @@ export default function DBManager() {
         showAlert('Error: ' + data.error, 'error');
       }
     } catch (e: any) {
-      showAlert('Error: ' + e.message, 'error');
+      console.error('[DB MANAGER] Error en handleSave:', e);
+      showAlert('Error: ' + (e.message || 'Error desconocido'), 'error');
     }
   };
 
@@ -875,15 +884,20 @@ export default function DBManager() {
   const updateFilter = (id: string, field: 'column' | 'operator' | 'value', value: string) => {
     const updatedFilters = filters.map(f => f.id === id ? { ...f, [field]: value } : f);
     setFilters(updatedFilters);
-    // Aplicar automáticamente cuando cambia un filtro
-    setTimeout(() => {
-      setMeilisearchCurrentPage(1);
-      if (isSearching) {
-        handleMeilisearchSearch();
-      } else {
-        loadMeilisearchDocuments();
-      }
-    }, 300); // Debounce de 300ms
+    // NO aplicar automáticamente - solo actualizar el estado
+    // Los filtros se aplicarán cuando el usuario presione el botón "Aplicar Filtros"
+  };
+  
+  const clearFilters = () => {
+    setFilters([]);
+    setSortColumn('');
+    setSortDirection('asc');
+    setMeilisearchCurrentPage(1);
+    if (isSearching) {
+      handleMeilisearchSearch();
+    } else {
+      loadMeilisearchDocuments();
+    }
   };
 
   // Toggle columna visible
@@ -1270,6 +1284,20 @@ export default function DBManager() {
                             className="text-[#5DE1E5] hover:text-[#4BC5C9] text-sm font-medium"
                           >
                             + Agregar
+                          </button>
+                        </div>
+                        <div className="flex gap-2 mb-2">
+                          <button
+                            onClick={applyFiltersAndSort}
+                            className="px-4 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:opacity-90 transition-all text-sm font-medium"
+                          >
+                            Aplicar Filtros
+                          </button>
+                          <button
+                            onClick={clearFilters}
+                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all text-sm font-medium"
+                          >
+                            Limpiar Filtros
                           </button>
                         </div>
                         <div className="space-y-2">

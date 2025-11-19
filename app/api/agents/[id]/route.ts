@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
-import { encrypt, decrypt, maskSensitiveValue, isEncrypted, hashToken, isValidToken } from '@/utils/encryption';
+import { encrypt, decrypt, maskSensitiveValue, isEncrypted, hashToken, isValidToken, isValidWhatsAppField } from '@/utils/encryption';
 import { validateCriticalEnvVars } from '@/utils/validate-env';
 
 // Validar variables de entorno críticas al cargar el módulo
@@ -360,14 +360,31 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           console.log('[API AGENTS] n8n_data_table_id presente en body pero columna no existe en BD, omitiendo');
         }
         
-        // Solo agregar campos de WhatsApp si se enviaron
-        if (body.whatsapp_business_account_id !== undefined) {
-          updateFields.push('whatsapp_business_account_id = ?');
-          updateValues.push(body.whatsapp_business_account_id || null);
+        // CRÍTICO: Protección de campos WhatsApp (no-token)
+        // Solo actualizar si tienen valores válidos (no null, no vacío, no solo espacios)
+        // Esto previene que se sobrescriban valores existentes con null o vacíos
+        if ('whatsapp_business_account_id' in body) {
+          if (isValidWhatsAppField(body.whatsapp_business_account_id)) {
+            updateFields.push('whatsapp_business_account_id = ?');
+            updateValues.push(body.whatsapp_business_account_id.trim());
+            console.log(`[API AGENTS] [WHATSAPP FIELD UPDATE] whatsapp_business_account_id: Agregado a query UPDATE con valor válido`);
+          } else {
+            console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_business_account_id: Campo presente pero valor inválido (null/vacío), IGNORANDO actualización para preservar valor existente`);
+          }
+        } else {
+          console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_business_account_id: Campo no presente en body, manteniendo valor existente`);
         }
-        if (body.whatsapp_phone_number_id !== undefined) {
-          updateFields.push('whatsapp_phone_number_id = ?');
-          updateValues.push(body.whatsapp_phone_number_id || null);
+        
+        if ('whatsapp_phone_number_id' in body) {
+          if (isValidWhatsAppField(body.whatsapp_phone_number_id)) {
+            updateFields.push('whatsapp_phone_number_id = ?');
+            updateValues.push(body.whatsapp_phone_number_id.trim());
+            console.log(`[API AGENTS] [WHATSAPP FIELD UPDATE] whatsapp_phone_number_id: Agregado a query UPDATE con valor válido`);
+          } else {
+            console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_phone_number_id: Campo presente pero valor inválido (null/vacío), IGNORANDO actualización para preservar valor existente`);
+          }
+        } else {
+          console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_phone_number_id: Campo no presente en body, manteniendo valor existente`);
         }
         
         // CRÍTICO: Solo actualizar tokens si se envió un valor nuevo explícito Y es diferente del actual
