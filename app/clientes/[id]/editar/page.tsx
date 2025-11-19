@@ -754,7 +754,16 @@ export default function EditarCliente() {
             </button>
           </div>
         </form>
-    </ProtectedLayout>
-  );
-}
+
+        {/* Modal de alertas */}
+        <NoticeModal
+          isOpen={alertModal.isOpen}
+          onClose={() => setAlertModal({ isOpen: false, message: '', type: 'info' })}
+          title={alertModal.title}
+          message={alertModal.message}
+          type={alertModal.type}
+        />
+      </ProtectedLayout>
+    );
+  }
 
