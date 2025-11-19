@@ -361,7 +361,7 @@ export default function EditarCliente() {
         {/* Modal de alertas */}
         <NoticeModal
           isOpen={alertModal.isOpen}
-          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+          onClose={() => setAlertModal({ isOpen: false, message: '', type: 'info' })}
           title={alertModal.title}
           message={alertModal.message}
           type={alertModal.type}

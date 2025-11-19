@@ -125,6 +125,15 @@ export default function Agentes() {
     loadAgents();
   }, []);
 
+  // Ordenar clientes alfabéticamente
+  const sortedClients = [...clients].sort((a, b) => {
+    const nameA = a.name.toLowerCase();
+    const nameB = b.name.toLowerCase();
+    if (nameA < nameB) return -1;
+    if (nameA > nameB) return 1;
+    return 0;
+  });
+
   // Función para aplicar filtro por cliente
   const applyClientFilter = (agentsList: AgentDB[], clientId: string) => {
     if (clientId === 'all') {
@@ -459,18 +468,52 @@ export default function Agentes() {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Filtrar por Cliente
           </label>
-          <select
-            value={selectedClientId}
-            onChange={(e) => setSelectedClientId(e.target.value)}
-            className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
-          >
-            <option value="all">Todos los clientes</option>
-            {clients.map(client => (
-              <option key={client.id} value={client.id.toString()}>
-                {client.name}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <input
+              type="text"
+              value={selectedClientId === 'all' ? '' : (clients.find(c => c.id.toString() === selectedClientId)?.name || '')}
+              onChange={(e) => {
+                const searchValue = e.target.value.toLowerCase();
+                if (searchValue === '') {
+                  setSelectedClientId('all');
+                } else {
+                  // Buscar cliente que coincida
+                  const matchedClient = sortedClients.find(c => 
+                    c.name.toLowerCase().includes(searchValue)
+                  );
+                  if (matchedClient) {
+                    setSelectedClientId(matchedClient.id.toString());
+                  } else {
+                    setSelectedClientId('all');
+                  }
+                }
+              }}
+              onFocus={(e) => {
+                // Mostrar dropdown al hacer focus
+                e.target.select();
+              }}
+              placeholder="Escribe para buscar cliente..."
+              className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+              list="clients-list"
+            />
+            <datalist id="clients-list">
+              <option value="">Todos los clientes</option>
+              {sortedClients.map(client => (
+                <option key={client.id} value={client.name}>
+                  {client.name}
+                </option>
+              ))}
+            </datalist>
+            {selectedClientId !== 'all' && (
+              <button
+                onClick={() => setSelectedClientId('all')}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                title="Limpiar filtro"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">

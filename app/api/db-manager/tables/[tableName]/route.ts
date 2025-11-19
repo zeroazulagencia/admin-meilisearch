@@ -145,8 +145,11 @@ export async function PUT(
   { params }: { params: Promise<{ tableName: string }> }
 ) {
   try {
+    console.log('[DB MANAGER PUT] Iniciando actualización...');
     const { tableName } = await params;
+    console.log('[DB MANAGER PUT] Tabla:', tableName);
     const body = await req.json();
+    console.log('[DB MANAGER PUT] Body recibido:', JSON.stringify(body).substring(0, 200));
 
     // Validar nombre de tabla
     if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
@@ -217,9 +220,11 @@ export async function PUT(
       [...updateValues, pkValue]
     );
 
+    console.log('[DB MANAGER PUT] Actualización exitosa');
     return NextResponse.json({ ok: true, message: 'Registro actualizado exitosamente' });
   } catch (e: any) {
-    console.error('[DB MANAGER] Error updating record:', e?.message || e);
+    console.error('[DB MANAGER PUT] Error updating record:', e?.message || e);
+    console.error('[DB MANAGER PUT] Stack:', e?.stack);
     return NextResponse.json({ ok: false, error: e?.message || 'Error al actualizar registro' }, { status: 500 });
   }
 }

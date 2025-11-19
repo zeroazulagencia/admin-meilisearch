@@ -549,7 +549,7 @@ export default function Conversaciones() {
     }
 
     // Crear CSV con encabezados
-    const headers = ['user_id', 'phone_number_id', 'phone_id', 'session_id', 'agent', 'type', 'datetime', 'message', 'conversation_id'];
+    const headers = ['user_id', 'phone_number_id', 'phone_id', 'session_id', 'agent', 'type', 'datetime', 'message-Human', 'message-AI', 'message', 'conversation_id'];
     const csvRows = [headers.join(',')];
 
     // Agregar filas de datos
@@ -562,6 +562,8 @@ export default function Conversaciones() {
         doc.agent || '',
         doc.type || '',
         doc.datetime || '',
+        ((doc['message-Human'] as string) || '').replace(/"/g, '""'), // Escapar comillas
+        ((doc['message-AI'] as string) || '').replace(/"/g, '""'), // Escapar comillas
         (doc.message || doc.text || '').replace(/"/g, '""'), // Escapar comillas
         doc.conversation_id || ''
       ];
