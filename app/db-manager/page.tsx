@@ -641,7 +641,16 @@ export default function DBManager() {
           ? editingMeilisearchDoc[primaryKey] 
           : editingMeilisearchDoc.id || Object.values(editingMeilisearchDoc)[0];
         
-        await meilisearchAPI.updateDocument(selectedIndex, String(docId), meilisearchFormData);
+        const documentToUpdate = { ...meilisearchFormData };
+        if (primaryKey) {
+          if (!documentToUpdate[primaryKey]) {
+            documentToUpdate[primaryKey] = docId;
+          }
+        } else if (!documentToUpdate.id) {
+          documentToUpdate.id = docId;
+        }
+
+        await meilisearchAPI.updateDocument(selectedIndex, String(docId), documentToUpdate);
         showAlert('Documento actualizado exitosamente', 'success');
       } else {
         // Crear nuevo documento
