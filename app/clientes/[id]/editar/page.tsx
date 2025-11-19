@@ -325,6 +325,7 @@ export default function EditarCliente() {
       { key: 'dashboard', label: 'Dashboard', onlyView: true },
       { key: 'clientes', label: 'Clientes', onlyView: true },
       { key: 'agentes', label: 'Agentes', onlyView: true },
+      { key: 'modulos', label: 'Módulos', onlyView: false },
       { key: 'ejecuciones', label: 'Ejecuciones', onlyView: true },
       { key: 'adminConocimiento', label: 'Admin Conocimiento', onlyView: false },
       { key: 'reportes', label: 'Reportes', onlyView: true },

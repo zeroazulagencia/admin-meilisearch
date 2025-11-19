@@ -12,6 +12,7 @@ export const routePermissions: Record<string, string> = {
   '/consumo-api': 'consumoAPI',
   '/clientes': 'clientes',
   '/agentes': 'agentes',
+  '/modulos': 'modulos',
   '/developers': 'developers',
 };
 
@@ -132,6 +133,7 @@ export function findFirstAccessibleRoute(permissions: any): string | null {
   const routeOrder = [
     '/dashboard',
     '/agentes',
+    '/modulos',
     '/ejecuciones',
     '/admin-conocimiento',
     '/reportes',
