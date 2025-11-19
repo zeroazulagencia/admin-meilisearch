@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 
+console.log('[DB MANAGER ROUTE] Archivo route.ts cargado');
+
 // GET - Obtener datos paginados de una tabla
 export async function GET(
   req: NextRequest,

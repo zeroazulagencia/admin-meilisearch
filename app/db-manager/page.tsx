@@ -224,6 +224,8 @@ export default function DBManager() {
       const url = `/api/db-manager/tables/${selectedTable}`;
       const method = editingRecord ? 'PUT' : 'POST';
       
+      console.log('[DB MANAGER] handleSave iniciado:', { url, method, editingRecord: !!editingRecord, selectedTable });
+      
       const filteredData: any = {};
       const autoFields = ['created_at', 'updated_at'];
       
@@ -239,11 +241,15 @@ export default function DBManager() {
       
       const body = editingRecord ? { ...filteredData, [pkColumn]: pkValue } : filteredData;
 
+      console.log('[DB MANAGER] Enviando request:', { method, url, body: JSON.stringify(body).substring(0, 200) });
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
+
+      console.log('[DB MANAGER] Respuesta recibida:', { status: res.status, statusText: res.statusText, ok: res.ok });
 
       // Verificar si la respuesta es un error HTTP
       if (!res.ok) {

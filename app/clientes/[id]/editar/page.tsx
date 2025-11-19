@@ -231,12 +231,14 @@ export default function EditarCliente() {
       console.log('[EDITAR CLIENTE] Respuesta del servidor:', data);
       
       if (data.ok) {
+        console.log('[EDITAR CLIENTE] Mostrando notice de éxito');
         setAlertModal({
           isOpen: true,
           title: 'Éxito',
           message: 'Cliente actualizado correctamente',
           type: 'success',
         });
+        console.log('[EDITAR CLIENTE] Estado alertModal actualizado:', { isOpen: true, type: 'success' });
         // Recargar datos del cliente para mostrar cambios actualizados
         const loadClient = async () => {
           try {
