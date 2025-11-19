@@ -54,6 +54,11 @@ export default function Conversaciones() {
   const [dateTo, setDateTo] = useState<string>(defaultDates.todayStr);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showCodeModal, setShowCodeModal] = useState(false);
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
 
   const INDEX_UID = 'bd_conversations_dworkers';
 
