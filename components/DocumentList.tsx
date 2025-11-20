@@ -211,9 +211,19 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
 
     try {
       setSaving(true);
+      
+      // CRÍTICO: Si es un documento existente (editingDoc tiene primaryKey), restaurar el primaryKey
+      // Esto es necesario porque DocumentEditor filtra el primaryKey para clientes, pero Meilisearch lo necesita para actualizar
+      const documentToSave = { ...docToSave };
+      if (editingDoc && primaryKey && editingDoc[primaryKey] !== undefined) {
+        // Restaurar el primaryKey del documento original para que Meilisearch pueda identificar qué documento actualizar
+        documentToSave[primaryKey] = editingDoc[primaryKey];
+        console.log('[DOCUMENT-LIST] Restaurando primaryKey para actualización:', primaryKey, '=', editingDoc[primaryKey]);
+      }
+      
       // Meilisearch usa POST para agregar o actualizar documentos
       // Si el documento tiene la primary key, lo actualiza, si no, lo crea
-      await meilisearchAPI.addDocuments(indexUid, [docToSave]);
+      await meilisearchAPI.addDocuments(indexUid, [documentToSave]);
       
       // Esperar un momento para que Meilisearch procese la actualización
       await new Promise(resolve => setTimeout(resolve, 500));
