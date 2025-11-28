@@ -35,6 +35,8 @@ export default function AdminConocimiento() {
   const [showWebUrlModal, setShowWebUrlModal] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  // Ref para almacenar todos los intervalIds activos de verificación de tasks
+  const activeIntervalsRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
   
   // Estados para los pasos del modal PDF
   const [pdfStep, setPdfStep] = useState<'text' | 'review'>('text');
@@ -985,14 +987,14 @@ export default function AdminConocimiento() {
           console.warn(`[PDF-UPLOAD] No se encontró taskUid en la respuesta para chunk ${i + 1}`);
         }
         
-        // Actualizar progreso con task UID
+        // Actualizar progreso con task UID - mostrar inmediatamente que quedó en queue
         setUploadProgress(prev => {
           const updated = [...prev];
           updated[i] = {
             chunkIndex: i,
             taskUid: taskUid || 0,
             status: 'processing',
-            message: taskUid > 0 ? `Task ${taskUid} generada. Consultando estado...` : 'Documento enviado, esperando confirmación...'
+            message: taskUid > 0 ? `Task ${taskUid} en queue. Verificando estado...` : 'Documento enviado, esperando confirmación...'
           };
           return updated;
         });
@@ -1045,9 +1047,25 @@ export default function AdminConocimiento() {
     let isCompleted = false;
 
     const checkTask = async () => {
+      // Verificar si el modal está cerrado - si está cerrado, detener verificación
+      if (!showPdfModal) {
+        console.log(`[PDF-UPLOAD] Modal cerrado, deteniendo verificación de task ${taskUid}`);
+        isCompleted = true;
+        if (intervalId) {
+          clearInterval(intervalId);
+          activeIntervalsRef.current.delete(taskUid);
+          intervalId = null;
+        }
+        return;
+      }
+
       if (isCompleted) {
         console.log(`[PDF-UPLOAD] Task ${taskUid} ya completada, deteniendo intervalo`);
-        if (intervalId) clearInterval(intervalId);
+        if (intervalId) {
+          clearInterval(intervalId);
+          activeIntervalsRef.current.delete(taskUid);
+          intervalId = null;
+        }
         return;
       }
 
@@ -1070,6 +1088,7 @@ export default function AdminConocimiento() {
           isCompleted = true;
           if (intervalId) {
             clearInterval(intervalId);
+            activeIntervalsRef.current.delete(taskUid);
             intervalId = null;
           }
           setUploadProgress(prev => {
@@ -1106,6 +1125,7 @@ export default function AdminConocimiento() {
           isCompleted = true;
           if (intervalId) {
             clearInterval(intervalId);
+            activeIntervalsRef.current.delete(taskUid);
             intervalId = null;
           }
           setUploadProgress(prev => {
@@ -1141,6 +1161,7 @@ export default function AdminConocimiento() {
           isCompleted = true;
           if (intervalId) {
             clearInterval(intervalId);
+            activeIntervalsRef.current.delete(taskUid);
             intervalId = null;
           }
           setUploadProgress(prev => {
@@ -1162,6 +1183,7 @@ export default function AdminConocimiento() {
         isCompleted = true;
         if (intervalId) {
           clearInterval(intervalId);
+          activeIntervalsRef.current.delete(taskUid);
           intervalId = null;
         }
         setUploadProgress(prev => {
@@ -1183,16 +1205,35 @@ export default function AdminConocimiento() {
     
     // Luego consultar cada 3 segundos
     intervalId = setInterval(() => {
-      if (!isCompleted) {
+      if (!isCompleted && showPdfModal) {
         checkTask();
       } else {
         if (intervalId) {
           clearInterval(intervalId);
+          activeIntervalsRef.current.delete(taskUid);
           intervalId = null;
         }
       }
     }, 3000);
+    
+    // Guardar el intervalId en el ref para poder limpiarlo si se cierra el modal
+    if (intervalId) {
+      activeIntervalsRef.current.set(taskUid, intervalId);
+    }
   };
+
+  // Limpiar intervalos cuando se cierra el modal
+  useEffect(() => {
+    if (!showPdfModal) {
+      // Limpiar todos los intervalos activos cuando se cierra el modal
+      console.log('[PDF-UPLOAD] Modal cerrado, limpiando todos los intervalos activos');
+      activeIntervalsRef.current.forEach((intervalId, taskUid) => {
+        clearInterval(intervalId);
+        console.log(`[PDF-UPLOAD] Intervalo de task ${taskUid} limpiado`);
+      });
+      activeIntervalsRef.current.clear();
+    }
+  }, [showPdfModal]);
 
   // Agregar separador en la posición del cursor
   const addSeparator = () => {
@@ -2373,6 +2414,12 @@ export default function AdminConocimiento() {
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
               <button
                 onClick={() => {
+                  // Limpiar todos los intervalos antes de cerrar
+                  activeIntervalsRef.current.forEach((intervalId) => {
+                    clearInterval(intervalId);
+                  });
+                  activeIntervalsRef.current.clear();
+                  
                   // Solo limpiar si NO hay progreso activo o completado
                   // Si hay progreso, mantenerlo para referencia
                   if (!uploading && uploadProgress.length === 0) {
