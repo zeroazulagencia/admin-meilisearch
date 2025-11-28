@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import DocumentEditor from './DocumentEditor';
 import NoticeModal from './ui/NoticeModal';
@@ -50,6 +50,13 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     embedderName: 'openai' // Nombre del embedder, se detectará automáticamente
   });
   const [primaryKey, setPrimaryKey] = useState<string | null>(null);
+  // Estado para seguimiento de task al guardar documentos individuales
+  const [savingTaskStatus, setSavingTaskStatus] = useState<{
+    taskUid: number;
+    status: 'pending' | 'processing' | 'succeeded' | 'failed';
+    message: string;
+  } | null>(null);
+  const savingTaskIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (indexUid) {
@@ -58,6 +65,15 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
       loadPrimaryKey();
     }
   }, [indexUid, offset]);
+
+  // Limpiar intervalo cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      if (savingTaskIntervalRef.current) {
+        clearInterval(savingTaskIntervalRef.current);
+      }
+    };
+  }, []);
 
   const detectEmbedderName = async () => {
     try {
@@ -206,11 +222,150 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     setShowEditor(true);
   };
 
+  // Función para verificar el estado de una task
+  const checkTaskStatus = async (taskUid: number, maxAttempts: number = 60) => {
+    let attempts = 0;
+    let isCompleted = false;
+
+    const checkTask = async () => {
+      if (isCompleted) {
+        if (savingTaskIntervalRef.current) {
+          clearInterval(savingTaskIntervalRef.current);
+          savingTaskIntervalRef.current = null;
+        }
+        return;
+      }
+
+      try {
+        attempts++;
+        console.log(`[DOCUMENT-LIST] Consultando task ${taskUid} (intento ${attempts}/${maxAttempts})...`);
+        
+        const task = await meilisearchAPI.getTask(taskUid);
+        const status = task?.status || task?.state || task?.type || (task as any)?.task?.status || 'unknown';
+        console.log(`[DOCUMENT-LIST] Estado extraído de task ${taskUid}:`, status);
+        
+        if (status === 'succeeded' || status === 'taskSucceeded' || status === 'documentAdditionOrUpdate') {
+          console.log(`[DOCUMENT-LIST] ✅ Task ${taskUid} completada exitosamente`);
+          isCompleted = true;
+          if (savingTaskIntervalRef.current) {
+            clearInterval(savingTaskIntervalRef.current);
+            savingTaskIntervalRef.current = null;
+          }
+          setSavingTaskStatus({
+            taskUid,
+            status: 'succeeded',
+            message: 'Documento guardado exitosamente'
+          });
+          
+          // Recargar documentos después de un breve delay
+          setTimeout(async () => {
+            await loadDocuments();
+            if (onRefresh) {
+              onRefresh();
+            }
+            // Limpiar el estado después de mostrar el éxito
+            setTimeout(() => {
+              setSavingTaskStatus(null);
+              setShowEditor(false);
+              setEditingDoc(null);
+            }, 2000);
+          }, 500);
+        } else if (status === 'failed' || status === 'taskFailed') {
+          console.error(`[DOCUMENT-LIST] ❌ Task ${taskUid} falló`);
+          const error = task?.error || task?.errorMessage || (task as any)?.task?.error || 'Error desconocido';
+          let errorMessage = 'Error desconocido';
+          if (typeof error === 'string') {
+            errorMessage = error;
+          } else if (error && typeof error === 'object') {
+            errorMessage = error.message || error.errorMessage || JSON.stringify(error);
+          }
+          errorMessage = errorMessage.replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim();
+          
+          isCompleted = true;
+          if (savingTaskIntervalRef.current) {
+            clearInterval(savingTaskIntervalRef.current);
+            savingTaskIntervalRef.current = null;
+          }
+          setSavingTaskStatus({
+            taskUid,
+            status: 'failed',
+            message: errorMessage
+          });
+          
+          // Mostrar error en modal también
+          setAlertModal({
+            isOpen: true,
+            title: 'Error',
+            message: `Error al guardar el documento: ${errorMessage}`,
+            type: 'error',
+          });
+        } else {
+          // Actualizar mensaje mientras procesa
+          console.log(`[DOCUMENT-LIST] ⏳ Task ${taskUid} aún procesando (${status})...`);
+          setSavingTaskStatus({
+            taskUid,
+            status: 'processing',
+            message: `Procesando... (${status}) - intento ${attempts}/${maxAttempts}`
+          });
+        }
+
+        // Si excede máximo de intentos, detener
+        if (attempts >= maxAttempts && !isCompleted) {
+          console.warn(`[DOCUMENT-LIST] ⚠️ Task ${taskUid} excedió máximo de intentos`);
+          isCompleted = true;
+          if (savingTaskIntervalRef.current) {
+            clearInterval(savingTaskIntervalRef.current);
+            savingTaskIntervalRef.current = null;
+          }
+          setSavingTaskStatus({
+            taskUid,
+            status: 'failed',
+            message: 'Tiempo de espera agotado'
+          });
+        }
+      } catch (error: any) {
+        console.error(`[DOCUMENT-LIST] ❌ Error consultando task ${taskUid}:`, error);
+        isCompleted = true;
+        if (savingTaskIntervalRef.current) {
+          clearInterval(savingTaskIntervalRef.current);
+          savingTaskIntervalRef.current = null;
+        }
+        setSavingTaskStatus({
+          taskUid,
+          status: 'failed',
+          message: `Error consultando task: ${error.message || 'Error desconocido'}`
+        });
+      }
+    };
+
+    // Primera consulta inmediata
+    checkTask();
+    
+    // Luego consultar cada 3 segundos
+    savingTaskIntervalRef.current = setInterval(() => {
+      if (!isCompleted) {
+        checkTask();
+      } else {
+        if (savingTaskIntervalRef.current) {
+          clearInterval(savingTaskIntervalRef.current);
+          savingTaskIntervalRef.current = null;
+        }
+      }
+    }, 3000);
+  };
+
   const handleSave = async (docToSave: Document) => {
     if (!docToSave) return;
 
     try {
       setSaving(true);
+      setSavingTaskStatus(null);
+      
+      // Limpiar intervalo anterior si existe
+      if (savingTaskIntervalRef.current) {
+        clearInterval(savingTaskIntervalRef.current);
+        savingTaskIntervalRef.current = null;
+      }
       
       // CRÍTICO: Si es un documento existente (editingDoc tiene primaryKey), restaurar el primaryKey
       // Esto es necesario porque DocumentEditor filtra el primaryKey para clientes, pero Meilisearch lo necesita para actualizar
@@ -223,27 +378,64 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
       
       // Meilisearch usa POST para agregar o actualizar documentos
       // Si el documento tiene la primary key, lo actualiza, si no, lo crea
-      await meilisearchAPI.addDocuments(indexUid, [documentToSave]);
+      const response = await meilisearchAPI.addDocuments(indexUid, [documentToSave]);
+      console.log('[DOCUMENT-LIST] Respuesta de addDocuments:', response);
       
-      // Esperar un momento para que Meilisearch procese la actualización
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Extraer taskUid de la respuesta
+      const taskUid = response?.taskUid || (response as any)?.taskUid || response?.uid || 0;
+      console.log('[DOCUMENT-LIST] Task UID extraído:', taskUid);
       
-      setShowEditor(false);
-      setEditingDoc(null);
-      
-      // Recargar documentos
-      await loadDocuments();
-      
-      // Notificar al padre para refrescar el índice
-      if (onRefresh) {
-        onRefresh();
+      if (taskUid > 0) {
+        // Mostrar inmediatamente que quedó en queue
+        setSavingTaskStatus({
+          taskUid,
+          status: 'processing',
+          message: `Task ${taskUid} en queue. Verificando estado...`
+        });
+        
+        // Iniciar seguimiento de la task
+        await checkTaskStatus(taskUid);
+      } else {
+        // Si no hay taskUid, esperar un momento y asumir éxito
+        console.log('[DOCUMENT-LIST] No hay taskUid, esperando 2 segundos y asumiendo éxito...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        setSavingTaskStatus({
+          taskUid: 0,
+          status: 'succeeded',
+          message: 'Documento guardado exitosamente'
+        });
+        
+        setTimeout(async () => {
+          await loadDocuments();
+          if (onRefresh) {
+            onRefresh();
+          }
+          setTimeout(() => {
+            setSavingTaskStatus(null);
+            setShowEditor(false);
+            setEditingDoc(null);
+          }, 2000);
+        }, 500);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving document:', err);
+      
+      // Limpiar intervalo si hay error
+      if (savingTaskIntervalRef.current) {
+        clearInterval(savingTaskIntervalRef.current);
+        savingTaskIntervalRef.current = null;
+      }
+      
+      setSavingTaskStatus({
+        taskUid: 0,
+        status: 'failed',
+        message: `Error: ${err.message || err.response?.data?.message || 'Error desconocido'}`
+      });
+      
       setAlertModal({
         isOpen: true,
         title: 'Error',
-        message: 'Error al guardar el documento',
+        message: `Error al guardar el documento: ${err.message || err.response?.data?.message || 'Error desconocido'}`,
         type: 'error',
       });
     } finally {
@@ -680,6 +872,34 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                 <div className="text-center">
                   <div className="inline-block animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
                   <p className="text-gray-700 font-medium">Guardando documento...</p>
+                  {savingTaskStatus && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        {savingTaskStatus.status === 'processing' && (
+                          <div className="inline-block animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                        )}
+                        {savingTaskStatus.status === 'succeeded' && (
+                          <span className="text-green-600 text-xl">✓</span>
+                        )}
+                        {savingTaskStatus.status === 'failed' && (
+                          <span className="text-red-600 text-xl">✗</span>
+                        )}
+                        <span className={`font-medium ${
+                          savingTaskStatus.status === 'succeeded' ? 'text-green-700' :
+                          savingTaskStatus.status === 'failed' ? 'text-red-700' :
+                          'text-blue-700'
+                        }`}>
+                          {savingTaskStatus.status === 'succeeded' ? 'Éxito' :
+                           savingTaskStatus.status === 'failed' ? 'Error' :
+                           'En proceso'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {savingTaskStatus.taskUid > 0 && `Task ${savingTaskStatus.taskUid}: `}
+                        {savingTaskStatus.message}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -688,6 +908,12 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               indexUid={indexUid}
               onSave={(formData) => handleSave(formData)}
               onCancel={() => {
+                // Limpiar intervalo si existe
+                if (savingTaskIntervalRef.current) {
+                  clearInterval(savingTaskIntervalRef.current);
+                  savingTaskIntervalRef.current = null;
+                }
+                setSavingTaskStatus(null);
                 setShowEditor(false);
                 setEditingDoc(null);
               }}
