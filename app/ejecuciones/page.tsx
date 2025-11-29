@@ -96,6 +96,7 @@ export default function Ejecuciones() {
   const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [userClosedModal, setUserClosedModal] = useState(false);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
@@ -131,13 +132,18 @@ export default function Ejecuciones() {
   // Abrir ejecución específica cuando se carguen las ejecuciones
   useEffect(() => {
     const executionIdParam = searchParams.get('executionId');
-    if (executionIdParam && executions.length > 0 && !selectedExecution) {
+    // No abrir automáticamente si el usuario cerró el modal manualmente
+    if (executionIdParam && executions.length > 0 && !selectedExecution && !userClosedModal) {
       const exec = executions.find(e => e.id === executionIdParam);
       if (exec) {
         handleViewExecution(executionIdParam);
       }
     }
-  }, [executions, searchParams, selectedExecution]);
+    // Resetear la bandera si no hay executionId en la URL
+    if (!executionIdParam) {
+      setUserClosedModal(false);
+    }
+  }, [executions, searchParams, selectedExecution, userClosedModal]);
 
   useEffect(() => {
     if (selectedAgent && allWorkflows.length > 0) {
@@ -831,8 +837,9 @@ export default function Ejecuciones() {
                 <button
                   onClick={() => {
                     setSelectedExecution(null);
-                    // Limpiar parámetros de la URL al cerrar
-                    router.push('/ejecuciones');
+                    setUserClosedModal(true); // Marcar que el usuario cerró el modal manualmente
+                    // Limpiar parámetros de la URL al cerrar usando replace para no agregar al historial
+                    router.replace('/ejecuciones');
                   }}
                   className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
                 >
