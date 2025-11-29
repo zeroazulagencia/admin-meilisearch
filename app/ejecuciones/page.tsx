@@ -116,18 +116,57 @@ export default function Ejecuciones() {
     loadWorkflows();
   }, []);
 
-  // Manejar parámetros de URL para abrir ejecución automáticamente
+  // Restaurar selecciones desde URL al cargar
   useEffect(() => {
+    const agentIdParam = searchParams.get('agentId');
     const workflowIdParam = searchParams.get('workflowId');
-    const executionIdParam = searchParams.get('executionId');
     
+    // Restaurar agente desde URL
+    if (agentIdParam && allAgents.length > 0 && !selectedAgent) {
+      const agent = allAgents.find(a => a.id.toString() === agentIdParam);
+      if (agent) {
+        console.log('[EJECUCIONES] Restaurando agente desde URL:', agent.name);
+        setSelectedAgent(agent);
+      }
+    }
+    
+    // Restaurar workflow desde URL (después de que se carguen los workflows)
     if (workflowIdParam && allWorkflows.length > 0 && !selectedWorkflow) {
       const workflow = allWorkflows.find(w => w.id === workflowIdParam);
       if (workflow) {
+        console.log('[EJECUCIONES] Restaurando workflow desde URL:', workflow.name);
         setSelectedWorkflow(workflow);
       }
     }
-  }, [searchParams, allWorkflows, selectedWorkflow]);
+  }, [searchParams, allAgents, allWorkflows, selectedAgent, selectedWorkflow]);
+
+  // Actualizar URL cuando cambian las selecciones
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (selectedAgent) {
+      params.set('agentId', selectedAgent.id.toString());
+    }
+    
+    if (selectedWorkflow) {
+      params.set('workflowId', selectedWorkflow.id);
+    }
+    
+    // Mantener executionId si existe
+    const executionIdParam = searchParams.get('executionId');
+    if (executionIdParam) {
+      params.set('executionId', executionIdParam);
+    }
+    
+    const newUrl = params.toString() ? `?${params.toString()}` : '/ejecuciones';
+    const currentUrl = searchParams.toString() ? `?${searchParams.toString()}` : '/ejecuciones';
+    
+    // Solo actualizar si la URL cambió
+    if (newUrl !== currentUrl) {
+      console.log('[EJECUCIONES] Actualizando URL:', newUrl);
+      router.replace(newUrl);
+    }
+  }, [selectedAgent, selectedWorkflow, router, searchParams]);
 
   // Abrir ejecución específica cuando se carguen las ejecuciones
   useEffect(() => {
