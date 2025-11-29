@@ -224,8 +224,16 @@ export default function Ejecuciones() {
     
     try {
       setExecLoading(true);
-      console.log('[EJECUCIONES] Cargando ejecuciones para workflow:', selectedWorkflow.id, 'limit:', itemsPerPage);
-      const response = await n8nAPI.getExecutions(selectedWorkflow.id, itemsPerPage, cursor);
+      
+      // Calcular fecha de hace 5 días
+      const fiveDaysAgo = new Date();
+      fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+      fiveDaysAgo.setHours(0, 0, 0, 0);
+      
+      console.log('[EJECUCIONES] Cargando ejecuciones para workflow:', selectedWorkflow.id, 'limit:', 500, 'desde:', fiveDaysAgo.toISOString());
+      
+      // Obtener más ejecuciones para poder filtrar por fecha (n8n API no soporta filtro directo)
+      const response = await n8nAPI.getExecutions(selectedWorkflow.id, 500, cursor);
       
       console.log('[EJECUCIONES] Respuesta de n8n:', {
         total: response.data?.length || 0,
@@ -233,9 +241,22 @@ export default function Ejecuciones() {
         sampleIds: response.data?.slice(0, 3).map((e: Execution) => e.id) || []
       });
       
+      // Filtrar ejecuciones de los últimos 5 días
+      const recentExecutions = (response.data || []).filter((exec: Execution) => {
+        const startedAt = exec.startedAt || exec.createdAt;
+        if (!startedAt) return false;
+        const execDate = new Date(startedAt);
+        return execDate >= fiveDaysAgo;
+      });
+      
+      console.log('[EJECUCIONES] Ejecuciones filtradas (últimos 5 días):', {
+        total: recentExecutions.length,
+        de: response.data?.length || 0
+      });
+      
       // Cargar datos completos para cada ejecución (necesario para verificar json.messages.text)
       const executionsWithData = await Promise.all(
-        response.data.map(async (exec: Execution) => {
+        recentExecutions.map(async (exec: Execution) => {
           try {
             const fullExec = await n8nAPI.getExecution(exec.id);
             return fullExec;
@@ -246,7 +267,7 @@ export default function Ejecuciones() {
         })
       );
       
-      console.log('[EJECUCIONES] Ejecuciones cargadas:', {
+      console.log('[EJECUCIONES] Ejecuciones cargadas (últimos 5 días):', {
         total: executionsWithData.length,
         errors: executionsWithData.filter((e: Execution) => e.status === 'error').length,
         successes: executionsWithData.filter((e: Execution) => e.status === 'success').length
@@ -676,7 +697,7 @@ export default function Ejecuciones() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-800">
-                Ejecuciones de {selectedWorkflow.name} - HOY
+                Ejecuciones de {selectedWorkflow.name} - Últimos 5 días
               </h2>
                 <div className="flex gap-2 items-center">
                   <select
