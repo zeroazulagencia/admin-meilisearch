@@ -163,6 +163,9 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
       case 'empty-array':
         value = [];
         break;
+      case 'example-array':
+        value = ['item1', 'item2', 'item3'];
+        break;
       case 'empty-object':
         value = {};
         break;
@@ -387,6 +390,12 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
                             className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
                           >
                             <span>📋</span> Array Vacío []
+                          </button>
+                          <button
+                            onClick={() => insertQuickValue(key, 'example-array')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <span>📋</span> Array Ejemplo [3 items]
                           </button>
                           <button
                             onClick={() => insertQuickValue(key, 'empty-object')}
