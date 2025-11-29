@@ -30,6 +30,7 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
   const [formData, setFormData] = useState<Document>({});
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
+  const [openQuickFillMenu, setOpenQuickFillMenu] = useState<string | null>(null);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
@@ -109,6 +110,68 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
       delete newData[key];
       return newData;
     });
+  };
+
+  // Funciones para generar valores automáticos
+  const generateRandomNumber = (): number => {
+    return Math.floor(Math.random() * 1000000);
+  };
+
+  const generateUUID = (): string => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
+  const getTodayISO = (): string => {
+    return new Date().toISOString();
+  };
+
+  const getTodayDate = (): string => {
+    return new Date().toISOString().split('T')[0];
+  };
+
+  const getTimestamp = (): number => {
+    return Date.now();
+  };
+
+  const insertQuickValue = (key: string, valueType: string) => {
+    const fieldType = detectFieldType(formData[key]);
+    let value: any;
+
+    switch (valueType) {
+      case 'random-number':
+        value = fieldType === 'number' ? generateRandomNumber() : generateRandomNumber().toString();
+        break;
+      case 'uuid':
+        value = generateUUID();
+        break;
+      case 'today-iso':
+        value = getTodayISO();
+        break;
+      case 'today-date':
+        value = getTodayDate();
+        break;
+      case 'timestamp':
+        value = fieldType === 'number' ? getTimestamp() : getTimestamp().toString();
+        break;
+      case 'empty-string':
+        value = '';
+        break;
+      case 'empty-array':
+        value = [];
+        break;
+      case 'empty-object':
+        value = {};
+        break;
+      default:
+        return;
+    }
+
+    updateField(key, value);
+    setOpenQuickFillMenu(null);
   };
 
   const renderFieldEditor = (key: string, value: any) => {
@@ -230,6 +293,19 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
     }
   };
 
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openQuickFillMenu && !(event.target as Element).closest('.quick-fill-menu-container')) {
+        setOpenQuickFillMenu(null);
+      }
+    };
+    if (openQuickFillMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [openQuickFillMenu]);
+
   return (
     <div className="bg-white rounded-lg shadow-lg">
       <div className="p-6 border-b border-gray-200">
@@ -256,15 +332,83 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
                   </span>
                 )}
               </label>
-              {!readOnly && canRemoveFields && !isPrimaryKey && (
-                <button
-                  onClick={() => removeField(key)}
-                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
-                  title="Eliminar campo"
-                >
-                  ✕ Eliminar
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {!readOnly && (
+                  <div className="relative quick-fill-menu-container">
+                    <button
+                      onClick={() => setOpenQuickFillMenu(openQuickFillMenu === key ? null : key)}
+                      className="px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-xs flex items-center gap-1"
+                      title="Insertar valor automático"
+                    >
+                      ⚡ Rápido
+                    </button>
+                    {openQuickFillMenu === key && (
+                      <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-300 rounded-lg shadow-lg z-50 quick-fill-menu-container">
+                        <div className="py-1">
+                          <button
+                            onClick={() => insertQuickValue(key, 'random-number')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <span>🔢</span> Número Random
+                          </button>
+                          <button
+                            onClick={() => insertQuickValue(key, 'uuid')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <span>🆔</span> UUID
+                          </button>
+                          <button
+                            onClick={() => insertQuickValue(key, 'today-iso')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <span>📅</span> Hoy (ISO DateTime)
+                          </button>
+                          <button
+                            onClick={() => insertQuickValue(key, 'today-date')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <span>📆</span> Hoy (Fecha)
+                          </button>
+                          <button
+                            onClick={() => insertQuickValue(key, 'timestamp')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <span>⏰</span> Timestamp
+                          </button>
+                          <div className="border-t border-gray-200 my-1"></div>
+                          <button
+                            onClick={() => insertQuickValue(key, 'empty-string')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <span>📝</span> String Vacío
+                          </button>
+                          <button
+                            onClick={() => insertQuickValue(key, 'empty-array')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <span>📋</span> Array Vacío []
+                          </button>
+                          <button
+                            onClick={() => insertQuickValue(key, 'empty-object')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <span>📦</span> Objeto Vacío {}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!readOnly && canRemoveFields && !isPrimaryKey && (
+                  <button
+                    onClick={() => removeField(key)}
+                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                    title="Eliminar campo"
+                  >
+                    ✕ Eliminar
+                  </button>
+                )}
+              </div>
             </div>
             {renderFieldEditor(key, value)}
           </div>
