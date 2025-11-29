@@ -850,13 +850,14 @@ export default function Ejecuciones() {
                                 </button>
                               )}
                               <a
-                                href={`https://automation.zeroazul.com/workflow/${exec.workflowId}`}
+                                href={`https://automation.zeroazul.com/workflow/${exec.workflowId}?view=workflow`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="transition-colors"
                                 style={{ color: '#5DE1E5' }}
                                 onMouseEnter={(e) => e.currentTarget.style.color = '#4DD1D5'}
                                 onMouseLeave={(e) => e.currentTarget.style.color = '#5DE1E5'}
+                                title="Abrir workflow en n8n"
                               >
                                 Workflow
                               </a>
