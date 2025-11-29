@@ -31,6 +31,7 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
   const [openQuickFillMenu, setOpenQuickFillMenu] = useState<string | null>(null);
+  const [quickFillSuccess, setQuickFillSuccess] = useState<{ field: string; message: string } | null>(null);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
@@ -140,34 +141,44 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
   const insertQuickValue = (key: string, valueType: string) => {
     const fieldType = detectFieldType(formData[key]);
     let value: any;
+    let successMessage = '';
 
     switch (valueType) {
       case 'random-number':
         value = fieldType === 'number' ? generateRandomNumber() : generateRandomNumber().toString();
+        successMessage = `Número random insertado: ${value}`;
         break;
       case 'uuid':
         value = generateUUID();
+        successMessage = `UUID insertado: ${value.substring(0, 8)}...`;
         break;
       case 'today-iso':
         value = getTodayISO();
+        successMessage = `Fecha/hora insertada: ${value}`;
         break;
       case 'today-date':
         value = getTodayDate();
+        successMessage = `Fecha insertada: ${value}`;
         break;
       case 'timestamp':
         value = fieldType === 'number' ? getTimestamp() : getTimestamp().toString();
+        successMessage = `Timestamp insertado: ${value}`;
         break;
       case 'empty-string':
         value = '';
+        successMessage = 'String vacío insertado';
         break;
       case 'empty-array':
         value = [];
+        successMessage = 'Array vacío [] insertado';
         break;
       case 'example-array':
         value = ['item1', 'item2', 'item3'];
+        successMessage = 'Array de ejemplo con 3 items insertado';
         break;
       case 'empty-object':
         value = {};
+        successMessage = 'Objeto vacío {} insertado';
         break;
       default:
         return;
@@ -175,6 +186,12 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
 
     updateField(key, value);
     setOpenQuickFillMenu(null);
+    
+    // Mostrar mensaje de éxito temporal
+    setQuickFillSuccess({ field: key, message: successMessage });
+    setTimeout(() => {
+      setQuickFillSuccess(null);
+    }, 3000);
   };
 
   const renderFieldEditor = (key: string, value: any) => {
@@ -420,6 +437,12 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
               </div>
             </div>
             {renderFieldEditor(key, value)}
+            {quickFillSuccess && quickFillSuccess.field === key && (
+              <div className="mt-2 px-3 py-2 bg-green-100 border border-green-300 rounded text-sm text-green-800 flex items-center gap-2 transition-opacity duration-300 animate-pulse">
+                <span className="text-green-600 font-bold">✓</span>
+                <span className="font-medium">{quickFillSuccess.message}</span>
+              </div>
+            )}
           </div>
           );
         })}
