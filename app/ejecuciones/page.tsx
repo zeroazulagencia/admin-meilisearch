@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { n8nAPI, Workflow, Execution } from '@/utils/n8n';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
@@ -111,6 +112,30 @@ export default function Ejecuciones() {
   useEffect(() => {
     loadWorkflows();
   }, []);
+
+  // Manejar parámetros de URL para abrir ejecución automáticamente
+  useEffect(() => {
+    const workflowIdParam = searchParams.get('workflowId');
+    const executionIdParam = searchParams.get('executionId');
+    
+    if (workflowIdParam && allWorkflows.length > 0 && !selectedWorkflow) {
+      const workflow = allWorkflows.find(w => w.id === workflowIdParam);
+      if (workflow) {
+        setSelectedWorkflow(workflow);
+      }
+    }
+  }, [searchParams, allWorkflows, selectedWorkflow]);
+
+  // Abrir ejecución específica cuando se carguen las ejecuciones
+  useEffect(() => {
+    const executionIdParam = searchParams.get('executionId');
+    if (executionIdParam && executions.length > 0 && !selectedExecution) {
+      const exec = executions.find(e => e.id === executionIdParam);
+      if (exec) {
+        handleViewExecution(executionIdParam);
+      }
+    }
+  }, [executions, searchParams, selectedExecution]);
 
   useEffect(() => {
     if (selectedAgent && allWorkflows.length > 0) {
