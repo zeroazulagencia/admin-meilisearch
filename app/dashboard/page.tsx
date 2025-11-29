@@ -202,13 +202,17 @@ export default function Dashboard() {
       
       console.log('[DASHBOARD] Workflows relacionados a agentes:', workflowToAgentMap.size);
       
-      // Obtener todas las ejecuciones con error de todos los workflows relacionados
+      // Obtener las últimas 3 ejecuciones de cada workflow y filtrar solo las que tienen error
       const allErrorExecutions: Array<Execution & { agentName: string; agentId: number }> = [];
       
       for (const [workflowId, agentInfo] of Array.from(workflowToAgentMap.entries())) {
         try {
-          const executionsResponse = await n8nAPI.getExecutions(workflowId, 100);
-          const errorExecs = executionsResponse.data
+          // Obtener las últimas 3 ejecuciones de este workflow
+          const executionsResponse = await n8nAPI.getExecutions(workflowId, 3);
+          const recentExecutions = executionsResponse.data || [];
+          
+          // Filtrar solo las que tienen error de las últimas 3
+          const errorExecs = recentExecutions
             .filter((exec: Execution) => exec.status === 'error')
             .map((exec: Execution) => ({
               ...exec,
@@ -217,19 +221,19 @@ export default function Dashboard() {
             }));
           
           allErrorExecutions.push(...errorExecs);
+          console.log(`[DASHBOARD] Workflow ${workflowId} (Agente: ${agentInfo.name}): ${recentExecutions.length} ejecuciones recientes, ${errorExecs.length} con error`);
         } catch (err) {
           console.error(`[DASHBOARD] Error obteniendo ejecuciones para workflow ${workflowId}:`, err);
         }
       }
       
-      // Ordenar por fecha (más recientes primero) y tomar las últimas 3
+      // Ordenar por fecha (más recientes primero) - SIN límite, mostrar TODAS
       const sortedErrors = allErrorExecutions
         .sort((a, b) => {
           const dateA = new Date(a.startedAt || a.createdAt || 0).getTime();
           const dateB = new Date(b.startedAt || b.createdAt || 0).getTime();
           return dateB - dateA;
         })
-        .slice(0, 3)
         .map(exec => ({
           id: exec.id,
           workflowId: exec.workflowId,
@@ -369,7 +373,9 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">Errores Recientes</h2>
               {errorExecutions.length > 0 && (
-                <span className="text-sm text-gray-500">Últimas 3 ejecuciones con error</span>
+                <span className="text-sm text-gray-500">
+                  Errores en las últimas 3 ejecuciones de cada workflow ({errorExecutions.length} {errorExecutions.length === 1 ? 'error encontrado' : 'errores encontrados'})
+                </span>
               )}
             </div>
             
