@@ -300,9 +300,9 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
         setOpenQuickFillMenu(null);
       }
     };
-    if (openQuickFillMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (openQuickFillMenu && typeof window !== 'undefined') {
+      window.document.addEventListener('mousedown', handleClickOutside);
+      return () => window.document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [openQuickFillMenu]);
 
