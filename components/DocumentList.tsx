@@ -50,6 +50,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     embedderName: 'openai' // Nombre del embedder, se detectará automáticamente
   });
   const [primaryKey, setPrimaryKey] = useState<string | null>(null);
+  const [requiredFields, setRequiredFields] = useState<Set<string>>(new Set());
   // Estado para seguimiento de task al guardar documentos individuales
   const [savingTaskStatus, setSavingTaskStatus] = useState<{
     taskUid: number;
@@ -63,6 +64,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
       loadDocuments();
       detectEmbedderName();
       loadPrimaryKey();
+      loadRequiredFields();
     }
   }, [indexUid, offset]);
 
@@ -99,6 +101,44 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     } catch (err) {
       console.error('Error cargando primary key:', err);
       setPrimaryKey(null);
+    }
+  };
+
+  // Extraer campos requeridos del documentTemplate del embedder
+  const extractRequiredFields = (documentTemplate: string): string[] => {
+    if (!documentTemplate) return [];
+    const matches = documentTemplate.match(/\{\{doc\.(\w+)\}\}/g);
+    if (!matches) return [];
+    const fields = matches.map(match => match.replace(/\{\{doc\.|\}\}/g, ''));
+    return Array.from(new Set(fields));
+  };
+
+  const loadRequiredFields = async () => {
+    try {
+      const settings = await meilisearchAPI.getIndexSettings(indexUid);
+      const requiredFieldsList: string[] = [];
+      
+      // Detectar campos requeridos por el embedder
+      if (settings.embedders && Object.keys(settings.embedders).length > 0) {
+        const embedder = Object.values(settings.embedders)[0] as any;
+        if (embedder.documentTemplate) {
+          const fields = extractRequiredFields(embedder.documentTemplate);
+          requiredFieldsList.push(...fields);
+          console.log('[DOCUMENT-LIST] Campos requeridos por embedder:', fields);
+        }
+      }
+      
+      // El primary key también es obligatorio
+      const index = await meilisearchAPI.getIndex(indexUid);
+      if (index.primaryKey) {
+        requiredFieldsList.push(index.primaryKey);
+      }
+      
+      setRequiredFields(new Set(requiredFieldsList));
+      console.log('[DOCUMENT-LIST] Campos obligatorios totales:', requiredFieldsList);
+    } catch (err) {
+      console.error('Error cargando campos obligatorios:', err);
+      setRequiredFields(new Set());
     }
   };
 
@@ -367,14 +407,68 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
         savingTaskIntervalRef.current = null;
       }
       
-      // CRÍTICO: Si es un documento existente (editingDoc tiene primaryKey), restaurar el primaryKey
-      // Esto es necesario porque DocumentEditor filtra el primaryKey para clientes, pero Meilisearch lo necesita para actualizar
+      // CRÍTICO: Validar que el primary key esté presente y no esté vacío
       const documentToSave = { ...docToSave };
-      if (editingDoc && primaryKey && editingDoc[primaryKey] !== undefined) {
+      
+      // Determinar si es un documento nuevo o existente
+      const isNewDocument = !editingDoc || (primaryKey && !editingDoc[primaryKey]);
+      
+      // Si es un documento existente, restaurar el primaryKey del documento original ANTES de validar
+      if (!isNewDocument && editingDoc && primaryKey && editingDoc[primaryKey] !== undefined) {
         // Restaurar el primaryKey del documento original para que Meilisearch pueda identificar qué documento actualizar
         documentToSave[primaryKey] = editingDoc[primaryKey];
         console.log('[DOCUMENT-LIST] Restaurando primaryKey para actualización:', primaryKey, '=', editingDoc[primaryKey]);
       }
+      
+      // Validar que todos los campos obligatorios estén presentes y no vacíos
+      const missingFields: string[] = [];
+      requiredFields.forEach(field => {
+        const value = documentToSave[field];
+        // Validar que el campo exista y no esté vacío (para strings, verificar que no sea solo espacios)
+        if (value === undefined || value === null || 
+            (typeof value === 'string' && !value.trim()) ||
+            (Array.isArray(value) && value.length === 0)) {
+          missingFields.push(field);
+        }
+      });
+      
+      if (missingFields.length > 0) {
+        const errorMsg = `Los siguientes campos son obligatorios y no pueden estar vacíos: ${missingFields.join(', ')}`;
+        console.error('[DOCUMENT-LIST] Error de validación:', errorMsg);
+        console.error('[DOCUMENT-LIST] Estado del documento:', { 
+          isNewDocument, 
+          primaryKey, 
+          documentToSave: Object.keys(documentToSave),
+          missingFields 
+        });
+        setAlertModal({
+          isOpen: true,
+          title: 'Error de validación',
+          message: errorMsg,
+          type: 'error',
+        });
+        return;
+      }
+      
+      // Validación adicional: asegurar que el primary key tenga un valor válido
+      if (primaryKey && (!documentToSave[primaryKey] || documentToSave[primaryKey].toString().trim() === '')) {
+        const errorMsg = `El campo "${primaryKey}" es obligatorio y no puede estar vacío`;
+        console.error('[DOCUMENT-LIST] Error de validación primary key:', errorMsg);
+        setAlertModal({
+          isOpen: true,
+          title: 'Error de validación',
+          message: errorMsg,
+          type: 'error',
+        });
+        return;
+      }
+      
+      console.log('[DOCUMENT-LIST] Documento validado correctamente:', { 
+        isNewDocument, 
+        primaryKey: documentToSave[primaryKey || ''], 
+        requiredFields: Array.from(requiredFields),
+        documentFields: Object.keys(documentToSave)
+      });
       
       // Meilisearch usa POST para agregar o actualizar documentos
       // Si el documento tiene la primary key, lo actualiza, si no, lo crea
@@ -921,6 +1015,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               canAddFields={canCreate}
               canRemoveFields={canDelete}
               primaryKey={primaryKey}
+              requiredFields={requiredFields}
             />
           </div>
         </div>

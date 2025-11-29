@@ -14,6 +14,7 @@ interface DocumentEditorProps {
   canAddFields?: boolean;
   canRemoveFields?: boolean;
   primaryKey?: string | null;
+  requiredFields?: Set<string>;
 }
 
 function detectFieldType(value: any): string {
@@ -25,7 +26,7 @@ function detectFieldType(value: any): string {
   return 'string';
 }
 
-export default function DocumentEditor({ document, indexUid, onSave, onCancel, readOnly = false, canAddFields = true, canRemoveFields = true, primaryKey = null }: DocumentEditorProps) {
+export default function DocumentEditor({ document, indexUid, onSave, onCancel, readOnly = false, canAddFields = true, canRemoveFields = true, primaryKey = null, requiredFields = new Set() }: DocumentEditorProps) {
   const [formData, setFormData] = useState<Document>({});
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
@@ -240,13 +241,15 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
       <div className="p-6 space-y-4 max-h-[600px] overflow-y-auto">
         {Object.entries(formData).map(([key, value]) => {
           const isPrimaryKey = key === primaryKey;
-          const isRequired = !document && canAddFields && isPrimaryKey;
+          const isRequired = requiredFields.has(key);
+          const isEmpty = !value || (typeof value === 'string' && !value.trim());
+          const hasError = isRequired && isEmpty;
           return (
-          <div key={key} className="space-y-2 border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <div key={key} className={`space-y-2 border rounded-lg p-4 ${hasError ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-gray-700">
+              <label className={`text-sm font-medium ${hasError ? 'text-red-700' : 'text-gray-700'}`}>
                 {key}
-                {isRequired && <span className="ml-1 text-red-500">*</span>}
+                {isRequired && <span className="ml-1 text-red-500 font-bold">*</span>}
                 {!readOnly && (
                   <span className="ml-2 text-xs text-gray-500">
                     ({detectFieldType(value)})
@@ -291,6 +294,24 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
               // Verificar si es un nuevo documento
               const isNewDocument = !document || (Object.keys(document).length === 0) || (primaryKey && !document[primaryKey]);
               
+              // Validar que todos los campos obligatorios estén presentes
+              const missingFields: string[] = [];
+              requiredFields.forEach(field => {
+                if (!formData[field] || (typeof formData[field] === 'string' && !formData[field].toString().trim())) {
+                  missingFields.push(field);
+                }
+              });
+              
+              if (missingFields.length > 0) {
+                setAlertModal({
+                  isOpen: true,
+                  title: 'Campos obligatorios',
+                  message: `Los siguientes campos son obligatorios y no pueden estar vacíos: ${missingFields.join(', ')}`,
+                  type: 'error',
+                });
+                return;
+              }
+              
               // Validar que si es un nuevo documento, tenga el primaryKey
               if (isNewDocument && canAddFields && primaryKey && (!formData[primaryKey] || !formData[primaryKey].toString().trim())) {
                 setAlertModal({
@@ -301,6 +322,7 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
                 });
                 return;
               }
+              
               onSave(formData);
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
