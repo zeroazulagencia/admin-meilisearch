@@ -230,22 +230,24 @@ export default function Ejecuciones() {
       fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
       fiveDaysAgo.setHours(0, 0, 0, 0);
       
-      console.log('[EJECUCIONES] Cargando ejecuciones para workflow:', selectedWorkflow.id, 'desde:', fiveDaysAgo.toISOString());
+      console.log('[EJECUCIONES] Cargando ejecuciones para workflow:', selectedWorkflow.id, 'itemsPerPage:', itemsPerPage, 'cursor:', cursor || 'ninguno');
       
-      // Obtener ejecuciones en lotes (n8n tiene un límite máximo, típicamente 100)
-      // Haremos múltiples peticiones hasta obtener suficientes ejecuciones de los últimos 5 días
-      const allExecutions: Execution[] = [];
-      let currentCursor: string | undefined = undefined;
+      // Cargar ejecuciones en lotes hasta tener suficientes de los últimos 5 días para la página actual
+      const validExecutions: Execution[] = [];
+      let currentCursor: string | undefined = cursor;
       let hasMore = true;
       let attempts = 0;
-      const maxAttempts = 20; // Máximo 20 peticiones (20 * 100 = 2000 ejecuciones máximo)
+      const maxAttempts = 20; // Máximo 20 peticiones
+      let lastNextCursor: string | undefined = undefined;
       
-      while (hasMore && attempts < maxAttempts) {
+      while (hasMore && attempts < maxAttempts && validExecutions.length < itemsPerPage) {
         attempts++;
-        console.log(`[EJECUCIONES] Obteniendo lote ${attempts}, cursor:`, currentCursor || 'ninguno');
+        console.log(`[EJECUCIONES] Obteniendo lote ${attempts}, cursor:`, currentCursor || 'ninguno', 'validas hasta ahora:', validExecutions.length);
         
         try {
-          const response = await n8nAPI.getExecutions(selectedWorkflow.id, 100, currentCursor);
+          // Obtener lote de ejecuciones (máximo 100 por petición de n8n)
+          const batchLimit = Math.min(100, itemsPerPage * 2); // Obtener más de las necesarias para asegurar suficientes válidas
+          const response = await n8nAPI.getExecutions(selectedWorkflow.id, batchLimit, currentCursor);
           const batch = response.data || [];
           
           if (batch.length === 0) {
@@ -261,7 +263,8 @@ export default function Ejecuciones() {
             return execDate >= fiveDaysAgo;
           });
           
-          allExecutions.push(...recentBatch);
+          validExecutions.push(...recentBatch);
+          lastNextCursor = response.nextCursor;
           
           // Si alguna ejecución del lote es más antigua que 5 días, podemos parar
           // (asumiendo que las ejecuciones vienen ordenadas por fecha descendente)
@@ -273,19 +276,21 @@ export default function Ejecuciones() {
               console.log('[EJECUCIONES] Lote contiene ejecuciones más antiguas que 5 días, deteniendo búsqueda');
               hasMore = false;
               break;
-            }
+          }
+          }
+          
+          // Si ya tenemos suficientes ejecuciones válidas, parar
+          if (validExecutions.length >= itemsPerPage) {
+            console.log('[EJECUCIONES] Ya tenemos suficientes ejecuciones válidas para la página');
+            hasMore = false;
+            break;
           }
           
           // Continuar con el siguiente lote si hay más
-          currentCursor = response.nextCursor;
-          if (!currentCursor) {
+          if (!lastNextCursor) {
             hasMore = false;
-          }
-          
-          // Si ya tenemos suficientes ejecuciones recientes, podemos parar
-          if (allExecutions.length >= 500) {
-            console.log('[EJECUCIONES] Ya tenemos suficientes ejecuciones, deteniendo búsqueda');
-            hasMore = false;
+          } else {
+            currentCursor = lastNextCursor;
           }
         } catch (err: any) {
           console.error(`[EJECUCIONES] Error en lote ${attempts}:`, err?.message || err);
@@ -299,14 +304,18 @@ export default function Ejecuciones() {
         }
       }
       
+      // Limitar a itemsPerPage ejecuciones para la página actual
+      const pageExecutions = validExecutions.slice(0, itemsPerPage);
+      
       console.log('[EJECUCIONES] Ejecuciones obtenidas (últimos 5 días):', {
-        total: allExecutions.length,
-        lotes: attempts
+        total: pageExecutions.length,
+        lotes: attempts,
+        nextCursor: lastNextCursor || undefined
       });
       
       // Cargar datos completos para cada ejecución (necesario para verificar json.messages.text)
       const executionsWithData = await Promise.all(
-        allExecutions.map(async (exec: Execution) => {
+        pageExecutions.map(async (exec: Execution) => {
           try {
             const fullExec = await n8nAPI.getExecution(exec.id);
             return fullExec;
@@ -324,7 +333,7 @@ export default function Ejecuciones() {
       });
       
       setExecutions(executionsWithData);
-      setNextCursor(undefined); // No usamos cursor cuando filtramos por fecha
+      setNextCursor(lastNextCursor); // Guardar cursor para siguiente página
     } catch (err) {
       console.error('[EJECUCIONES] Error loading executions:', err);
     } finally {
@@ -938,17 +947,17 @@ export default function Ejecuciones() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button
+                <button
                     onClick={() => {
                       setSelectedExecution(null);
                       setUserClosedModal(true); // Marcar que el usuario cerró el modal manualmente
                       // Limpiar parámetros de la URL al cerrar usando replace para no agregar al historial
                       router.replace('/ejecuciones');
                     }}
-                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-                  >
-                    ✕
-                  </button>
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                >
+                  ✕
+                </button>
                 </div>
               </div>
               <div className="flex-1 overflow-auto p-6">
