@@ -20,6 +20,7 @@ interface AgentDB {
 }
 
 export default function Ejecuciones() {
+  const searchParams = useSearchParams();
   const [allAgents, setAllAgents] = useState<AgentDB[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
