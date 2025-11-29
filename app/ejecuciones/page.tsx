@@ -230,33 +230,83 @@ export default function Ejecuciones() {
       fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
       fiveDaysAgo.setHours(0, 0, 0, 0);
       
-      console.log('[EJECUCIONES] Cargando ejecuciones para workflow:', selectedWorkflow.id, 'limit:', 500, 'desde:', fiveDaysAgo.toISOString());
+      console.log('[EJECUCIONES] Cargando ejecuciones para workflow:', selectedWorkflow.id, 'desde:', fiveDaysAgo.toISOString());
       
-      // Obtener más ejecuciones para poder filtrar por fecha (n8n API no soporta filtro directo)
-      const response = await n8nAPI.getExecutions(selectedWorkflow.id, 500, cursor);
+      // Obtener ejecuciones en lotes (n8n tiene un límite máximo, típicamente 100)
+      // Haremos múltiples peticiones hasta obtener suficientes ejecuciones de los últimos 5 días
+      const allExecutions: Execution[] = [];
+      let currentCursor: string | undefined = undefined;
+      let hasMore = true;
+      let attempts = 0;
+      const maxAttempts = 20; // Máximo 20 peticiones (20 * 100 = 2000 ejecuciones máximo)
       
-      console.log('[EJECUCIONES] Respuesta de n8n:', {
-        total: response.data?.length || 0,
-        hasNextCursor: !!response.nextCursor,
-        sampleIds: response.data?.slice(0, 3).map((e: Execution) => e.id) || []
-      });
+      while (hasMore && attempts < maxAttempts) {
+        attempts++;
+        console.log(`[EJECUCIONES] Obteniendo lote ${attempts}, cursor:`, currentCursor || 'ninguno');
+        
+        try {
+          const response = await n8nAPI.getExecutions(selectedWorkflow.id, 100, currentCursor);
+          const batch = response.data || [];
+          
+          if (batch.length === 0) {
+            hasMore = false;
+            break;
+          }
+          
+          // Filtrar ejecuciones de los últimos 5 días
+          const recentBatch = batch.filter((exec: Execution) => {
+            const startedAt = exec.startedAt || exec.createdAt;
+            if (!startedAt) return false;
+            const execDate = new Date(startedAt);
+            return execDate >= fiveDaysAgo;
+          });
+          
+          allExecutions.push(...recentBatch);
+          
+          // Si alguna ejecución del lote es más antigua que 5 días, podemos parar
+          // (asumiendo que las ejecuciones vienen ordenadas por fecha descendente)
+          const oldestInBatch = batch[batch.length - 1];
+          const oldestDate = oldestInBatch?.startedAt || oldestInBatch?.createdAt;
+          if (oldestDate) {
+            const oldestDateObj = new Date(oldestDate);
+            if (oldestDateObj < fiveDaysAgo) {
+              console.log('[EJECUCIONES] Lote contiene ejecuciones más antiguas que 5 días, deteniendo búsqueda');
+              hasMore = false;
+              break;
+            }
+          }
+          
+          // Continuar con el siguiente lote si hay más
+          currentCursor = response.nextCursor;
+          if (!currentCursor) {
+            hasMore = false;
+          }
+          
+          // Si ya tenemos suficientes ejecuciones recientes, podemos parar
+          if (allExecutions.length >= 500) {
+            console.log('[EJECUCIONES] Ya tenemos suficientes ejecuciones, deteniendo búsqueda');
+            hasMore = false;
+          }
+        } catch (err: any) {
+          console.error(`[EJECUCIONES] Error en lote ${attempts}:`, err?.message || err);
+          // Si es un error 400, probablemente el cursor es inválido, parar
+          if (err?.response?.status === 400) {
+            hasMore = false;
+            break;
+          }
+          // Continuar con el siguiente intento
+          hasMore = false;
+        }
+      }
       
-      // Filtrar ejecuciones de los últimos 5 días
-      const recentExecutions = (response.data || []).filter((exec: Execution) => {
-        const startedAt = exec.startedAt || exec.createdAt;
-        if (!startedAt) return false;
-        const execDate = new Date(startedAt);
-        return execDate >= fiveDaysAgo;
-      });
-      
-      console.log('[EJECUCIONES] Ejecuciones filtradas (últimos 5 días):', {
-        total: recentExecutions.length,
-        de: response.data?.length || 0
+      console.log('[EJECUCIONES] Ejecuciones obtenidas (últimos 5 días):', {
+        total: allExecutions.length,
+        lotes: attempts
       });
       
       // Cargar datos completos para cada ejecución (necesario para verificar json.messages.text)
       const executionsWithData = await Promise.all(
-        recentExecutions.map(async (exec: Execution) => {
+        allExecutions.map(async (exec: Execution) => {
           try {
             const fullExec = await n8nAPI.getExecution(exec.id);
             return fullExec;
@@ -274,7 +324,7 @@ export default function Ejecuciones() {
       });
       
       setExecutions(executionsWithData);
-      setNextCursor(response.nextCursor);
+      setNextCursor(undefined); // No usamos cursor cuando filtramos por fecha
     } catch (err) {
       console.error('[EJECUCIONES] Error loading executions:', err);
     } finally {
