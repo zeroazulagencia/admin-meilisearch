@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { n8nAPI, Workflow, Execution } from '@/utils/n8n';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
@@ -20,6 +20,7 @@ interface AgentDB {
 }
 
 export default function Ejecuciones() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [allAgents, setAllAgents] = useState<AgentDB[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(true);
@@ -828,7 +829,11 @@ export default function Ejecuciones() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setSelectedExecution(null)}
+                  onClick={() => {
+                    setSelectedExecution(null);
+                    // Limpiar parámetros de la URL al cerrar
+                    router.push('/ejecuciones');
+                  }}
                   className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
                 >
                   ✕
