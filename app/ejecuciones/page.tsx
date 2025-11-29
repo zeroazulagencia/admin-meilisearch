@@ -333,6 +333,81 @@ export default function Ejecuciones() {
     }
   };
 
+  // Obtener agentId desde workflowId
+  const getAgentIdFromWorkflowId = (workflowId: string): number | null => {
+    for (const agent of allAgents) {
+      try {
+        const w = typeof agent.workflows === 'string' ? JSON.parse(agent.workflows) : (agent.workflows || {});
+        const workflowIds = Array.isArray(w.workflowIds) ? w.workflowIds : [];
+        if (workflowIds.includes(workflowId)) {
+          return agent.id;
+        }
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  };
+
+  const handleMarkAsReviewed = async (executionId: string, workflowId: string) => {
+    if (markingAsReviewed.has(executionId)) return;
+    
+    const agentId = getAgentIdFromWorkflowId(workflowId);
+    if (!agentId) {
+      console.error('[EJECUCIONES] No se pudo encontrar agentId para workflowId:', workflowId);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'No se pudo encontrar el agente asociado a este workflow',
+        type: 'error'
+      });
+      return;
+    }
+    
+    try {
+      setMarkingAsReviewed(prev => new Set(prev).add(executionId));
+      
+      const res = await fetch('/api/reviewed-errors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ executionId, workflowId, agentId })
+      });
+      
+      const data = await res.json();
+      
+      if (data.ok) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Éxito',
+          message: 'Error marcado como revisado',
+          type: 'success'
+        });
+        console.log('[EJECUCIONES] Error marcado como revisado:', executionId);
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error',
+          message: data.error || 'Error al marcar como revisado',
+          type: 'error'
+        });
+      }
+    } catch (err) {
+      console.error('[EJECUCIONES] Error marcando como revisado:', err);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al marcar como revisado',
+        type: 'error'
+      });
+    } finally {
+      setMarkingAsReviewed(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(executionId);
+        return newSet;
+      });
+    }
+  };
+
   const handleExplainWithAI = async (data: any, nodeName: string, isError: boolean = false) => {
     try {
       setLoadingAI(nodeName);
