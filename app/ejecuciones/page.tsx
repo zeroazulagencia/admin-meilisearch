@@ -98,6 +98,7 @@ export default function Ejecuciones() {
   const [isOpen, setIsOpen] = useState(false);
   const [userClosedModal, setUserClosedModal] = useState(false);
   const [markingAsReviewed, setMarkingAsReviewed] = useState<Set<string>>(new Set());
+  const [reviewedErrors, setReviewedErrors] = useState<Set<string>>(new Set());
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
@@ -115,6 +116,21 @@ export default function Ejecuciones() {
 
   useEffect(() => {
     loadWorkflows();
+    // Cargar errores revisados
+    const loadReviewedErrors = async () => {
+      try {
+        const reviewedRes = await fetch('/api/reviewed-errors');
+        const reviewedData = await reviewedRes.json();
+        if (reviewedData.ok && reviewedData.reviewedErrors) {
+          const reviewedSet = new Set(reviewedData.reviewedErrors.map((r: any) => r.execution_id));
+          setReviewedErrors(reviewedSet);
+          console.log('[EJECUCIONES] Errores revisados cargados:', reviewedSet.size);
+        }
+      } catch (e) {
+        console.error('[EJECUCIONES] Error cargando errores revisados:', e);
+      }
+    };
+    loadReviewedErrors();
   }, []);
 
   // Manejar parámetros de URL para abrir ejecución automáticamente
@@ -376,6 +392,8 @@ export default function Ejecuciones() {
       const data = await res.json();
       
       if (data.ok) {
+        // Actualizar estado local
+        setReviewedErrors(prev => new Set(prev).add(executionId));
         setAlertModal({
           isOpen: true,
           title: 'Éxito',
@@ -931,11 +949,22 @@ export default function Ejecuciones() {
                   {selectedExecution.status === 'error' && (
                     <button
                       onClick={() => handleMarkAsReviewed(selectedExecution.id, selectedExecution.workflowId)}
-                      disabled={markingAsReviewed.has(selectedExecution.id)}
-                      className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      title="Marcar como revisado"
+                      disabled={markingAsReviewed.has(selectedExecution.id) || reviewedErrors.has(selectedExecution.id)}
+                      className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                        reviewedErrors.has(selectedExecution.id)
+                          ? 'text-green-600 hover:bg-green-100'
+                          : 'text-red-600 hover:bg-red-100'
+                      }`}
+                      title={reviewedErrors.has(selectedExecution.id) ? "Ya revisado" : "Marcar como revisado"}
                     >
-                      {markingAsReviewed.has(selectedExecution.id) ? (
+                      {reviewedErrors.has(selectedExecution.id) ? (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-sm">Revisado</span>
+                        </>
+                      ) : markingAsReviewed.has(selectedExecution.id) ? (
                         <>
                           <div className="animate-spin h-5 w-5 border-2 border-red-600 border-t-transparent rounded-full"></div>
                           <span className="text-sm">Marcando...</span>

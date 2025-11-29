@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [loadingErrors, setLoadingErrors] = useState(false);
   const [reviewedErrors, setReviewedErrors] = useState<Set<string>>(new Set());
   const [markingAsReviewed, setMarkingAsReviewed] = useState<Set<string>>(new Set());
+  const [justReviewed, setJustReviewed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Verificar permisos del usuario de forma síncrona
@@ -227,14 +228,16 @@ export default function Dashboard() {
       for (const [workflowId, agentInfo] of Array.from(workflowToAgentMap.entries())) {
         try {
           totalWorkflowsChecked++;
-          // Obtener las últimas 3 ejecuciones de este workflow
-          const executionsResponse = await n8nAPI.getExecutions(workflowId, 3);
-          const recentExecutions = executionsResponse.data || [];
-          totalExecutionsChecked += recentExecutions.length;
+          // Obtener más ejecuciones (100) para asegurar que encontramos las últimas 3 con error
+          // ya que pueden haber muchas ejecuciones exitosas entre errores
+          const executionsResponse = await n8nAPI.getExecutions(workflowId, 100);
+          const allExecutions = executionsResponse.data || [];
+          totalExecutionsChecked += allExecutions.length;
           
-          // Filtrar solo las que tienen error de las últimas 3
-          const errorExecs = recentExecutions
+          // Filtrar solo las que tienen error y tomar las últimas 3
+          const errorExecs = allExecutions
             .filter((exec: Execution) => exec.status === 'error')
+            .slice(0, 3) // Tomar solo las últimas 3 con error
             .map((exec: Execution) => ({
               ...exec,
               agentName: agentInfo.name,
@@ -242,7 +245,7 @@ export default function Dashboard() {
             }));
           
           allErrorExecutions.push(...errorExecs);
-          console.log(`[DASHBOARD] Workflow ${workflowId} (Agente: ${agentInfo.name}): ${recentExecutions.length} ejecuciones recientes, ${errorExecs.length} con error`);
+          console.log(`[DASHBOARD] Workflow ${workflowId} (Agente: ${agentInfo.name}): ${allExecutions.length} ejecuciones revisadas, ${errorExecs.length} con error (últimas 3)`);
         } catch (err) {
           console.error(`[DASHBOARD] Error obteniendo ejecuciones para workflow ${workflowId}:`, err);
         }
@@ -300,8 +303,17 @@ export default function Dashboard() {
       if (data.ok) {
         // Actualizar estado local
         setReviewedErrors(prev => new Set(prev).add(executionId));
-        // Remover de la lista de errores
-        setErrorExecutions(prev => prev.filter(e => e.id !== executionId));
+        // Mostrar check temporalmente antes de remover
+        setJustReviewed(prev => new Set(prev).add(executionId));
+        // Remover de la lista después de 2 segundos para mostrar el check
+        setTimeout(() => {
+          setErrorExecutions(prev => prev.filter(e => e.id !== executionId));
+          setJustReviewed(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(executionId);
+            return newSet;
+          });
+        }, 2000);
         console.log('[DASHBOARD] Error marcado como revisado:', executionId);
       } else {
         console.error('[DASHBOARD] Error marcando como revisado:', data.error);
@@ -481,11 +493,15 @@ export default function Dashboard() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleMarkAsReviewed(exec.id, exec.workflowId, exec.agentId)}
-                          disabled={markingAsReviewed.has(exec.id)}
+                          disabled={markingAsReviewed.has(exec.id) || justReviewed.has(exec.id)}
                           className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Marcar como revisado"
+                          title={justReviewed.has(exec.id) ? "Marcado como revisado" : "Marcar como revisado"}
                         >
-                          {markingAsReviewed.has(exec.id) ? (
+                          {justReviewed.has(exec.id) ? (
+                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          ) : markingAsReviewed.has(exec.id) ? (
                             <div className="animate-spin h-5 w-5 border-2 border-red-600 border-t-transparent rounded-full"></div>
                           ) : (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
