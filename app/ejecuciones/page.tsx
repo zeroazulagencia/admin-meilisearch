@@ -854,11 +854,19 @@ export default function Ejecuciones() {
                               {exec.status === 'error' && (
                                 <button
                                   onClick={() => handleMarkAsReviewed(exec.id, exec.workflowId)}
-                                  disabled={markingAsReviewed.has(exec.id)}
-                                  className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title="Marcar como revisado"
+                                  disabled={markingAsReviewed.has(exec.id) || reviewedErrors.has(exec.id)}
+                                  className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    reviewedErrors.has(exec.id) 
+                                      ? 'text-green-600 hover:bg-green-100' 
+                                      : 'text-red-600 hover:bg-red-100'
+                                  }`}
+                                  title={reviewedErrors.has(exec.id) ? "Ya revisado" : "Marcar como revisado"}
                                 >
-                                  {markingAsReviewed.has(exec.id) ? (
+                                  {reviewedErrors.has(exec.id) ? (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  ) : markingAsReviewed.has(exec.id) ? (
                                     <div className="animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full"></div>
                                   ) : (
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
