@@ -201,15 +201,20 @@ export default function Dashboard() {
       });
       
       console.log('[DASHBOARD] Workflows relacionados a agentes:', workflowToAgentMap.size);
+      console.log('[DASHBOARD] Total de workflows a revisar:', Array.from(workflowToAgentMap.entries()).length);
       
       // Obtener las últimas 3 ejecuciones de cada workflow y filtrar solo las que tienen error
       const allErrorExecutions: Array<Execution & { agentName: string; agentId: number }> = [];
+      let totalWorkflowsChecked = 0;
+      let totalExecutionsChecked = 0;
       
       for (const [workflowId, agentInfo] of Array.from(workflowToAgentMap.entries())) {
         try {
+          totalWorkflowsChecked++;
           // Obtener las últimas 3 ejecuciones de este workflow
           const executionsResponse = await n8nAPI.getExecutions(workflowId, 3);
           const recentExecutions = executionsResponse.data || [];
+          totalExecutionsChecked += recentExecutions.length;
           
           // Filtrar solo las que tienen error de las últimas 3
           const errorExecs = recentExecutions
@@ -227,6 +232,8 @@ export default function Dashboard() {
         }
       }
       
+      console.log(`[DASHBOARD] Resumen: ${totalWorkflowsChecked} workflows revisados, ${totalExecutionsChecked} ejecuciones totales revisadas, ${allErrorExecutions.length} errores encontrados`);
+      
       // Ordenar por fecha (más recientes primero) - SIN límite, mostrar TODAS
       const sortedErrors = allErrorExecutions
         .sort((a, b) => {
@@ -242,7 +249,7 @@ export default function Dashboard() {
           agentId: exec.agentId
         }));
       
-      console.log('[DASHBOARD] Últimas 3 ejecuciones con error:', sortedErrors);
+      console.log('[DASHBOARD] Errores encontrados (ordenados por fecha):', sortedErrors.length, 'errores');
       setErrorExecutions(sortedErrors);
     } catch (err) {
       console.error('[DASHBOARD] Error cargando ejecuciones con error:', err);
