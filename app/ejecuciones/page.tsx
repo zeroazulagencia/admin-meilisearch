@@ -134,14 +134,25 @@ export default function Ejecuciones() {
     const executionIdParam = searchParams.get('executionId');
     const workflowIdParam = searchParams.get('workflowId');
     
+    console.log('[EJECUCIONES] Verificando apertura de modal:', {
+      executionIdParam,
+      workflowIdParam,
+      selectedWorkflow: !!selectedWorkflow,
+      executionsCount: executions.length,
+      selectedExecution: !!selectedExecution,
+      userClosedModal
+    });
+    
     // Solo abrir si hay executionId en la URL y el workflow está seleccionado
     if (executionIdParam && workflowIdParam && selectedWorkflow && executions.length > 0 && !selectedExecution && !userClosedModal) {
       const exec = executions.find(e => e.id === executionIdParam);
       if (exec) {
-        console.log('[EJECUCIONES] Abriendo ejecución desde URL:', executionIdParam);
+        console.log('[EJECUCIONES] Ejecución encontrada en lista, abriendo modal:', executionIdParam);
         handleViewExecution(executionIdParam);
       } else {
-        console.log('[EJECUCIONES] Ejecución no encontrada en la lista:', executionIdParam);
+        console.log('[EJECUCIONES] Ejecución no encontrada en la lista, intentando cargar directamente:', executionIdParam);
+        // Si no está en la lista, intentar cargarla directamente
+        handleViewExecution(executionIdParam);
       }
     }
     // Resetear la bandera si no hay executionId en la URL
@@ -213,7 +224,14 @@ export default function Ejecuciones() {
     
     try {
       setExecLoading(true);
+      console.log('[EJECUCIONES] Cargando ejecuciones para workflow:', selectedWorkflow.id, 'limit:', itemsPerPage);
       const response = await n8nAPI.getExecutions(selectedWorkflow.id, itemsPerPage, cursor);
+      
+      console.log('[EJECUCIONES] Respuesta de n8n:', {
+        total: response.data?.length || 0,
+        hasNextCursor: !!response.nextCursor,
+        sampleIds: response.data?.slice(0, 3).map((e: Execution) => e.id) || []
+      });
       
       // Cargar datos completos para cada ejecución (necesario para verificar json.messages.text)
       const executionsWithData = await Promise.all(
@@ -228,10 +246,16 @@ export default function Ejecuciones() {
         })
       );
       
+      console.log('[EJECUCIONES] Ejecuciones cargadas:', {
+        total: executionsWithData.length,
+        errors: executionsWithData.filter((e: Execution) => e.status === 'error').length,
+        successes: executionsWithData.filter((e: Execution) => e.status === 'success').length
+      });
+      
       setExecutions(executionsWithData);
       setNextCursor(response.nextCursor);
     } catch (err) {
-      console.error('Error loading executions:', err);
+      console.error('[EJECUCIONES] Error loading executions:', err);
     } finally {
       setExecLoading(false);
     }
