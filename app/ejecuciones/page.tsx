@@ -122,7 +122,7 @@ export default function Ejecuciones() {
         const reviewedRes = await fetch('/api/reviewed-errors');
         const reviewedData = await reviewedRes.json();
         if (reviewedData.ok && reviewedData.reviewedErrors) {
-          const reviewedSet = new Set(reviewedData.reviewedErrors.map((r: any) => r.execution_id));
+          const reviewedSet = new Set<string>(reviewedData.reviewedErrors.map((r: any) => r.execution_id as string));
           setReviewedErrors(reviewedSet);
           console.log('[EJECUCIONES] Errores revisados cargados:', reviewedSet.size);
         }
