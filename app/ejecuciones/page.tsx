@@ -97,6 +97,7 @@ export default function Ejecuciones() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [userClosedModal, setUserClosedModal] = useState(false);
+  const [markingAsReviewed, setMarkingAsReviewed] = useState<Set<string>>(new Set());
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
@@ -756,7 +757,23 @@ export default function Ejecuciones() {
                             )}
                           </td>
                           <td className="px-6 py-4 text-right text-sm font-medium">
-                            <div className="flex gap-3 justify-end">
+                            <div className="flex gap-3 justify-end items-center">
+                              {exec.status === 'error' && (
+                                <button
+                                  onClick={() => handleMarkAsReviewed(exec.id, exec.workflowId)}
+                                  disabled={markingAsReviewed.has(exec.id)}
+                                  className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Marcar como revisado"
+                                >
+                                  {markingAsReviewed.has(exec.id) ? (
+                                    <div className="animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full"></div>
+                                  ) : (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                  )}
+                                </button>
+                              )}
                               <a
                                 href={`https://automation.zeroazul.com/workflow/${exec.workflowId}`}
                                 target="_blank"
@@ -834,17 +851,41 @@ export default function Ejecuciones() {
                     }`}>{selectedExecution.status}</span>
                   </p>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedExecution(null);
-                    setUserClosedModal(true); // Marcar que el usuario cerró el modal manualmente
-                    // Limpiar parámetros de la URL al cerrar usando replace para no agregar al historial
-                    router.replace('/ejecuciones');
-                  }}
-                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-3">
+                  {selectedExecution.status === 'error' && (
+                    <button
+                      onClick={() => handleMarkAsReviewed(selectedExecution.id, selectedExecution.workflowId)}
+                      disabled={markingAsReviewed.has(selectedExecution.id)}
+                      className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      title="Marcar como revisado"
+                    >
+                      {markingAsReviewed.has(selectedExecution.id) ? (
+                        <>
+                          <div className="animate-spin h-5 w-5 border-2 border-red-600 border-t-transparent rounded-full"></div>
+                          <span className="text-sm">Marcando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          <span className="text-sm">Marcar como revisado</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setSelectedExecution(null);
+                      setUserClosedModal(true); // Marcar que el usuario cerró el modal manualmente
+                      // Limpiar parámetros de la URL al cerrar usando replace para no agregar al historial
+                      router.replace('/ejecuciones');
+                    }}
+                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
               <div className="flex-1 overflow-auto p-6">
                 <div className="mb-4">

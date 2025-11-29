@@ -26,6 +26,8 @@ export default function Dashboard() {
   const [hasDashboardAccess, setHasDashboardAccess] = useState<boolean | null>(null);
   const [errorExecutions, setErrorExecutions] = useState<ErrorExecution[]>([]);
   const [loadingErrors, setLoadingErrors] = useState(false);
+  const [reviewedErrors, setReviewedErrors] = useState<Set<string>>(new Set());
+  const [markingAsReviewed, setMarkingAsReviewed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Verificar permisos del usuario de forma síncrona
@@ -163,6 +165,20 @@ export default function Dashboard() {
       setLoadingErrors(true);
       console.log('[DASHBOARD] Cargando ejecuciones con error...');
       
+      // Cargar errores revisados primero
+      let reviewedSet = new Set<string>();
+      try {
+        const reviewedRes = await fetch('/api/reviewed-errors');
+        const reviewedData = await reviewedRes.json();
+        if (reviewedData.ok && reviewedData.reviewedErrors) {
+          reviewedSet = new Set(reviewedData.reviewedErrors.map((r: any) => r.execution_id));
+          setReviewedErrors(reviewedSet);
+          console.log('[DASHBOARD] Errores revisados cargados:', reviewedSet.size);
+        }
+      } catch (e) {
+        console.error('[DASHBOARD] Error cargando errores revisados:', e);
+      }
+      
       // Obtener todos los agentes
       const agentsRes = await fetch('/api/agents');
       const agentsData = await agentsRes.json();
@@ -249,8 +265,11 @@ export default function Dashboard() {
           agentId: exec.agentId
         }));
       
-      console.log('[DASHBOARD] Errores encontrados (ordenados por fecha):', sortedErrors.length, 'errores');
-      setErrorExecutions(sortedErrors);
+      // Filtrar errores ya revisados (solo en dashboard, no en ejecuciones)
+      const unreviewedErrors = sortedErrors.filter(exec => !reviewedSet.has(exec.id));
+      
+      console.log('[DASHBOARD] Errores encontrados (ordenados por fecha):', sortedErrors.length, 'errores totales,', unreviewedErrors.length, 'sin revisar (filtrados:', sortedErrors.length - unreviewedErrors.length, 'ya revisados)');
+      setErrorExecutions(unreviewedErrors);
     } catch (err) {
       console.error('[DASHBOARD] Error cargando ejecuciones con error:', err);
       setErrorExecutions([]);
@@ -262,6 +281,40 @@ export default function Dashboard() {
   const handleViewExecution = (executionId: string, workflowId: string) => {
     // Navegar a la página de ejecuciones con el workflow y ejecución seleccionados
     router.push(`/ejecuciones?workflowId=${workflowId}&executionId=${executionId}`);
+  };
+
+  const handleMarkAsReviewed = async (executionId: string, workflowId: string, agentId: number) => {
+    if (markingAsReviewed.has(executionId)) return;
+    
+    try {
+      setMarkingAsReviewed(prev => new Set(prev).add(executionId));
+      
+      const res = await fetch('/api/reviewed-errors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ executionId, workflowId, agentId })
+      });
+      
+      const data = await res.json();
+      
+      if (data.ok) {
+        // Actualizar estado local
+        setReviewedErrors(prev => new Set(prev).add(executionId));
+        // Remover de la lista de errores
+        setErrorExecutions(prev => prev.filter(e => e.id !== executionId));
+        console.log('[DASHBOARD] Error marcado como revisado:', executionId);
+      } else {
+        console.error('[DASHBOARD] Error marcando como revisado:', data.error);
+      }
+    } catch (err) {
+      console.error('[DASHBOARD] Error marcando como revisado:', err);
+    } finally {
+      setMarkingAsReviewed(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(executionId);
+        return newSet;
+      });
+    }
   };
 
   // Mostrar loading solo si aún no se ha verificado el acceso
@@ -425,12 +478,28 @@ export default function Dashboard() {
                           }) : 'Fecha no disponible'}
                         </p>
                       </div>
-                      <button
-                        onClick={() => handleViewExecution(exec.id, exec.workflowId)}
-                        className="ml-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                      >
-                        Ver Ejecución
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleMarkAsReviewed(exec.id, exec.workflowId, exec.agentId)}
+                          disabled={markingAsReviewed.has(exec.id)}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Marcar como revisado"
+                        >
+                          {markingAsReviewed.has(exec.id) ? (
+                            <div className="animate-spin h-5 w-5 border-2 border-red-600 border-t-transparent rounded-full"></div>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleViewExecution(exec.id, exec.workflowId)}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                        >
+                          Ver Ejecución
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
