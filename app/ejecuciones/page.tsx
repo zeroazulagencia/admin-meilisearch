@@ -129,16 +129,26 @@ export default function Ejecuciones() {
         setSelectedAgent(agent);
       }
     }
+  }, [searchParams, allAgents, selectedAgent]);
+
+  // Restaurar workflow desde URL (después de que se filtren los workflows del agente)
+  useEffect(() => {
+    const workflowIdParam = searchParams.get('workflowId');
     
-    // Restaurar workflow desde URL (después de que se carguen los workflows)
-    if (workflowIdParam && allWorkflows.length > 0 && !selectedWorkflow) {
-      const workflow = allWorkflows.find(w => w.id === workflowIdParam);
+    // Restaurar workflow desde URL solo si:
+    // 1. Hay workflowId en la URL
+    // 2. Los workflows ya están filtrados (workflows.length > 0 o selectedAgent está seleccionado)
+    // 3. No hay workflow seleccionado actualmente
+    if (workflowIdParam && workflows.length > 0 && !selectedWorkflow) {
+      const workflow = workflows.find(w => w.id === workflowIdParam);
       if (workflow) {
         console.log('[EJECUCIONES] Restaurando workflow desde URL:', workflow.name);
         setSelectedWorkflow(workflow);
+      } else {
+        console.log('[EJECUCIONES] Workflow no encontrado en workflows filtrados:', workflowIdParam);
       }
     }
-  }, [searchParams, allAgents, allWorkflows, selectedAgent, selectedWorkflow]);
+  }, [searchParams, workflows, selectedWorkflow]);
 
   // Actualizar URL cuando cambian las selecciones
   useEffect(() => {
@@ -217,10 +227,15 @@ export default function Ejecuciones() {
       } else {
         setWorkflows([]);
       }
+      
       // Limpiar selección de workflow cuando cambia el agente
-      setSelectedWorkflow(null);
+      // PERO solo si no viene de la URL (para no interferir con la restauración)
+      const workflowIdParam = searchParams.get('workflowId');
+      if (!workflowIdParam) {
+        setSelectedWorkflow(null);
+      }
     }
-  }, [selectedAgent, allWorkflows]);
+  }, [selectedAgent, allWorkflows, searchParams]);
 
   useEffect(() => {
     if (selectedWorkflow) {
