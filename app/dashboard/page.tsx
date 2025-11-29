@@ -205,7 +205,7 @@ export default function Dashboard() {
       // Obtener todas las ejecuciones con error de todos los workflows relacionados
       const allErrorExecutions: Array<Execution & { agentName: string; agentId: number }> = [];
       
-      for (const [workflowId, agentInfo] of workflowToAgentMap.entries()) {
+      for (const [workflowId, agentInfo] of Array.from(workflowToAgentMap.entries())) {
         try {
           const executionsResponse = await n8nAPI.getExecutions(workflowId, 100);
           const errorExecs = executionsResponse.data
