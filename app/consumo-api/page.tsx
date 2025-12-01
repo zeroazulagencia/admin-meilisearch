@@ -231,8 +231,9 @@ export default function ConsumoAPI() {
         dashboardUrl: 'https://lightsail.aws.amazon.com/ls/webapp/home/instances',
         isLoading: true,
         serviceKey: 'aws-lightsail',
-        apiKey: apiKeys['aws-lightsail'] || '',
-        checkUrl: 'https://lightsail.aws.amazon.com'
+        apiKey: '', // No requiere API key
+        checkUrl: 'https://lightsail.aws.amazon.com',
+        hasEnvKey: false
       },
       {
         name: 'AWS Billing',
@@ -240,8 +241,9 @@ export default function ConsumoAPI() {
         dashboardUrl: 'https://us-east-1.console.aws.amazon.com/billing/home#/',
         isLoading: true,
         serviceKey: 'aws',
-        apiKey: apiKeys['aws'] || '',
-        checkUrl: 'https://lightsail.aws.amazon.com'
+        apiKey: '', // No requiere API key
+        checkUrl: 'https://lightsail.aws.amazon.com',
+        hasEnvKey: false
       },
       {
         name: 'RapidAPI',
@@ -300,42 +302,44 @@ export default function ConsumoAPI() {
               </span>
             </div>
             
-            {/* Campo para editar API Key */}
-            <div className="mb-4">
-              {service.isEditing ? (
-                <div className="space-y-2">
-                  <input
-                    type="password"
-                    value={service.apiKey || ''}
-                    onChange={(e) => handleApiKeyChange(index, e.target.value)}
-                    placeholder="API Key (opcional)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5DE1E5]"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleSaveApiKey(service, index)}
-                      className="flex-1 px-3 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-all"
-                      style={{ backgroundColor: '#5DE1E5' }}
-                    >
-                      Guardar
-                    </button>
-                    <button
-                      onClick={() => toggleEdit(index)}
-                      className="flex-1 px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all"
-                    >
-                      Cancelar
-                    </button>
+            {/* Campo para editar API Key - Solo mostrar si el servicio requiere API key */}
+            {(service.serviceKey !== 'aws' && service.serviceKey !== 'aws-lightsail') && (
+              <div className="mb-4">
+                {service.isEditing ? (
+                  <div className="space-y-2">
+                    <input
+                      type="password"
+                      value={service.apiKey || ''}
+                      onChange={(e) => handleApiKeyChange(index, e.target.value)}
+                      placeholder="API Key (opcional)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5DE1E5]"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSaveApiKey(service, index)}
+                        className="flex-1 px-3 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-all"
+                        style={{ backgroundColor: '#5DE1E5' }}
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={() => toggleEdit(index)}
+                        className="flex-1 px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => toggleEdit(index)}
-                  className="w-full px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all"
-                >
-                  {(service.hasEnvKey || service.apiKey) ? 'Editar' : '+ API Key'}
-                </button>
-              )}
-            </div>
+                ) : (
+                  <button
+                    onClick={() => toggleEdit(index)}
+                    className="w-full px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all"
+                  >
+                    {(service.hasEnvKey || service.apiKey) ? 'Editar' : '+ API Key'}
+                  </button>
+                )}
+              </div>
+            )}
 
             {service.isLoading && (
               <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Función helper para verificar si hay API key en env
 const hasEnvApiKey = (serviceKey: string): boolean => {
+  // AWS services no requieren API keys, solo verifican conectividad
+  if (serviceKey === 'aws' || serviceKey === 'aws-lightsail') {
+    return false;
+  }
+  
   const envMap: Record<string, string[]> = {
     'openai': ['OPENAI_API_KEY'],
     'xai': ['XAI_API_KEY'],
@@ -502,7 +507,8 @@ export async function GET(request: NextRequest) {
 
       case 'aws':
       case 'aws-lightsail': {
-        // AWS: verificar conectividad básica con checkUrl o URL por defecto
+        // AWS: solo verificar conectividad básica (no requiere API key)
+        // AWS Billing usa la misma URL base
         const urlToCheck = checkUrl || 'https://lightsail.aws.amazon.com/';
         try {
           const response = await fetch(urlToCheck, {
@@ -516,7 +522,7 @@ export async function GET(request: NextRequest) {
             online: isOnline,
             message: isOnline ? 'ONLINE' : 'OFFLINE',
             reason: isOnline ? 'Servicio accesible' : `HTTP ${response.status}`,
-            hasEnvKey
+            hasEnvKey: false // AWS no requiere API key
           });
         } catch (e: any) {
           return NextResponse.json({ 
@@ -524,7 +530,7 @@ export async function GET(request: NextRequest) {
             message: 'OFFLINE',
             error: e.message,
             reason: 'No se puede conectar al servicio',
-            hasEnvKey
+            hasEnvKey: false
           });
         }
       }
