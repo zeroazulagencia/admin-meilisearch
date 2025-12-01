@@ -937,9 +937,10 @@ export default function Conversaciones() {
                         const hasHuman = message['message-Human'] && message['message-Human'].trim() !== '';
                         const hasAI = message['message-AI'] && message['message-AI'].trim() !== '';
                         const hasMessage = message['message'] && message['message'].trim() !== '';
+                        const hasImage = message['image_base64'] && message['image_base64'].trim() !== '';
                         
-                        // Si no tiene ningún mensaje, no mostrar nada
-                        if (!hasHuman && !hasAI && !hasMessage) return null;
+                        // Si no tiene ningún mensaje ni imagen, no mostrar nada
+                        if (!hasHuman && !hasAI && !hasMessage && !hasImage) return null;
                         
                         return (
                           <div key={index} className="flex flex-col gap-2">
@@ -947,6 +948,17 @@ export default function Conversaciones() {
                             {(hasHuman || (hasMessage && message.type === 'user')) && (
                               <div className="flex justify-end">
                                 <div className="max-w-[70%] bg-green-500 text-white rounded-lg px-4 py-2">
+                                  {/* Mostrar imagen si existe */}
+                                  {hasImage && (
+                                    <div className="mb-2 rounded-lg overflow-hidden">
+                                      <img 
+                                        src={message['image_base64']} 
+                                        alt="Imagen del mensaje" 
+                                        className="max-w-full h-auto rounded-lg"
+                                        style={{ maxHeight: '300px' }}
+                                      />
+                                    </div>
+                                  )}
                                   <p className="text-sm">
                                     {searchQuery 
                                       ? highlightSearchText(
@@ -968,6 +980,17 @@ export default function Conversaciones() {
                             {(hasAI || (hasMessage && message.type === 'agent')) && (
                               <div className="flex justify-start">
                                 <div className="max-w-[70%] bg-white rounded-lg px-4 py-2 shadow-sm">
+                                  {/* Mostrar imagen si existe */}
+                                  {hasImage && (
+                                    <div className="mb-2 rounded-lg overflow-hidden">
+                                      <img 
+                                        src={message['image_base64']} 
+                                        alt="Imagen del mensaje" 
+                                        className="max-w-full h-auto rounded-lg"
+                                        style={{ maxHeight: '300px' }}
+                                      />
+                                    </div>
+                                  )}
                                   <p className="text-sm text-gray-800">
                                     {searchQuery 
                                       ? highlightSearchText(
@@ -977,6 +1000,25 @@ export default function Conversaciones() {
                                       : (message['message-AI'] || message['message'] || '')
                                     }
                                   </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {formatTime(message.datetime)}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Si solo hay imagen sin mensaje */}
+                            {hasImage && !hasHuman && !hasAI && !hasMessage && (
+                              <div className="flex justify-start">
+                                <div className="max-w-[70%] bg-white rounded-lg px-4 py-2 shadow-sm">
+                                  <div className="rounded-lg overflow-hidden">
+                                    <img 
+                                      src={message['image_base64']} 
+                                      alt="Imagen del mensaje" 
+                                      className="max-w-full h-auto rounded-lg"
+                                      style={{ maxHeight: '300px' }}
+                                    />
+                                  </div>
                                   <p className="text-xs text-gray-500 mt-1">
                                     {formatTime(message.datetime)}
                                   </p>
