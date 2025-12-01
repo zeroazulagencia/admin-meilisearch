@@ -377,8 +377,8 @@ export default function EditarCliente() {
     <ProtectedLayout>
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Editar Cliente</h1>
-          <p className="mt-2 text-gray-600">Actualiza la información del cliente</p>
+        <h1 className="text-2xl font-bold text-gray-900">Editar Cliente</h1>
+        <p className="mt-2 text-gray-600">Actualiza la información del cliente</p>
         </div>
         <button
           onClick={() => router.push('/clientes')}
@@ -766,7 +766,7 @@ export default function EditarCliente() {
           message={alertModal.message}
           type={alertModal.type}
         />
-      </ProtectedLayout>
-    );
-  }
+    </ProtectedLayout>
+  );
+}
 

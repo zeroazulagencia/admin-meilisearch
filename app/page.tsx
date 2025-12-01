@@ -235,6 +235,9 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showAgentsModal, setShowAgentsModal] = useState(false);
+  const [availableAgents, setAvailableAgents] = useState<any[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(false);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'select' | 'configure' | 'describe'>('select');
   const [agentsVisible, setAgentsVisible] = useState(false);
@@ -298,6 +301,29 @@ export default function Home() {
       }, 100);
     }
   }, [showContactModal]);
+
+  // Cargar agentes cuando se abre el modal
+  useEffect(() => {
+    if (showAgentsModal && availableAgents.length === 0) {
+      const loadAgents = async () => {
+        setLoadingAgents(true);
+        try {
+          const res = await fetch('/api/agents');
+          const data = await res.json();
+          if (data.ok && data.agents) {
+            // Filtrar solo agentes activos o disponibles para contratar
+            const activeAgents = data.agents.filter((agent: any) => agent.status === 'active' || !agent.status);
+            setAvailableAgents(activeAgents);
+          }
+        } catch (e) {
+          console.error('Error cargando agentes:', e);
+        } finally {
+          setLoadingAgents(false);
+        }
+      };
+      loadAgents();
+    }
+  }, [showAgentsModal, availableAgents.length]);
 
   // Intersection Observer para activar animación cuando se hace scroll a la sección de agentes
   useEffect(() => {
@@ -724,7 +750,12 @@ export default function Home() {
             </div>
             <nav className="hidden md:flex space-x-8 items-center">
               <a href="#activation" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">Proceso</a>
-              <a href="#agents-section" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">Agentes</a>
+              <button
+                onClick={() => setShowAgentsModal(true)}
+                className="text-gray-600 hover:text-gray-900 transition-colors font-raleway"
+              >
+                Agentes
+              </button>
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">FAQ</a>
               <a href="#cta" className="text-gray-600 hover:text-gray-900 transition-colors font-raleway">Contacto</a>
               <button
@@ -1570,6 +1601,92 @@ export default function Home() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Agentes */}
+      {showAgentsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setShowAgentsModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8 relative max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 lg:p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 font-raleway">Agentes Disponibles</h3>
+                <button
+                  onClick={() => setShowAgentsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                  aria-label="Cerrar modal"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {loadingAgents ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="inline-block animate-spin h-8 w-8 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5', borderRightColor: 'rgba(93, 225, 229, 0.3)', borderBottomColor: 'rgba(93, 225, 229, 0.3)', borderLeftColor: 'rgba(93, 225, 229, 0.3)' }}></div>
+                </div>
+              ) : availableAgents.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No hay agentes disponibles en este momento.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {availableAgents.map((agent) => (
+                    <div
+                      key={agent.id}
+                      className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          {agent.photo ? (
+                            <img
+                              src={agent.photo}
+                              alt={agent.name}
+                              className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                              onError={(e) => {
+                                // Si falla la imagen, usar placeholder
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect width="80" height="80" fill="%23E5E7EB"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-size="24" fill="%239CA3AF"%3E%3F%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
+                              <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-lg font-semibold text-gray-900 mb-2 font-raleway">{agent.name}</h4>
+                          {agent.description && (
+                            <p className="text-sm text-gray-600 line-clamp-3 font-raleway">
+                              {agent.description}
+                            </p>
+                          )}
+                          {!agent.description && (
+                            <p className="text-sm text-gray-400 italic font-raleway">
+                              Sin descripción disponible
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowAgentsModal(false)}
+                  className="text-gray-900 px-6 py-2 rounded-lg font-medium hover:opacity-90 transition-all font-raleway"
+                  style={{ backgroundColor: '#5DE1E5' }}
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -915,12 +915,12 @@ export default function DBManager() {
     setFilters([]);
     setSortColumn('');
     setSortDirection('asc');
-    setMeilisearchCurrentPage(1);
-    if (isSearching) {
-      handleMeilisearchSearch();
-    } else {
-      loadMeilisearchDocuments();
-    }
+      setMeilisearchCurrentPage(1);
+      if (isSearching) {
+        handleMeilisearchSearch();
+      } else {
+        loadMeilisearchDocuments();
+      }
   };
 
   // Toggle columna visible
