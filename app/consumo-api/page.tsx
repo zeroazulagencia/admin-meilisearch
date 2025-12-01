@@ -16,6 +16,7 @@ interface ServiceInfo {
   apiKey?: string; // API key del servicio (opcional)
   isEditing?: boolean; // Si está en modo edición
   checkUrl?: string; // URL para verificar si no tiene API key
+  hasEnvKey?: boolean; // Si tiene API key en el .env
 }
 
 export default function ConsumoAPI() {
@@ -80,7 +81,8 @@ export default function ConsumoAPI() {
           isOnline: data.online || false,
           isLoading: false,
           error: data.error || undefined,
-          reason: data.reason || data.error || undefined
+          reason: data.reason || data.error || undefined,
+          hasEnvKey: data.hasEnvKey || false
         };
         return updated;
       });
@@ -93,7 +95,8 @@ export default function ConsumoAPI() {
           isOnline: false,
           isLoading: false,
           error: error?.message || 'Error de conexión',
-          reason: error?.message || 'No se pudo conectar al servicio'
+          reason: error?.message || 'No se pudo conectar al servicio',
+          hasEnvKey: false
         };
         return updated;
       });
@@ -329,7 +332,7 @@ export default function ConsumoAPI() {
                   onClick={() => toggleEdit(index)}
                   className="w-full px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all"
                 >
-                  {service.apiKey ? '✏️ Editar API Key' : '➕ Agregar API Key'}
+                  {(service.hasEnvKey || service.apiKey) ? 'Editar' : '+ API Key'}
                 </button>
               )}
             </div>

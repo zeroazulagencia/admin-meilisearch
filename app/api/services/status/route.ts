@@ -1,5 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Función helper para verificar si hay API key en env
+const hasEnvApiKey = (serviceKey: string): boolean => {
+  const envMap: Record<string, string[]> = {
+    'openai': ['OPENAI_API_KEY'],
+    'xai': ['XAI_API_KEY'],
+    'gemini': ['GOOGLE_API_KEY', 'GEMINI_API_KEY'],
+    'replicate': ['REPLICATE_API_TOKEN'],
+    'openrouter': ['OPENROUTER_API_KEY'],
+    'rapidapi': ['RAPIDAPI_KEY'],
+    'claude': ['ANTHROPIC_API_KEY'],
+    'meilisearch': ['MEILISEARCH_API_KEY'],
+    'n8n': ['N8N_API_KEY'],
+    'alegra': ['ALEGRA_API_TOKEN'],
+    'stripe': ['STRIPE_SECRET_KEY']
+  };
+  
+  const envKeys = envMap[serviceKey] || [];
+  return envKeys.some(key => {
+    const value = process.env[key];
+    return value && value.trim() !== '';
+  });
+};
+
 export async function GET(request: NextRequest) {
   const service = request.nextUrl.searchParams.get('service');
   const apiKey = request.nextUrl.searchParams.get('apiKey') || '';
@@ -8,6 +31,8 @@ export async function GET(request: NextRequest) {
   if (!service) {
     return NextResponse.json({ error: 'Service parameter required' }, { status: 400 });
   }
+
+  const hasEnvKey = hasEnvApiKey(service);
 
   try {
     switch (service) {
@@ -18,8 +43,9 @@ export async function GET(request: NextRequest) {
         if (!url || !apiKey) {
           return NextResponse.json({ 
             online: false, 
-            message: 'No hay conexión disponible',
-            reason: 'Missing credentials'
+            message: 'OFFLINE',
+            reason: 'Missing credentials',
+            hasEnvKey
           });
         }
 
@@ -44,7 +70,8 @@ export async function GET(request: NextRequest) {
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
@@ -56,8 +83,9 @@ export async function GET(request: NextRequest) {
         if (!url || !apiKey) {
           return NextResponse.json({ 
             online: false, 
-            message: 'No hay conexión disponible',
-            reason: 'Missing credentials'
+            message: 'OFFLINE',
+            reason: 'Missing credentials',
+            hasEnvKey
           });
         }
 
@@ -80,7 +108,8 @@ export async function GET(request: NextRequest) {
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
@@ -92,8 +121,9 @@ export async function GET(request: NextRequest) {
         if (!email || !token) {
           return NextResponse.json({ 
             online: false, 
-            message: 'No hay conexión disponible',
-            reason: 'Missing credentials'
+            message: 'OFFLINE',
+            reason: 'Missing credentials',
+            hasEnvKey
           });
         }
 
@@ -117,7 +147,8 @@ export async function GET(request: NextRequest) {
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
@@ -128,8 +159,9 @@ export async function GET(request: NextRequest) {
         if (!secretKey) {
           return NextResponse.json({ 
             online: false, 
-            message: 'No hay conexión disponible',
-            reason: 'Missing credentials'
+            message: 'OFFLINE',
+            reason: 'Missing credentials',
+            hasEnvKey
           });
         }
 
@@ -152,7 +184,8 @@ export async function GET(request: NextRequest) {
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
@@ -168,24 +201,29 @@ export async function GET(request: NextRequest) {
                 method: 'HEAD',
                 signal: AbortSignal.timeout(5000)
               });
+              // Verificación básica: solo ONLINE si es 200
+              const isOnline = response.ok && response.status === 200;
               return NextResponse.json({ 
-                online: response.ok || response.status < 500,
-                message: response.ok || response.status < 500 ? 'ONLINE' : 'OFFLINE',
-                reason: response.ok || response.status < 500 ? undefined : `HTTP ${response.status}`
+                online: isOnline,
+                message: isOnline ? 'ONLINE' : 'OFFLINE',
+                reason: isOnline ? undefined : `HTTP ${response.status}`,
+                hasEnvKey
               });
             } catch (e: any) {
               return NextResponse.json({ 
                 online: false, 
                 message: 'OFFLINE',
                 error: e.message,
-                reason: 'No se pudo conectar al servicio'
+                reason: 'No se pudo conectar al servicio',
+                hasEnvKey
               });
             }
           }
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
-            reason: 'Missing API key'
+            reason: 'Missing API key',
+            hasEnvKey
           });
         }
 
@@ -202,14 +240,16 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ 
             online: response.ok,
             message: response.ok ? 'ONLINE' : 'OFFLINE',
-            reason: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`
+            reason: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`,
+            hasEnvKey
           });
         } catch (e: any) {
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
@@ -225,24 +265,29 @@ export async function GET(request: NextRequest) {
                 method: 'HEAD',
                 signal: AbortSignal.timeout(5000)
               });
+              // Verificación básica: solo ONLINE si es 200
+              const isOnline = response.ok && response.status === 200;
               return NextResponse.json({ 
-                online: response.ok || response.status < 500,
-                message: response.ok || response.status < 500 ? 'ONLINE' : 'OFFLINE',
-                reason: response.ok || response.status < 500 ? undefined : `HTTP ${response.status}`
+                online: isOnline,
+                message: isOnline ? 'ONLINE' : 'OFFLINE',
+                reason: isOnline ? undefined : `HTTP ${response.status}`,
+                hasEnvKey
               });
             } catch (e: any) {
               return NextResponse.json({ 
                 online: false, 
                 message: 'OFFLINE',
                 error: e.message,
-                reason: 'No se pudo conectar al servicio'
+                reason: 'No se pudo conectar al servicio',
+                hasEnvKey
               });
             }
           }
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
-            reason: 'Missing API key'
+            reason: 'Missing API key',
+            hasEnvKey
           });
         }
 
@@ -258,14 +303,16 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ 
             online: response.ok,
             message: response.ok ? 'ONLINE' : 'OFFLINE',
-            reason: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`
+            reason: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`,
+            hasEnvKey
           });
         } catch (e: any) {
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
@@ -281,24 +328,29 @@ export async function GET(request: NextRequest) {
                 method: 'HEAD',
                 signal: AbortSignal.timeout(5000)
               });
+              // Verificación básica: solo ONLINE si es 200
+              const isOnline = response.ok && response.status === 200;
               return NextResponse.json({ 
-                online: response.ok || response.status < 500,
-                message: response.ok || response.status < 500 ? 'ONLINE' : 'OFFLINE',
-                reason: response.ok || response.status < 500 ? undefined : `HTTP ${response.status}`
+                online: isOnline,
+                message: isOnline ? 'ONLINE' : 'OFFLINE',
+                reason: isOnline ? undefined : `HTTP ${response.status}`,
+                hasEnvKey
               });
             } catch (e: any) {
               return NextResponse.json({ 
                 online: false, 
                 message: 'OFFLINE',
                 error: e.message,
-                reason: 'No se pudo conectar al servicio'
+                reason: 'No se pudo conectar al servicio',
+                hasEnvKey
               });
             }
           }
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
-            reason: 'Missing API key'
+            reason: 'Missing API key',
+            hasEnvKey
           });
         }
 
@@ -311,14 +363,16 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ 
             online: response.ok,
             message: response.ok ? 'ONLINE' : 'OFFLINE',
-            reason: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`
+            reason: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`,
+            hasEnvKey
           });
         } catch (e: any) {
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
@@ -333,17 +387,21 @@ export async function GET(request: NextRequest) {
                 method: 'HEAD',
                 signal: AbortSignal.timeout(5000)
               });
+              // Verificación básica: solo ONLINE si es 200
+              const isOnline = response.ok && response.status === 200;
               return NextResponse.json({ 
-                online: response.ok || response.status < 500,
-                message: response.ok || response.status < 500 ? 'ONLINE' : 'OFFLINE',
-                reason: response.ok || response.status < 500 ? undefined : `HTTP ${response.status}`
+                online: isOnline,
+                message: isOnline ? 'ONLINE' : 'OFFLINE',
+                reason: isOnline ? undefined : `HTTP ${response.status}`,
+                hasEnvKey
               });
             } catch (e: any) {
               return NextResponse.json({ 
                 online: false, 
                 message: 'OFFLINE',
                 error: e.message,
-                reason: 'No se pudo conectar al servicio'
+                reason: 'No se pudo conectar al servicio',
+                hasEnvKey
               });
             }
           }
@@ -366,14 +424,16 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ 
             online: response.ok,
             message: response.ok ? 'ONLINE' : 'OFFLINE',
-            reason: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`
+            reason: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`,
+            hasEnvKey
           });
         } catch (e: any) {
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
@@ -388,24 +448,29 @@ export async function GET(request: NextRequest) {
                 method: 'HEAD',
                 signal: AbortSignal.timeout(5000)
               });
+              // Verificación básica: solo ONLINE si es 200
+              const isOnline = response.ok && response.status === 200;
               return NextResponse.json({ 
-                online: response.ok || response.status < 500,
-                message: response.ok || response.status < 500 ? 'ONLINE' : 'OFFLINE',
-                reason: response.ok || response.status < 500 ? undefined : `HTTP ${response.status}`
+                online: isOnline,
+                message: isOnline ? 'ONLINE' : 'OFFLINE',
+                reason: isOnline ? undefined : `HTTP ${response.status}`,
+                hasEnvKey
               });
             } catch (e: any) {
               return NextResponse.json({ 
                 online: false, 
                 message: 'OFFLINE',
                 error: e.message,
-                reason: 'No se pudo conectar al servicio'
+                reason: 'No se pudo conectar al servicio',
+                hasEnvKey
               });
             }
           }
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
-            reason: 'Missing API key'
+            reason: 'Missing API key',
+            hasEnvKey
           });
         }
 
@@ -421,14 +486,16 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ 
             online: response.ok,
             message: response.ok ? 'ONLINE' : 'OFFLINE',
-            reason: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`
+            reason: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`,
+            hasEnvKey
           });
         } catch (e: any) {
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
@@ -443,17 +510,21 @@ export async function GET(request: NextRequest) {
             signal: AbortSignal.timeout(5000)
           });
           
+          // Verificación básica: solo ONLINE si es 200
+          const isOnline = response.ok && response.status === 200;
           return NextResponse.json({ 
-            online: response.ok || response.status < 500,
-            message: response.ok || response.status < 500 ? 'ONLINE' : 'OFFLINE',
-            reason: response.ok || response.status < 500 ? 'Servicio accesible' : `HTTP ${response.status}`
+            online: isOnline,
+            message: isOnline ? 'ONLINE' : 'OFFLINE',
+            reason: isOnline ? 'Servicio accesible' : `HTTP ${response.status}`,
+            hasEnvKey
           });
         } catch (e: any) {
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: 'No se puede conectar al servicio'
+            reason: 'No se puede conectar al servicio',
+            hasEnvKey
           });
         }
       }
@@ -492,17 +563,21 @@ export async function GET(request: NextRequest) {
             signal: AbortSignal.timeout(5000)
           });
           
+          // Verificación básica: solo ONLINE si es 200
+          const isOnline = response.ok && response.status === 200;
           return NextResponse.json({ 
-            online: response.ok || response.status < 500,
-            message: response.ok || response.status < 500 ? 'ONLINE' : 'OFFLINE',
-            reason: response.ok || response.status < 500 ? undefined : `HTTP ${response.status}`
+            online: isOnline,
+            message: isOnline ? 'ONLINE' : 'OFFLINE',
+            reason: isOnline ? undefined : `HTTP ${response.status}`,
+            hasEnvKey
           });
         } catch (e: any) {
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
@@ -518,24 +593,29 @@ export async function GET(request: NextRequest) {
                 method: 'HEAD',
                 signal: AbortSignal.timeout(5000)
               });
+              // Verificación básica: solo ONLINE si es 200
+              const isOnline = response.ok && response.status === 200;
               return NextResponse.json({ 
-                online: response.ok || response.status < 500,
-                message: response.ok || response.status < 500 ? 'ONLINE' : 'OFFLINE',
-                reason: response.ok || response.status < 500 ? undefined : `HTTP ${response.status}`
+                online: isOnline,
+                message: isOnline ? 'ONLINE' : 'OFFLINE',
+                reason: isOnline ? undefined : `HTTP ${response.status}`,
+                hasEnvKey
               });
             } catch (e: any) {
               return NextResponse.json({ 
                 online: false, 
                 message: 'OFFLINE',
                 error: e.message,
-                reason: 'No se pudo conectar al servicio'
+                reason: 'No se pudo conectar al servicio',
+                hasEnvKey
               });
             }
           }
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
-            reason: 'Missing API key'
+            reason: 'Missing API key',
+            hasEnvKey
           });
         }
 
@@ -555,31 +635,36 @@ export async function GET(request: NextRequest) {
             signal: AbortSignal.timeout(5000)
           });
           
+          // Solo ONLINE si la respuesta es 200 (éxito) o 400/401 (API funciona pero hay error de auth/request)
+          // 400/401 significa que la API está funcionando, solo hay problema con la petición
           const isOnline = response.ok || response.status === 400 || response.status === 401;
           
           return NextResponse.json({ 
             online: isOnline,
             message: isOnline ? 'ONLINE' : 'OFFLINE',
-            reason: isOnline ? undefined : `HTTP ${response.status}: ${response.statusText}`
+            reason: isOnline ? undefined : `HTTP ${response.status}: ${response.statusText}`,
+            hasEnvKey
           });
         } catch (e: any) {
           return NextResponse.json({ 
             online: false, 
             message: 'OFFLINE',
             error: e.message,
-            reason: e.message
+            reason: e.message,
+            hasEnvKey
           });
         }
       }
 
       default:
-        return NextResponse.json({ error: 'Unknown service' }, { status: 400 });
+        return NextResponse.json({ error: 'Unknown service', hasEnvKey }, { status: 400 });
     }
   } catch (error: any) {
     return NextResponse.json({ 
       online: false, 
       message: 'OFFLINE',
-      error: error.message
+      error: error.message,
+      hasEnvKey
     });
   }
 }
