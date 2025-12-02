@@ -163,21 +163,39 @@ export default function Ejecuciones() {
           
           if (foundAgent) {
             console.log('[EJECUCIONES] Agente encontrado para workflow:', foundAgent.name);
-            setSelectedAgent(foundAgent);
             
-            // El workflow se seleccionará automáticamente cuando se filtre por el agente
-            // Actualizar URL con agentId y workflowId
-            const params = new URLSearchParams();
-            params.set('agentId', foundAgent.id.toString());
-            params.set('workflowId', workflowId);
-            params.set('executionId', executionIdParam);
-            router.replace(`/ejecuciones?${params.toString()}`);
+            // Buscar el workflow en allWorkflows
+            const foundWorkflow = allWorkflows.find(w => w.id === workflowId);
             
-            // El loading se desactivará cuando se actualice la URL y se restauren las selecciones
-            // Pero por si acaso, lo desactivamos después de un pequeño delay
-            setTimeout(() => {
+            if (foundWorkflow) {
+              console.log('[EJECUCIONES] Workflow encontrado:', foundWorkflow.name);
+              // Establecer agente y workflow simultáneamente
+              setSelectedAgent(foundAgent);
+              setSelectedWorkflow(foundWorkflow);
+              
+              // Actualizar URL con agentId y workflowId
+              const params = new URLSearchParams();
+              params.set('agentId', foundAgent.id.toString());
+              params.set('workflowId', workflowId);
+              params.set('executionId', executionIdParam);
+              router.replace(`/ejecuciones?${params.toString()}`);
+              
+              // El loading se desactivará cuando se actualice la URL y se restauren las selecciones
+              // Pero por si acaso, lo desactivamos después de un pequeño delay
+              setTimeout(() => {
+                setLoadingExecutionContext(false);
+              }, 1000);
+            } else {
+              console.error('[EJECUCIONES] Workflow no encontrado en allWorkflows:', workflowId);
+              setSelectedAgent(foundAgent);
+              // Actualizar URL con agentId y workflowId (aunque el workflow no se haya encontrado aún)
+              const params = new URLSearchParams();
+              params.set('agentId', foundAgent.id.toString());
+              params.set('workflowId', workflowId);
+              params.set('executionId', executionIdParam);
+              router.replace(`/ejecuciones?${params.toString()}`);
               setLoadingExecutionContext(false);
-            }, 1000);
+            }
           } else {
             console.error('[EJECUCIONES] No se encontró agente para el workflow:', workflowId);
             setLoadingExecutionContext(false);
@@ -244,7 +262,13 @@ export default function Ejecuciones() {
   }, [searchParams, workflows, selectedWorkflow, selectedAgent]);
 
   // Actualizar URL cuando cambian las selecciones
+  // NO actualizar si estamos cargando el contexto de ejecución (para evitar interferencias)
   useEffect(() => {
+    // Si estamos cargando el contexto, no actualizar la URL (ya se actualizará cuando termine)
+    if (loadingExecutionContext) {
+      return;
+    }
+    
     const params = new URLSearchParams();
     
     if (selectedAgent) {
@@ -269,7 +293,7 @@ export default function Ejecuciones() {
       console.log('[EJECUCIONES] Actualizando URL:', newUrl);
       router.replace(newUrl);
     }
-  }, [selectedAgent, selectedWorkflow, router, searchParams]);
+  }, [selectedAgent, selectedWorkflow, router, searchParams, loadingExecutionContext]);
 
   // Abrir ejecución específica cuando se carguen las ejecuciones
   useEffect(() => {
@@ -339,18 +363,21 @@ export default function Ejecuciones() {
       
       // Limpiar selección de workflow cuando cambia el agente
       // PERO solo si no viene de la URL (para no interferir con la restauración)
-      const workflowIdParam = searchParams.get('workflowId');
-      if (!workflowIdParam && selectedAgent) {
-        // Solo limpiar si el agente cambió manualmente (no desde URL)
-        // Verificar si el agente actual coincide con el de la URL
-        const agentIdParam = searchParams.get('agentId');
-        if (!agentIdParam || selectedAgent.id.toString() !== agentIdParam) {
-          console.log('[EJECUCIONES] Limpiando workflow porque el agente cambió y no hay workflowId en URL');
-          setSelectedWorkflow(null);
+      // Y NO si estamos cargando el contexto de ejecución
+      if (!loadingExecutionContext) {
+        const workflowIdParam = searchParams.get('workflowId');
+        if (!workflowIdParam && selectedAgent) {
+          // Solo limpiar si el agente cambió manualmente (no desde URL)
+          // Verificar si el agente actual coincide con el de la URL
+          const agentIdParam = searchParams.get('agentId');
+          if (!agentIdParam || selectedAgent.id.toString() !== agentIdParam) {
+            console.log('[EJECUCIONES] Limpiando workflow porque el agente cambió y no hay workflowId en URL');
+            setSelectedWorkflow(null);
+          }
         }
       }
     }
-  }, [selectedAgent, allWorkflows, searchParams]);
+  }, [selectedAgent, allWorkflows, searchParams, loadingExecutionContext]);
 
   useEffect(() => {
     if (selectedWorkflow) {
