@@ -1156,8 +1156,16 @@ export default function Ejecuciones() {
                     onClick={() => {
                       setSelectedExecution(null);
                       setUserClosedModal(true); // Marcar que el usuario cerró el modal manualmente
-                      // Limpiar parámetros de la URL al cerrar usando replace para no agregar al historial
-                      router.replace('/ejecuciones');
+                      // Limpiar solo executionId de la URL, manteniendo agentId y workflowId
+                      const params = new URLSearchParams();
+                      if (selectedAgent) {
+                        params.set('agentId', selectedAgent.id.toString());
+                      }
+                      if (selectedWorkflow) {
+                        params.set('workflowId', selectedWorkflow.id);
+                      }
+                      const newUrl = params.toString() ? `?${params.toString()}` : '/ejecuciones';
+                      router.replace(newUrl);
                     }}
                   className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
                 >
