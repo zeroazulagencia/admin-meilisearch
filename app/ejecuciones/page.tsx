@@ -97,6 +97,7 @@ export default function Ejecuciones() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [userClosedModal, setUserClosedModal] = useState(false);
+  const [loadingExecutionContext, setLoadingExecutionContext] = useState(false);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
@@ -116,6 +117,70 @@ export default function Ejecuciones() {
     loadWorkflows();
   }, []);
 
+  // Cargar contexto de ejecución cuando solo hay executionId sin agentId/workflowId
+  useEffect(() => {
+    const executionIdParam = searchParams.get('executionId');
+    const agentIdParam = searchParams.get('agentId');
+    const workflowIdParam = searchParams.get('workflowId');
+    
+    // Si hay executionId pero no agentId ni workflowId, necesitamos cargar la ejecución para obtener el workflow
+    if (executionIdParam && !agentIdParam && !workflowIdParam && allAgents.length > 0 && allWorkflows.length > 0 && !loadingExecutionContext && !selectedAgent) {
+      const loadExecutionContext = async () => {
+        try {
+          setLoadingExecutionContext(true);
+          console.log('[EJECUCIONES] Cargando contexto de ejecución:', executionIdParam);
+          
+          // Cargar la ejecución para obtener el workflowId
+          const exec = await n8nAPI.getExecution(executionIdParam);
+          const workflowId = exec.workflowId;
+          
+          if (!workflowId) {
+            console.error('[EJECUCIONES] La ejecución no tiene workflowId');
+            setLoadingExecutionContext(false);
+            return;
+          }
+          
+          // Buscar qué agente tiene este workflow
+          let foundAgent: AgentDB | null = null;
+          for (const agent of allAgents) {
+            try {
+              const w = typeof agent.workflows === 'string' ? JSON.parse(agent.workflows) : (agent.workflows || {});
+              const agentWorkflowIds = Array.isArray(w.workflowIds) ? w.workflowIds : [];
+              if (agentWorkflowIds.includes(workflowId)) {
+                foundAgent = agent;
+                break;
+              }
+            } catch (e) {
+              console.error(`[EJECUCIONES] Error parsing workflows for agent ${agent.id}:`, e);
+            }
+          }
+          
+          if (foundAgent) {
+            console.log('[EJECUCIONES] Agente encontrado para workflow:', foundAgent.name);
+            setSelectedAgent(foundAgent);
+            
+            // El workflow se seleccionará automáticamente cuando se filtre por el agente
+            // Actualizar URL con agentId y workflowId
+            const params = new URLSearchParams();
+            params.set('agentId', foundAgent.id.toString());
+            params.set('workflowId', workflowId);
+            params.set('executionId', executionIdParam);
+            router.replace(`/ejecuciones?${params.toString()}`);
+          } else {
+            console.error('[EJECUCIONES] No se encontró agente para el workflow:', workflowId);
+            setLoadingExecutionContext(false);
+          }
+        } catch (err) {
+          console.error('[EJECUCIONES] Error cargando contexto de ejecución:', err);
+          setLoadingExecutionContext(false);
+        }
+      };
+      
+      loadExecutionContext();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, allAgents, allWorkflows]);
+  
   // Restaurar selecciones desde URL al cargar
   useEffect(() => {
     const agentIdParam = searchParams.get('agentId');
@@ -696,11 +761,17 @@ export default function Ejecuciones() {
   };
 
 
-  if (agentsLoading) {
+  if (agentsLoading || loadingExecutionContext) {
     return (
       <ProtectedLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full border-[#5DE1E5]"></div>
+          {loadingExecutionContext && (
+            <div className="text-center">
+              <p className="text-gray-700 font-medium">Cargando contexto de ejecución...</p>
+              <p className="text-sm text-gray-500 mt-2">Buscando agente y flujo correspondientes</p>
+            </div>
+          )}
         </div>
       </ProtectedLayout>
     );

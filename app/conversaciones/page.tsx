@@ -36,6 +36,7 @@ export default function Conversaciones() {
   const [currentAgent, setCurrentAgent] = useState<string>('');
   const [selectedPlatformAgent, setSelectedPlatformAgent] = useState<string>('all');
   const [allDocumentsForCSV, setAllDocumentsForCSV] = useState<Document[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   // Calcular fechas por defecto: primer día del mes actual hasta hoy
   const getDefaultDates = () => {
     const today = new Date();
@@ -869,10 +870,15 @@ export default function Conversaciones() {
             <p className="text-gray-500">No hay conversaciones disponibles</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 250px)' }}>
+          <div 
+            className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all ${
+              isFullscreen ? 'fixed inset-0 z-50 rounded-none' : ''
+            }`}
+            style={isFullscreen ? { height: '100vh' } : { height: 'calc(100vh - 250px)' }}
+          >
             <div className="flex h-full">
               {/* Panel Izquierdo - Lista de Conversaciones */}
-              <div className="w-1/3 border-r border-gray-200 flex flex-col">
+              <div className={`${isFullscreen ? 'hidden' : 'w-1/3'} border-r border-gray-200 flex flex-col transition-all`}>
                 <div className="p-4 bg-gray-50 border-b border-gray-200">
                   <h2 className="font-semibold text-gray-900">{currentAgent}</h2>
                   <p className="text-sm text-gray-500">{conversationGroups.length} conversaciones</p>
@@ -921,16 +927,33 @@ export default function Conversaciones() {
               <div className="flex-1 flex flex-col bg-gray-100">
                 {selectedConversation ? (
                   <>
-                    <div className="p-4 bg-gray-50 border-b border-gray-200">
-                      <h3 className="font-semibold text-gray-900">{selectedConversation.user_id}</h3>
-                      {selectedConversation.phone_number_id && selectedConversation.phone_number_id.trim() !== '' && (
-                        <p className="text-xs text-gray-500">{selectedConversation.phone_number_id}</p>
-                      )}
-                      {selectedConversation.lastDate && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {formatDate(selectedConversation.lastDate)}
-                        </p>
-                      )}
+                    <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{selectedConversation.user_id}</h3>
+                        {selectedConversation.phone_number_id && selectedConversation.phone_number_id.trim() !== '' && (
+                          <p className="text-xs text-gray-500">{selectedConversation.phone_number_id}</p>
+                        )}
+                        {selectedConversation.lastDate && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatDate(selectedConversation.lastDate)}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setIsFullscreen(!isFullscreen)}
+                        className="ml-4 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
+                        title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+                      >
+                        {isFullscreen ? (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                          </svg>
+                        )}
+                      </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                       {selectedConversation.messages.map((message, index) => {
