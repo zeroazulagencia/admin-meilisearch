@@ -123,6 +123,12 @@ export default function Ejecuciones() {
     const agentIdParam = searchParams.get('agentId');
     const workflowIdParam = searchParams.get('workflowId');
     
+    // Si ya hay agentId y workflowId, no necesitamos cargar el contexto
+    if (agentIdParam && workflowIdParam) {
+      setLoadingExecutionContext(false);
+      return;
+    }
+    
     // Si hay executionId pero no agentId ni workflowId, necesitamos cargar la ejecución para obtener el workflow
     if (executionIdParam && !agentIdParam && !workflowIdParam && allAgents.length > 0 && allWorkflows.length > 0 && !loadingExecutionContext && !selectedAgent) {
       const loadExecutionContext = async () => {
@@ -166,6 +172,12 @@ export default function Ejecuciones() {
             params.set('workflowId', workflowId);
             params.set('executionId', executionIdParam);
             router.replace(`/ejecuciones?${params.toString()}`);
+            
+            // El loading se desactivará cuando se actualice la URL y se restauren las selecciones
+            // Pero por si acaso, lo desactivamos después de un pequeño delay
+            setTimeout(() => {
+              setLoadingExecutionContext(false);
+            }, 1000);
           } else {
             console.error('[EJECUCIONES] No se encontró agente para el workflow:', workflowId);
             setLoadingExecutionContext(false);
@@ -761,7 +773,10 @@ export default function Ejecuciones() {
   };
 
 
-  if (agentsLoading || loadingExecutionContext) {
+  // Verificar si hay agentId y workflowId en la URL - si los hay, no mostrar loading
+  const hasAgentAndWorkflowInUrl = searchParams.get('agentId') && searchParams.get('workflowId');
+  
+  if (agentsLoading || (loadingExecutionContext && !hasAgentAndWorkflowInUrl)) {
     return (
       <ProtectedLayout>
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
