@@ -46,3 +46,36 @@ export async function GET(
   }
 }
 
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { path: string[] } }
+) {
+  try {
+    const path = params.path.join('/');
+    const body = await request.json();
+    
+    const response = await axios.put(`${N8N_CONFIG.url}api/v1/${path}`, body, {
+      headers: {
+        'X-N8N-API-KEY': N8N_CONFIG.apiKey,
+        'Content-Type': 'application/json'
+      },
+      timeout: 60000 // 60 segundos
+    });
+
+    return NextResponse.json(response.data);
+  } catch (error: any) {
+    const path = params.path.join('/');
+    console.error('[N8N API] Error en PUT:', error.message);
+    console.error('[N8N API] URL:', `${N8N_CONFIG.url}api/v1/${path}`);
+    console.error('[N8N API] Error completo:', error);
+    
+    return NextResponse.json(
+      { 
+        error: error.message,
+        details: error.response?.data || 'No hay detalles adicionales'
+      },
+      { status: error.response?.status || 500 }
+    );
+  }
+}
+

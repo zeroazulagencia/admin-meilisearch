@@ -22,6 +22,14 @@ interface AgentDB {
   description?: string;
   photo?: string;
   conversation_agent_name?: string;
+  whatsapp_phone_number_id?: string;
+  whatsapp_access_token?: string;
+}
+
+interface HumanModeStatus {
+  isHumanMode: boolean;
+  takenBy?: number;
+  takenAt?: string;
 }
 
 export default function Conversaciones() {
@@ -37,6 +45,12 @@ export default function Conversaciones() {
   const [selectedPlatformAgent, setSelectedPlatformAgent] = useState<string>('all');
   const [allDocumentsForCSV, setAllDocumentsForCSV] = useState<Document[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [humanModeStatus, setHumanModeStatus] = useState<HumanModeStatus | null>(null);
+  const [takingConversation, setTakingConversation] = useState(false);
+  const [releasingConversation, setReleasingConversation] = useState(false);
+  const [messageInput, setMessageInput] = useState<string>('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [currentAgentDetails, setCurrentAgentDetails] = useState<AgentDB | null>(null);
   // Calcular fechas por defecto: primer día del mes actual hasta hoy
   const getDefaultDates = () => {
     const today = new Date();
@@ -610,6 +624,272 @@ export default function Conversaciones() {
     );
   };
 
+  // Cargar detalles completos del agente (incluyendo WhatsApp)
+  const loadAgentDetails = async (agentId: number) => {
+    try {
+      const res = await fetch(`/api/agents/${agentId}`);
+      const data = await res.json();
+      if (data.ok && data.agent) {
+        setCurrentAgentDetails(data.agent);
+      }
+    } catch (e) {
+      console.error('Error cargando detalles del agente:', e);
+    }
+  };
+
+  // Cargar estado de modo humano
+  const loadHumanModeStatus = async () => {
+    if (!selectedConversation || !currentAgentDetails) return;
+
+    try {
+      const userId = selectedConversation.user_id;
+      const phoneNumberId = selectedConversation.phone_number_id || '';
+      
+      const res = await fetch(
+        `/api/conversations/status?agent_id=${currentAgentDetails.id}&user_id=${encodeURIComponent(userId)}&phone_number_id=${encodeURIComponent(phoneNumberId)}`
+      );
+      const data = await res.json();
+      
+      if (data.ok) {
+        setHumanModeStatus({
+          isHumanMode: data.isHumanMode,
+          takenBy: data.takenBy,
+          takenAt: data.takenAt
+        });
+      }
+    } catch (e) {
+      console.error('Error cargando estado de modo humano:', e);
+    }
+  };
+
+  // Tomar conversación
+  const handleTakeConversation = async () => {
+    if (!selectedConversation || !currentAgentDetails) return;
+
+    const userId = getUserId();
+    if (!userId) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'No se pudo identificar al usuario',
+        type: 'error',
+      });
+      return;
+    }
+
+    if (!currentAgentDetails.whatsapp_phone_number_id) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'El agente no tiene configuración completa de WhatsApp',
+        type: 'error',
+      });
+      return;
+    }
+
+    setTakingConversation(true);
+    try {
+      const res = await fetch('/api/conversations/take', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_id: currentAgentDetails.id,
+          user_id: selectedConversation.user_id,
+          phone_number_id: selectedConversation.phone_number_id || '',
+          taken_by: parseInt(userId)
+        })
+      });
+
+      const data = await res.json();
+      
+      if (data.ok) {
+        await loadHumanModeStatus();
+        setAlertModal({
+          isOpen: true,
+          title: 'Éxito',
+          message: 'Conversación tomada exitosamente. Ahora puedes enviar mensajes.',
+          type: 'success',
+        });
+      } else {
+        if (data.error === 'Esta conversación ya está siendo atendida por otro usuario') {
+          setAlertModal({
+            isOpen: true,
+            title: 'Conversación ocupada',
+            message: data.error,
+            type: 'warning',
+          });
+        } else {
+          setAlertModal({
+            isOpen: true,
+            title: 'Error',
+            message: data.error || 'Error al tomar la conversación',
+            type: 'error',
+          });
+        }
+      }
+    } catch (e: any) {
+      console.error('Error tomando conversación:', e);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al tomar la conversación',
+        type: 'error',
+      });
+    } finally {
+      setTakingConversation(false);
+    }
+  };
+
+  // Liberar conversación
+  const handleReleaseConversation = async () => {
+    if (!selectedConversation || !currentAgentDetails) return;
+
+    setReleasingConversation(true);
+    try {
+      const res = await fetch('/api/conversations/release', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_id: currentAgentDetails.id,
+          user_id: selectedConversation.user_id,
+          phone_number_id: selectedConversation.phone_number_id || ''
+        })
+      });
+
+      const data = await res.json();
+      
+      if (data.ok) {
+        setHumanModeStatus({ isHumanMode: false });
+        setMessageInput('');
+        setAlertModal({
+          isOpen: true,
+          title: 'Éxito',
+          message: 'Conversación liberada. El agente automático se reactivará.',
+          type: 'success',
+        });
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error',
+          message: data.error || 'Error al liberar la conversación',
+          type: 'error',
+        });
+      }
+    } catch (e: any) {
+      console.error('Error liberando conversación:', e);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al liberar la conversación',
+        type: 'error',
+      });
+    } finally {
+      setReleasingConversation(false);
+    }
+  };
+
+  // Enviar mensaje
+  const handleSendMessage = async () => {
+    if (!selectedConversation || !currentAgentDetails || !humanModeStatus?.isHumanMode) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'La conversación no está en modo humano',
+        type: 'error',
+      });
+      return;
+    }
+
+    if (!messageInput.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'El mensaje no puede estar vacío',
+        type: 'warning',
+      });
+      return;
+    }
+
+    // Extraer número de teléfono del user_id o phone_number_id
+    const phoneNumber = selectedConversation.phone_number_id || selectedConversation.user_id;
+    if (!phoneNumber) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'No se pudo determinar el número de teléfono',
+        type: 'error',
+      });
+      return;
+    }
+
+    setSendingMessage(true);
+    try {
+      const res = await fetch('/api/whatsapp/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_id: currentAgentDetails.id,
+          phone_number: phoneNumber,
+          message_type: 'text',
+          message: messageInput.trim()
+        })
+      });
+
+      const data = await res.json();
+      
+      if (data.ok) {
+        setMessageInput('');
+        setAlertModal({
+          isOpen: true,
+          title: 'Éxito',
+          message: 'Mensaje enviado exitosamente',
+          type: 'success',
+        });
+        // Recargar conversaciones para mostrar el nuevo mensaje
+        setTimeout(() => {
+          loadConversations();
+        }, 1000);
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error',
+          message: data.error || 'Error al enviar el mensaje',
+          type: 'error',
+        });
+      }
+    } catch (e: any) {
+      console.error('Error enviando mensaje:', e);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error al enviar el mensaje',
+        type: 'error',
+      });
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  // Cargar detalles del agente cuando se selecciona
+  useEffect(() => {
+    if (selectedPlatformAgent && selectedPlatformAgent !== 'all') {
+      const agentId = parseInt(selectedPlatformAgent);
+      loadAgentDetails(agentId);
+    } else {
+      setCurrentAgentDetails(null);
+    }
+  }, [selectedPlatformAgent]);
+
+  // Cargar estado de modo humano cuando se selecciona una conversación
+  useEffect(() => {
+    if (selectedConversation && currentAgentDetails) {
+      loadHumanModeStatus();
+    } else {
+      setHumanModeStatus(null);
+      setMessageInput('');
+    }
+  }, [selectedConversation, currentAgentDetails]);
+
   const permissions = getPermissions();
   const isAdmin = permissions?.type === 'admin';
 
@@ -927,33 +1207,119 @@ export default function Conversaciones() {
               <div className="flex-1 flex flex-col bg-gray-100">
                 {selectedConversation ? (
                   <>
-                    <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{selectedConversation.user_id}</h3>
-                        {selectedConversation.phone_number_id && selectedConversation.phone_number_id.trim() !== '' && (
-                          <p className="text-xs text-gray-500">{selectedConversation.phone_number_id}</p>
-                        )}
-                        {selectedConversation.lastDate && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            {formatDate(selectedConversation.lastDate)}
-                          </p>
-                        )}
+                    <div className="p-4 bg-gray-50 border-b border-gray-200">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">{selectedConversation.user_id}</h3>
+                          {selectedConversation.phone_number_id && selectedConversation.phone_number_id.trim() !== '' && (
+                            <p className="text-xs text-gray-500">{selectedConversation.phone_number_id}</p>
+                          )}
+                          {selectedConversation.lastDate && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {formatDate(selectedConversation.lastDate)}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {/* Indicador de Modo Humano */}
+                          {humanModeStatus?.isHumanMode && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 border border-yellow-300 rounded-lg">
+                              <svg className="w-4 h-4 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              <span className="text-xs font-medium text-yellow-800">Modo Humano</span>
+                            </div>
+                          )}
+                          
+                          {/* Botón Tomar/Liberar Conversación - Siempre visible si hay agente seleccionado */}
+                          {(() => {
+                            // Debug: verificar estado
+                            if (selectedConversation) {
+                              console.log('[CONVERSACIONES] Estado para botón:', {
+                                selectedPlatformAgent,
+                                currentAgentDetails: !!currentAgentDetails,
+                                whatsapp_phone_number_id: currentAgentDetails?.whatsapp_phone_number_id,
+                                isHumanMode: humanModeStatus?.isHumanMode
+                              });
+                            }
+                            
+                            // Mostrar botón si hay agente seleccionado (no "all")
+                            if (!selectedPlatformAgent || selectedPlatformAgent === 'all') {
+                              return null;
+                            }
+                            
+                            return (
+                              <>
+                                {!humanModeStatus?.isHumanMode ? (
+                                  <button
+                                    onClick={handleTakeConversation}
+                                    disabled={takingConversation || !currentAgentDetails || !currentAgentDetails?.whatsapp_phone_number_id}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm"
+                                    title={
+                                      !currentAgentDetails
+                                        ? "Cargando información del agente..."
+                                        : !currentAgentDetails.whatsapp_phone_number_id
+                                        ? "El agente no tiene configuración de WhatsApp"
+                                        : "Tomar conversación (pausar agente automático)"
+                                    }
+                                  >
+                                    {takingConversation ? (
+                                      <>
+                                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                        <span>Tomando...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                                        </svg>
+                                        <span>Tomar Conversación</span>
+                                      </>
+                                    )}
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={handleReleaseConversation}
+                                    disabled={releasingConversation}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm"
+                                    title="Liberar conversación (reactivar agente automático)"
+                                  >
+                                    {releasingConversation ? (
+                                      <>
+                                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                        <span>Liberando...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                        <span>Liberar Conversación</span>
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </>
+                            );
+                          })()}
+                          
+                          <button
+                            onClick={() => setIsFullscreen(!isFullscreen)}
+                            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
+                            title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+                          >
+                            {isFullscreen ? (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => setIsFullscreen(!isFullscreen)}
-                        className="ml-4 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
-                        title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
-                      >
-                        {isFullscreen ? (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                          </svg>
-                        )}
-                      </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                       {selectedConversation.messages.map((message, index) => {
@@ -1052,6 +1418,48 @@ export default function Conversaciones() {
                         );
                       })}
                     </div>
+                    
+                    {/* Campo de envío de mensajes (solo en modo humano) */}
+                    {humanModeStatus?.isHumanMode && (
+                      <div className="p-4 bg-white border-t border-gray-200">
+                        <div className="flex gap-2">
+                          <textarea
+                            value={messageInput}
+                            onChange={(e) => setMessageInput(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                              }
+                            }}
+                            placeholder="Escribe un mensaje..."
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent resize-none"
+                            style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+                            rows={2}
+                            disabled={sendingMessage}
+                          />
+                          <button
+                            onClick={handleSendMessage}
+                            disabled={sendingMessage || !messageInput.trim()}
+                            className="px-6 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {sendingMessage ? (
+                              <>
+                                <div className="animate-spin h-4 w-4 border-2 border-gray-900 border-t-transparent rounded-full"></div>
+                                <span>Enviando...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                </svg>
+                                <span>Enviar</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="flex-1 flex items-center justify-center">

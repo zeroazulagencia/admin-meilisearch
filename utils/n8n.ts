@@ -135,6 +135,26 @@ export const n8nAPI = {
       });
       return [];
     }
+  },
+
+  // Activar un workflow
+  async activateWorkflow(workflowId: string): Promise<void> {
+    try {
+      await api.put(`/workflows/${workflowId}/activate`, { active: true });
+    } catch (error: any) {
+      console.error('[N8N] Error activando workflow:', error);
+      throw error;
+    }
+  },
+
+  // Desactivar un workflow
+  async deactivateWorkflow(workflowId: string): Promise<void> {
+    try {
+      await api.put(`/workflows/${workflowId}/activate`, { active: false });
+    } catch (error: any) {
+      console.error('[N8N] Error desactivando workflow:', error);
+      throw error;
+    }
   }
 };
 
