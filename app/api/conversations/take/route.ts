@@ -69,7 +69,8 @@ export async function POST(req: NextRequest) {
       [agent_id, user_id, phone_number_id, taken_by]
     );
 
-    const conversationId = result.insertId;
+    const insertResult = result as any;
+    const conversationId = insertResult?.insertId;
 
     // Intentar desactivar workflows del agente (opcional, no crítico si falla)
     try {
