@@ -317,8 +317,7 @@ export default function Home() {
         'Integración con tu CRM',
         'Análisis de conversaciones'
       ],
-      color: 'bg-blue-500',
-      gradient: 'from-blue-500 to-blue-600'
+      iconColor: '#5DE1E5'
     },
     {
       id: 2,
@@ -335,8 +334,7 @@ export default function Home() {
         'Seguimiento de oportunidades',
         'Integración con sistemas de facturación'
       ],
-      color: 'bg-green-500',
-      gradient: 'from-green-500 to-green-600'
+      iconColor: '#5DE1E5'
     },
     {
       id: 3,
@@ -353,8 +351,7 @@ export default function Home() {
         'Aprendizaje continuo',
         'Soporte multiidioma'
       ],
-      color: 'bg-purple-500',
-      gradient: 'from-purple-500 to-purple-600'
+      iconColor: '#5DE1E5'
     }
   ];
 
@@ -1675,9 +1672,11 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* Icono con gradiente */}
-                    <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                      {agent.icon}
+                    {/* Icono */}
+                    <div className="w-16 h-16 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300" style={{ backgroundColor: '#5DE1E5' }}>
+                      <div style={{ color: '#000000' }}>
+                        {agent.icon}
+                      </div>
                     </div>
 
                     {/* Nombre */}
@@ -1692,7 +1691,7 @@ export default function Home() {
                     <ul className="space-y-2 mb-6">
                       {agent.features.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2">
-                          <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#5DE1E5' }}>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                           <span className="text-sm text-gray-700 font-raleway">{feature}</span>
@@ -1706,7 +1705,8 @@ export default function Home() {
                         setShowAgentsModal(false);
                         setShowContactModal(true);
                       }}
-                      className={`w-full py-3 rounded-lg font-semibold text-white bg-gradient-to-r ${agent.gradient} hover:shadow-lg transform hover:scale-105 transition-all duration-300 font-raleway`}
+                      className="w-full py-3 rounded-lg font-semibold text-gray-900 hover:shadow-lg transform hover:scale-105 transition-all duration-300 font-raleway"
+                      style={{ backgroundColor: '#5DE1E5' }}
                     >
                       Solicitar Información
                     </button>
