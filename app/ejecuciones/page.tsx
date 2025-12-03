@@ -1152,7 +1152,7 @@ export default function Ejecuciones() {
                   </p>
                   <div className="flex items-center gap-3 mt-2">
                     <a
-                      href={`https://automation.zeroazul.com/execution/${selectedExecution.id}`}
+                      href={`https://automation.zeroazul.com/workflow/${selectedExecution.workflowId}/executions/${selectedExecution.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
