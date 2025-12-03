@@ -236,7 +236,7 @@ export default function Dashboard() {
       });
       
       // Obtener las últimas 3 ejecuciones de cada workflow y filtrar solo las que tienen error
-      const allErrorExecutions: Array<Execution & { agentName: string; agentId: number; workflowName?: string }> = [];
+      const allErrorExecutions: Array<Execution & { agentName: string; agentId: number; workflowName?: string; failedNode?: string }> = [];
       let totalWorkflowsChecked = 0;
       let totalExecutionsChecked = 0;
       
@@ -308,7 +308,7 @@ export default function Dashboard() {
           const dateB = new Date(b.startedAt || b.createdAt || 0).getTime();
           return dateB - dateA;
         })
-        .map(exec => ({
+        .map((exec: any) => ({
           id: exec.id,
           workflowId: exec.workflowId,
           workflowName: exec.workflowName,
