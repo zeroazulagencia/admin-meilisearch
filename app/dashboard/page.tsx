@@ -293,7 +293,7 @@ export default function Dashboard() {
           );
           
           allErrorExecutions.push(...errorExecsWithNode);
-          console.log(`[DASHBOARD] Workflow ${workflowId} (Agente: ${agentInfo.name}): ${allExecutions.length} ejecuciones revisadas, ${errorExecs.length} con error (últimas 3)`);
+          console.log(`[DASHBOARD] Workflow ${workflowId} (Agente: ${agentInfo.name}): ${allExecutions.length} ejecuciones revisadas, ${errorExecsWithNode.length} con error (últimas 3)`);
         } catch (err) {
           console.error(`[DASHBOARD] Error obteniendo ejecuciones para workflow ${workflowId}:`, err);
         }
