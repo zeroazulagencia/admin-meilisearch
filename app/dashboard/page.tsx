@@ -15,6 +15,7 @@ interface ErrorExecution {
   startedAt: string;
   agentName: string;
   agentId: number;
+  failedNode?: string;
 }
 
 export default function Dashboard() {
@@ -249,17 +250,49 @@ export default function Dashboard() {
           totalExecutionsChecked += allExecutions.length;
           
           // Filtrar solo las que tienen error y tomar las últimas 3
-          const errorExecs = allExecutions
+          const errorExecsFiltered = allExecutions
             .filter((exec: Execution) => exec.status === 'error')
-            .slice(0, 3) // Tomar solo las últimas 3 con error
-            .map((exec: Execution) => ({
-              ...exec,
-              agentName: agentInfo.name,
-              agentId: agentInfo.id,
-              workflowName: workflowNameMap.get(workflowId) || workflowId
-            }));
+            .slice(0, 3); // Tomar solo las últimas 3 con error
           
-          allErrorExecutions.push(...errorExecs);
+          // Para cada ejecución con error, obtener el nodo que falló
+          const errorExecsWithNode = await Promise.all(
+            errorExecsFiltered.map(async (exec: Execution) => {
+              let failedNode: string | undefined;
+              
+              try {
+                // Cargar detalles completos de la ejecución para obtener el nodo que falló
+                const fullExec = await n8nAPI.getExecution(exec.id);
+                
+                // Buscar el nodo que tiene error en resultData.runData
+                if (fullExec.data?.resultData?.runData) {
+                  const runData = fullExec.data.resultData.runData;
+                  const errorNode = Object.entries(runData).find(([nodeName, executions]: [string, any]) => {
+                    if (Array.isArray(executions) && executions.length > 0) {
+                      const execData = executions[0];
+                      return execData?.executionStatus === 'error';
+                    }
+                    return false;
+                  });
+                  
+                  if (errorNode) {
+                    failedNode = errorNode[0];
+                  }
+                }
+              } catch (err) {
+                console.error(`[DASHBOARD] Error obteniendo detalles de ejecución ${exec.id}:`, err);
+              }
+              
+              return {
+                ...exec,
+                agentName: agentInfo.name,
+                agentId: agentInfo.id,
+                workflowName: workflowNameMap.get(workflowId) || workflowId,
+                failedNode
+              };
+            })
+          );
+          
+          allErrorExecutions.push(...errorExecsWithNode);
           console.log(`[DASHBOARD] Workflow ${workflowId} (Agente: ${agentInfo.name}): ${allExecutions.length} ejecuciones revisadas, ${errorExecs.length} con error (últimas 3)`);
         } catch (err) {
           console.error(`[DASHBOARD] Error obteniendo ejecuciones para workflow ${workflowId}:`, err);
@@ -281,7 +314,8 @@ export default function Dashboard() {
           workflowName: exec.workflowName,
           startedAt: exec.startedAt || exec.createdAt || '',
           agentName: exec.agentName,
-          agentId: exec.agentId
+          agentId: exec.agentId,
+          failedNode: exec.failedNode
         }));
       
       // Filtrar errores ya revisados (solo en dashboard, no en ejecuciones)
@@ -589,6 +623,14 @@ export default function Dashboard() {
                               <span className="text-gray-400">•</span>
                               <span className="text-sm font-medium text-gray-700">
                                 Flujo: {exec.workflowName}
+                              </span>
+                            </>
+                          )}
+                          {exec.failedNode && (
+                            <>
+                              <span className="text-gray-400">•</span>
+                              <span className="text-sm font-medium text-red-700">
+                                Nodo: {exec.failedNode}
                               </span>
                             </>
                           )}
