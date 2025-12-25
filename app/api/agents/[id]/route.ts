@@ -14,19 +14,141 @@ try {
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    // Primero intentar con reports_agent_name, si falla intentar sin él
+    console.log('[API AGENTS] [GET] Cargando agente ID:', id);
+    
+    // Verificar qué columnas existen antes de intentar cargarlas
+    let whatsappColumnsExist = false;
+    let n8nDataTableIdExists = false;
+    let reportsAgentNameExists = false;
+    
     try {
-      const [rows] = await query<any>(
-        'SELECT id, client_id, name, description, photo, status, knowledge, workflows, conversation_agent_name, reports_agent_name, whatsapp_business_account_id, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret, n8n_data_table_id FROM agents WHERE id = ? LIMIT 1',
-        [id]
+      const [columnCheck] = await query<any>(
+        `SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'agents' 
+         AND COLUMN_NAME IN ('whatsapp_business_account_id', 'whatsapp_phone_number_id', 'whatsapp_access_token', 'whatsapp_webhook_verify_token', 'whatsapp_app_secret')`
       );
+      whatsappColumnsExist = columnCheck && columnCheck.length > 0 && columnCheck[0].count === 5;
+      console.log('[API AGENTS] [GET] Columnas de WhatsApp existen:', whatsappColumnsExist);
+    } catch (checkError) {
+      console.log('[API AGENTS] [GET] Error verificando columnas de WhatsApp:', checkError);
+      whatsappColumnsExist = false;
+    }
+    
+    try {
+      const [n8nCheck] = await query<any>(
+        `SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'agents' 
+         AND COLUMN_NAME = 'n8n_data_table_id'`
+      );
+      n8nDataTableIdExists = n8nCheck && n8nCheck.length > 0 && n8nCheck[0].count === 1;
+      console.log('[API AGENTS] [GET] Columna n8n_data_table_id existe:', n8nDataTableIdExists);
+    } catch (checkError) {
+      console.log('[API AGENTS] [GET] Error verificando columna n8n_data_table_id:', checkError);
+      n8nDataTableIdExists = false;
+    }
+    
+    try {
+      const [reportsCheck] = await query<any>(
+        `SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'agents' 
+         AND COLUMN_NAME = 'reports_agent_name'`
+      );
+      reportsAgentNameExists = reportsCheck && reportsCheck.length > 0 && reportsCheck[0].count === 1;
+      console.log('[API AGENTS] [GET] Columna reports_agent_name existe:', reportsAgentNameExists);
+    } catch (checkError) {
+      console.log('[API AGENTS] [GET] Error verificando columna reports_agent_name:', checkError);
+      reportsAgentNameExists = false;
+    }
+    
+    // Construir query base
+    let baseFields = 'id, client_id, name, description, photo, status, knowledge, workflows, conversation_agent_name';
+    let queryFields = baseFields;
+    
+    // Agregar campos opcionales si existen
+    if (reportsAgentNameExists) {
+      queryFields += ', reports_agent_name';
+    }
+    if (whatsappColumnsExist) {
+      queryFields += ', whatsapp_business_account_id, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret';
+    }
+    if (n8nDataTableIdExists) {
+      queryFields += ', n8n_data_table_id';
+    }
+    
+    console.log('[API AGENTS] [GET] Query fields:', queryFields);
+    
+    // Intentar cargar con los campos disponibles
+    let agent: any = null;
+    try {
+      const [rows] = await query<any>(`SELECT ${queryFields} FROM agents WHERE id = ? LIMIT 1`, [id]);
       if (!rows || rows.length === 0) {
         return NextResponse.json({ ok: false, error: 'Agente no encontrado' }, { status: 404 });
       }
+      agent = rows[0];
+      console.log('[API AGENTS] [GET] Agente cargado exitosamente con query completa');
+    } catch (e: any) {
+      console.error('[API AGENTS] [GET] Error cargando agente con query completa:', e?.message);
       
-      // Enmascarar campos sensibles antes de enviar al frontend
-      // Si está encriptado, intentar desencriptar para obtener los primeros caracteres del original
-      const agent = rows[0];
+      // Si falla, intentar solo con campos base
+      try {
+        const [rows] = await query<any>(`SELECT ${baseFields} FROM agents WHERE id = ? LIMIT 1`, [id]);
+        if (!rows || rows.length === 0) {
+          return NextResponse.json({ ok: false, error: 'Agente no encontrado' }, { status: 404 });
+        }
+        agent = rows[0];
+        console.log('[API AGENTS] [GET] Agente cargado con campos base');
+      } catch (e2: any) {
+        console.error('[API AGENTS] [GET] Error cargando agente con campos base:', e2?.message);
+        throw e2;
+      }
+    }
+    
+    // Si las columnas de WhatsApp existen pero no se cargaron, intentar cargarlas por separado
+    if (whatsappColumnsExist && agent) {
+      try {
+        const [whatsappRows] = await query<any>(
+          'SELECT whatsapp_business_account_id, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret FROM agents WHERE id = ? LIMIT 1',
+          [id]
+        );
+        
+        if (whatsappRows && whatsappRows.length > 0) {
+          const whatsappData = whatsappRows[0];
+          agent = {
+            ...agent,
+            whatsapp_business_account_id: whatsappData.whatsapp_business_account_id || null,
+            whatsapp_phone_number_id: whatsappData.whatsapp_phone_number_id || null,
+            whatsapp_access_token: whatsappData.whatsapp_access_token || null,
+            whatsapp_webhook_verify_token: whatsappData.whatsapp_webhook_verify_token || null,
+            whatsapp_app_secret: whatsappData.whatsapp_app_secret || null
+          };
+          console.log('[API AGENTS] [GET] Datos de WhatsApp cargados por separado y combinados');
+        }
+      } catch (whatsappError: any) {
+        console.error('[API AGENTS] [GET] Error cargando datos de WhatsApp por separado:', whatsappError?.message);
+        // Continuar sin datos de WhatsApp si falla
+      }
+    }
+    
+    // Agregar campos faltantes como null si no existen
+    if (!whatsappColumnsExist) {
+      agent.whatsapp_business_account_id = null;
+      agent.whatsapp_phone_number_id = null;
+      agent.whatsapp_access_token = null;
+      agent.whatsapp_webhook_verify_token = null;
+      agent.whatsapp_app_secret = null;
+    }
+    if (!reportsAgentNameExists) {
+      agent.reports_agent_name = null;
+    }
+    if (!n8nDataTableIdExists) {
+      agent.n8n_data_table_id = null;
+    }
+    
+    // Enmascarar campos sensibles antes de enviar al frontend
+    // Si está encriptado, intentar desencriptar para obtener los primeros caracteres del original
       
       if (agent.whatsapp_access_token) {
         if (isEncrypted(agent.whatsapp_access_token)) {
@@ -92,31 +214,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
       }
       
-      return NextResponse.json({ ok: true, agent });
-    } catch (e: any) {
-      // Si falla, probablemente la columna reports_agent_name no existe, intentar sin ella
-      console.log('[API AGENTS] Error with reports_agent_name, trying without it:', e?.message);
-    const [rows] = await query<any>(
-        'SELECT id, client_id, name, description, photo, status, knowledge, workflows, conversation_agent_name FROM agents WHERE id = ? LIMIT 1',
-      [id]
-    );
-    if (!rows || rows.length === 0) {
-      return NextResponse.json({ ok: false, error: 'Agente no encontrado' }, { status: 404 });
-    }
-      // Agregar campos faltantes como null para compatibilidad
-      const agent = {
-        ...rows[0],
-        reports_agent_name: null,
-        whatsapp_business_account_id: null,
-        whatsapp_phone_number_id: null,
-        whatsapp_access_token: null,
-        whatsapp_webhook_verify_token: null,
-        whatsapp_app_secret: null,
-        n8n_data_table_id: null
-      };
-      
-      return NextResponse.json({ ok: true, agent });
-    }
+    console.log('[API AGENTS] [GET] Agente procesado, devolviendo respuesta');
+    return NextResponse.json({ ok: true, agent });
   } catch (e: any) {
     console.error('[API AGENTS] Error loading agent:', e?.message || e);
     return NextResponse.json({ ok: false, error: e?.message || 'Error al cargar agente' }, { status: 500 });

@@ -191,6 +191,17 @@ export default function WhatsAppManager() {
         
         console.log('[WHATSAPP-MANAGER] Total agentes cargados:', list.length);
         
+        // Log detallado de todos los agentes para debugging
+        list.forEach(agent => {
+          console.log('[WHATSAPP-MANAGER] [DEBUG] Agente', agent.id, agent.name, {
+            business_account_id: agent.whatsapp_business_account_id ? `${agent.whatsapp_business_account_id.substring(0, 10)}...` : 'null',
+            phone_number_id: agent.whatsapp_phone_number_id ? `${agent.whatsapp_phone_number_id.substring(0, 10)}...` : 'null',
+            access_token: agent.whatsapp_access_token ? `${agent.whatsapp_access_token.substring(0, 10)}...` : 'null',
+            access_token_length: agent.whatsapp_access_token?.length || 0,
+            access_token_ends_with_dots: agent.whatsapp_access_token?.endsWith('...') || false
+          });
+        });
+        
         // Aplicar filtros de permisos
         const permissions = getPermissions();
         const userId = getUserId();
@@ -202,6 +213,7 @@ export default function WhatsAppManager() {
         // Filtrar solo agentes que tienen configuración básica de WhatsApp
         // Un agente tiene configuración básica si tiene business_account_id, phone_number_id y access_token
         // Los otros campos (webhook_verify_token y app_secret) son opcionales
+        // IMPORTANTE: Aceptar tokens enmascarados (que terminan en "...") como válidos
         const agentsWithWhatsApp = list.filter(agent => {
           const hasBusinessAccount = agent.whatsapp_business_account_id && 
                                      typeof agent.whatsapp_business_account_id === 'string' &&
@@ -209,9 +221,12 @@ export default function WhatsAppManager() {
           const hasPhoneNumber = agent.whatsapp_phone_number_id && 
                                  typeof agent.whatsapp_phone_number_id === 'string' &&
                                  agent.whatsapp_phone_number_id.trim() !== '';
+          // Aceptar tokens enmascarados (que terminan en "...") como válidos
+          // Un token enmascarado indica que hay un token guardado en la BD
           const hasAccessToken = agent.whatsapp_access_token && 
                                  typeof agent.whatsapp_access_token === 'string' &&
-                                 agent.whatsapp_access_token.trim() !== '';
+                                 agent.whatsapp_access_token.trim() !== '' &&
+                                 (agent.whatsapp_access_token.endsWith('...') || agent.whatsapp_access_token.length > 10);
           
           const hasConfig = hasBusinessAccount && hasPhoneNumber && hasAccessToken;
           
@@ -220,9 +235,11 @@ export default function WhatsAppManager() {
               business_account: hasBusinessAccount,
               phone_number: hasPhoneNumber,
               access_token_present: hasAccessToken,
-              business_account_id_value: agent.whatsapp_business_account_id ? 'presente' : 'ausente',
-              phone_number_id_value: agent.whatsapp_phone_number_id ? 'presente' : 'ausente',
-              access_token_value: agent.whatsapp_access_token ? 'presente' : 'ausente'
+              business_account_id_value: agent.whatsapp_business_account_id ? `presente (${agent.whatsapp_business_account_id.substring(0, 10)}...)` : 'ausente',
+              phone_number_id_value: agent.whatsapp_phone_number_id ? `presente (${agent.whatsapp_phone_number_id.substring(0, 10)}...)` : 'ausente',
+              access_token_value: agent.whatsapp_access_token ? `presente (${agent.whatsapp_access_token.substring(0, 10)}...)` : 'ausente',
+              access_token_length: agent.whatsapp_access_token?.length || 0,
+              access_token_ends_with_dots: agent.whatsapp_access_token?.endsWith('...') || false
             });
           }
           
@@ -257,13 +274,28 @@ export default function WhatsAppManager() {
   const loadAgentDetails = async (agentId: number) => {
     setLoadingDetails(true);
     try {
+      console.log('[WHATSAPP-MANAGER] [LOAD DETAILS] Cargando detalles del agente ID:', agentId);
       const res = await fetch(`/api/agents/${agentId}`);
       const data = await res.json();
+      console.log('[WHATSAPP-MANAGER] [LOAD DETAILS] Respuesta del API:', { ok: data.ok, hasAgent: !!data.agent });
       if (data.ok && data.agent) {
-        setAgentDetails(data.agent);
+        const agent = data.agent;
+        console.log('[WHATSAPP-MANAGER] [LOAD DETAILS] Datos del agente cargados:', {
+          id: agent.id,
+          name: agent.name,
+          business_account_id: agent.whatsapp_business_account_id ? `${agent.whatsapp_business_account_id.substring(0, 20)}...` : 'null',
+          phone_number_id: agent.whatsapp_phone_number_id ? `${agent.whatsapp_phone_number_id.substring(0, 20)}...` : 'null',
+          access_token: agent.whatsapp_access_token ? `${agent.whatsapp_access_token.substring(0, 20)}...` : 'null',
+          access_token_length: agent.whatsapp_access_token?.length || 0,
+          webhook_token: agent.whatsapp_webhook_verify_token ? `${agent.whatsapp_webhook_verify_token.substring(0, 20)}...` : 'null',
+          app_secret: agent.whatsapp_app_secret ? `${agent.whatsapp_app_secret.substring(0, 20)}...` : 'null'
+        });
+        setAgentDetails(agent);
+      } else {
+        console.error('[WHATSAPP-MANAGER] [LOAD DETAILS] No se pudo cargar el agente:', data);
       }
     } catch (e) {
-      console.error('[WHATSAPP-MANAGER] Error cargando detalles del agente:', e);
+      console.error('[WHATSAPP-MANAGER] [LOAD DETAILS] Error cargando detalles del agente:', e);
     } finally {
       setLoadingDetails(false);
     }
