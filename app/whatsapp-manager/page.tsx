@@ -189,24 +189,53 @@ export default function WhatsAppManager() {
         const data = await res.json();
         let list: AgentDB[] = data.ok ? data.agents : [];
         
+        console.log('[WHATSAPP-MANAGER] Total agentes cargados:', list.length);
+        
         // Aplicar filtros de permisos
         const permissions = getPermissions();
         const userId = getUserId();
         if (permissions && userId && permissions.type !== 'admin' && !permissions['whatsapp-manager']?.viewAll) {
           list = list.filter(a => a.client_id === parseInt(userId));
+          console.log('[WHATSAPP-MANAGER] Agentes después de filtro de permisos:', list.length);
         }
         
-        // Filtrar solo agentes que tienen configuración completa de WhatsApp
-        // Un agente tiene configuración completa si tiene todos los campos de WhatsApp
-        list = list.filter(agent => {
-          return agent.whatsapp_business_account_id && 
-                 agent.whatsapp_phone_number_id && 
-                 agent.whatsapp_access_token && 
-                 agent.whatsapp_webhook_verify_token && 
-                 agent.whatsapp_app_secret;
+        // Filtrar solo agentes que tienen configuración básica de WhatsApp
+        // Un agente tiene configuración básica si tiene business_account_id, phone_number_id y access_token
+        // Los otros campos (webhook_verify_token y app_secret) son opcionales
+        const agentsWithWhatsApp = list.filter(agent => {
+          const hasBusinessAccount = agent.whatsapp_business_account_id && 
+                                     typeof agent.whatsapp_business_account_id === 'string' &&
+                                     agent.whatsapp_business_account_id.trim() !== '';
+          const hasPhoneNumber = agent.whatsapp_phone_number_id && 
+                                 typeof agent.whatsapp_phone_number_id === 'string' &&
+                                 agent.whatsapp_phone_number_id.trim() !== '';
+          const hasAccessToken = agent.whatsapp_access_token && 
+                                 typeof agent.whatsapp_access_token === 'string' &&
+                                 agent.whatsapp_access_token.trim() !== '';
+          
+          const hasConfig = hasBusinessAccount && hasPhoneNumber && hasAccessToken;
+          
+          if (!hasConfig) {
+            console.log('[WHATSAPP-MANAGER] Agente', agent.id, agent.name, 'sin configuración completa:', {
+              business_account: hasBusinessAccount,
+              phone_number: hasPhoneNumber,
+              access_token: hasAccessToken,
+              business_account_id: agent.whatsapp_business_account_id ? 'presente' : 'ausente',
+              phone_number_id: agent.whatsapp_phone_number_id ? 'presente' : 'ausente',
+              access_token: agent.whatsapp_access_token ? 'presente' : 'ausente'
+            });
+          }
+          
+          // Un agente tiene configuración básica si tiene estos 3 campos esenciales
+          return hasConfig;
         });
         
-        setAllAgents(list);
+        console.log('[WHATSAPP-MANAGER] Agentes con WhatsApp configurado:', agentsWithWhatsApp.length);
+        agentsWithWhatsApp.forEach(agent => {
+          console.log('[WHATSAPP-MANAGER] - Agente', agent.id, agent.name, 'tiene WhatsApp configurado');
+        });
+        
+        setAllAgents(agentsWithWhatsApp);
       } catch (e) {
         console.error('[WHATSAPP-MANAGER] Error cargando agentes:', e);
       } finally {
