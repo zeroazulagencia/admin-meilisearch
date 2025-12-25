@@ -639,7 +639,10 @@ export default function Conversaciones() {
 
   // Cargar estado de modo humano
   const loadHumanModeStatus = async () => {
-    if (!selectedConversation || !currentAgentDetails) return;
+    if (!selectedConversation || !currentAgentDetails) {
+      setHumanModeStatus(null);
+      return;
+    }
 
     try {
       const userId = selectedConversation.user_id;
@@ -652,13 +655,31 @@ export default function Conversaciones() {
       
       if (data.ok) {
         setHumanModeStatus({
-          isHumanMode: data.isHumanMode,
+          isHumanMode: data.isHumanMode === true, // Asegurar que sea boolean
           takenBy: data.takenBy,
           takenAt: data.takenAt
         });
+        console.log('[CONVERSACIONES] Estado de modo humano cargado:', {
+          isHumanMode: data.isHumanMode === true,
+          takenBy: data.takenBy,
+          takenAt: data.takenAt
+        });
+      } else {
+        // Si hay error, establecer como false
+        setHumanModeStatus({
+          isHumanMode: false,
+          takenBy: undefined,
+          takenAt: undefined
+        });
       }
     } catch (e) {
-      console.error('Error cargando estado de modo humano:', e);
+      console.error('[CONVERSACIONES] Error cargando estado de modo humano:', e);
+      // En caso de error, establecer como false
+      setHumanModeStatus({
+        isHumanMode: false,
+        takenBy: undefined,
+        takenAt: undefined
+      });
     }
   };
 

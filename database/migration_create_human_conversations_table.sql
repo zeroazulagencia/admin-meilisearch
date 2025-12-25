@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS human_conversations (
   -- Nota: La lógica para asegurar que solo haya una conversación activa por (agent_id, user_id, phone_number_id)
   -- se manejará en la aplicación al insertar/actualizar registros
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Confirmar creación
 SELECT 
