@@ -69,6 +69,17 @@ admin-dworkers/
 │   └── AuthProvider.tsx         # Proveedor de autenticación
 ├── public/                      # Archivos estáticos
 │   └── public-img/              # Imágenes y videos
+├── database/                  # Scripts de base de datos
+│   ├── schema.sql            # Schema base (solo referencia)
+│   ├── migration_*.sql       # Migraciones seguras
+│   └── README.md             # Documentación de BD
+├── docs/                      # Documentación del proyecto
+│   ├── DEPLOY.md             # Guía de despliegue
+│   ├── CAMBIOS_REALIZADOS.md # Historial de cambios
+│   └── *.md                  # Otra documentación
+├── scripts/                   # Scripts de utilidad
+│   ├── verify-whatsapp-data.sh  # Verificación pre-deploy
+│   └── check-encryption-key.sh  # Verificación de ENCRYPTION_KEY
 ├── tmp/                        # Archivos temporales
 ├── settings.json              # Configuración del proyecto
 ├── package.json               # Dependencias
@@ -126,6 +137,14 @@ El proyecto utiliza variables de entorno para todas las credenciales y API keys.
 - **NUNCA cambiar** esta clave una vez que los tokens estén encriptados
 - Si cambias la clave, todos los tokens encriptados se corromperán
 - Generar una clave segura: `openssl rand -hex 32`
+- **Verificar antes de cada deploy**: `bash scripts/check-encryption-key.sh`
+
+**⚠️ PROTECCIÓN DE DATOS WHATSAPP:**
+- Los datos de WhatsApp Business API están protegidos por múltiples capas de seguridad
+- El sistema NO actualizará campos de WhatsApp si no se envían explícitamente en el request
+- Si los campos existen en la BD pero NO se envían en el request, se preservan automáticamente
+- Siempre ejecutar `bash scripts/verify-whatsapp-data.sh` antes de cada deploy
+- Ver documentación completa en `docs/DEPLOY.md`
 
 **IMPORTANTE**: 
 - Nunca subas el archivo `.env` al repositorio
@@ -138,6 +157,15 @@ npm run dev          # Servidor de desarrollo
 npm run build        # Build de producción
 npm run start        # Servidor de producción
 npm run lint         # Linter
+```
+
+### Scripts de Verificación (Servidor)
+```bash
+# Verificar datos de WhatsApp antes de deploy (OBLIGATORIO)
+bash scripts/verify-whatsapp-data.sh
+
+# Verificar ENCRYPTION_KEY
+bash scripts/check-encryption-key.sh
 ```
 
 ## 🎨 Características de Diseño
@@ -195,6 +223,14 @@ npm run lint         # Linter
 - Manejo seguro de errores de API
 - Honeypot en formulario de contacto
 
+### Protección de Datos WhatsApp
+- **Encriptación**: Todos los tokens de WhatsApp se encriptan antes de guardarse
+- **Validación de ENCRYPTION_KEY**: Verificación obligatoria al inicio de la aplicación
+- **Preservación automática**: Los campos de WhatsApp no se actualizan si no se envían explícitamente
+- **Protección multi-capa**: Múltiples validaciones antes de actualizar tokens
+- **Scripts de verificación**: Scripts para verificar integridad antes de cada deploy
+- **Logs detallados**: Rastreo completo de preservación/actualización de datos
+
 ## 🔐 Parte Privada / Administración
 
 ### 🗄️ Base de Datos
@@ -241,10 +277,24 @@ npm run lint         # Linter
   - `phone`: Teléfono del agente (VARCHAR 50)
   - `agent_code`: Código único del agente (VARCHAR 100, UNIQUE)
   - `status`: Estado del agente (ENUM: 'active', 'inactive', 'pending')
+  - `description`: Descripción del agente (TEXT)
+  - `photo`: URL de la foto del agente (VARCHAR 500)
+  - `knowledge`: Configuración de conocimiento en formato JSON
+  - `workflows`: Configuración de workflows en formato JSON
+  - `conversation_agent_name`: Nombre del agente para conversaciones (VARCHAR 255)
+  - `reports_agent_name`: Nombre del agente para informes (VARCHAR 255)
+  - **Campos WhatsApp Business API** (v19.0+):
+    - `whatsapp_business_account_id`: ID de cuenta de negocio (VARCHAR 255)
+    - `whatsapp_phone_number_id`: ID del número de teléfono (VARCHAR 255)
+    - `whatsapp_access_token`: Token de acceso encriptado (TEXT)
+    - `whatsapp_webhook_verify_token`: Token de verificación de webhook encriptado (TEXT)
+    - `whatsapp_app_secret`: Secreto de la app encriptado (TEXT)
+  - `n8n_data_table_id`: ID de tabla de datos de n8n (VARCHAR 255)
   - `created_at`: Fecha de creación (TIMESTAMP)
   - `updated_at`: Fecha de actualización (TIMESTAMP)
-- **Índices**: client_id, status, agent_code
+- **Índices**: client_id, status, agent_code, conversation_agent_name, reports_agent_name
 - **Cascada**: ON DELETE CASCADE, ON UPDATE CASCADE
+- **Protección**: Los campos de WhatsApp están protegidos y no se actualizan si no se envían explícitamente
 
 ### 🌐 Servicios Externos Consumidos
 
@@ -311,9 +361,21 @@ npm run lint         # Linter
 
 ## Versión
 
-v23.1
+v25.1
 
 ### Cambios recientes:
+- 🛡️ **Protección de datos WhatsApp en deploy** (v25.1)
+  - Script de verificación pre-deploy: `scripts/verify-whatsapp-data.sh`
+  - Validación mejorada de ENCRYPTION_KEY con verificación de longitud mínima
+  - Protecciones adicionales en endpoint de actualización de agentes
+  - Los campos de WhatsApp se preservan automáticamente si no se envían en el request
+  - Logs detallados para rastrear preservación/actualización de datos
+  - Documentación de deploy actualizada con verificaciones obligatorias
+  - Migración de verificación opcional: `database/migration_verify_whatsapp_columns.sql`
+- 📚 **Reorganización de documentación** (v25.1)
+  - Documentación movida a carpeta `docs/`
+  - `DEPLOY.md` actualizado con verificaciones pre-deploy
+  - `CAMBIOS_REALIZADOS.md`, `PLAN_PROTECCION_TOKENS.md`, `SOLUCION_ENCRYPTION_KEY.md` en `docs/`
 - 🔒 Migración de API keys a variables de entorno para mayor seguridad (v23.1)
 - 🔑 Removido campo de API Key de OpenAI del formulario de embedder (v23.1)
 - ⚙️ API keys ahora se obtienen automáticamente desde variables de entorno del servidor (v23.1)
