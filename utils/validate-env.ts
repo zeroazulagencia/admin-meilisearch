@@ -1,17 +1,33 @@
 /**
  * Validación de variables de entorno críticas al inicio de la aplicación
  * Este módulo se importa en los endpoints de API para validar configuración
+ * 
+ * IMPORTANTE: Esta validación debe ejecutarse ANTES de cualquier operación
+ * que involucre encriptación/desencriptación de tokens de WhatsApp.
  */
+
+// Variable para rastrear si ya se validó (evitar múltiples validaciones)
+let hasValidated = false;
 
 export function validateCriticalEnvVars() {
   const errors: string[] = [];
   const warnings: string[] = [];
 
   // CRÍTICO: ENCRYPTION_KEY es obligatoria
-  if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.trim() === '') {
+  const encryptionKey = process.env.ENCRYPTION_KEY;
+  
+  if (!encryptionKey || encryptionKey.trim() === '') {
     errors.push('ENCRYPTION_KEY: No configurada. Esta variable es OBLIGATORIA para encriptar/desencriptar tokens de WhatsApp.');
-  } else if (process.env.ENCRYPTION_KEY.length < 32) {
-    warnings.push('ENCRYPTION_KEY: La clave es muy corta (mínimo recomendado: 32 caracteres).');
+  } else {
+    const trimmedKey = encryptionKey.trim();
+    if (trimmedKey.length < 32) {
+      errors.push(`ENCRYPTION_KEY: La clave es muy corta (${trimmedKey.length} caracteres). Mínimo requerido: 32 caracteres.`);
+    } else {
+      // Validación adicional: verificar que no sea solo espacios o caracteres repetidos
+      if (/^(.)\1+$/.test(trimmedKey)) {
+        warnings.push('ENCRYPTION_KEY: La clave parece ser solo caracteres repetidos. Se recomienda usar una clave más segura.');
+      }
+    }
   }
 
   // Advertencias para otras variables importantes
@@ -34,11 +50,20 @@ export function validateCriticalEnvVars() {
 ${errors.map(e => `║  ❌ ${e.padEnd(76)}║`).join('\n')}
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║  La aplicación NO puede continuar sin estas variables configuradas.          ║
-║  Por favor, configura las variables de entorno en el archivo .env            ║
-║  antes de reiniciar la aplicación.                                           ║
+║                                                                              ║
+║  SOLUCIÓN:                                                                   ║
+║  1. Configura las variables de entorno en el archivo .env                   ║
+║  2. Para ENCRYPTION_KEY: genera una clave segura con:                       ║
+║     openssl rand -hex 32                                                     ║
+║  3. Si ya tienes tokens encriptados, usa la clave original                  ║
+║  4. Reinicia la aplicación después de configurar                             ║
+║                                                                              ║
+║  ⚠️  ADVERTENCIA: Si cambias ENCRYPTION_KEY, todos los tokens               ║
+║     encriptados se corromperán.                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
     `;
     console.error(errorMessage);
+    hasValidated = false;
     throw new Error(`Variables de entorno críticas no configuradas: ${errors.join(', ')}`);
   }
 
@@ -54,6 +79,26 @@ ${warnings.map(w => `║  ⚠️  ${w.padEnd(76)}║`).join('\n')}
     console.warn(warningMessage);
   }
 
+  // Marcar como validado solo si no hay errores
+  if (errors.length === 0) {
+    hasValidated = true;
+  }
+
   return { errors, warnings };
+}
+
+/**
+ * Verifica si la validación ya se ejecutó exitosamente
+ * Útil para evitar validaciones redundantes
+ */
+export function hasValidatedEnv(): boolean {
+  return hasValidated;
+}
+
+/**
+ * Fuerza una nueva validación (útil para testing o cambios dinámicos)
+ */
+export function resetValidation(): void {
+  hasValidated = false;
 }
 

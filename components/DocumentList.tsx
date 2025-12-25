@@ -501,9 +501,9 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
         
         setTimeout(async () => {
           await loadDocuments();
-          if (onRefresh) {
-            onRefresh();
-          }
+      if (onRefresh) {
+        onRefresh();
+      }
           setTimeout(() => {
             setSavingTaskStatus(null);
             setShowEditor(false);

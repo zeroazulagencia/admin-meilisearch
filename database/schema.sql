@@ -1,6 +1,20 @@
 -- Admin Dworkers - Base de Datos MySQL
--- Versión: v18.8
-
+-- Versión: v25.1
+--
+-- ⚠️ ADVERTENCIA CRÍTICA ⚠️
+-- Este archivo es SOLO para referencia y documentación.
+-- NO EJECUTAR este archivo en producción si ya existe una base de datos con datos.
+-- Si ejecutas este archivo en producción, podrías perder datos existentes.
+--
+-- Para actualizar la estructura de la base de datos en producción, usa las migraciones
+-- individuales en la carpeta database/ que son seguras y no afectan datos existentes.
+--
+-- Migraciones disponibles:
+-- - migration_add_whatsapp_fields.sql
+-- - migration_add_n8n_data_table_id.sql
+-- - migration_add_reports_agent_name.sql
+-- - migration_fix_whatsapp_column_sizes.sql
+--
 -- Crear base de datos si no existe
 CREATE DATABASE IF NOT EXISTS admin_dworkers CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -38,6 +52,14 @@ CREATE TABLE IF NOT EXISTS agents (
     workflows JSON,
     conversation_agent_name VARCHAR(255),
     reports_agent_name VARCHAR(255),
+    -- Campos de WhatsApp Business API (agregados en v19.0)
+    whatsapp_business_account_id VARCHAR(255) NULL,
+    whatsapp_phone_number_id VARCHAR(255) NULL,
+    whatsapp_access_token TEXT NULL,
+    whatsapp_webhook_verify_token TEXT NULL,
+    whatsapp_app_secret TEXT NULL,
+    -- Campo de conexión n8n (agregado en v24.0)
+    n8n_data_table_id VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE,

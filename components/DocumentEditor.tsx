@@ -425,15 +425,15 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
                     )}
                   </div>
                 )}
-                {!readOnly && canRemoveFields && !isPrimaryKey && (
-                  <button
-                    onClick={() => removeField(key)}
-                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
-                    title="Eliminar campo"
-                  >
-                    ✕ Eliminar
-                  </button>
-                )}
+              {!readOnly && canRemoveFields && !isPrimaryKey && (
+                <button
+                  onClick={() => removeField(key)}
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                  title="Eliminar campo"
+                >
+                  ✕ Eliminar
+                </button>
+              )}
               </div>
             </div>
             {renderFieldEditor(key, value)}

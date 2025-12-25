@@ -127,25 +127,76 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    
+    // PROTECCIÓN #1: Verificar ENCRYPTION_KEY antes de procesar cualquier actualización
+    try {
+      validateCriticalEnvVars();
+      console.log('[API AGENTS] [PROTECTION] ENCRYPTION_KEY validada correctamente');
+    } catch (envError: any) {
+      console.error('[API AGENTS] [PROTECTION] ERROR CRÍTICO: ENCRYPTION_KEY no configurada:', envError?.message);
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'ENCRYPTION_KEY no está configurada. No se pueden procesar tokens de WhatsApp. Por favor, configura ENCRYPTION_KEY en el archivo .env antes de continuar.' 
+      }, { status: 500 });
+    }
+    
     const body = await req.json();
-    console.log('[API AGENTS] PUT request body:', JSON.stringify(body, null, 2));
-    console.log('[API AGENTS] reports_agent_name value:', body.reports_agent_name);
+    console.log('[API AGENTS] [PUT] Iniciando actualización para agente ID:', id);
+    console.log('[API AGENTS] [PUT] Request body (campos presentes):', Object.keys(body).join(', '));
     
-    // Obtener el agente actual para comparar valores encriptados
-    const [currentRows] = await query<any>(
-      'SELECT whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret FROM agents WHERE id = ? LIMIT 1',
-      [id]
-    );
-    const currentAgent = currentRows && currentRows.length > 0 ? currentRows[0] : null;
+    // PROTECCIÓN #2: Obtener el agente actual COMPLETO para verificar qué campos existen en BD
+    let currentAgent: any = null;
+    let currentWhatsAppFields: any = {};
     
-    // CRÍTICO: PROTECCIÓN MULTI-CAPA PARA TOKENS
+    try {
+      const [currentRows] = await query<any>(
+        'SELECT whatsapp_business_account_id, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_webhook_verify_token, whatsapp_app_secret FROM agents WHERE id = ? LIMIT 1',
+        [id]
+      );
+      currentAgent = currentRows && currentRows.length > 0 ? currentRows[0] : null;
+      
+      if (currentAgent) {
+        currentWhatsAppFields = {
+          business_account_id: currentAgent.whatsapp_business_account_id || null,
+          phone_number_id: currentAgent.whatsapp_phone_number_id || null,
+          has_access_token: !!(currentAgent.whatsapp_access_token && currentAgent.whatsapp_access_token.trim() !== ''),
+          has_webhook_token: !!(currentAgent.whatsapp_webhook_verify_token && currentAgent.whatsapp_webhook_verify_token.trim() !== ''),
+          has_app_secret: !!(currentAgent.whatsapp_app_secret && currentAgent.whatsapp_app_secret.trim() !== '')
+        };
+        console.log('[API AGENTS] [PROTECTION] Estado actual de campos WhatsApp en BD:', {
+          business_account_id: currentWhatsAppFields.business_account_id ? 'CONFIGURADO' : 'VACÍO',
+          phone_number_id: currentWhatsAppFields.phone_number_id ? 'CONFIGURADO' : 'VACÍO',
+          access_token: currentWhatsAppFields.has_access_token ? 'CONFIGURADO' : 'VACÍO',
+          webhook_token: currentWhatsAppFields.has_webhook_token ? 'CONFIGURADO' : 'VACÍO',
+          app_secret: currentWhatsAppFields.has_app_secret ? 'CONFIGURADO' : 'VACÍO'
+        });
+      } else {
+        console.warn('[API AGENTS] [PROTECTION] No se encontró el agente con ID:', id);
+        return NextResponse.json({ ok: false, error: 'Agente no encontrado' }, { status: 404 });
+      }
+    } catch (queryError: any) {
+      console.error('[API AGENTS] [PROTECTION] Error al obtener agente actual:', queryError?.message);
+      // Continuar pero sin información del agente actual (fallback)
+    }
+    
+    // PROTECCIÓN #3: CRÍTICO - PROTECCIÓN MULTI-CAPA PARA TOKENS
     // REGLA #1: Requerir flag explícito update_tokens === true para actualizar tokens
     // REGLA #2: Validar longitud mínima y formato
     // REGLA #3: Comparar hash antes de actualizar
     // REGLA #4: Crear backup antes de actualizar
+    // REGLA #5: Si los campos existen en BD pero NO se envían en el request, NO tocarlos
     
     const updateTokensFlag = body.update_tokens === true;
     const MIN_TOKEN_LENGTH = 20;
+    
+    console.log('[API AGENTS] [PROTECTION] Flag update_tokens:', updateTokensFlag);
+    console.log('[API AGENTS] [PROTECTION] Campos WhatsApp en request:', {
+      business_account_id: 'whatsapp_business_account_id' in body ? 'PRESENTE' : 'AUSENTE',
+      phone_number_id: 'whatsapp_phone_number_id' in body ? 'PRESENTE' : 'AUSENTE',
+      access_token: 'whatsapp_access_token' in body ? 'PRESENTE' : 'AUSENTE',
+      webhook_token: 'whatsapp_webhook_verify_token' in body ? 'PRESENTE' : 'AUSENTE',
+      app_secret: 'whatsapp_app_secret' in body ? 'PRESENTE' : 'AUSENTE'
+    });
     
     let encryptedAccessToken: string | null | undefined = undefined;
     let encryptedWebhookToken: string | null | undefined = undefined;
@@ -360,19 +411,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           console.log('[API AGENTS] n8n_data_table_id presente en body pero columna no existe en BD, omitiendo');
         }
         
-        // CRÍTICO: Protección de campos WhatsApp (no-token)
+        // PROTECCIÓN #4: Protección de campos WhatsApp (no-token)
         // Solo actualizar si tienen valores válidos (no null, no vacío, no solo espacios)
         // Esto previene que se sobrescriban valores existentes con null o vacíos
+        // Si el campo existe en BD pero NO se envía en el request, NO tocarlo
         if ('whatsapp_business_account_id' in body) {
           if (isValidWhatsAppField(body.whatsapp_business_account_id)) {
             updateFields.push('whatsapp_business_account_id = ?');
             updateValues.push(body.whatsapp_business_account_id.trim());
             console.log(`[API AGENTS] [WHATSAPP FIELD UPDATE] whatsapp_business_account_id: Agregado a query UPDATE con valor válido`);
           } else {
-            console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_business_account_id: Campo presente pero valor inválido (null/vacío), IGNORANDO actualización para preservar valor existente`);
+            console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_business_account_id: Campo presente pero valor inválido (null/vacío), IGNORANDO actualización para preservar valor existente en BD`);
+            if (currentWhatsAppFields.business_account_id) {
+              console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] Valor actual en BD será preservado: ${currentWhatsAppFields.business_account_id.substring(0, 10)}...`);
+            }
           }
         } else {
-          console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_business_account_id: Campo no presente en body, manteniendo valor existente`);
+          console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_business_account_id: Campo NO presente en body, manteniendo valor existente en BD (NO se tocará)`);
         }
         
         if ('whatsapp_phone_number_id' in body) {
@@ -381,10 +436,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             updateValues.push(body.whatsapp_phone_number_id.trim());
             console.log(`[API AGENTS] [WHATSAPP FIELD UPDATE] whatsapp_phone_number_id: Agregado a query UPDATE con valor válido`);
           } else {
-            console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_phone_number_id: Campo presente pero valor inválido (null/vacío), IGNORANDO actualización para preservar valor existente`);
+            console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_phone_number_id: Campo presente pero valor inválido (null/vacío), IGNORANDO actualización para preservar valor existente en BD`);
+            if (currentWhatsAppFields.phone_number_id) {
+              console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] Valor actual en BD será preservado: ${currentWhatsAppFields.phone_number_id.substring(0, 10)}...`);
+            }
           }
         } else {
-          console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_phone_number_id: Campo no presente en body, manteniendo valor existente`);
+          console.log(`[API AGENTS] [WHATSAPP FIELD PROTECTION] whatsapp_phone_number_id: Campo NO presente en body, manteniendo valor existente en BD (NO se tocará)`);
         }
         
         // CRÍTICO: Solo actualizar tokens si se envió un valor nuevo explícito Y es diferente del actual
@@ -417,7 +475,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           `UPDATE agents SET ${updateFields.join(', ')} WHERE id = ?`,
           updateValues
         );
-        console.log('[API AGENTS] Successfully updated with all fields including WhatsApp');
+        console.log('[API AGENTS] [PUT] Actualización exitosa. Campos actualizados:', updateFields.length);
+        console.log('[API AGENTS] [PUT] Campos de WhatsApp preservados/actualizados correctamente');
         return NextResponse.json({ ok: true });
       } catch (e: any) {
         // Si las columnas existen pero falla el UPDATE, verificar si es por tamaño de columna
@@ -482,20 +541,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               ]
             );
           } else {
-            await query(
-              'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ? WHERE id = ?',
-              [
-                body.client_id,
-                body.name,
-                body.description || null,
-                body.photo || null,
-                JSON.stringify(body.knowledge || {}),
-                JSON.stringify(body.workflows || {}),
-                body.conversation_agent_name || null,
-                body.reports_agent_name || null,
-                id
-              ]
-            );
+          await query(
+            'UPDATE agents SET client_id = ?, name = ?, description = ?, photo = ?, knowledge = ?, workflows = ?, conversation_agent_name = ?, reports_agent_name = ? WHERE id = ?',
+            [
+              body.client_id,
+              body.name,
+              body.description || null,
+              body.photo || null,
+              JSON.stringify(body.knowledge || {}),
+              JSON.stringify(body.workflows || {}),
+              body.conversation_agent_name || null,
+              body.reports_agent_name || null,
+              id
+            ]
+          );
           }
           console.log('[API AGENTS] Successfully updated without WhatsApp fields');
           return NextResponse.json({ ok: true });
