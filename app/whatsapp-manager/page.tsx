@@ -219,10 +219,10 @@ export default function WhatsAppManager() {
             console.log('[WHATSAPP-MANAGER] Agente', agent.id, agent.name, 'sin configuración completa:', {
               business_account: hasBusinessAccount,
               phone_number: hasPhoneNumber,
-              access_token: hasAccessToken,
-              business_account_id: agent.whatsapp_business_account_id ? 'presente' : 'ausente',
-              phone_number_id: agent.whatsapp_phone_number_id ? 'presente' : 'ausente',
-              access_token: agent.whatsapp_access_token ? 'presente' : 'ausente'
+              access_token_present: hasAccessToken,
+              business_account_id_value: agent.whatsapp_business_account_id ? 'presente' : 'ausente',
+              phone_number_id_value: agent.whatsapp_phone_number_id ? 'presente' : 'ausente',
+              access_token_value: agent.whatsapp_access_token ? 'presente' : 'ausente'
             });
           }
           
