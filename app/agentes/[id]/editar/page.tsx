@@ -116,8 +116,20 @@ export default function EditarAgente() {
       try {
         const res = await fetch(`/api/agents/${params.id}`);
         const data = await res.json();
+        console.log('[EDIT AGENT] [LOAD] Respuesta del API:', { ok: data.ok, hasAgent: !!data.agent });
         if (data.ok && data.agent) {
           const agent: AgentDB = data.agent;
+          console.log('[EDIT AGENT] [LOAD] Agente cargado:', {
+            id: agent.id,
+            name: agent.name,
+            hasWhatsAppBusinessAccountId: !!agent.whatsapp_business_account_id,
+            hasWhatsAppPhoneNumberId: !!agent.whatsapp_phone_number_id,
+            hasWhatsAppAccessToken: !!agent.whatsapp_access_token,
+            hasWhatsAppWebhookToken: !!agent.whatsapp_webhook_verify_token,
+            hasWhatsAppAppSecret: !!agent.whatsapp_app_secret,
+            accessTokenLength: agent.whatsapp_access_token?.length || 0,
+            accessTokenEndsWithDots: agent.whatsapp_access_token?.endsWith('...') || false
+          });
           setCurrentAgent(agent);
           // Si el token está enmascarado (termina en "..."), no mostrar nada en el campo
           // Guardar los primeros caracteres si están disponibles
@@ -125,10 +137,21 @@ export default function EditarAgente() {
           const webhookToken = agent.whatsapp_webhook_verify_token || '';
           const appSecret = agent.whatsapp_app_secret || '';
           
+          // Extraer los primeros caracteres si el token está enmascarado
+          const accessTokenPrefix = accessToken.endsWith('...') ? accessToken.substring(0, 4) : (accessToken.length > 0 && accessToken.length <= 7 ? accessToken.substring(0, 4) : undefined);
+          const webhookTokenPrefix = webhookToken.endsWith('...') ? webhookToken.substring(0, 4) : (webhookToken.length > 0 && webhookToken.length <= 7 ? webhookToken.substring(0, 4) : undefined);
+          const appSecretPrefix = appSecret.endsWith('...') ? appSecret.substring(0, 4) : (appSecret.length > 0 && appSecret.length <= 7 ? appSecret.substring(0, 4) : undefined);
+          
+          console.log('[EDIT AGENT] [LOAD] Prefijos de tokens extraídos:', {
+            access_token_prefix: accessTokenPrefix,
+            webhook_token_prefix: webhookTokenPrefix,
+            app_secret_prefix: appSecretPrefix
+          });
+          
           setTokenPrefix({
-            access_token: accessToken.endsWith('...') ? accessToken.substring(0, 4) : (accessToken.length > 0 ? accessToken.substring(0, 4) : undefined),
-            webhook_token: webhookToken.endsWith('...') ? webhookToken.substring(0, 4) : (webhookToken.length > 0 ? webhookToken.substring(0, 4) : undefined),
-            app_secret: appSecret.endsWith('...') ? appSecret.substring(0, 4) : (appSecret.length > 0 ? appSecret.substring(0, 4) : undefined)
+            access_token: accessTokenPrefix,
+            webhook_token: webhookTokenPrefix,
+            app_secret: appSecretPrefix
           });
           
           setFormData({
@@ -138,10 +161,10 @@ export default function EditarAgente() {
             client_id: agent.client_id,
             whatsapp_business_account_id: agent.whatsapp_business_account_id || '',
             whatsapp_phone_number_id: agent.whatsapp_phone_number_id || '',
-            // Si está enmascarado, mostrar los primeros caracteres para que el usuario vea que hay un token guardado
-            whatsapp_access_token: accessToken.endsWith('...') ? accessToken : accessToken,
-            whatsapp_webhook_verify_token: webhookToken.endsWith('...') ? webhookToken : webhookToken,
-            whatsapp_app_secret: appSecret.endsWith('...') ? appSecret : appSecret
+            // Si está enmascarado, dejar vacío para que se muestre el placeholder con los primeros caracteres
+            whatsapp_access_token: accessToken.endsWith('...') ? '' : accessToken,
+            whatsapp_webhook_verify_token: webhookToken.endsWith('...') ? '' : webhookToken,
+            whatsapp_app_secret: appSecret.endsWith('...') ? '' : appSecret
           });
           try {
             const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {});
@@ -408,10 +431,15 @@ export default function EditarAgente() {
             const webhookToken = agent.whatsapp_webhook_verify_token || '';
             const appSecret = agent.whatsapp_app_secret || '';
             
+            // Extraer los primeros caracteres si el token está enmascarado
+            const accessTokenPrefix = accessToken.endsWith('...') ? accessToken.substring(0, 4) : (accessToken.length > 0 && accessToken.length <= 7 ? accessToken.substring(0, 4) : undefined);
+            const webhookTokenPrefix = webhookToken.endsWith('...') ? webhookToken.substring(0, 4) : (webhookToken.length > 0 && webhookToken.length <= 7 ? webhookToken.substring(0, 4) : undefined);
+            const appSecretPrefix = appSecret.endsWith('...') ? appSecret.substring(0, 4) : (appSecret.length > 0 && appSecret.length <= 7 ? appSecret.substring(0, 4) : undefined);
+            
             setTokenPrefix({
-              access_token: accessToken.endsWith('...') ? accessToken.substring(0, 4) : (accessToken.length > 0 ? accessToken.substring(0, 4) : undefined),
-              webhook_token: webhookToken.endsWith('...') ? webhookToken.substring(0, 4) : (webhookToken.length > 0 ? webhookToken.substring(0, 4) : undefined),
-              app_secret: appSecret.endsWith('...') ? appSecret.substring(0, 4) : (appSecret.length > 0 ? appSecret.substring(0, 4) : undefined)
+              access_token: accessTokenPrefix,
+              webhook_token: webhookTokenPrefix,
+              app_secret: appSecretPrefix
             });
             
             setFormData({
@@ -421,10 +449,10 @@ export default function EditarAgente() {
               client_id: agent.client_id,
               whatsapp_business_account_id: agent.whatsapp_business_account_id || '',
               whatsapp_phone_number_id: agent.whatsapp_phone_number_id || '',
-              // Si está enmascarado, mostrar los primeros caracteres para que el usuario vea que hay un token guardado
-              whatsapp_access_token: accessToken.endsWith('...') ? accessToken : accessToken,
-              whatsapp_webhook_verify_token: webhookToken.endsWith('...') ? webhookToken : webhookToken,
-              whatsapp_app_secret: appSecret.endsWith('...') ? appSecret : appSecret
+              // Si está enmascarado, dejar vacío para que se muestre el placeholder con los primeros caracteres
+              whatsapp_access_token: accessToken.endsWith('...') ? '' : accessToken,
+              whatsapp_webhook_verify_token: webhookToken.endsWith('...') ? '' : webhookToken,
+              whatsapp_app_secret: appSecret.endsWith('...') ? '' : appSecret
             });
             try {
               const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {});
@@ -1583,9 +1611,9 @@ export default function EditarAgente() {
                     className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                     placeholder={tokenPrefix.access_token ? `${tokenPrefix.access_token}... (token guardado)` : "EAA..."}
                   />
-                  {formData.whatsapp_access_token && formData.whatsapp_access_token.endsWith('...') && (
+                  {tokenPrefix.access_token && !formData.whatsapp_access_token && (
                     <p className="mt-1 text-xs text-gray-500">
-                      Token guardado (mostrando primeros caracteres). Borra el contenido y guarda para mantener el actual, o ingresa uno nuevo para reemplazarlo.
+                      Token guardado (inicia con: {tokenPrefix.access_token}...). Deja vacío para mantener el actual o ingresa uno nuevo para reemplazarlo.
                     </p>
                   )}
                 </div>
@@ -1613,9 +1641,9 @@ export default function EditarAgente() {
                     className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                     placeholder={tokenPrefix.webhook_token ? `${tokenPrefix.webhook_token}... (token guardado)` : "mi_token_secreto"}
                   />
-                  {formData.whatsapp_webhook_verify_token && formData.whatsapp_webhook_verify_token.endsWith('...') && (
+                  {tokenPrefix.webhook_token && !formData.whatsapp_webhook_verify_token && (
                     <p className="mt-1 text-xs text-gray-500">
-                      Token guardado (mostrando primeros caracteres). Borra el contenido y guarda para mantener el actual, o ingresa uno nuevo para reemplazarlo.
+                      Token guardado (inicia con: {tokenPrefix.webhook_token}...). Deja vacío para mantener el actual o ingresa uno nuevo para reemplazarlo.
                     </p>
                   )}
                 </div>
@@ -1643,9 +1671,9 @@ export default function EditarAgente() {
                     className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
                     placeholder={tokenPrefix.app_secret ? `${tokenPrefix.app_secret}... (token guardado)` : "abc123..."}
                   />
-                  {formData.whatsapp_app_secret && formData.whatsapp_app_secret.endsWith('...') && (
+                  {tokenPrefix.app_secret && !formData.whatsapp_app_secret && (
                     <p className="mt-1 text-xs text-gray-500">
-                      Token guardado (mostrando primeros caracteres). Borra el contenido y guarda para mantener el actual, o ingresa uno nuevo para reemplazarlo.
+                      Token guardado (inicia con: {tokenPrefix.app_secret}...). Deja vacío para mantener el actual o ingresa uno nuevo para reemplazarlo.
                     </p>
                   )}
                 </div>
