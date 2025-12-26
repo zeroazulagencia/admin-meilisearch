@@ -2,9 +2,15 @@
 
 import { useState } from 'react';
 
-export default function MessageEditor() {
+interface MessageEditorProps {
+  onSendMessage: (message: string) => Promise<void>;
+  disabled?: boolean;
+}
+
+export default function MessageEditor({ onSendMessage, disabled = false }: MessageEditorProps) {
   const [activeTab, setActiveTab] = useState<'reply' | 'private'>('reply');
   const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
 
   return (
     <div className="p-4 bg-white border-t border-gray-200">
@@ -79,9 +85,23 @@ export default function MessageEditor() {
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !sending && !disabled) {
+              e.preventDefault();
+              if (message.trim()) {
+                onSendMessage(message).then(() => {
+                  setMessage('');
+                }).catch((e: any) => {
+                  console.error('[MessageEditor] Error enviando mensaje:', e?.message);
+                  alert('Error al enviar mensaje: ' + (e?.message || 'Error desconocido'));
+                });
+              }
+            }
+          }}
           placeholder="Shift + enter for new line. Start with '/' to select a Canned Response."
           className="w-full px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#3B82F6] rounded-b-lg"
           rows={3}
+          disabled={disabled || sending}
         />
       </div>
 
@@ -114,8 +134,28 @@ export default function MessageEditor() {
           <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors">
             AI Assist
           </button>
-          <button className="px-6 py-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-            Send
+          <button 
+            onClick={async () => {
+              if (!message.trim() || sending || disabled) return;
+              try {
+                setSending(true);
+                await onSendMessage(message);
+                setMessage('');
+              } catch (e: any) {
+                console.error('[MessageEditor] Error enviando mensaje:', e?.message);
+                alert('Error al enviar mensaje: ' + (e?.message || 'Error desconocido'));
+              } finally {
+                setSending(false);
+              }
+            }}
+            disabled={!message.trim() || sending || disabled}
+            className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              !message.trim() || sending || disabled
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-[#3B82F6] hover:bg-[#2563EB] text-white'
+            }`}
+          >
+            {sending ? 'Enviando...' : 'Send'}
             <span className="text-xs">(↵)</span>
           </button>
         </div>

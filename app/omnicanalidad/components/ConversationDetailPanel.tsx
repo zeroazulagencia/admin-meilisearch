@@ -5,12 +5,23 @@ import ContactInfo from './ContactInfo';
 import MessageThread from './MessageThread';
 import MessageEditor from './MessageEditor';
 import ToolsSidebar from './ToolsSidebar';
+import { Conversation, Message } from '../utils/types';
 
 interface ConversationDetailPanelProps {
   conversationId: string | null;
+  conversation: Conversation | null;
+  messages: Message[];
+  loadingMessages: boolean;
+  onSendMessage: (message: string) => Promise<void>;
 }
 
-export default function ConversationDetailPanel({ conversationId }: ConversationDetailPanelProps) {
+export default function ConversationDetailPanel({ 
+  conversationId, 
+  conversation,
+  messages,
+  loadingMessages,
+  onSendMessage
+}: ConversationDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<'contact' | 'copilot'>('contact');
 
   if (!conversationId) {
@@ -62,12 +73,19 @@ export default function ConversationDetailPanel({ conversationId }: Conversation
 
               {/* Message Thread */}
               <div className="flex-1 overflow-y-auto min-h-0">
-                <MessageThread />
+                <MessageThread messages={messages} loading={loadingMessages} />
               </div>
 
               {/* Message Editor */}
               <div className="flex-shrink-0 border-t border-gray-200">
-                <MessageEditor />
+                <MessageEditor 
+                  onSendMessage={async (message) => {
+                    if (conversationId) {
+                      await onSendMessage(message);
+                    }
+                  }}
+                  disabled={!conversationId || loadingMessages}
+                />
               </div>
             </>
           ) : (

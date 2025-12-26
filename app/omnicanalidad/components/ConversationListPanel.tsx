@@ -1,98 +1,35 @@
 'use client';
 
 import { useState } from 'react';
-
-interface Conversation {
-  id: string;
-  channel: string;
-  name: string;
-  avatar: string;
-  lastMessage: string;
-  timestamp: string;
-  unreadCount?: number;
-  priority?: boolean;
-  labels: string[];
-}
+import { Conversation } from '../utils/types';
 
 interface ConversationListPanelProps {
   selectedConversationId: string | null;
   onSelectConversation: (id: string) => void;
+  conversations: Conversation[];
+  loading: boolean;
 }
 
-// Mock data
-const mockConversations: Conversation[] = [
-  {
-    id: '1',
-    channel: 'Paperlayer Web',
-    name: 'Klaus Crawley',
-    avatar: 'KC',
-    lastMessage: '@Ben Nugent Can we use Captain here to automate these queries?',
-    timestamp: '3mo • 25m',
-    labels: ['device-setup'],
-    priority: true
-  },
-  {
-    id: '2',
-    channel: 'Paperlayer Email Support',
-    name: 'Candice Matherson',
-    avatar: 'CM',
-    lastMessage: 'Hey, How many I help you?',
-    timestamp: '3mo • 3mo',
-    labels: ['lead']
-  },
-  {
-    id: '3',
-    channel: 'Paperlayer Facebook',
-    name: 'Coreen Mewett',
-    avatar: 'CM',
-    lastMessage: "I'm sorry to hear that. Please chang...",
-    timestamp: '3mo • 1w',
-    labels: ['software']
-  },
-  {
-    id: '4',
-    channel: 'Paperlayer WhatsApp',
-    name: 'Quent Dalliston',
-    avatar: 'QD',
-    lastMessage: 'Sure! Can you please provide me wi..1',
-    timestamp: '3mo • 2d',
-    unreadCount: 1,
-    labels: []
-  },
-  {
-    id: '5',
-    channel: 'Paperlayer Web',
-    name: 'Nathaniel Vannuchi',
-    avatar: 'NV',
-    lastMessage: "Hey there, I need some help with billing...",
-    timestamp: '3mo • 5d',
-    labels: []
-  },
-  {
-    id: '6',
-    channel: 'Paperlayer Email Support',
-    name: 'Claus Jira',
-    avatar: 'CJ',
-    lastMessage: "I'm sorry to hear that. Can you pleas...",
-    timestamp: '3mo • 1w',
-    priority: true,
-    labels: ['device-setup']
-  },
-  {
-    id: '7',
-    channel: 'Paperlayer Facebook',
-    name: 'Merrile Petruk',
-    avatar: 'MP',
-    lastMessage: 'Thank you for reaching out! How can I...',
-    timestamp: '3mo • 2w',
-    labels: ['lead']
-  }
-];
-
-export default function ConversationListPanel({ selectedConversationId, onSelectConversation }: ConversationListPanelProps) {
+export default function ConversationListPanel({ 
+  selectedConversationId, 
+  onSelectConversation,
+  conversations,
+  loading
+}: ConversationListPanelProps) {
   const [activeTab, setActiveTab] = useState<'mine' | 'unassigned' | 'all'>('mine');
 
-  const filteredConversations = mockConversations;
+  // Filtrar conversaciones según el tab activo
+  const filteredConversations = conversations.filter(conv => {
+    if (activeTab === 'all') return true;
+    // Por ahora, todas las conversaciones se muestran en todos los tabs
+    // Se puede implementar lógica de "mine" y "unassigned" más adelante
+    return true;
+  });
+
+  // Contar conversaciones por tab
+  const mineCount = conversations.length; // Por ahora todas
+  const unassignedCount = 0; // Por implementar
+  const allCount = conversations.length;
 
   return (
     <div className="w-96 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full">
@@ -106,7 +43,7 @@ export default function ConversationListPanel({ selectedConversationId, onSelect
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
-          Mine <span className="text-gray-400">11</span>
+          Mine <span className="text-gray-400">{mineCount}</span>
         </button>
         <button
           onClick={() => setActiveTab('unassigned')}
@@ -116,7 +53,7 @@ export default function ConversationListPanel({ selectedConversationId, onSelect
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
-          Unassigned <span className="text-gray-400">6</span>
+          Unassigned <span className="text-gray-400">{unassignedCount}</span>
         </button>
         <button
           onClick={() => setActiveTab('all')}
@@ -126,13 +63,22 @@ export default function ConversationListPanel({ selectedConversationId, onSelect
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
-          All <span className="text-gray-400">19</span>
+          All <span className="text-gray-400">{allCount}</span>
         </button>
       </div>
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredConversations.map((conversation) => (
+        {loading ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="text-sm text-gray-500">Cargando conversaciones...</div>
+          </div>
+        ) : filteredConversations.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="text-sm text-gray-500">No hay conversaciones</div>
+          </div>
+        ) : (
+          filteredConversations.map((conversation) => (
           <button
             key={conversation.id}
             onClick={() => onSelectConversation(conversation.id)}
@@ -193,7 +139,8 @@ export default function ConversationListPanel({ selectedConversationId, onSelect
               </div>
             </div>
           </button>
-        ))}
+        ))
+        )}
       </div>
     </div>
   );
