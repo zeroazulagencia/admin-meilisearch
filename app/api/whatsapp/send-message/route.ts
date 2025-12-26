@@ -293,6 +293,13 @@ export async function POST(req: NextRequest) {
 
     // Enviar mensaje a través de WhatsApp Business API
     try {
+      console.log('[WHATSAPP SEND MESSAGE] Antes de enviar a WhatsApp API:', {
+        phoneNumberId: phoneNumberId,
+        message_type: message_type,
+        to: cleanPhoneNumber,
+        payload_keys: Object.keys(payload)
+      });
+      
       const response = await axios.post(
         `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
         payload,
@@ -304,15 +311,39 @@ export async function POST(req: NextRequest) {
           timeout: 30000
         }
       );
+      
+      console.log('[WHATSAPP SEND MESSAGE] Respuesta de WhatsApp API:', {
+        status: response.status,
+        has_data: !!response.data,
+        has_messages: !!(response.data && response.data.messages),
+        messages_count: response.data?.messages?.length || 0
+      });
 
       if (response.data && response.data.messages && response.data.messages.length > 0) {
         const messageId = response.data.messages[0].id;
         
         // Guardar mensaje en Meilisearch después de enviarlo exitosamente a WhatsApp
         // Solo si se proporcionaron user_id y phone_number_id (desde el chat en modo humano)
+        console.log('[WHATSAPP SEND MESSAGE] Verificando condiciones para guardar en Meilisearch:', {
+          has_user_id: !!user_id,
+          has_phone_number_id: !!phone_number_id,
+          message_type: message_type,
+          has_message: !!message,
+          user_id: user_id,
+          phone_number_id: phone_number_id
+        });
+        
         if (user_id && phone_number_id && message_type === 'text' && message) {
           try {
             const conversationAgentName = agent.conversation_agent_name || '';
+            
+            console.log('[WHATSAPP SEND MESSAGE] Antes de construir documento para Meilisearch:', {
+              conversationAgentName: conversationAgentName,
+              user_id: user_id,
+              phone_number_id: phone_number_id,
+              message_length: message.length,
+              messageId: messageId
+            });
             
             // Construir documento para Meilisearch
             const meilisearchDocument = {
@@ -327,23 +358,36 @@ export async function POST(req: NextRequest) {
               conversation_id: messageId // usar el message_id de WhatsApp como conversation_id
             };
             
-            console.log('[WHATSAPP SEND MESSAGE] Guardando mensaje en Meilisearch:', {
-              agent: conversationAgentName,
-              user_id: user_id,
-              phone_number_id: phone_number_id,
-              message_length: message.length
+            console.log('[WHATSAPP SEND MESSAGE] Documento construido para Meilisearch:', {
+              agent: meilisearchDocument.agent,
+              type: meilisearchDocument.type,
+              user_id: meilisearchDocument.user_id,
+              phone_number_id: meilisearchDocument.phone_number_id,
+              message_length: meilisearchDocument['message-AI'].length,
+              conversation_id: meilisearchDocument.conversation_id
             });
             
             // Guardar en Meilisearch
             const INDEX_UID = 'bd_conversations_dworkers';
-            await meilisearchAPI.addDocuments(INDEX_UID, [meilisearchDocument]);
+            console.log('[WHATSAPP SEND MESSAGE] Llamando a meilisearchAPI.addDocuments...');
+            const meilisearchResult = await meilisearchAPI.addDocuments(INDEX_UID, [meilisearchDocument]);
             
+            console.log('[WHATSAPP SEND MESSAGE] Respuesta de Meilisearch:', {
+              success: true,
+              result: meilisearchResult
+            });
             console.log('[WHATSAPP SEND MESSAGE] Mensaje guardado exitosamente en Meilisearch');
           } catch (meilisearchError: any) {
             // Si falla el guardado en Meilisearch, loguear pero no fallar el envío a WhatsApp
-            console.error('[WHATSAPP SEND MESSAGE] Error guardando en Meilisearch (no crítico):', meilisearchError?.message || meilisearchError);
+            console.error('[WHATSAPP SEND MESSAGE] Error guardando en Meilisearch (no crítico):', {
+              error: meilisearchError?.message || meilisearchError,
+              stack: meilisearchError?.stack,
+              response: meilisearchError?.response?.data
+            });
             // Continuar con la respuesta exitosa del envío a WhatsApp
           }
+        } else {
+          console.log('[WHATSAPP SEND MESSAGE] No se guardará en Meilisearch porque no se cumplen las condiciones');
         }
         
         return NextResponse.json({

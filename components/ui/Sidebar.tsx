@@ -94,6 +94,7 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     { href: '/admin-conocimiento', label: 'Admin Conocimiento', perm: 'adminConocimiento', icon: <BookOpenIcon className="w-5 h-5" /> },
     { href: '/reportes', label: 'Reportes', perm: 'reportes', icon: <DocumentTextIcon className="w-5 h-5" /> },
     { href: '/conversaciones', label: 'Conversaciones', perm: 'conversaciones', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
+    { href: '/omnicanalidad', label: 'Omnicanalidad', perm: 'omnicanalidad', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
     { href: '/whatsapp-manager', label: 'WhatsApp Manager', perm: 'whatsappManager', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
     { href: '/facturacion', label: 'Facturación', perm: 'facturacion', icon: <CurrencyDollarIcon className="w-5 h-5" /> },
     { href: '/db-manager', label: 'DB Manager', perm: 'dbManager', icon: <CircleStackIcon className="w-5 h-5" /> },
