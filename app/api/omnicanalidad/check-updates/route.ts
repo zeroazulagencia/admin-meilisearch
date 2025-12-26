@@ -31,12 +31,14 @@ export async function GET(request: NextRequest) {
     filters.push(`agent = "${agentName}"`);
     filters.push(`(type = "agent" OR type = "user")`);
     
-    // Filtrar por datetime mayor que lastCheckTimestamp
+    // Filtrar por datetime mayor o igual que lastCheckTimestamp
+    // Restamos 2 segundos para asegurar que capture mensajes recién enviados
     // Meilisearch necesita fechas como strings ISO
     const lastCheckDate = new Date(lastCheckTimestamp);
+    lastCheckDate.setSeconds(lastCheckDate.getSeconds() - 2); // Restar 2 segundos para capturar mensajes recién enviados
     const lastCheckISO = lastCheckDate.toISOString();
-    console.log('[CHECK-UPDATES] Filtro datetime >', lastCheckISO);
-    filters.push(`datetime > "${lastCheckISO}"`);
+    console.log('[CHECK-UPDATES] Filtro datetime >=', lastCheckISO, '(original:', lastCheckTimestamp, ')');
+    filters.push(`datetime >= "${lastCheckISO}"`);
     
     const filterString = filters.join(' AND ');
     console.log('[CHECK-UPDATES] Filtro completo:', filterString);

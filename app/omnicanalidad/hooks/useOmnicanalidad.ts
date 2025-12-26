@@ -643,9 +643,11 @@ export function useOmnicanalidad() {
           console.log('[OMNICANALIDAD] [handleSendMessage] ERROR: selectedConversation es null, no se puede actualizar');
         }
         
-        // Actualizar lastCheckTimestamp
-        const newTimestamp = new Date().toISOString();
-        console.log('[OMNICANALIDAD] [handleSendMessage] Actualizando lastCheckTimestamp a:', newTimestamp);
+        // Actualizar lastCheckTimestamp - restar 1 segundo para asegurar que el polling capture este mensaje
+        const now = new Date();
+        now.setSeconds(now.getSeconds() - 1);
+        const newTimestamp = now.toISOString();
+        console.log('[OMNICANALIDAD] [handleSendMessage] Actualizando lastCheckTimestamp a:', newTimestamp, '(1 segundo antes para capturar mensaje recién enviado)');
         setLastCheckTimestamp(newTimestamp);
         
         console.log('[OMNICANALIDAD] [handleSendMessage] Mensaje enviado exitosamente, guardado en Meilisearch');
