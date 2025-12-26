@@ -215,7 +215,7 @@ export function groupDocumentsIntoConversations(
       lastMessage: lastMessageText,
       lastMessageTime: lastMessage.datetime || '',
       unreadCount: 0,
-      status: 'active',
+      status: 'active' as const,
       messages: formattedMessages
     };
   }).filter(group => {

@@ -4,7 +4,7 @@
 
 ### 1. Conectar al servidor
 ```bash
-ssh -i /Users/admin/Desktop/zero.pem bitnami@34.230.189.45
+ssh -i /Users/admin/Documents/keys/zero.pem bitnami@34.230.189.45
 ```
 
 ### 2. Instalar Node.js y Git
@@ -123,7 +123,7 @@ Antes de hacer deploy, ejecuta el script de verificación:
 
 ```bash
 # En el servidor
-ssh -i /Users/admin/Desktop/zero.pem bitnami@34.230.189.45
+ssh -i /Users/admin/Documents/keys/zero.pem bitnami@34.230.189.45
 cd /home/bitnami/admin-meilisearch
 bash scripts/verify-whatsapp-data.sh
 ```
@@ -178,7 +178,7 @@ git push origin master
 **PASO 1: Verificaciones Pre-Deploy (OBLIGATORIO)**
 
 ```bash
-ssh -i /Users/admin/Desktop/zero.pem bitnami@34.230.189.45
+ssh -i /Users/admin/Documents/keys/zero.pem bitnami@34.230.189.45
 cd /home/bitnami/admin-meilisearch
 
 # Ejecutar script de verificación
