@@ -10,6 +10,7 @@ interface ConversationListProps {
   onSearchChange: (query: string) => void;
   currentAgent: string;
   loading?: boolean;
+  hasNewMessages?: Set<string>;
 }
 
 export default function ConversationList({
@@ -19,7 +20,8 @@ export default function ConversationList({
   searchQuery,
   onSearchChange,
   currentAgent,
-  loading = false
+  loading = false,
+  hasNewMessages = new Set()
 }: ConversationListProps) {
   const formatTime = (dateString: string) => {
     if (!dateString) return '';
@@ -83,21 +85,31 @@ export default function ConversationList({
               }`}
             >
               <div className="flex items-center gap-3">
-                {/* Avatar */}
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#5DE1E5] flex items-center justify-center overflow-hidden">
-                  {conversation.phone_number_id ? (
-                    <span className="text-sm font-semibold text-white">
-                      {conversation.phone_number_id.substring(conversation.phone_number_id.length - 1)}
-                    </span>
-                  ) : (
-                    <span className="text-sm font-semibold text-white">
-                      {conversation.user_id.substring(conversation.user_id.length - 1)}
-                    </span>
+                {/* Avatar con indicador de nuevo mensaje */}
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#5DE1E5] flex items-center justify-center overflow-hidden">
+                    {conversation.phone_number_id ? (
+                      <span className="text-sm font-semibold text-white">
+                        {conversation.phone_number_id.substring(conversation.phone_number_id.length - 1)}
+                      </span>
+                    ) : (
+                      <span className="text-sm font-semibold text-white">
+                        {conversation.user_id.substring(conversation.user_id.length - 1)}
+                      </span>
+                    )}
+                  </div>
+                  {hasNewMessages.has(conversation.id) && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#3B82F6] rounded-full border-2 border-white"></div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between mb-0.5">
-                    <span className="font-medium text-gray-900 truncate text-sm">{conversation.user_id}</span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="font-medium text-gray-900 truncate text-sm">{conversation.user_id}</span>
+                      {hasNewMessages.has(conversation.id) && (
+                        <span className="flex-shrink-0 inline-flex items-center justify-center w-2 h-2 bg-[#3B82F6] rounded-full"></span>
+                      )}
+                    </div>
                     <span className="text-xs text-gray-400 ml-2 flex-shrink-0">{formatTime(conversation.lastMessageTime)}</span>
                   </div>
                   {conversation.phone_number_id && conversation.phone_number_id.trim() !== '' && (

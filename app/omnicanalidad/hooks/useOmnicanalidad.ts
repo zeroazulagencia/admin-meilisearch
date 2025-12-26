@@ -27,6 +27,9 @@ export function useOmnicanalidad() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageInput, setMessageInput] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [lastCheckTimestamp, setLastCheckTimestamp] = useState<string>(new Date().toISOString());
+  const [conversationLastSeen, setConversationLastSeen] = useState<Map<string, string>>(new Map());
+  const [hasNewMessages, setHasNewMessages] = useState<Set<string>>(new Set());
 
   // Calcular fechas por defecto
   const getDefaultDates = () => {
@@ -92,12 +95,29 @@ export function useOmnicanalidad() {
   useEffect(() => {
     if (selectedConversation && currentAgentDetails) {
       loadHumanModeStatus();
+      
+      // Remover icono de nuevo mensaje al abrir conversación
+      setHasNewMessages(prev => {
+        if (prev.has(selectedConversation.id)) {
+          const newSet = new Set(prev);
+          newSet.delete(selectedConversation.id);
+          return newSet;
+        }
+        return prev;
+      });
+      
+      // Actualizar conversationLastSeen
+      setConversationLastSeen(prev => {
+        const newMap = new Map(prev);
+        newMap.set(selectedConversation.id, new Date().toISOString());
+        return newMap;
+      });
     } else {
       setHumanModeStatus(null);
       setMessageInput('');
       setPendingMessages([]);
     }
-  }, [selectedConversation, currentAgentDetails]);
+  }, [selectedConversation?.id, currentAgentDetails]);
 
   const loadAgentDetails = async (agentId: number) => {
     try {
@@ -223,6 +243,19 @@ export function useOmnicanalidad() {
       
       setConversations(filteredConversations);
       
+      // Guardar lastCheckTimestamp después de cargar
+      setLastCheckTimestamp(new Date().toISOString());
+      
+      // Inicializar conversationLastSeen con timestamps actuales
+      const newLastSeen = new Map<string, string>();
+      filteredConversations.forEach(conv => {
+        newLastSeen.set(conv.id, conv.lastMessageTime);
+      });
+      setConversationLastSeen(newLastSeen);
+      
+      // Limpiar hasNewMessages al cargar inicialmente
+      setHasNewMessages(new Set());
+      
       // Auto-seleccionar la primera conversación si hay resultados
       if (filteredConversations.length > 0) {
         const currentStillExists = filteredConversations.find(g => g.id === selectedConversation?.id);
@@ -288,6 +321,90 @@ export function useOmnicanalidad() {
       setTakingConversation(false);
     }
   };
+
+  // Función para actualizar una conversación en la lista sin recargar todo
+  const updateConversationInList = useCallback((conversationId: string, updates: Partial<Conversation>) => {
+    setConversations(prev => {
+      const updated = prev.map(conv => {
+        if (conv.id === conversationId) {
+          return { ...conv, ...updates };
+        }
+        return conv;
+      });
+      
+      // Mover la conversación actualizada al principio si tiene nuevo mensaje
+      const updatedConv = updated.find(c => c.id === conversationId);
+      if (updatedConv) {
+        const filtered = updated.filter(c => c.id !== conversationId);
+        return [updatedConv, ...filtered];
+      }
+      
+      return updated;
+    });
+    
+    // Actualizar selectedConversation si es la misma
+    setSelectedConversation(prev => {
+      if (prev?.id === conversationId) {
+        return { ...prev, ...updates };
+      }
+      return prev;
+    });
+  }, []);
+
+  // Función para verificar actualizaciones (polling)
+  const checkForUpdates = useCallback(async () => {
+    if (!selectedPlatformAgent || selectedPlatformAgent === 'all') return;
+    
+    const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
+    if (!agent?.conversation_agent_name) return;
+
+    try {
+      const res = await fetch(
+        `/api/omnicanalidad/check-updates?agent_name=${encodeURIComponent(agent.conversation_agent_name)}&lastCheckTimestamp=${encodeURIComponent(lastCheckTimestamp)}`
+      );
+      const data = await res.json();
+
+      if (data.ok && data.updatedConversations && data.updatedConversations.length > 0) {
+        console.log('[OMNICANALIDAD] Conversaciones actualizadas detectadas:', data.updatedConversations.length);
+        
+        // Para cada conversación actualizada
+        data.updatedConversations.forEach((convId: string) => {
+          const newMessageData = data.newMessages[convId];
+          if (newMessageData) {
+            // Actualizar la conversación en la lista
+            updateConversationInList(convId, {
+              lastMessage: newMessageData.lastMessage,
+              lastMessageTime: newMessageData.lastMessageTime
+            });
+            
+            // Si la conversación NO está abierta, marcar con icono de nuevo mensaje
+            if (selectedConversation?.id !== convId) {
+              setHasNewMessages(prev => new Set(prev).add(convId));
+            } else {
+              // Si está abierta, actualizar los mensajes en el chat
+              // Esto se manejará en el siguiente paso cuando carguemos los mensajes completos
+            }
+          }
+        });
+        
+        // Actualizar lastCheckTimestamp
+        setLastCheckTimestamp(data.lastCheckTimestamp);
+      }
+    } catch (e) {
+      console.error('[OMNICANALIDAD] Error verificando actualizaciones:', e);
+    }
+  }, [selectedPlatformAgent, allPlatformAgents, lastCheckTimestamp, selectedConversation?.id, updateConversationInList]);
+
+  // Polling cada 10 segundos
+  useEffect(() => {
+    if (!selectedPlatformAgent || selectedPlatformAgent === 'all') return;
+    
+    const interval = setInterval(() => {
+      checkForUpdates();
+    }, 10000); // 10 segundos
+
+    return () => clearInterval(interval);
+  }, [selectedPlatformAgent, checkForUpdates]);
 
   const handleReleaseConversation = async () => {
     if (!selectedConversation || !currentAgentDetails) return;
@@ -431,9 +548,17 @@ export function useOmnicanalidad() {
             status: 'sent',
           };
           
-          setSelectedConversation({
+          const updatedConversation = {
             ...selectedConversation,
             messages: [...selectedConversation.messages, newMessage],
+            lastMessage: messageText.substring(0, 50),
+            lastMessageTime: new Date().toISOString()
+          };
+          
+          setSelectedConversation(updatedConversation);
+          
+          // Actualizar solo esta conversación en la lista izquierda
+          updateConversationInList(selectedConversation.id, {
             lastMessage: messageText.substring(0, 50),
             lastMessageTime: new Date().toISOString()
           });
@@ -441,15 +566,12 @@ export function useOmnicanalidad() {
           console.log('[OMNICANALIDAD] Mensaje agregado directamente a la conversación');
         }
         
+        // Actualizar lastCheckTimestamp
+        setLastCheckTimestamp(new Date().toISOString());
+        
         console.log('[OMNICANALIDAD] Mensaje enviado exitosamente, guardado en Meilisearch');
         
-        // Recargar conversaciones después de 2 segundos (para sincronizar)
-        const agent = allPlatformAgents.find(a => a.id === currentAgentDetails.id);
-        if (agent?.conversation_agent_name) {
-          setTimeout(() => {
-            loadConversations(agent.conversation_agent_name!);
-          }, 2000);
-        }
+        // NO recargar todas las conversaciones - solo actualizamos la actual
       } else {
         setPendingMessages(prev => {
           const updated = prev.map(msg => 
@@ -506,7 +628,10 @@ export function useOmnicanalidad() {
     handleTakeConversation,
     handleReleaseConversation,
     handleSendMessage,
-    loadConversations
+    loadConversations,
+    
+    // Nuevos estados para actualización inteligente
+    hasNewMessages
   };
 }
 

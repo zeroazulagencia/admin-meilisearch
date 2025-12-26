@@ -29,7 +29,8 @@ export default function Omnicanalidad() {
     setSearchQuery,
     handleTakeConversation,
     handleReleaseConversation,
-    handleSendMessage
+    handleSendMessage,
+    hasNewMessages
   } = useOmnicanalidad();
 
   const currentAgent = selectedConversation?.agent || 'all';
@@ -99,6 +100,7 @@ export default function Omnicanalidad() {
               onSearchChange={setSearchQuery}
               currentAgent={currentAgent}
               loading={loadingConversations}
+              hasNewMessages={hasNewMessages}
             />
 
             {/* Panel derecho - Chat */}
