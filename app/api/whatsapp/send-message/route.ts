@@ -3,6 +3,7 @@ import axios from 'axios';
 import { query } from '@/utils/db';
 import { decrypt } from '@/utils/encryption';
 import { validateCriticalEnvVars } from '@/utils/validate-env';
+import { meilisearchAPI } from '@/utils/meilisearch';
 
 // Validar variables de entorno críticas al cargar el módulo
 try {
@@ -15,7 +16,7 @@ try {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { agent_id, phone_number, message_type = 'text', message, image_url, document_url, document_filename, caption, buttons, list_title, list_description, list_button_text, list_sections, template_name, template_language = 'es', template_components } = body;
+    const { agent_id, phone_number, message_type = 'text', message, image_url, document_url, document_filename, caption, buttons, list_title, list_description, list_button_text, list_sections, template_name, template_language = 'es', template_components, user_id, phone_number_id } = body;
 
     if (!agent_id || !phone_number) {
       return NextResponse.json({ 
@@ -24,9 +25,9 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Obtener configuración de WhatsApp del agente
+    // Obtener configuración de WhatsApp del agente y conversation_agent_name
     const [rows] = await query<any>(
-      'SELECT whatsapp_phone_number_id, whatsapp_access_token FROM agents WHERE id = ? LIMIT 1',
+      'SELECT whatsapp_phone_number_id, whatsapp_access_token, conversation_agent_name FROM agents WHERE id = ? LIMIT 1',
       [agent_id]
     );
 
@@ -305,11 +306,51 @@ export async function POST(req: NextRequest) {
       );
 
       if (response.data && response.data.messages && response.data.messages.length > 0) {
+        const messageId = response.data.messages[0].id;
+        
+        // Guardar mensaje en Meilisearch después de enviarlo exitosamente a WhatsApp
+        // Solo si se proporcionaron user_id y phone_number_id (desde el chat en modo humano)
+        if (user_id && phone_number_id && message_type === 'text' && message) {
+          try {
+            const conversationAgentName = agent.conversation_agent_name || '';
+            
+            // Construir documento para Meilisearch
+            const meilisearchDocument = {
+              agent: conversationAgentName,
+              type: 'agent', // porque lo envía el agente/humano
+              datetime: new Date().toISOString(),
+              user_id: user_id,
+              phone_id: phone_number_id,
+              phone_number_id: phone_number_id,
+              'message-AI': message, // mensaje enviado por el agente
+              'message-Human': '', // vacío porque es mensaje enviado
+              conversation_id: messageId // usar el message_id de WhatsApp como conversation_id
+            };
+            
+            console.log('[WHATSAPP SEND MESSAGE] Guardando mensaje en Meilisearch:', {
+              agent: conversationAgentName,
+              user_id: user_id,
+              phone_number_id: phone_number_id,
+              message_length: message.length
+            });
+            
+            // Guardar en Meilisearch
+            const INDEX_UID = 'bd_conversations_dworkers';
+            await meilisearchAPI.addDocuments(INDEX_UID, [meilisearchDocument]);
+            
+            console.log('[WHATSAPP SEND MESSAGE] Mensaje guardado exitosamente en Meilisearch');
+          } catch (meilisearchError: any) {
+            // Si falla el guardado en Meilisearch, loguear pero no fallar el envío a WhatsApp
+            console.error('[WHATSAPP SEND MESSAGE] Error guardando en Meilisearch (no crítico):', meilisearchError?.message || meilisearchError);
+            // Continuar con la respuesta exitosa del envío a WhatsApp
+          }
+        }
+        
         return NextResponse.json({
           ok: true,
           message: 'Mensaje enviado exitosamente',
           data: {
-            message_id: response.data.messages[0].id,
+            message_id: messageId,
             to: cleanPhoneNumber,
             status: 'sent'
           }
