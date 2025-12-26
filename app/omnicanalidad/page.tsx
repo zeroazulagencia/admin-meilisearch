@@ -36,7 +36,7 @@ export default function Omnicanalidad() {
 
   return (
     <ProtectedLayout>
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-full overflow-hidden -m-4 lg:-m-6">
         {/* Header compacto */}
         <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 flex-shrink-0">
           <h1 className="text-xl font-bold text-gray-900">Omnicanalidad</h1>
@@ -83,13 +83,13 @@ export default function Omnicanalidad() {
 
         {/* Panel principal de chat */}
         {selectedPlatformAgent === 'all' || !selectedPlatformAgent ? (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="flex-1 flex items-center justify-center bg-gray-50 overflow-hidden">
             <div className="text-center">
               <p className="text-gray-500 text-lg">Selecciona un agente para ver sus conversaciones</p>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex overflow-hidden bg-white">
+          <div className="flex-1 flex overflow-hidden bg-white min-h-0">
             {/* Panel izquierdo - Lista de conversaciones */}
             <ConversationList
               conversations={conversations}
@@ -102,7 +102,7 @@ export default function Omnicanalidad() {
             />
 
             {/* Panel derecho - Chat */}
-            <div className="flex-1 flex flex-col border-l border-gray-200">
+            <div className="flex-1 flex flex-col border-l border-gray-200 min-h-0 overflow-hidden">
               <ChatWindow
                 messages={selectedConversation?.messages || []}
                 pendingMessages={pendingMessages}

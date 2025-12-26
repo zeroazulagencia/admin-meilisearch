@@ -50,7 +50,7 @@ export default function ChatWindow({
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
+    <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
         <div className="flex justify-between items-center">
@@ -126,7 +126,7 @@ export default function ChatWindow({
       {/* Mensajes */}
       <div 
         id="chat-messages-container"
-        className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50"
+        className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50 min-h-0"
         style={{ scrollBehavior: 'smooth' }}
       >
         {/* Mensajes pendientes/enviados */}

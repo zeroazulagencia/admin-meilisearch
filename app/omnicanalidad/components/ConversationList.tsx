@@ -41,7 +41,7 @@ export default function ConversationList({
   });
 
   return (
-    <div className="w-1/3 border-r border-gray-200 flex flex-col bg-white flex-shrink-0">
+    <div className="w-1/3 border-r border-gray-200 flex flex-col bg-white flex-shrink-0 min-h-0 overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
         <h2 className="font-semibold text-gray-900 text-sm">{currentAgent || 'Todas las conversaciones'}</h2>
@@ -61,7 +61,7 @@ export default function ConversationList({
       </div>
 
       {/* Lista de conversaciones */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
