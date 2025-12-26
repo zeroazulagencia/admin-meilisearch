@@ -819,11 +819,26 @@ export default function Conversaciones() {
 
   // Enviar mensaje
   const handleSendMessage = async () => {
-    if (!selectedConversation || !currentAgentDetails || !humanModeStatus?.isHumanMode) {
+    console.log('[CONVERSACIONES] handleSendMessage llamado:', {
+      selectedConversation: !!selectedConversation,
+      currentAgentDetails: !!currentAgentDetails,
+      humanModeStatus: humanModeStatus,
+      isHumanMode: humanModeStatus?.isHumanMode,
+      messageInput: messageInput?.trim()?.substring(0, 20)
+    });
+    
+    if (!selectedConversation || !currentAgentDetails) {
+      console.error('[CONVERSACIONES] Error: Falta selectedConversation o currentAgentDetails');
+      return;
+    }
+    
+    if (!humanModeStatus?.isHumanMode) {
+      console.error('[CONVERSACIONES] Error: No está en modo humano', humanModeStatus);
       return;
     }
 
     if (!messageInput.trim()) {
+      console.error('[CONVERSACIONES] Error: Mensaje vacío');
       return;
     }
 
@@ -847,6 +862,14 @@ export default function Conversaciones() {
     setPendingMessages(prev => [...prev, pendingMessage]);
     setMessageInput('');
     setSendingMessage(true);
+    
+    // Scroll automático al final después de agregar mensaje
+    setTimeout(() => {
+      const container = document.getElementById('chat-messages-container');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }, 100);
 
     try {
       const res = await fetch('/api/whatsapp/send-message', {
@@ -872,6 +895,14 @@ export default function Conversaciones() {
             : msg
         ));
         console.log('[CONVERSACIONES] Mensaje enviado exitosamente, guardado en Meilisearch');
+        
+        // Scroll automático al final después de actualizar estado
+        setTimeout(() => {
+          const container = document.getElementById('chat-messages-container');
+          if (container) {
+            container.scrollTop = container.scrollHeight;
+          }
+        }, 100);
       } else {
         // Actualizar el mensaje a "error"
         setPendingMessages(prev => prev.map(msg => 
@@ -923,38 +954,6 @@ export default function Conversaciones() {
     }
   }, [selectedConversation?.messages, pendingMessages]);
 
-  // Detectar scroll hacia arriba para recargar conversaciones
-  useEffect(() => {
-    const container = document.getElementById('chat-messages-container');
-    if (!container || !selectedConversation) return;
-
-    let lastScrollTop = container.scrollTop;
-    let scrollUpCount = 0;
-
-    const handleScroll = () => {
-      const currentScrollTop = container.scrollTop;
-      
-      // Si el usuario hace scroll hacia arriba (más de 100px desde el top)
-      if (currentScrollTop < 100 && lastScrollTop > currentScrollTop) {
-        scrollUpCount++;
-        // Solo recargar si ha hecho scroll hacia arriba varias veces (para evitar recargas excesivas)
-        if (scrollUpCount >= 3) {
-          console.log('[CONVERSACIONES] Scroll hacia arriba detectado, recargando conversaciones...');
-          loadConversations();
-          scrollUpCount = 0;
-        }
-      } else {
-        scrollUpCount = 0;
-      }
-      
-      lastScrollTop = currentScrollTop;
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-    };
-  }, [selectedConversation]);
 
   const permissions = getPermissions();
   const isAdmin = permissions?.type === 'admin';
