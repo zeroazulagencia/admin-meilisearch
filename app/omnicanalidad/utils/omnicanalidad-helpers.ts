@@ -181,30 +181,35 @@ export function groupDocumentsIntoConversations(
       lastMessageText = lastMessage['message'].substring(0, 50);
     }
     
-    const formattedMessages: Message[] = sortedMessages.map((msg, idx) => {
+    const formattedMessages: Message[] = [];
+    sortedMessages.forEach((msg, idx) => {
       const hasHuman = msg['message-Human'] && msg['message-Human'].trim() !== '';
       const hasAI = msg['message-AI'] && msg['message-AI'].trim() !== '';
       const hasMessage = msg['message'] && msg['message'].trim() !== '';
       
-      let type: 'user' | 'agent' = 'user';
-      let content = '';
-      
+      // Si tiene message-Human, crear mensaje de usuario
       if (hasHuman || (hasMessage && msg.type === 'user')) {
-        type = 'user';
-        content = msg['message-Human'] || msg['message'] || '';
-      } else if (hasAI || (hasMessage && msg.type === 'agent')) {
-        type = 'agent';
-        content = msg['message-AI'] || msg['message'] || '';
+        formattedMessages.push({
+          id: `${msg.id || `msg-${idx}`}-user`,
+          type: 'user',
+          content: msg['message-Human'] || msg['message'] || '',
+          timestamp: msg.datetime || new Date().toISOString(),
+          status: 'sent',
+          image_base64: msg['image_base64']
+        });
       }
       
-      return {
-        id: msg.id || `msg-${idx}`,
-        type,
-        content,
-        timestamp: msg.datetime || new Date().toISOString(),
-        status: 'sent',
-        image_base64: msg['image_base64']
-      };
+      // Si tiene message-AI, crear mensaje de agente (independiente)
+      if (hasAI || (hasMessage && msg.type === 'agent')) {
+        formattedMessages.push({
+          id: `${msg.id || `msg-${idx}`}-agent`,
+          type: 'agent',
+          content: msg['message-AI'] || msg['message'] || '',
+          timestamp: msg.datetime || new Date().toISOString(),
+          status: 'sent',
+          image_base64: msg['image_base64']
+        });
+      }
     });
     
     return {

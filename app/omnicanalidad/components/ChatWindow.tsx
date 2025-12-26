@@ -50,28 +50,17 @@ export default function ChatWindow({
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-100">
+    <div className="flex-1 flex flex-col bg-white">
       {/* Header */}
-      <div className="p-4 bg-gray-50 border-b border-gray-200">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">{conversationInfo.user_id}</h3>
+      <div className="px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
+        <div className="flex justify-between items-center">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-gray-900 text-base truncate">{conversationInfo.user_id}</h3>
             {conversationInfo.phone_number_id && conversationInfo.phone_number_id.trim() !== '' && (
-              <p className="text-xs text-gray-500">{conversationInfo.phone_number_id}</p>
-            )}
-            {conversationInfo.lastMessageTime && (
-              <p className="text-xs text-gray-500 mt-1">
-                {new Date(conversationInfo.lastMessageTime).toLocaleString('es-ES', { 
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </p>
+              <p className="text-xs text-gray-500 truncate">{conversationInfo.phone_number_id}</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0 ml-4">
             {/* Indicador de Modo Humano */}
             {humanModeStatus?.isHumanMode && (
               <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 border border-yellow-300 rounded-lg">
@@ -137,18 +126,18 @@ export default function ChatWindow({
       {/* Mensajes */}
       <div 
         id="chat-messages-container"
-        className="flex-1 overflow-y-auto p-4 space-y-3"
+        className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50"
         style={{ scrollBehavior: 'smooth' }}
       >
         {/* Mensajes pendientes/enviados */}
         {pendingMessages.map((pendingMsg) => (
-          <div key={pendingMsg.id} className="flex justify-end mb-2">
-            <div className={`max-w-[70%] rounded-2xl px-3 py-2 shadow-sm ${
+          <div key={pendingMsg.id} className="flex justify-end mb-1">
+            <div className={`max-w-[75%] rounded-2xl px-4 py-2 shadow-sm ${
               pendingMsg.status === 'error' 
                 ? 'bg-red-500 text-white' 
                 : pendingMsg.status === 'sending'
-                ? 'bg-green-400 text-white'
-                : 'bg-green-500 text-white'
+                ? 'bg-blue-400 text-white'
+                : 'bg-[#3B82F6] text-white'
             }`} style={{ 
               borderRadius: '18px 18px 4px 18px'
             }}>
@@ -186,8 +175,8 @@ export default function ChatWindow({
           
           if (message.type === 'user') {
             return (
-              <div key={message.id || index} className="flex justify-end mb-2">
-                <div className="max-w-[70%] bg-green-500 text-white rounded-2xl px-3 py-2 shadow-sm" style={{ 
+              <div key={message.id || index} className="flex justify-end mb-1">
+                <div className="max-w-[75%] bg-[#3B82F6] text-white rounded-2xl px-4 py-2 shadow-sm" style={{ 
                   borderRadius: '18px 18px 4px 18px'
                 }}>
                   {hasImage && (
@@ -217,8 +206,8 @@ export default function ChatWindow({
             );
           } else {
             return (
-              <div key={message.id || index} className="flex justify-start mb-2">
-                <div className="max-w-[70%] bg-white rounded-2xl px-3 py-2 shadow-sm" style={{ 
+              <div key={message.id || index} className="flex justify-start mb-1">
+                <div className="max-w-[75%] bg-white rounded-2xl px-4 py-2 shadow-sm border border-gray-200" style={{ 
                   borderRadius: '18px 18px 18px 4px'
                 }}>
                   {hasImage && (

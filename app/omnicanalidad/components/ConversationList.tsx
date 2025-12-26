@@ -41,22 +41,22 @@ export default function ConversationList({
   });
 
   return (
-    <div className="w-1/3 border-r border-gray-200 flex flex-col bg-white">
+    <div className="w-1/3 border-r border-gray-200 flex flex-col bg-white flex-shrink-0">
       {/* Header */}
-      <div className="p-4 bg-gray-50 border-b border-gray-200">
-        <h2 className="font-semibold text-gray-900">{currentAgent || 'Todas las conversaciones'}</h2>
-        <p className="text-sm text-gray-500">{filteredConversations.length} conversaciones</p>
+      <div className="px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
+        <h2 className="font-semibold text-gray-900 text-sm">{currentAgent || 'Todas las conversaciones'}</h2>
+        <p className="text-xs text-gray-500 mt-0.5">{filteredConversations.length} conversaciones</p>
       </div>
 
       {/* Búsqueda */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0 bg-gray-50">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar conversaciones..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent text-sm"
-          style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent text-sm bg-white"
+          style={{ '--tw-ring-color': '#3B82F6' } as React.CSSProperties & { '--tw-ring-color': string }}
         />
       </div>
 
@@ -78,37 +78,37 @@ export default function ConversationList({
             <div
               key={conversation.id}
               onClick={() => onSelectConversation(conversation)}
-              className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                selectedConversation?.id === conversation.id ? 'bg-blue-50' : ''
+              className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                selectedConversation?.id === conversation.id ? 'bg-blue-50 border-l-4 border-l-[#3B82F6]' : ''
               }`}
             >
               <div className="flex items-center gap-3">
                 {/* Avatar */}
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#5DE1E5] flex items-center justify-center overflow-hidden">
                   {conversation.phone_number_id ? (
-                    <span className="text-lg font-semibold text-gray-600">
+                    <span className="text-sm font-semibold text-white">
                       {conversation.phone_number_id.substring(conversation.phone_number_id.length - 1)}
                     </span>
                   ) : (
-                    <span className="text-lg font-semibold text-gray-600">
+                    <span className="text-sm font-semibold text-white">
                       {conversation.user_id.substring(conversation.user_id.length - 1)}
                     </span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-1">
-                    <span className="font-semibold text-gray-900 truncate text-sm">{conversation.user_id}</span>
-                    <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{formatTime(conversation.lastMessageTime)}</span>
+                  <div className="flex items-start justify-between mb-0.5">
+                    <span className="font-medium text-gray-900 truncate text-sm">{conversation.user_id}</span>
+                    <span className="text-xs text-gray-400 ml-2 flex-shrink-0">{formatTime(conversation.lastMessageTime)}</span>
                   </div>
                   {conversation.phone_number_id && conversation.phone_number_id.trim() !== '' && (
                     <p className="text-xs text-gray-500 mb-1 truncate">{conversation.phone_number_id}</p>
                   )}
-                  <p className="text-sm text-gray-600 truncate">
-                    {conversation.lastMessage}...
+                  <p className="text-sm text-gray-600 truncate leading-tight">
+                    {conversation.lastMessage}
                   </p>
                   {conversation.unreadCount > 0 && (
                     <div className="mt-1">
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium text-white bg-blue-600 rounded-full">
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium text-white bg-[#3B82F6] rounded-full">
                         {conversation.unreadCount}
                       </span>
                     </div>

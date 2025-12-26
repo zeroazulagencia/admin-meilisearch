@@ -36,72 +36,60 @@ export default function Omnicanalidad() {
 
   return (
     <ProtectedLayout>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Omnicanalidad</h1>
-      </div>
-      
-      {/* Selector de Agente */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <AgentSelector
-          label="Seleccionar Agente"
-          agents={allPlatformAgents}
-          selectedAgent={selectedPlatformAgent}
-          onChange={(agent) => {
-            if (typeof agent === 'string') {
-              setSelectedPlatformAgent(agent);
-            } else if (agent === null) {
-              setSelectedPlatformAgent('all');
-            } else {
-              setSelectedPlatformAgent(agent.id.toString());
-            }
-          }}
-          placeholder="Todos los agentes"
-          includeAllOption={true}
-          allOptionLabel="Todos los agentes"
-          getDisplayText={(agent) => {
-            if (agent.id === 'all') return agent.name;
-            return `${agent.name} ${agent.conversation_agent_name ? `(${agent.conversation_agent_name})` : '(sin identificar)'}`;
-          }}
-          loading={!agentsInitialized}
-          className="w-full"
-        />
-        {selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
-          <div className="mt-3">
-            {(() => {
-              const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
-              return agent ? (
-                <div className="flex items-center gap-3">
-                  {agent.photo && (
+      <div className="flex flex-col h-screen">
+        {/* Header compacto */}
+        <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 flex-shrink-0">
+          <h1 className="text-xl font-bold text-gray-900">Omnicanalidad</h1>
+          <div className="flex items-center gap-4 flex-1 max-w-md ml-8">
+            <AgentSelector
+              label=""
+              agents={allPlatformAgents}
+              selectedAgent={selectedPlatformAgent}
+              onChange={(agent) => {
+                if (typeof agent === 'string') {
+                  setSelectedPlatformAgent(agent);
+                } else if (agent === null) {
+                  setSelectedPlatformAgent('all');
+                } else {
+                  setSelectedPlatformAgent(agent.id.toString());
+                }
+              }}
+              placeholder="Seleccionar agente..."
+              includeAllOption={true}
+              allOptionLabel="Todos los agentes"
+              getDisplayText={(agent) => {
+                if (agent.id === 'all') return agent.name;
+                return `${agent.name} ${agent.conversation_agent_name ? `(${agent.conversation_agent_name})` : ''}`;
+              }}
+              loading={!agentsInitialized}
+              className="w-full"
+            />
+            {selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {(() => {
+                  const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
+                  return agent?.photo ? (
                     <img
                       src={agent.photo}
                       alt={agent.name}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                      className="w-8 h-8 rounded-full object-cover border border-gray-300"
                     />
-                  )}
-                  <div>
-                    <p className="font-medium text-gray-900">{agent.name}</p>
-                    {agent.description && (
-                      <p className="text-sm text-gray-500">{agent.description}</p>
-                    )}
-                    {agent.conversation_agent_name && (
-                      <p className="text-xs text-gray-400">ID: {agent.conversation_agent_name}</p>
-                    )}
-                  </div>
-                </div>
-              ) : null;
-            })()}
+                  ) : null;
+                })()}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Panel principal de chat */}
-      {selectedPlatformAgent === 'all' || !selectedPlatformAgent ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Selecciona un agente para ver sus conversaciones</p>
         </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 300px)' }}>
-          <div className="flex h-full">
+
+        {/* Panel principal de chat */}
+        {selectedPlatformAgent === 'all' || !selectedPlatformAgent ? (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <p className="text-gray-500 text-lg">Selecciona un agente para ver sus conversaciones</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex overflow-hidden bg-white">
             {/* Panel izquierdo - Lista de conversaciones */}
             <ConversationList
               conversations={conversations}
@@ -114,7 +102,7 @@ export default function Omnicanalidad() {
             />
 
             {/* Panel derecho - Chat */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col border-l border-gray-200">
               <ChatWindow
                 messages={selectedConversation?.messages || []}
                 pendingMessages={pendingMessages}
@@ -143,8 +131,8 @@ export default function Omnicanalidad() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </ProtectedLayout>
   );
 }

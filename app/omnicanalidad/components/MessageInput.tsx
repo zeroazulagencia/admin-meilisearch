@@ -27,22 +27,22 @@ export default function MessageInput({
   };
 
   return (
-    <div className="p-4 bg-white border-t border-gray-200">
+    <div className="px-4 py-3 bg-white border-t border-gray-200 flex-shrink-0">
       <div className="flex gap-2">
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder={placeholder}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent resize-none text-sm"
-          style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+          className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent resize-none text-sm bg-white"
+          style={{ '--tw-ring-color': '#3B82F6' } as React.CSSProperties & { '--tw-ring-color': string }}
           rows={2}
           disabled={disabled || sending}
         />
         <button
           onClick={onSend}
           disabled={disabled || sending || !value.trim()}
-          className="px-6 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+          className="px-6 py-2.5 bg-[#3B82F6] text-white rounded-lg hover:bg-[#2563EB] transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm shadow-sm"
         >
           {sending ? (
             <>

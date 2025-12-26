@@ -410,6 +410,7 @@ export function useOmnicanalidad() {
       });
       
       if (data.ok && data.data) {
+        // Actualizar pending message
         setPendingMessages(prev => {
           const updated = prev.map(msg => 
             msg.id === messageId 
@@ -419,14 +420,35 @@ export function useOmnicanalidad() {
           console.log('[OMNICANALIDAD] pendingMessages actualizado después de enviar:', updated.length, 'mensajes');
           return updated;
         });
+        
+        // Agregar mensaje directamente a la conversación actual
+        if (selectedConversation) {
+          const newMessage: Message = {
+            id: data.data.message_id || messageId,
+            type: 'agent',
+            content: messageText,
+            timestamp: new Date().toISOString(),
+            status: 'sent',
+          };
+          
+          setSelectedConversation({
+            ...selectedConversation,
+            messages: [...selectedConversation.messages, newMessage],
+            lastMessage: messageText.substring(0, 50),
+            lastMessageTime: new Date().toISOString()
+          });
+          
+          console.log('[OMNICANALIDAD] Mensaje agregado directamente a la conversación');
+        }
+        
         console.log('[OMNICANALIDAD] Mensaje enviado exitosamente, guardado en Meilisearch');
         
-        // Recargar conversaciones para obtener el mensaje actualizado
+        // Recargar conversaciones después de 2 segundos (para sincronizar)
         const agent = allPlatformAgents.find(a => a.id === currentAgentDetails.id);
         if (agent?.conversation_agent_name) {
           setTimeout(() => {
             loadConversations(agent.conversation_agent_name!);
-          }, 1000);
+          }, 2000);
         }
       } else {
         setPendingMessages(prev => {
