@@ -324,10 +324,20 @@ export function useOmnicanalidad() {
 
   // Función para actualizar una conversación en la lista sin recargar todo
   const updateConversationInList = useCallback((conversationId: string, updates: Partial<Conversation>) => {
+    console.log('[OMNICANALIDAD] [updateConversationInList] INICIO - conversationId:', conversationId, 'updates:', updates);
+    
     setConversations(prev => {
+      console.log('[OMNICANALIDAD] [updateConversationInList] Estado anterior - total conversaciones:', prev.length);
+      console.log('[OMNICANALIDAD] [updateConversationInList] Buscando conversación con ID:', conversationId);
+      
+      const found = prev.find(c => c.id === conversationId);
+      console.log('[OMNICANALIDAD] [updateConversationInList] Conversación encontrada:', !!found, found ? { id: found.id, lastMessage: found.lastMessage } : 'NO ENCONTRADA');
+      
       const updated = prev.map(conv => {
         if (conv.id === conversationId) {
-          return { ...conv, ...updates };
+          const merged = { ...conv, ...updates };
+          console.log('[OMNICANALIDAD] [updateConversationInList] Conversación actualizada:', { id: merged.id, lastMessage: merged.lastMessage, lastMessageTime: merged.lastMessageTime });
+          return merged;
         }
         return conv;
       });
@@ -336,41 +346,76 @@ export function useOmnicanalidad() {
       const updatedConv = updated.find(c => c.id === conversationId);
       if (updatedConv) {
         const filtered = updated.filter(c => c.id !== conversationId);
-        return [updatedConv, ...filtered];
+        const reordered = [updatedConv, ...filtered];
+        console.log('[OMNICANALIDAD] [updateConversationInList] Reordenando - nueva conversación al principio:', reordered[0]?.id);
+        console.log('[OMNICANALIDAD] [updateConversationInList] Total después de reordenar:', reordered.length);
+        return reordered;
       }
       
+      console.log('[OMNICANALIDAD] [updateConversationInList] No se encontró conversación actualizada, retornando sin cambios');
       return updated;
     });
     
     // Actualizar selectedConversation si es la misma
     setSelectedConversation(prev => {
       if (prev?.id === conversationId) {
-        return { ...prev, ...updates };
+        const merged = { ...prev, ...updates };
+        console.log('[OMNICANALIDAD] [updateConversationInList] Actualizando selectedConversation:', { id: merged.id, lastMessage: merged.lastMessage });
+        return merged;
       }
+      console.log('[OMNICANALIDAD] [updateConversationInList] selectedConversation no coincide, no se actualiza');
       return prev;
     });
+    
+    console.log('[OMNICANALIDAD] [updateConversationInList] FIN');
   }, []);
 
   // Función para verificar actualizaciones (polling)
   const checkForUpdates = useCallback(async () => {
-    if (!selectedPlatformAgent || selectedPlatformAgent === 'all') return;
+    console.log('[OMNICANALIDAD] [checkForUpdates] INICIO');
+    console.log('[OMNICANALIDAD] [checkForUpdates] selectedPlatformAgent:', selectedPlatformAgent);
+    console.log('[OMNICANALIDAD] [checkForUpdates] lastCheckTimestamp:', lastCheckTimestamp);
+    
+    if (!selectedPlatformAgent || selectedPlatformAgent === 'all') {
+      console.log('[OMNICANALIDAD] [checkForUpdates] SALIDA TEMPRANA - No hay agente seleccionado');
+      return;
+    }
     
     const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
-    if (!agent?.conversation_agent_name) return;
+    console.log('[OMNICANALIDAD] [checkForUpdates] Agente encontrado:', agent ? { id: agent.id, name: agent.name, conversation_agent_name: agent.conversation_agent_name } : 'NO ENCONTRADO');
+    
+    if (!agent?.conversation_agent_name) {
+      console.log('[OMNICANALIDAD] [checkForUpdates] SALIDA TEMPRANA - Agente sin conversation_agent_name');
+      return;
+    }
 
     try {
-      const res = await fetch(
-        `/api/omnicanalidad/check-updates?agent_name=${encodeURIComponent(agent.conversation_agent_name)}&lastCheckTimestamp=${encodeURIComponent(lastCheckTimestamp)}`
-      );
+      const url = `/api/omnicanalidad/check-updates?agent_name=${encodeURIComponent(agent.conversation_agent_name)}&lastCheckTimestamp=${encodeURIComponent(lastCheckTimestamp)}`;
+      console.log('[OMNICANALIDAD] [checkForUpdates] Llamando a:', url);
+      
+      const res = await fetch(url);
+      console.log('[OMNICANALIDAD] [checkForUpdates] Respuesta recibida, status:', res.status);
+      
       const data = await res.json();
+      console.log('[OMNICANALIDAD] [checkForUpdates] Datos recibidos:', {
+        ok: data.ok,
+        updatedConversationsCount: data.updatedConversations?.length || 0,
+        hasNewMessages: !!data.newMessages,
+        newMessagesKeys: data.newMessages ? Object.keys(data.newMessages) : []
+      });
 
       if (data.ok && data.updatedConversations && data.updatedConversations.length > 0) {
-        console.log('[OMNICANALIDAD] Conversaciones actualizadas detectadas:', data.updatedConversations.length);
+        console.log('[OMNICANALIDAD] [checkForUpdates] Conversaciones actualizadas detectadas:', data.updatedConversations.length);
+        console.log('[OMNICANALIDAD] [checkForUpdates] IDs de conversaciones actualizadas:', data.updatedConversations);
         
         // Para cada conversación actualizada
         data.updatedConversations.forEach((convId: string) => {
+          console.log('[OMNICANALIDAD] [checkForUpdates] Procesando conversación:', convId);
           const newMessageData = data.newMessages[convId];
+          console.log('[OMNICANALIDAD] [checkForUpdates] Datos de nuevo mensaje para', convId, ':', newMessageData);
+          
           if (newMessageData) {
+            console.log('[OMNICANALIDAD] [checkForUpdates] Llamando updateConversationInList para:', convId);
             // Actualizar la conversación en la lista
             updateConversationInList(convId, {
               lastMessage: newMessageData.lastMessage,
@@ -378,32 +423,58 @@ export function useOmnicanalidad() {
             });
             
             // Si la conversación NO está abierta, marcar con icono de nuevo mensaje
-            if (selectedConversation?.id !== convId) {
-              setHasNewMessages(prev => new Set(prev).add(convId));
+            const isOpen = selectedConversation?.id === convId;
+            console.log('[OMNICANALIDAD] [checkForUpdates] Conversación abierta?', isOpen, 'selectedConversation?.id:', selectedConversation?.id);
+            
+            if (!isOpen) {
+              console.log('[OMNICANALIDAD] [checkForUpdates] Agregando icono de nuevo mensaje para:', convId);
+              setHasNewMessages(prev => {
+                const newSet = new Set(prev);
+                newSet.add(convId);
+                console.log('[OMNICANALIDAD] [checkForUpdates] hasNewMessages actualizado, total:', newSet.size, 'IDs:', Array.from(newSet));
+                return newSet;
+              });
             } else {
-              // Si está abierta, actualizar los mensajes en el chat
-              // Esto se manejará en el siguiente paso cuando carguemos los mensajes completos
+              console.log('[OMNICANALIDAD] [checkForUpdates] Conversación está abierta, no se agrega icono');
             }
+          } else {
+            console.log('[OMNICANALIDAD] [checkForUpdates] NO hay datos de nuevo mensaje para:', convId);
           }
         });
         
         // Actualizar lastCheckTimestamp
+        console.log('[OMNICANALIDAD] [checkForUpdates] Actualizando lastCheckTimestamp a:', data.lastCheckTimestamp);
         setLastCheckTimestamp(data.lastCheckTimestamp);
+      } else {
+        console.log('[OMNICANALIDAD] [checkForUpdates] No hay conversaciones actualizadas o respuesta no ok');
       }
     } catch (e) {
-      console.error('[OMNICANALIDAD] Error verificando actualizaciones:', e);
+      console.error('[OMNICANALIDAD] [checkForUpdates] ERROR:', e);
     }
+    
+    console.log('[OMNICANALIDAD] [checkForUpdates] FIN');
   }, [selectedPlatformAgent, allPlatformAgents, lastCheckTimestamp, selectedConversation?.id, updateConversationInList]);
 
   // Polling cada 10 segundos
   useEffect(() => {
-    if (!selectedPlatformAgent || selectedPlatformAgent === 'all') return;
+    console.log('[OMNICANALIDAD] [POLLING] Configurando polling, selectedPlatformAgent:', selectedPlatformAgent);
+    
+    if (!selectedPlatformAgent || selectedPlatformAgent === 'all') {
+      console.log('[OMNICANALIDAD] [POLLING] No se configura polling - no hay agente seleccionado');
+      return;
+    }
+    
+    console.log('[OMNICANALIDAD] [POLLING] Polling configurado, se ejecutará cada 10 segundos');
     
     const interval = setInterval(() => {
+      console.log('[OMNICANALIDAD] [POLLING] Ejecutando polling...');
       checkForUpdates();
     }, 10000); // 10 segundos
 
-    return () => clearInterval(interval);
+    return () => {
+      console.log('[OMNICANALIDAD] [POLLING] Limpiando intervalo de polling');
+      clearInterval(interval);
+    };
   }, [selectedPlatformAgent, checkForUpdates]);
 
   const handleReleaseConversation = async () => {
@@ -540,6 +611,8 @@ export function useOmnicanalidad() {
         
         // Agregar mensaje directamente a la conversación actual
         if (selectedConversation) {
+          console.log('[OMNICANALIDAD] [handleSendMessage] Agregando mensaje a selectedConversation, ID:', selectedConversation.id);
+          
           const newMessage: Message = {
             id: data.data.message_id || messageId,
             type: 'agent',
@@ -555,21 +628,27 @@ export function useOmnicanalidad() {
             lastMessageTime: new Date().toISOString()
           };
           
+          console.log('[OMNICANALIDAD] [handleSendMessage] Actualizando selectedConversation con nuevo mensaje, total mensajes:', updatedConversation.messages.length);
           setSelectedConversation(updatedConversation);
           
           // Actualizar solo esta conversación en la lista izquierda
+          console.log('[OMNICANALIDAD] [handleSendMessage] Llamando updateConversationInList para actualizar lista izquierda');
           updateConversationInList(selectedConversation.id, {
             lastMessage: messageText.substring(0, 50),
             lastMessageTime: new Date().toISOString()
           });
           
-          console.log('[OMNICANALIDAD] Mensaje agregado directamente a la conversación');
+          console.log('[OMNICANALIDAD] [handleSendMessage] Mensaje agregado directamente a la conversación');
+        } else {
+          console.log('[OMNICANALIDAD] [handleSendMessage] ERROR: selectedConversation es null, no se puede actualizar');
         }
         
         // Actualizar lastCheckTimestamp
-        setLastCheckTimestamp(new Date().toISOString());
+        const newTimestamp = new Date().toISOString();
+        console.log('[OMNICANALIDAD] [handleSendMessage] Actualizando lastCheckTimestamp a:', newTimestamp);
+        setLastCheckTimestamp(newTimestamp);
         
-        console.log('[OMNICANALIDAD] Mensaje enviado exitosamente, guardado en Meilisearch');
+        console.log('[OMNICANALIDAD] [handleSendMessage] Mensaje enviado exitosamente, guardado en Meilisearch');
         
         // NO recargar todas las conversaciones - solo actualizamos la actual
       } else {

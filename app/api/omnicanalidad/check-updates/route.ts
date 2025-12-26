@@ -35,7 +35,11 @@ export async function GET(request: NextRequest) {
     // Meilisearch necesita fechas como strings ISO
     const lastCheckDate = new Date(lastCheckTimestamp);
     const lastCheckISO = lastCheckDate.toISOString();
+    console.log('[CHECK-UPDATES] Filtro datetime >', lastCheckISO);
     filters.push(`datetime > "${lastCheckISO}"`);
+    
+    const filterString = filters.join(' AND ');
+    console.log('[CHECK-UPDATES] Filtro completo:', filterString);
 
     // Consultar Meilisearch con filtros
     const allDocuments: Document[] = [];
@@ -52,22 +56,29 @@ export async function GET(request: NextRequest) {
           filter: filters.join(' AND ')
         };
 
+        console.log('[CHECK-UPDATES] Consultando Meilisearch, offset:', currentOffset, 'limit:', batchLimit);
+        
         const data = await meilisearchAPI.searchDocuments(
           INDEX_UID,
           '',
           batchLimit,
           currentOffset,
-          { filter: filters.join(' AND ') }
+          { filter: filterString }
         );
+
+        console.log('[CHECK-UPDATES] Respuesta Meilisearch - hits:', data.hits?.length || 0, 'totalHits:', data.totalHits || 0);
 
         if (data.hits && data.hits.length > 0) {
           allDocuments.push(...data.hits);
+          console.log('[CHECK-UPDATES] Documentos acumulados:', allDocuments.length);
           currentOffset += batchLimit;
           
           if (data.hits.length < batchLimit || allDocuments.length >= (data.totalHits || 0)) {
+            console.log('[CHECK-UPDATES] No hay más documentos, terminando búsqueda');
             hasMore = false;
           }
         } else {
+          console.log('[CHECK-UPDATES] No se encontraron hits, terminando búsqueda');
           hasMore = false;
         }
       } catch (e) {
@@ -88,7 +99,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Agrupar documentos en conversaciones
+    console.log('[CHECK-UPDATES] Agrupando', allDocuments.length, 'documentos en conversaciones');
     const groupedConversations = groupDocumentsIntoConversations(allDocuments, agentName);
+    console.log('[CHECK-UPDATES] Conversaciones agrupadas:', groupedConversations.length);
 
     // Crear mapeo de conversaciones actualizadas
     const updatedConversations: string[] = [];
@@ -99,6 +112,7 @@ export async function GET(request: NextRequest) {
     }> = {};
 
     groupedConversations.forEach(conversation => {
+      console.log('[CHECK-UPDATES] Procesando conversación:', conversation.id, 'lastMessage:', conversation.lastMessage.substring(0, 30));
       updatedConversations.push(conversation.id);
       newMessages[conversation.id] = {
         lastMessage: conversation.lastMessage,
@@ -110,6 +124,8 @@ export async function GET(request: NextRequest) {
     const currentTimestamp = new Date().toISOString();
 
     console.log('[CHECK-UPDATES] Conversaciones actualizadas:', updatedConversations.length);
+    console.log('[CHECK-UPDATES] IDs de conversaciones:', updatedConversations);
+    console.log('[CHECK-UPDATES] Retornando lastCheckTimestamp:', currentTimestamp);
 
     return NextResponse.json({
       ok: true,
