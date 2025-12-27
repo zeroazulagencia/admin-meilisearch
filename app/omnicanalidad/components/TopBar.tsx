@@ -1,17 +1,68 @@
 'use client';
 
-export default function TopBar() {
+import { useState, useEffect } from 'react';
+import AgentSelector from '@/components/ui/AgentSelector';
+
+interface TopBarProps {
+  selectedAgentName: string | null;
+  onAgentChange: (agentName: string | null) => void;
+  totalUnreadCount: number;
+}
+
+export default function TopBar({ selectedAgentName, onAgentChange, totalUnreadCount }: TopBarProps) {
+  const [agents, setAgents] = useState<any[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(true);
+
+  useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        const response = await fetch('/api/agents');
+        const data = await response.json();
+        if (data.ok && data.agents) {
+          setAgents(data.agents);
+        }
+      } catch (e: any) {
+        console.error('[TopBar] Error cargando agentes:', e?.message);
+      } finally {
+        setLoadingAgents(false);
+      }
+    };
+
+    loadAgents();
+  }, []);
+
+  const selectedAgent = agents.find(a => a.conversation_agent_name === selectedAgentName) || null;
+
   return (
     <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 flex-shrink-0">
       {/* Left Section */}
       <div className="flex items-center gap-4">
         <h1 className="text-lg font-semibold text-gray-900">Omnicanalidad</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Conversations Open</span>
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+        <div className="w-64">
+          <AgentSelector
+            label=""
+            agents={agents}
+            selectedAgent={selectedAgent}
+            onChange={(agent) => {
+              if (agent === 'all' || agent === null) {
+                onAgentChange(null);
+              } else if (typeof agent === 'object' && agent.conversation_agent_name) {
+                onAgentChange(agent.conversation_agent_name);
+              }
+            }}
+            placeholder="Seleccionar agente..."
+            loading={loadingAgents}
+            getDisplayText={(agent) => agent.name || agent.conversation_agent_name || 'Sin nombre'}
+          />
         </div>
+        {totalUnreadCount > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">No leídos:</span>
+            <span className="inline-flex items-center justify-center px-2 py-1 bg-[#3B82F6] text-white text-xs font-medium rounded-full">
+              {totalUnreadCount}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Center Section - Sort/Filter Icons */}
@@ -54,4 +105,3 @@ export default function TopBar() {
     </div>
   );
 }
-
