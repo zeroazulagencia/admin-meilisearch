@@ -241,6 +241,38 @@ bash scripts/verify-whatsapp-data.sh
 bash scripts/check-encryption-key.sh
 ```
 
+## Sincronizar Base de Datos: Producción → Local
+
+Para tener los mismos datos de producción en tu entorno local, puedes usar el script de sincronización:
+
+```bash
+# Desde la raíz del proyecto
+bash scripts/sync-db-from-production.sh
+```
+
+Este script:
+1. ✅ Se conecta al servidor remoto vía SSH
+2. ✅ Exporta la base de datos de producción usando `mysqldump`
+3. ✅ Descarga el dump a tu máquina local
+4. ✅ Crea un backup automático de tu BD local (por seguridad)
+5. ✅ Importa el dump en tu base de datos local
+
+**Requisitos:**
+- Tener configurado `.env` local con las credenciales de MySQL local
+- Tener acceso SSH al servidor (clave en `/Users/admin/Documents/keys/zero.pem`)
+- Tener `mysqldump` y `mysql` instalados localmente
+
+**Nota importante:**
+- ⚠️ Este proceso **reemplazará todos los datos locales** con los datos de producción
+- ✅ Se crea un backup automático antes de importar (en `tmp/local_backup_*.sql`)
+- ✅ El dump de producción se guarda en `tmp/production_dump_*.sql` (puedes eliminarlo después)
+
+**Ejemplo de uso:**
+```bash
+cd /Users/admin/Documents/dev/DEPLOYED/admin-dworkers
+bash scripts/sync-db-from-production.sh
+```
+
 ## Troubleshooting
 
 ### Problema: Los datos de WhatsApp se borran después del deploy
