@@ -9,6 +9,7 @@ const INDEX_UID = 'bd_conversations_dworkers';
 // GET - Cargar lista de conversaciones agrupadas con contador de no leídos
 export async function GET(req: NextRequest) {
   try {
+    console.log('[OMNICANALIDAD CONVERSATIONS] INICIO');
     const searchParams = req.nextUrl.searchParams;
     const agent_name = searchParams.get('agent_name');
     const limit = parseInt(searchParams.get('limit') || '50');
