@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     while (hasMore) {
       try {
         const filters: string[] = [`agent = "${agent_name}"`];
-        filters.push(`type = "agent" OR type = "user"`);
+        // NO filtrar por type en Meilisearch - se filtra manualmente después
 
         if (phoneId) {
           filters.push(`(phone_id = "${phoneId}" OR phone_number_id = "${phoneId}")`);
@@ -80,8 +80,12 @@ export async function GET(req: NextRequest) {
 
         const hits = searchResults.hits as Document[];
         
-        // Filtrar documentos que coincidan con la conversación
+        // Filtrar documentos que coincidan con la conversación Y por type
         const matchingDocs = hits.filter(doc => {
+          // Filtrar por type primero
+          const isTypeValid = doc.type === 'agent' || doc.type === 'user';
+          if (!isTypeValid) return false;
+          
           const docPhoneId = doc.phone_id || doc.phone_number_id || '';
           const docUserId = doc.user_id || '';
           
@@ -97,6 +101,7 @@ export async function GET(req: NextRequest) {
         });
 
         allDocuments.push(...matchingDocs);
+        console.log(`[OMNICANALIDAD MESSAGES] Documentos obtenidos: ${hits.length}, filtrados: ${matchingDocs.length}`);
 
         if (hits.length < batchLimit) {
           hasMore = false;

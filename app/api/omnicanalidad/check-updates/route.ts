@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     // 3. Consultar Meilisearch para documentos nuevos
     const filters: string[] = [`agent = "${agent_name}"`];
     filters.push(`datetime >= "${adjustedTimestamp}"`);
-    filters.push(`type = "agent" OR type = "user"`);
+    // NO filtrar por type en Meilisearch - se filtra manualmente después
 
     const searchResults = await meilisearchAPI.searchDocuments(
       INDEX_UID,
@@ -59,8 +59,14 @@ export async function GET(req: NextRequest) {
       { filter: filters.join(' AND ') }
     );
 
-    const newDocuments = searchResults.hits as Document[];
-    console.log('[OMNICANALIDAD CHECK-UPDATES] Documentos nuevos encontrados:', newDocuments.length);
+    const hits = searchResults.hits as Document[];
+    
+    // Filtrar manualmente por type (agent o user)
+    const newDocuments = hits.filter((doc: Document) => {
+      return doc.type === 'agent' || doc.type === 'user';
+    });
+    
+    console.log('[OMNICANALIDAD CHECK-UPDATES] Documentos obtenidos:', hits.length, 'filtrados por type:', newDocuments.length);
 
     if (newDocuments.length === 0) {
       return NextResponse.json({

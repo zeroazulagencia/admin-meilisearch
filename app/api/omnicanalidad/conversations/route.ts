@@ -49,7 +49,8 @@ export async function GET(req: NextRequest) {
         if (agent_name) {
           filters.push(`agent = "${agent_name}"`);
         }
-        filters.push(`type = "agent" OR type = "user"`);
+        // NO filtrar por type en Meilisearch - se filtra manualmente después
+        // porque type no es filtrable en Meilisearch
 
         const searchResults = await meilisearchAPI.searchDocuments(
           INDEX_UID,
@@ -60,7 +61,15 @@ export async function GET(req: NextRequest) {
         );
 
         const hits = searchResults.hits as Document[];
-        allDocuments.push(...hits);
+        
+        // Filtrar manualmente por type (agent o user)
+        // porque type no es filtrable en Meilisearch
+        const filteredHits = hits.filter((doc: Document) => {
+          return doc.type === 'agent' || doc.type === 'user';
+        });
+        
+        allDocuments.push(...filteredHits);
+        console.log(`[OMNICANALIDAD CONVERSATIONS] Documentos obtenidos: ${hits.length}, filtrados por type: ${filteredHits.length}`);
 
         if (hits.length < batchLimit) {
           hasMore = false;
@@ -128,6 +137,8 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('[OMNICANALIDAD CONVERSATIONS] Conversaciones procesadas:', conversationsWithUnread.length);
+    console.log('[OMNICANALIDAD CONVERSATIONS] Total conversaciones agrupadas:', conversations.length);
+    console.log('[OMNICANALIDAD CONVERSATIONS] FIN');
 
     return NextResponse.json({
       ok: true,
