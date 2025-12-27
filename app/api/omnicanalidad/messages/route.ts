@@ -70,12 +70,15 @@ export async function GET(req: NextRequest) {
           filters.push(`user_id = "${userId}"`);
         }
 
+        const filterString = filters.length > 0 ? filters.join(' AND ') : undefined;
+        console.log('[OMNICANALIDAD MESSAGES] Filtro Meilisearch:', filterString);
+        
         const searchResults = await meilisearchAPI.searchDocuments(
           INDEX_UID,
           '',
           batchLimit,
           currentOffset,
-          { filter: filters.join(' AND ') }
+          filterString ? { filter: filterString } : undefined
         );
 
         const hits = searchResults.hits as Document[];

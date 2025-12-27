@@ -51,12 +51,15 @@ export async function GET(req: NextRequest) {
     filters.push(`datetime >= "${adjustedTimestamp}"`);
     // NO filtrar por type en Meilisearch - se filtra manualmente después
 
+    const filterString = filters.join(' AND ');
+    console.log('[OMNICANALIDAD CHECK-UPDATES] Filtro Meilisearch:', filterString);
+    
     const searchResults = await meilisearchAPI.searchDocuments(
       INDEX_UID,
       '',
       1000,
       0,
-      { filter: filters.join(' AND ') }
+      { filter: filterString }
     );
 
     const hits = searchResults.hits as Document[];

@@ -53,12 +53,15 @@ export async function GET(req: NextRequest) {
         // NO filtrar por type en Meilisearch - se filtra manualmente después
         // porque type no es filtrable en Meilisearch
 
+        const filterString = filters.length > 0 ? filters.join(' AND ') : undefined;
+        console.log('[OMNICANALIDAD CONVERSATIONS] Filtro Meilisearch:', filterString);
+        
         const searchResults = await meilisearchAPI.searchDocuments(
           INDEX_UID,
           '',
           batchLimit,
           currentOffset,
-          { filter: filters.length > 0 ? filters.join(' AND ') : undefined }
+          filterString ? { filter: filterString } : undefined
         );
 
         const hits = searchResults.hits as Document[];
