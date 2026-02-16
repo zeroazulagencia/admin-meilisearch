@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { translateSalesforceError, FriendlyError } from './utils/error-translator';
+
 
 interface Lead {
   id: number;
@@ -65,6 +67,62 @@ const STATUS_LABELS: Record<string, string> = {
   'completado': '4/4 - Completado',
   'error': 'Error'
 };
+
+// Componente para mostrar errores de forma amigable
+function ErrorDisplay({ error }: { error: FriendlyError }) {
+  const [showTechnical, setShowTechnical] = useState(false);
+  
+  return (
+    <div className={`mt-3 border-l-4 ${
+      error.icon === '⚠️' ? 'border-orange-400 bg-orange-50' : 'border-red-400 bg-red-50'
+    } p-3 rounded`}>
+      <div className="flex items-start gap-2">
+        <span className="text-xl flex-shrink-0">{error.icon}</span>
+        <div className="flex-1 min-w-0">
+          <h4 className={`font-semibold ${
+            error.icon === '⚠️' ? 'text-orange-900' : 'text-red-900'
+          }`}>
+            {error.title}
+          </h4>
+          <p className={`text-sm mt-1 ${
+            error.icon === '⚠️' ? 'text-orange-800' : 'text-red-800'
+          }`}>
+            {error.message}
+          </p>
+          
+          {error.field && (
+            <div className={`text-xs mt-2 ${
+              error.icon === '⚠️' ? 'text-orange-700' : 'text-red-700'
+            }`}>
+              <strong>Campo afectado:</strong> {error.field}
+            </div>
+          )}
+          
+          {error.suggestion && (
+            <div className={`mt-2 rounded p-2 text-xs ${
+              error.icon === '⚠️' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'
+            }`}>
+              💡 <strong>Solución:</strong> {error.suggestion}
+            </div>
+          )}
+          
+          {error.technical && (
+            <details className="mt-2">
+              <summary className={`text-xs cursor-pointer hover:underline ${
+                error.icon === '⚠️' ? 'text-orange-600' : 'text-red-600'
+              }`}>
+                {showTechnical ? '▼' : '▶'} Ver detalles técnicos
+              </summary>
+              <pre className="mt-2 text-xs bg-gray-900 text-gray-100 p-2 rounded overflow-x-auto max-h-40 overflow-y-auto">
+                {error.technical}
+              </pre>
+            </details>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LogLeadsSUVI() {
   const searchParams = useSearchParams();
@@ -836,11 +894,17 @@ export default function LogLeadsSUVI() {
                       <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${
                         selectedLead.salesforce_opportunity_id
                           ? 'bg-green-100 border-green-500'
+                          : selectedLead.processing_status === 'error' && selectedLead.error_step?.includes('Salesforce')
+                          ? 'bg-red-100 border-red-500'
                           : 'bg-gray-100 border-gray-300'
                       }`}>
                         {selectedLead.salesforce_opportunity_id ? (
                           <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : selectedLead.processing_status === 'error' && selectedLead.error_step?.includes('Salesforce') ? (
+                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         ) : (
                           <span className="text-gray-500 font-bold">4</span>
@@ -848,11 +912,62 @@ export default function LogLeadsSUVI() {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <h4 className={`font-semibold ${selectedLead.salesforce_opportunity_id ? 'text-green-600' : selectedLead.ai_enriched_data ? 'text-gray-900' : 'text-gray-400'}`}>
+                      <h4 className={`font-semibold ${
+                        selectedLead.salesforce_opportunity_id ? 'text-green-600' : 
+                        selectedLead.processing_status === 'error' && selectedLead.error_step?.includes('Salesforce') ? 'text-red-600' :
+                        selectedLead.ai_enriched_data ? 'text-gray-900' : 'text-gray-400'
+                      }`}>
                         4. Envío a Salesforce
                       </h4>
                       <p className="text-sm text-gray-600 mt-1">Crear cuenta y oportunidad en Salesforce</p>
                       
+                      {/* Sub-progreso: Mostrar paso actual si está procesando */}
+                      {!selectedLead.salesforce_opportunity_id && 
+                       selectedLead.processing_status !== 'error' &&
+                       selectedLead.processing_status !== 'completado' && 
+                       selectedLead.current_step && 
+                       (selectedLead.processing_status === 'creando_cuenta' || selectedLead.processing_status === 'creando_oportunidad') && (
+                        <div className="mt-2 pl-4 border-l-2 border-cyan-300">
+                          <div className="text-sm text-cyan-700 flex items-center gap-2">
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            {selectedLead.current_step}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Resultado final: Cuenta y Oportunidad creadas */}
+                      {(selectedLead.salesforce_account_name || selectedLead.salesforce_opportunity_id) && (
+                        <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="text-sm space-y-1">
+                            {selectedLead.salesforce_account_name && (
+                              <div className="flex items-start gap-2">
+                                <span className="text-green-600 flex-shrink-0 mt-0.5">✓</span>
+                                <div className="flex-1">
+                                  <strong className="text-green-900">Cuenta:</strong>{' '}
+                                  <span className="text-green-800">{selectedLead.salesforce_account_name}</span>
+                                  {selectedLead.salesforce_account_id && (
+                                    <div className="text-xs text-green-600 mt-0.5">ID: {selectedLead.salesforce_account_id}</div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {selectedLead.salesforce_opportunity_id && (
+                              <div className="flex items-start gap-2">
+                                <span className="text-green-600 flex-shrink-0 mt-0.5">✓</span>
+                                <div className="flex-1">
+                                  <strong className="text-green-900">Oportunidad:</strong>{' '}
+                                  <span className="text-green-800">{selectedLead.salesforce_opportunity_id}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Botón para procesar en Salesforce */}
                       {selectedLead.ai_enriched_data && salesforceStatus?.has_active_tokens && (
                         <button
                           onClick={() => processSalesforce(selectedLead.id)}
@@ -863,8 +978,9 @@ export default function LogLeadsSUVI() {
                         </button>
                       )}
                       
+                      {/* Error de Salesforce con formato amigable */}
                       {salesforceError && (
-                        <div className="mt-2 text-xs text-red-600">{salesforceError}</div>
+                        <ErrorDisplay error={translateSalesforceError(salesforceError)} />
                       )}
                       
                       {salesforceResult && (

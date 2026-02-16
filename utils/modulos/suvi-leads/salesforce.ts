@@ -277,7 +277,7 @@ export async function upsertSalesforceOpportunity(
         }
       );
     } else {
-      // Crear nueva oportunidad
+      // Crear nueva oportunidad (Intento 1: con todos los campos)
       response = await fetch(
         `${instanceUrl}/services/data/v60.0/sobjects/Opportunity`,
         {
@@ -291,9 +291,44 @@ export async function upsertSalesforceOpportunity(
       );
     }
 
+    // Si falla por RecordTypeId inválido, reintentar sin ese campo
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(`Salesforce error: ${JSON.stringify(error)}`);
+      
+      // Si el error es INVALID_CROSS_REFERENCE_KEY en RecordTypeId, reintentar sin ese campo
+      if (!isUpdate && 
+          error[0]?.errorCode === 'INVALID_CROSS_REFERENCE_KEY' && 
+          error[0]?.fields?.includes('RecordTypeId')) {
+        
+        console.log('[SALESFORCE] RecordTypeId inválido, reintentando sin ese campo...');
+        
+        // Remover RecordTypeId
+        delete opportunityData.RecordTypeId;
+        
+        // Actualizar descripción para indicar que se usó fallback
+        opportunityData.Description += ' [RecordType omitido - se usará el default de Salesforce]';
+        
+        // Intento 2: Sin RecordTypeId
+        response = await fetch(
+          `${instanceUrl}/services/data/v60.0/sobjects/Opportunity`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(opportunityData),
+          }
+        );
+        
+        if (!response.ok) {
+          const retryError = await response.json();
+          throw new Error(`Salesforce error (después de fallback): ${JSON.stringify(retryError)}`);
+        }
+      } else {
+        // Otro tipo de error, lanzar inmediatamente
+        throw new Error(`Salesforce error: ${JSON.stringify(error)}`);
+      }
     }
 
     let opportunityId;
