@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
 import settings from '@/settings.json';
+import { getPermissions } from '@/utils/permissions';
 
 interface Agent {
   id: number;
@@ -16,6 +17,7 @@ interface ModuleItem {
   id: number;
   agent_id: number;
   title: string;
+  folder_name: string;
   description: string | null;
   agent_name: string;
   client_name?: string;
@@ -29,10 +31,16 @@ export default function ModulosPage() {
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [formData, setFormData] = useState({ agent_id: '', title: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
     type: 'info',
+  });
+  const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; moduleId: number | null; moduleName: string }>({
+    isOpen: false,
+    moduleId: null,
+    moduleName: '',
   });
 
   const sortedAgents = useMemo(() => {
@@ -86,6 +94,10 @@ export default function ModulosPage() {
   };
 
   useEffect(() => {
+    // Verificar si el usuario es admin
+    const permissions = getPermissions();
+    setIsAdmin(permissions?.type === 'admin');
+    
     loadAgents();
     loadModules();
   }, []);
@@ -136,6 +148,35 @@ export default function ModulosPage() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteModule = async (moduleId: number) => {
+    try {
+      const res = await fetch(`/api/modules/${moduleId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'No se pudo eliminar el módulo');
+      }
+
+      setAlertModal({
+        isOpen: true,
+        title: 'Éxito',
+        message: 'Módulo eliminado correctamente.',
+        type: 'success',
+      });
+      setConfirmDelete({ isOpen: false, moduleId: null, moduleName: '' });
+      loadModules();
+    } catch (error: any) {
+      console.error('[MODULOS] Error eliminando módulo:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'No se pudo eliminar el módulo: ' + (error?.message || 'Error desconocido'),
+        type: 'error',
+      });
     }
   };
 
@@ -224,21 +265,51 @@ export default function ModulosPage() {
             <div className="space-y-4 max-h-[520px] overflow-y-auto pr-1">
               {modules.map((module) => (
                 <div key={module.id} className="border border-gray-200 rounded-lg p-4 hover:border-[#5DE1E5] transition-colors">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold text-gray-900">{module.title}</h3>
-                    <span className="text-xs text-gray-500">
-                      {new Date(module.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </span>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">{module.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Asociado a <span className="font-medium text-gray-900">{module.agent_name}</span>
+                        {module.client_name ? ` · Cliente: ${module.client_name}` : ''}
+                      </p>
+                      <div className="text-xs text-gray-500 mt-2">
+                        📁 {module.folder_name}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <span className="text-xs text-gray-500">
+                        {new Date(module.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Asociado a <span className="font-medium text-gray-900">{module.agent_name}</span>
-                    {module.client_name ? ` · Cliente: ${module.client_name}` : ''}
-                  </p>
                   {module.description && (
                     <p className="text-sm text-gray-700 mt-3 whitespace-pre-line">
                       {module.description}
                     </p>
                   )}
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={() => window.open(`/modulos/${module.id}`, '_blank')}
+                      className="flex-1 px-4 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                      Abrir Módulo
+                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setConfirmDelete({ isOpen: true, moduleId: module.id, moduleName: module.title })}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                        title="Eliminar módulo"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Eliminar
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -253,6 +324,40 @@ export default function ModulosPage() {
         message={alertModal.message}
         type={alertModal.type}
       />
+
+      {/* Modal de confirmación de eliminación */}
+      {confirmDelete.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Confirmar eliminación</h3>
+            </div>
+            <p className="text-gray-700 mb-6">
+¿Estás seguro de que deseas eliminar el módulo <strong>&quot;{confirmDelete.moduleName}&quot;</strong>? Esta acción no se puede deshacer.
+
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete({ isOpen: false, moduleId: null, moduleName: '' })}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => confirmDelete.moduleId && handleDeleteModule(confirmDelete.moduleId)}
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedLayout>
   );
 }
