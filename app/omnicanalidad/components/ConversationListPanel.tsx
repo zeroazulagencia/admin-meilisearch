@@ -8,13 +8,15 @@ interface ConversationListPanelProps {
   onSelectConversation: (id: string) => void;
   conversations: Conversation[];
   loading: boolean;
+  hasAgentSelected?: boolean;
 }
 
 export default function ConversationListPanel({ 
   selectedConversationId, 
   onSelectConversation,
   conversations,
-  loading
+  loading,
+  hasAgentSelected = false
 }: ConversationListPanelProps) {
   const [activeTab, setActiveTab] = useState<'mine' | 'unassigned' | 'all'>('mine');
 

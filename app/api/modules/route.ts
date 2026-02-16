@@ -1,102 +1,112 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 
-// GET - Listar módulos (opcionalmente filtrados por agente)
-export async function GET(request: NextRequest) {
+// GET - Listar todos los módulos con información del agente y cliente
+export async function GET() {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const agentId = searchParams.get('agentId');
-
-    let sql = `
+    console.log('[API MODULES] [GET] Iniciando carga de módulos...');
+    
+    const [rows] = await query<any>(`
       SELECT 
         m.id,
         m.agent_id,
         m.title,
+        m.folder_name,
         m.description,
         m.created_at,
         m.updated_at,
-        a.name AS agent_name,
-        c.name AS client_name
+        a.name as agent_name,
+        c.name as client_name
       FROM modules m
-      INNER JOIN agents a ON a.id = m.agent_id
-      LEFT JOIN clients c ON c.id = a.client_id
-    `;
-    const params: any[] = [];
-
-    if (agentId) {
-      sql += ' WHERE m.agent_id = ?';
-      params.push(agentId);
-    }
-
-    sql += ' ORDER BY m.created_at DESC';
-
-    const [rows] = await query<any>(sql, params);
-    return NextResponse.json({ ok: true, modules: rows });
-  } catch (e: any) {
-    console.error('[API MODULES] Error loading modules:', e?.message || e);
-    return NextResponse.json({ ok: false, error: e?.message || 'Error al cargar módulos' }, { status: 500 });
+      LEFT JOIN agents a ON m.agent_id = a.id
+      LEFT JOIN clients c ON a.client_id = c.id
+      ORDER BY m.created_at DESC
+    `);
+    
+    console.log('[API MODULES] [GET] Módulos cargados:', rows?.length || 0);
+    
+    return NextResponse.json({
+      ok: true,
+      modules: rows || []
+    });
+  } catch (error: any) {
+    console.error('[API MODULES] [GET] Error cargando módulos:', error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Error al cargar los módulos: ' + (error?.message || 'Error desconocido')
+      },
+      { status: 500 }
+    );
   }
 }
 
-// POST - Crear módulo
+// POST - Crear un nuevo módulo
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, description, agent_id } = body || {};
-
-    if (!title || typeof title !== 'string' || title.trim().length === 0) {
-      return NextResponse.json({ ok: false, error: 'El título es obligatorio' }, { status: 400 });
+    const { agent_id, title, description } = body;
+    
+    console.log('[API MODULES] [POST] Creando módulo:', { agent_id, title });
+    
+    // Validaciones
+    if (!agent_id || !title) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'agent_id y title son requeridos'
+        },
+        { status: 400 }
+      );
     }
-
-    if (!agent_id) {
-      return NextResponse.json({ ok: false, error: 'El agente es obligatorio' }, { status: 400 });
-    }
-
-    const trimmedTitle = title.trim();
-    const trimmedDescription = typeof description === 'string' ? description.trim() : null;
-
-    // Verificar que el agente exista
-    const [agentRows] = await query<any>(
-      'SELECT id, name FROM agents WHERE id = ? LIMIT 1',
-      [agent_id]
-    );
-
-    if (!agentRows || agentRows.length === 0) {
-      return NextResponse.json({ ok: false, error: 'El agente no existe' }, { status: 404 });
-    }
-
+    
+    // Generar folder_name único basado en el título
+    const folderName = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
+    // Insertar módulo
     const [result] = await query<any>(
-      'INSERT INTO modules (agent_id, title, description) VALUES (?, ?, ?)',
-      [agent_id, trimmedTitle, trimmedDescription]
+      'INSERT INTO modules (agent_id, title, folder_name, description) VALUES (?, ?, ?, ?)',
+      [agent_id, title, folderName, description || null]
     );
-
-    const insertResult = result as any;
-    const newModuleId = insertResult?.insertId;
-
+    
+    const moduleId = (result as any).insertId;
+    
+    console.log('[API MODULES] [POST] Módulo creado con ID:', moduleId);
+    
+    // Obtener el módulo completo con datos del agente
     const [moduleRows] = await query<any>(
       `SELECT 
         m.id,
         m.agent_id,
         m.title,
+        m.folder_name,
         m.description,
         m.created_at,
         m.updated_at,
-        a.name AS agent_name,
-        c.name AS client_name
+        a.name as agent_name,
+        c.name as client_name
       FROM modules m
-      INNER JOIN agents a ON a.id = m.agent_id
-      LEFT JOIN clients c ON c.id = a.client_id
+      LEFT JOIN agents a ON m.agent_id = a.id
+      LEFT JOIN clients c ON a.client_id = c.id
       WHERE m.id = ?`,
-      [newModuleId]
+      [moduleId]
     );
-
-    return NextResponse.json({ ok: true, module: moduleRows?.[0] || null });
-  } catch (e: any) {
-    console.error('[API MODULES] Error creating module:', e?.message || e);
-    return NextResponse.json({ ok: false, error: e?.message || 'Error al crear módulo' }, { status: 500 });
+    
+    return NextResponse.json({
+      ok: true,
+      module: moduleRows && moduleRows.length > 0 ? moduleRows[0] : null
+    });
+  } catch (error: any) {
+    console.error('[API MODULES] [POST] Error creando módulo:', error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Error al crear el módulo: ' + (error?.message || 'Error desconocido')
+      },
+      { status: 500 }
+    );
   }
 }
-
-
-
-

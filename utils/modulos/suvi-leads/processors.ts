@@ -70,10 +70,13 @@ export async function cleanFacebookData(rawData: any, leadId: number) {
 // PASO 4: Procesar con IA (OpenAI)
 export async function processWithAI(cleanedData: any, leadId: number) {
   try {
-    await updateLeadLog(leadId, {
-      processing_status: 'enriqueciendo_ia',
-      current_step: 'Procesando con OpenAI',
-    });
+    // Solo actualizar BD si leadId es válido (modo prueba usa -1)
+    if (leadId > 0) {
+      await updateLeadLog(leadId, {
+        processing_status: 'enriqueciendo_ia',
+        current_step: 'Procesando con OpenAI',
+      });
+    }
 
     const apiKey = await getConfig('openai_api_key');
     if (!apiKey) {
@@ -108,7 +111,7 @@ Reglas:
 2. "form_name" ➔ Nombre del formulario.
 3. "fullname" ➔ Unir nombre y apellido si vienen separados o el nombre completo, si no viene nombre llamarlo Sin Nombre.
 4. "email" ➔ Email tal cual.
-5. "phone" ➔ Solo números, sin indicativo ni espacios. Si no hay, deja vacío, si el numero trae el indicativo (por ejemplo +1) lo quitas para que el numero quede funcional.
+5. "phone" ➔ Solo números, sin indicativo ni espacios. Si no hay, deja vacío, si el numero trae el indicativo )por ejemplo +1= lo quitas para que el numero quede funcional.
 6. "lastname" ➔ Solo apellido, sin espacios extra.
 7. "firstname" ➔ Solo nombre, sin espacios extra.
 8. "pais_salesforce" ➔ Si no hay campo país, dedúcelo de ubicación, ciudad o estado, el nombre del anuncio no afecta este valor. Si no, usar "Estados Unidos".
@@ -127,32 +130,39 @@ Solo este JSON y nada más.`;
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4-turbo',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      const errorBody = await response.text();
+      console.error('[OPENAI ERROR]', response.status, response.statusText, errorBody);
+      throw new Error(`OpenAI API error: ${response.statusText} - ${errorBody}`);
     }
 
     const result = await response.json();
     const enrichedData = JSON.parse(result.choices[0].message.content);
 
-    await updateLeadLog(leadId, {
-      ai_enriched_data: enrichedData.data,
-      ai_summary: enrichedData.data.description,
-      ai_processed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-    });
+    // Solo actualizar BD si leadId es válido (modo prueba usa -1)
+    if (leadId > 0) {
+      await updateLeadLog(leadId, {
+        ai_enriched_data: enrichedData.data,
+        ai_summary: enrichedData.data.description,
+        ai_processed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      });
+    }
 
     return enrichedData.data;
   } catch (e: any) {
-    await updateLeadLog(leadId, {
-      processing_status: 'error',
-      error_message: e.message,
-      error_step: 'Procesando con IA',
-    });
+    if (leadId > 0) {
+      await updateLeadLog(leadId, {
+        processing_status: 'error',
+        error_message: e.message,
+        error_step: 'Procesando con IA',
+      });
+    }
     throw e;
   }
 }

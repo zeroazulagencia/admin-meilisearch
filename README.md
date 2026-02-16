@@ -231,6 +231,94 @@ bash scripts/check-encryption-key.sh
 - **Scripts de verificación**: Scripts para verificar integridad antes de cada deploy
 - **Logs detallados**: Rastreo completo de preservación/actualización de datos
 
+## 🧩 Sistema de Módulos Personalizados
+
+El proyecto cuenta con un **sistema de módulos dinámicos** que permite crear mini-desarrollos independientes sin afectar el sistema global. Los módulos se registran por agente y se cargan dinámicamente desde la carpeta `modules-custom/`.
+
+### 📦 Módulos Disponibles
+
+#### Módulo 1: Log Leads SUVI
+**URL:** https://workers.zeroazul.com/modulos/1  
+**Carpeta:** `modules-custom/log-leads-suvi/`
+
+**Descripción:**  
+Sistema automatizado de captura y gestión de leads desde **Facebook Lead Ads** hasta **Salesforce**, con procesamiento inteligente mediante **OpenAI**. 
+
+**Flujo completo:**
+```
+Facebook Lead Ads → Webhook → Limpieza de datos → Enriquecimiento IA (OpenAI) 
+→ Clasificación de campaña → Salesforce (Cuenta + Oportunidad)
+```
+
+**Funcionalidades principales:**
+- ✅ **Webhook de Facebook**: Recepción automática de leads en tiempo real
+- ✅ **Consulta Facebook Graph API**: Obtención completa de datos del formulario
+- ✅ **Enriquecimiento con IA**: OpenAI procesa y estructura la información (nombre completo, país, prefijos, servicio de interés)
+- ✅ **Clasificación inteligente**: Diferencia entre "Pauta Interna" y "Pauta Agencia"
+- ✅ **Integración Salesforce**: Crea/actualiza cuentas y genera oportunidades automáticamente
+- ✅ **Dashboard en tiempo real**: Visualización de estadísticas, filtros por estado/tipo, búsqueda, tiempo de procesamiento
+- ✅ **Conexión OAuth Salesforce**: Autenticación segura con refresh tokens automáticos
+- ✅ **Seguimiento de estados**: 9 estados de procesamiento (recibido, consultando_facebook, limpiando_datos, enriqueciendo_ia, clasificando, creando_cuenta, creando_oportunidad, completado, error)
+
+**Tecnologías:**
+- Facebook Graph API v18.0
+- OpenAI GPT-4 (estructuración de datos)
+- Salesforce REST API (UPSERT de cuentas, creación de oportunidades)
+- MySQL (tablas: `modulos_suvi_12_leads`, `modulos_suvi_12_config`)
+- React + Next.js (frontend del dashboard)
+
+**Base de datos:**
+- **Tabla principal:** `modulos_suvi_12_leads` - Almacena leads con estado de procesamiento en tiempo real
+- **Tabla de configuración:** `modulos_suvi_12_config` - Credenciales de Facebook, OpenAI y Salesforce
+
+**API Endpoints:**
+- `POST /api/webhooks/facebook-leads` - Webhook de Facebook
+- `GET /api/modulos/suvi-leads` - Listar leads (con paginación y filtros)
+- `GET /api/modulos/suvi-leads/[id]` - Detalle completo de un lead
+- `PATCH /api/modulos/suvi-leads/[id]` - Actualizar estado manualmente
+- `GET /api/oauth/salesforce/status` - Estado de conexión de Salesforce
+- `GET /api/oauth/salesforce/authorize` - Iniciar OAuth con Salesforce
+
+**Archivos principales:**
+```
+app/api/modulos/suvi-leads/route.ts          # API de listado
+app/api/modulos/suvi-leads/[id]/route.ts     # API de detalle
+app/api/webhooks/facebook-leads/route.ts     # Webhook Facebook
+utils/modulos/suvi-leads/orchestrator.ts     # Orquestador del flujo
+utils/modulos/suvi-leads/processors.ts       # Procesadores (FB, IA, clasificación)
+utils/modulos/suvi-leads/salesforce.ts       # Integraciones Salesforce
+modules-custom/log-leads-suvi/index.tsx      # Dashboard React
+```
+
+**Documentación completa:** `modules-custom/log-leads-suvi/README.md`
+
+---
+
+### Crear Nuevos Módulos
+
+1. **Crear desde UI**: `/modulos` → Formulario de creación
+2. **Implementar componente**: Crear `modules-custom/[folder_name]/index.tsx`
+3. **Acceso a datos del módulo**: Tu componente recibe `moduleData` con información del módulo
+
+**Ejemplo básico:**
+```tsx
+'use client';
+import { useState } from 'react';
+
+export default function MiModulo({ moduleData }: { moduleData?: any }) {
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">{moduleData.title}</h1>
+      <p>Asociado al agente: {moduleData.agent_name}</p>
+    </div>
+  );
+}
+```
+
+**Documentación completa del sistema de módulos:** `modules-custom/README.md`
+
+---
+
 ## 🔐 Parte Privada / Administración
 
 ### 🗄️ Base de Datos

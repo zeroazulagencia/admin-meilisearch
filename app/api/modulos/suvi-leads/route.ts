@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
       `SELECT 
         id,
         leadgen_id,
+        form_id,
+        page_id,
         campaign_name,
         ad_name,
         campaign_type,
@@ -56,7 +58,12 @@ export async function GET(request: NextRequest) {
         salesforce_opportunity_id,
         received_at,
         completed_at,
-        processing_time_seconds
+        processing_time_seconds,
+        facebook_cleaned_data,
+        facebook_raw_data,
+        ai_enriched_data,
+        ai_summary,
+        ai_processed_at
       FROM modulos_suvi_12_leads
       ${whereClause}
       ORDER BY received_at DESC
@@ -84,9 +91,17 @@ export async function GET(request: NextRequest) {
       FROM modulos_suvi_12_leads`
     );
 
+    // Parsear campos JSON
+    const leadsWithParsedData = leads.map((lead: any) => ({
+      ...lead,
+      facebook_cleaned_data: lead.facebook_cleaned_data ? JSON.parse(lead.facebook_cleaned_data) : null,
+      facebook_raw_data: lead.facebook_raw_data ? JSON.parse(lead.facebook_raw_data) : null,
+      ai_enriched_data: lead.ai_enriched_data ? JSON.parse(lead.ai_enriched_data) : null,
+    }));
+
     return NextResponse.json({
       ok: true,
-      leads,
+      leads: leadsWithParsedData,
       pagination: {
         page,
         limit,

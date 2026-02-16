@@ -17,9 +17,9 @@ export async function upsertSalesforceAccount(enrichedData: any, origen: string,
       Phone: enrichedData.phone,
       Prefijo_M_vil__c: `${enrichedData.pais_salesforce}(${enrichedData.prefijo})`,
       Prefijo_Telefono__c: `${enrichedData.pais_salesforce}(${enrichedData.prefijo})`,
-      Correo_Electr_nico__c: enrichedData.email,
       Telefono_Casa__c: enrichedData.phone,
       Telefono_Oficina__c: enrichedData.phone,
+      // Correo_Electr_nico__c NO se incluye aquí porque se usa como External ID en la URL
     };
 
     const response = await fetch(
@@ -40,13 +40,14 @@ export async function upsertSalesforceAccount(enrichedData: any, origen: string,
     }
 
     const result = await response.json();
+    const wasCreated = response.status === 201;
 
     await updateLeadLog(leadId, {
       salesforce_account_id: result.id,
       salesforce_account_created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
     });
 
-    return result;
+    return { ...result, wasCreated };
   } catch (e: any) {
     await updateLeadLog(leadId, {
       processing_status: 'error',
@@ -176,8 +177,47 @@ export async function selectValidProject(projects: any[]) {
   return selectedId;
 }
 
-// PASO 12: Crear oportunidad en Salesforce
-export async function createSalesforceOpportunity(
+// Buscar oportunidad existente para cuenta + proyecto + mes actual
+export async function findExistingOpportunity(accountId: string, projectId: string, leadId: number) {
+  try {
+    const { accessToken, instanceUrl } = await getSalesforceTokens();
+    
+    // Buscar oportunidades de esta cuenta, este proyecto, creadas este mes
+    const soql = `SELECT Id, Name, StageName FROM Opportunity 
+                  WHERE AccountId = '${accountId}' 
+                  AND Proyecto__c = '${projectId}' 
+                  AND CreatedDate = THIS_MONTH 
+                  LIMIT 1`;
+    
+    const response = await fetch(
+      `${instanceUrl}/services/data/v60.0/query?q=${encodeURIComponent(soql)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Salesforce error: ${JSON.stringify(error)}`);
+    }
+
+    const result = await response.json();
+    
+    if (result.totalSize > 0) {
+      return result.records[0]; // Retorna la oportunidad existente
+    }
+    
+    return null; // No hay oportunidad este mes para este proyecto
+  } catch (e: any) {
+    console.error('[SALESFORCE] Error buscando oportunidad:', e);
+    return null; // En caso de error, asumimos que no existe
+  }
+}
+
+// PASO 12: Crear o actualizar oportunidad en Salesforce
+export async function upsertSalesforceOpportunity(
   accountId: string,
   accountName: string,
   enrichedData: any,
@@ -189,9 +229,14 @@ export async function createSalesforceOpportunity(
   leadId: number
 ) {
   try {
+    // Buscar si existe oportunidad para esta cuenta + proyecto + mes actual
+    const existingOpportunity = await findExistingOpportunity(accountId, projectId, leadId);
+    
+    const isUpdate = !!existingOpportunity;
+    
     await updateLeadLog(leadId, {
       processing_status: 'creando_oportunidad',
-      current_step: 'Creando oportunidad en Salesforce',
+      current_step: isUpdate ? 'Actualizando oportunidad en Salesforce' : 'Creando oportunidad en Salesforce',
     });
 
     const { accessToken, instanceUrl } = await getSalesforceTokens();
@@ -200,7 +245,7 @@ export async function createSalesforceOpportunity(
     closeDate.setDate(closeDate.getDate() + 30);
     const closeDateStr = closeDate.toISOString().split('T')[0] + 'T00:00:00';
 
-    const opportunityData = {
+    const opportunityData: any = {
       Name: accountName,
       AccountId: accountId,
       CloseDate: closeDateStr,
@@ -209,42 +254,76 @@ export async function createSalesforceOpportunity(
       LeadSource: origen,
       Description: `${campaignInfo}, ${enrichedData.description}`,
       Proyecto__c: projectId,
-      RecordTypeId: opportunityTypeId,
     };
 
-    const response = await fetch(
-      `${instanceUrl}/services/data/v60.0/sobjects/Opportunity`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(opportunityData),
-      }
-    );
+    // Solo incluir RecordTypeId si existe y no está vacío
+    if (opportunityTypeId && opportunityTypeId.trim() !== '') {
+      opportunityData.RecordTypeId = opportunityTypeId;
+    }
+
+    let response;
+    
+    if (isUpdate) {
+      // Actualizar oportunidad existente
+      response = await fetch(
+        `${instanceUrl}/services/data/v60.0/sobjects/Opportunity/${existingOpportunity.Id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(opportunityData),
+        }
+      );
+    } else {
+      // Crear nueva oportunidad
+      response = await fetch(
+        `${instanceUrl}/services/data/v60.0/sobjects/Opportunity`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(opportunityData),
+        }
+      );
+    }
 
     if (!response.ok) {
       const error = await response.json();
       throw new Error(`Salesforce error: ${JSON.stringify(error)}`);
     }
 
-    const result = await response.json();
+    let opportunityId;
+    
+    if (isUpdate) {
+      // En PATCH, Salesforce retorna 204 sin body
+      opportunityId = existingOpportunity.Id;
+    } else {
+      // En POST, Salesforce retorna el objeto creado
+      const result = await response.json();
+      opportunityId = result.id;
+    }
 
     const processingTime = Math.floor((Date.now() - new Date(leadId).getTime()) / 1000);
 
     await updateLeadLog(leadId, {
-      salesforce_opportunity_id: result.id,
+      salesforce_opportunity_id: opportunityId,
       salesforce_owner_id: ownerId,
       salesforce_project_id: projectId,
       processing_status: 'completado',
-      current_step: 'Oportunidad creada exitosamente',
+      current_step: isUpdate ? 'Oportunidad actualizada exitosamente' : 'Oportunidad creada exitosamente',
       completed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       salesforce_opportunity_created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       processing_time_seconds: processingTime,
     });
 
-    return result;
+    return {
+      id: opportunityId,
+      wasCreated: !isUpdate
+    };
   } catch (e: any) {
     await updateLeadLog(leadId, {
       processing_status: 'error',

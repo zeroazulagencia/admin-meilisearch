@@ -58,12 +58,12 @@ export async function POST(
       );
     }
 
-    // Consultar Facebook Graph API
-    const url = `https://graph.facebook.com/v18.0/${lead.leadgen_id}?access_token=${accessToken}`;
+    // 1. Consultar datos del lead
+    const leadUrl = `https://graph.facebook.com/v18.0/${lead.leadgen_id}?access_token=${accessToken}`;
     
     console.log(`[API SUVI LEADS] Consultando Facebook para leadgen_id: ${lead.leadgen_id}`);
     
-    const response = await fetch(url);
+    const response = await fetch(leadUrl);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -100,7 +100,7 @@ export async function POST(
       cleanedData._leadgen_id = facebookData.id;
     }
 
-    // Actualizar en la base de datos
+    // 2. Actualizar en la base de datos
     await query<any>(
       `UPDATE modulos_suvi_12_leads 
        SET facebook_raw_data = ?, 

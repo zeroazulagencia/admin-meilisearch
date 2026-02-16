@@ -11,13 +11,13 @@ export async function upsertSalesforceAccount(enrichedData: any, origen: string,
 
     const { accessToken, instanceUrl } = await getSalesforceTokens();
 
+    // IMPORTANTE: No incluir Correo_Electr_nico__c en el body porque ya está en la URL como External ID
     const accountData = {
       Name: enrichedData.fullname,
       AccountSource: origen,
       Phone: enrichedData.phone,
       Prefijo_M_vil__c: `${enrichedData.pais_salesforce}(${enrichedData.prefijo})`,
       Prefijo_Telefono__c: `${enrichedData.pais_salesforce}(${enrichedData.prefijo})`,
-      Correo_Electr_nico__c: enrichedData.email,
       Telefono_Casa__c: enrichedData.phone,
       Telefono_Oficina__c: enrichedData.phone,
     };
@@ -200,7 +200,7 @@ export async function createSalesforceOpportunity(
     closeDate.setDate(closeDate.getDate() + 30);
     const closeDateStr = closeDate.toISOString().split('T')[0] + 'T00:00:00';
 
-    const opportunityData = {
+    const opportunityData: any = {
       Name: accountName,
       AccountId: accountId,
       CloseDate: closeDateStr,
@@ -209,8 +209,12 @@ export async function createSalesforceOpportunity(
       LeadSource: origen,
       Description: `${campaignInfo}, ${enrichedData.description}`,
       Proyecto__c: projectId,
-      RecordTypeId: opportunityTypeId,
     };
+
+    // Solo incluir RecordTypeId si existe y no está vacío
+    if (opportunityTypeId && opportunityTypeId.trim() !== '') {
+      opportunityData.RecordTypeId = opportunityTypeId;
+    }
 
     const response = await fetch(
       `${instanceUrl}/services/data/v60.0/sobjects/Opportunity`,

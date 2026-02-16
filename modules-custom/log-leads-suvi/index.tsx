@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation';
 interface Lead {
   id: number;
   leadgen_id: string;
+  page_id: string;
+  form_id: string;
   campaign_name: string;
   ad_name: string;
   campaign_type: string;
@@ -19,6 +21,9 @@ interface Lead {
   processing_time_seconds: number;
   facebook_cleaned_data?: any;
   facebook_raw_data?: any;
+  ai_enriched_data?: any;
+  ai_summary?: string;
+  ai_processed_at?: string;
 }
 
 interface Stats {
@@ -50,14 +55,14 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  'recibido': 'Recibido',
-  'consultando_facebook': 'Consultando FB',
-  'limpiando_datos': 'Limpiando',
-  'enriqueciendo_ia': 'Procesando IA',
-  'clasificando': 'Clasificando',
-  'creando_cuenta': 'Creando Cuenta',
-  'creando_oportunidad': 'Creando Oportunidad',
-  'completado': 'Completado',
+  'recibido': '1/4 - Recibido',
+  'consultando_facebook': '2/4 - Datos META',
+  'limpiando_datos': '2/4 - Limpiando',
+  'enriqueciendo_ia': '3/4 - Enriquecido con IA',
+  'clasificando': '3/4 - Clasificando',
+  'creando_cuenta': '3/4 - Creando Cuenta',
+  'creando_oportunidad': '3/4 - Creando Oportunidad',
+  'completado': '4/4 - Completado',
   'error': 'Error'
 };
 
@@ -77,6 +82,11 @@ export default function LogLeadsSUVI() {
   const [showDetail, setShowDetail] = useState(false);
   const [consultingMeta, setConsultingMeta] = useState(false);
   const [metaError, setMetaError] = useState<string | null>(null);
+  const [processingAI, setProcessingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [processingSalesforce, setProcessingSalesforce] = useState(false);
+  const [salesforceError, setSalesforceError] = useState<string | null>(null);
+  const [salesforceResult, setSalesforceResult] = useState<any>(null);
   
   const oauthSuccess = searchParams.get('oauth_success');
   const oauthError = searchParams.get('oauth_error');
@@ -151,15 +161,43 @@ export default function LogLeadsSUVI() {
         throw new Error(data.error || 'Error consultando META');
       }
 
-      // Actualizar el lead seleccionado con los nuevos datos
-      if (selectedLead) {
-        setSelectedLead({
-          ...selectedLead,
-          facebook_raw_data: data.lead.facebook_raw_data,
-          facebook_cleaned_data: data.lead.facebook_cleaned_data,
-          processing_status: 'consultando_facebook',
-          current_step: 'Datos consultados desde Facebook'
-        });
+      // Recargar el lead completo desde la BD
+      const detailRes = await fetch(`/api/modulos/suvi-leads/${leadId}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
+      const detailData = await detailRes.json();
+      
+      if (detailData.ok) {
+        const lead = detailData.lead;
+        
+        // Parsear campos JSON si son strings
+        if (typeof lead.facebook_cleaned_data === 'string') {
+          try {
+            lead.facebook_cleaned_data = JSON.parse(lead.facebook_cleaned_data);
+          } catch (e) {
+            lead.facebook_cleaned_data = {};
+          }
+        }
+        if (typeof lead.facebook_raw_data === 'string') {
+          try {
+            lead.facebook_raw_data = JSON.parse(lead.facebook_raw_data);
+          } catch (e) {
+            lead.facebook_raw_data = {};
+          }
+        }
+        if (typeof lead.ai_enriched_data === 'string') {
+          try {
+            lead.ai_enriched_data = JSON.parse(lead.ai_enriched_data);
+          } catch (e) {
+            lead.ai_enriched_data = null;
+          }
+        }
+        
+        setSelectedLead(lead);
       }
 
       // Recargar la lista de leads
@@ -170,6 +208,147 @@ export default function LogLeadsSUVI() {
       setMetaError(e.message || 'Error desconocido');
     } finally {
       setConsultingMeta(false);
+    }
+  };
+
+  const processAI = async (leadId: number) => {
+    try {
+      setProcessingAI(true);
+      setAiError(null);
+
+      const res = await fetch(`/api/modulos/suvi-leads/reprocess-from-cleaned`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Error procesando con IA');
+      }
+
+      // Recargar el lead completo desde la BD para asegurar que está parseado correctamente
+      const detailRes = await fetch(`/api/modulos/suvi-leads/${leadId}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
+      const detailData = await detailRes.json();
+      
+      if (detailData.ok) {
+        const lead = detailData.lead;
+        
+        // Parsear campos JSON si son strings
+        if (typeof lead.facebook_cleaned_data === 'string') {
+          try {
+            lead.facebook_cleaned_data = JSON.parse(lead.facebook_cleaned_data);
+          } catch (e) {
+            lead.facebook_cleaned_data = {};
+          }
+        }
+        if (typeof lead.facebook_raw_data === 'string') {
+          try {
+            lead.facebook_raw_data = JSON.parse(lead.facebook_raw_data);
+          } catch (e) {
+            lead.facebook_raw_data = {};
+          }
+        }
+        if (typeof lead.ai_enriched_data === 'string') {
+          try {
+            lead.ai_enriched_data = JSON.parse(lead.ai_enriched_data);
+          } catch (e) {
+            lead.ai_enriched_data = null;
+          }
+        }
+        
+        setSelectedLead(lead);
+      }
+
+      // Recargar la lista de leads
+      loadLeads();
+
+    } catch (e: any) {
+      console.error('Error procesando con IA:', e);
+      setAiError(e.message || 'Error desconocido');
+    } finally {
+      setProcessingAI(false);
+    }
+  };
+
+  const processSalesforce = async (leadId: number) => {
+    try {
+      setProcessingSalesforce(true);
+      setSalesforceError(null);
+
+      const res = await fetch(`/api/modulos/suvi-leads/process-salesforce`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Error procesando en Salesforce');
+      }
+
+      // Guardar resultado para mostrar en UI
+      setSalesforceResult({
+        accountAction: data.accountAction,
+        opportunityAction: data.opportunityAction,
+        wasAlreadyProcessed: data.wasAlreadyProcessed,
+      });
+
+      // Recargar el lead completo desde la BD
+      const detailRes = await fetch(`/api/modulos/suvi-leads/${leadId}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
+      const detailData = await detailRes.json();
+      
+      if (detailData.ok) {
+        const lead = detailData.lead;
+        
+        // Parsear campos JSON si son strings
+        if (typeof lead.facebook_cleaned_data === 'string') {
+          try {
+            lead.facebook_cleaned_data = JSON.parse(lead.facebook_cleaned_data);
+          } catch (e) {
+            lead.facebook_cleaned_data = {};
+          }
+        }
+        if (typeof lead.facebook_raw_data === 'string') {
+          try {
+            lead.facebook_raw_data = JSON.parse(lead.facebook_raw_data);
+          } catch (e) {
+            lead.facebook_raw_data = {};
+          }
+        }
+        if (typeof lead.ai_enriched_data === 'string') {
+          try {
+            lead.ai_enriched_data = JSON.parse(lead.ai_enriched_data);
+          } catch (e) {
+            lead.ai_enriched_data = null;
+          }
+        }
+        
+        setSelectedLead(lead);
+      }
+
+      // Recargar la lista de leads
+      loadLeads();
+
+    } catch (e: any) {
+      console.error('Error procesando Salesforce:', e);
+      setSalesforceError(e.message || 'Error desconocido');
+    } finally {
+      setProcessingSalesforce(false);
     }
   };
 
@@ -188,7 +367,39 @@ export default function LogLeadsSUVI() {
       });
       const data = await res.json();
       if (data.ok) {
-        setSelectedLead(data.lead);
+        // Limpiar estados previos de procesamiento
+        setSalesforceResult(null);
+        setSalesforceError(null);
+        setAiError(null);
+        setMetaError(null);
+        setConsultingMeta(false);
+        setProcessingAI(false);
+        setProcessingSalesforce(false);
+        
+        // Parsear campos JSON si son strings
+        const lead = data.lead;
+        if (typeof lead.facebook_cleaned_data === 'string') {
+          try {
+            lead.facebook_cleaned_data = JSON.parse(lead.facebook_cleaned_data);
+          } catch (e) {
+            lead.facebook_cleaned_data = {};
+          }
+        }
+        if (typeof lead.facebook_raw_data === 'string') {
+          try {
+            lead.facebook_raw_data = JSON.parse(lead.facebook_raw_data);
+          } catch (e) {
+            lead.facebook_raw_data = {};
+          }
+        }
+        if (typeof lead.ai_enriched_data === 'string') {
+          try {
+            lead.ai_enriched_data = JSON.parse(lead.ai_enriched_data);
+          } catch (e) {
+            lead.ai_enriched_data = null;
+          }
+        }
+        setSelectedLead(lead);
         setShowDetail(true);
       }
     } catch (e) {
@@ -347,7 +558,7 @@ export default function LogLeadsSUVI() {
         <div className="flex items-center gap-3">
           <input
             type="text"
-            placeholder="Buscar por ID, campaña, cuenta..."
+            placeholder="Buscar por ID, form, cuenta..."
             className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -359,18 +570,9 @@ export default function LogLeadsSUVI() {
           >
             <option value="">Todos los estados</option>
             <option value="recibido">Recibido</option>
-            <option value="enriqueciendo_ia">Enriqueciendo IA</option>
+            <option value="consultando_facebook">Consultando FB</option>
             <option value="completado">Completado</option>
             <option value="error">Error</option>
-          </select>
-          <select
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
-            value={filters.campaign_type}
-            onChange={(e) => setFilters({ ...filters, campaign_type: e.target.value })}
-          >
-            <option value="">Todos los tipos</option>
-            <option value="Pauta Interna">Pauta Interna</option>
-            <option value="Pauta Agencia">Pauta Agencia</option>
           </select>
           <button
             onClick={loadLeads}
@@ -397,8 +599,7 @@ export default function LogLeadsSUVI() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID Facebook</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Campaña</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Form ID</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuenta SF</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Recibido</th>
@@ -412,22 +613,11 @@ export default function LogLeadsSUVI() {
                     <td className="px-4 py-3 text-sm font-mono text-gray-900">
                       {lead.leadgen_id.substring(0, 15)}...
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
-                      {lead.campaign_name || '-'}
+                    <td className="px-4 py-3 text-sm font-mono text-gray-600">
+                      {lead.form_id ? lead.form_id.substring(0, 12) + '...' : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      {lead.campaign_type ? (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          lead.campaign_type === 'Pauta Interna' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-orange-100 text-orange-800'
-                        }`}>
-                          {lead.campaign_type}
-                        </span>
-                      ) : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[lead.processing_status]}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[lead.processing_status] || 'bg-gray-100 text-gray-800'}`}>
                         {STATUS_LABELS[lead.processing_status] || lead.processing_status}
                       </span>
                     </td>
@@ -467,7 +657,17 @@ export default function LogLeadsSUVI() {
                   <p className="text-gray-700 font-mono text-sm">{selectedLead.leadgen_id}</p>
                 </div>
                 <button
-                  onClick={() => setShowDetail(false)}
+                  onClick={() => {
+                    setShowDetail(false);
+                    // Limpiar estados de procesamiento al cerrar
+                    setSalesforceResult(null);
+                    setSalesforceError(null);
+                    setAiError(null);
+                    setMetaError(null);
+                    setConsultingMeta(false);
+                    setProcessingAI(false);
+                    setProcessingSalesforce(false);
+                  }}
                   className="text-gray-700 hover:bg-gray-900 hover:bg-opacity-10 p-2 rounded-lg transition"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -482,119 +682,327 @@ export default function LogLeadsSUVI() {
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                 <h3 className="font-semibold text-gray-900 mb-2">Estado Actual</h3>
                 <div className="flex items-center gap-3">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS_COLORS[selectedLead.processing_status]}`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS_COLORS[selectedLead.processing_status] || 'bg-gray-100 text-gray-800'}`}>
                     {STATUS_LABELS[selectedLead.processing_status] || selectedLead.processing_status}
                   </span>
                   <span className="text-gray-600 text-sm">{selectedLead.current_step}</span>
                 </div>
-                {selectedLead.error_message && (
+                {/* Solo mostrar error si el estado actual es error, no si ya se completó */}
+                {selectedLead.error_message && selectedLead.processing_status === 'error' && (
                   <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
                     <p className="text-red-800 text-sm font-medium">{selectedLead.error_message}</p>
                   </div>
                 )}
               </div>
 
-              {/* Info de campaña */}
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Información de Campaña</h3>
-                <dl className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <dt className="text-gray-500">Campaña</dt>
-                    <dd className="text-gray-900 font-medium">{selectedLead.campaign_name || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Anuncio</dt>
-                    <dd className="text-gray-900 font-medium">{selectedLead.ad_name || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Tipo de Pauta</dt>
-                    <dd className="text-gray-900 font-medium">{selectedLead.campaign_type || '-'}</dd>
-                  </div>
-                </dl>
-              </div>
-
-              {/* Info de Salesforce */}
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Salesforce</h3>
-                <dl className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <dt className="text-gray-500">Cuenta</dt>
-                    <dd className="text-gray-900 font-medium">{selectedLead.salesforce_account_name || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">ID Oportunidad</dt>
-                    <dd className="text-gray-900 font-mono text-xs">{selectedLead.salesforce_opportunity_id || '-'}</dd>
-                  </div>
-                </dl>
-              </div>
-
-              {/* Tiempos */}
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Tiempos de Procesamiento</h3>
-                <dl className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <dt className="text-gray-500">Recibido</dt>
-                    <dd className="text-gray-900">{formatDate(selectedLead.received_at)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Completado</dt>
-                    <dd className="text-gray-900">{formatDate(selectedLead.completed_at)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Tiempo Total</dt>
-                    <dd className="text-gray-900 font-medium">{formatTime(selectedLead.processing_time_seconds)}</dd>
-                  </div>
-                </dl>
-              </div>
-
-              {/* Botón Consultar en META */}
-              {(!selectedLead.facebook_cleaned_data || Object.keys(selectedLead.facebook_cleaned_data).length === 0) && (
-                <div className="border-t pt-4">
-                  <button
-                    onClick={() => consultMeta(selectedLead.id)}
-                    disabled={consultingMeta}
-                    className="w-full px-4 py-3 bg-[#5DE1E5] hover:bg-[#4BC5C9] text-gray-900 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {consultingMeta ? (
-                      <>
-                        <div className="animate-spin h-5 w-5 border-2 border-gray-900 border-t-transparent rounded-full"></div>
-                        Consultando en META...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              {/* Timeline de Procesamiento */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-gray-900 mb-4">Progreso del Lead</h3>
+                <div className="space-y-4">
+                  
+                  {/* Paso 1: Lead Recibido */}
+                  <div className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-full bg-green-100 border-2 border-green-500 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        Consultar en META
-                      </>
-                    )}
-                  </button>
-                  {metaError && (
-                    <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-3">
-                      <p className="text-red-800 text-sm">{metaError}</p>
+                      </div>
+                      <div className="w-0.5 h-full bg-gray-300 mt-2"></div>
                     </div>
-                  )}
+                    <div className="flex-1 pb-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-gray-900">1. Lead Recibido</h4>
+                        <span className="text-xs text-gray-500">{formatDate(selectedLead.received_at)}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">Lead recibido desde Facebook</p>
+                      <div className="text-xs text-gray-500 mt-2 space-y-1">
+                        <div><span className="font-medium">Leadgen ID:</span> {selectedLead.leadgen_id}</div>
+                        <div><span className="font-medium">Form ID:</span> {selectedLead.form_id || '-'}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Paso 2: Consultar en META */}
+                  <div className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${
+                        selectedLead.facebook_cleaned_data && Object.keys(selectedLead.facebook_cleaned_data).length > 0
+                          ? 'bg-green-100 border-green-500'
+                          : 'bg-gray-100 border-gray-300'
+                      }`}>
+                        {selectedLead.facebook_cleaned_data && Object.keys(selectedLead.facebook_cleaned_data).length > 0 ? (
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <span className="text-gray-500 font-bold">2</span>
+                        )}
+                      </div>
+                      <div className="w-0.5 h-full bg-gray-300 mt-2"></div>
+                    </div>
+                    <div className="flex-1 pb-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-gray-900">2. Consultar Datos en META</h4>
+                        {selectedLead.facebook_cleaned_data && Object.keys(selectedLead.facebook_cleaned_data).length > 0 && (
+                          <span className="text-xs text-gray-500">Completado</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">Obtener información del formulario desde Facebook</p>
+                      
+                      {selectedLead.facebook_cleaned_data && Object.keys(selectedLead.facebook_cleaned_data).length > 0 ? (
+                        <button
+                          onClick={() => consultMeta(selectedLead.id)}
+                          disabled={consultingMeta}
+                          className="mt-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          Actualizar datos
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => consultMeta(selectedLead.id)}
+                          disabled={consultingMeta}
+                          className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#4BC5C9] text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {consultingMeta ? '⏳ Consultando...' : '▶️ Consultar en META'}
+                        </button>
+                      )}
+                      
+                      {metaError && (
+                        <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-2">
+                          <p className="text-red-800 text-xs">{metaError}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Paso 3: Enriquecimiento con IA */}
+                  <div className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${
+                        selectedLead.ai_enriched_data
+                          ? 'bg-green-100 border-green-500'
+                          : 'bg-gray-100 border-gray-300'
+                      }`}>
+                        {selectedLead.ai_enriched_data ? (
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <span className="text-gray-500 font-bold">3</span>
+                        )}
+                      </div>
+                      <div className="w-0.5 h-full bg-gray-300 mt-2"></div>
+                    </div>
+                    <div className="flex-1 pb-4">
+                      <h4 className={`font-semibold ${selectedLead.ai_enriched_data ? 'text-green-600' : 'text-gray-400'}`}>
+                        3. Enriquecimiento con IA
+                      </h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Análisis y clasificación automática con GPT-4 Turbo
+                      </p>
+                      
+                      {selectedLead.facebook_cleaned_data && Object.keys(selectedLead.facebook_cleaned_data).length > 0 && (
+                        selectedLead.ai_enriched_data ? (
+                          <button
+                            onClick={() => processAI(selectedLead.id)}
+                            disabled={processingAI}
+                            className="mt-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                          >
+                            Reprocesar con IA
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => processAI(selectedLead.id)}
+                            disabled={processingAI}
+                            className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#4BC5C9] text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {processingAI ? 'Procesando...' : 'Procesar con IA'}
+                          </button>
+                        )
+                      )}
+                      
+                      {aiError && (
+                        <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-2">
+                          <p className="text-red-800 text-xs">{aiError}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Paso 4: Salesforce */}
+                  <div className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${
+                        selectedLead.salesforce_opportunity_id
+                          ? 'bg-green-100 border-green-500'
+                          : 'bg-gray-100 border-gray-300'
+                      }`}>
+                        {selectedLead.salesforce_opportunity_id ? (
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <span className="text-gray-500 font-bold">4</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className={`font-semibold ${selectedLead.salesforce_opportunity_id ? 'text-green-600' : selectedLead.ai_enriched_data ? 'text-gray-900' : 'text-gray-400'}`}>
+                        4. Envío a Salesforce
+                      </h4>
+                      <p className="text-sm text-gray-600 mt-1">Crear cuenta y oportunidad en Salesforce</p>
+                      
+                      {selectedLead.ai_enriched_data && salesforceStatus?.has_active_tokens && (
+                        <button
+                          onClick={() => processSalesforce(selectedLead.id)}
+                          disabled={processingSalesforce}
+                          className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#4BC5C9] text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {processingSalesforce ? 'Procesando...' : (selectedLead.salesforce_opportunity_id ? 'Reprocesar en Salesforce' : 'Procesar en Salesforce')}
+                        </button>
+                      )}
+                      
+                      {salesforceError && (
+                        <div className="mt-2 text-xs text-red-600">{salesforceError}</div>
+                      )}
+                      
+                      {salesforceResult && (
+                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
+                          <p className="text-green-700">
+                            <span className="font-medium">Cuenta:</span> {salesforceResult.accountAction === 'created' ? 'Creada' : 'Actualizada'}
+                          </p>
+                          <p className="text-green-700">
+                            <span className="font-medium">Oportunidad:</span> {salesforceResult.opportunityAction === 'created' ? 'Creada' : 'Actualizada'}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {selectedLead.salesforce_account_name && (
+                        <div className="mt-2 text-xs text-gray-600">
+                          <div><span className="font-medium">Cuenta:</span> {selectedLead.salesforce_account_name}</div>
+                          {selectedLead.salesforce_opportunity_id && (
+                            <div><span className="font-medium">Oportunidad:</span> {selectedLead.salesforce_opportunity_id}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
 
               {/* Datos del Lead */}
-              {selectedLead.facebook_cleaned_data && Object.keys(selectedLead.facebook_cleaned_data).length > 0 && (
+              {selectedLead.facebook_cleaned_data && typeof selectedLead.facebook_cleaned_data === 'object' && Object.keys(selectedLead.facebook_cleaned_data).length > 0 && (
                 <div className="border-t pt-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">Datos del Lead</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-gray-900">Datos del Lead</h3>
+                    {selectedLead.ai_enriched_data && (
+                      <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                        Enriquecido con IA
+                      </span>
+                    )}
+                  </div>
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
+                    {/* Mapeo de campos importantes */}
+                    {(() => {
+                      const fbData = selectedLead.facebook_cleaned_data;
+                      const aiData = selectedLead.ai_enriched_data;
+                      
+                      // DEBUG: Verificar que aiData existe
+                      
+                      // Campos a mostrar en orden
+                      const fieldsToShow = [
+                        { key: 'fullname', label: 'Nombre Completo', aiKey: 'fullname' },
+                        { key: 'firstname', label: 'Nombre', aiKey: 'firstname' },
+                        { key: 'lastname', label: 'Apellido', aiKey: 'lastname' },
+                        { key: 'email', label: 'Email', aiKey: 'email' },
+                        { key: 'phone', label: 'Teléfono', aiKey: 'phone' },
+                        { key: 'prefijo', label: 'Prefijo Internacional', aiKey: 'prefijo' },
+                        { key: 'pais_salesforce', label: 'País', aiKey: 'pais_salesforce' },
+                        { key: 'state', label: 'Estado/Ciudad', aiKey: 'state' },
+                        { key: 'proyecto_de_interes', label: 'Proyecto de Interés', aiKey: 'proyecto_de_interes' },
+                        { key: 'servicio_de_interes', label: 'Servicio de Interés', aiKey: 'servicio_de_interes' },
+                      ];
+                      
+                      return fieldsToShow.map(({ key, label, aiKey }) => {
+                        // Buscar valor en FB (puede tener diferentes keys)
+                        let fbValue = fbData[key];
+                        
+                        // Variantes de keys de Facebook (mal formateadas)
+                        if (!fbValue && key === 'proyecto_de_interes') {
+                          fbValue = fbData['proyecto_de_inter_s'];
+                        }
+                        if (!fbValue && key === 'servicio_de_interes') {
+                          fbValue = fbData['servicio_de_inter_s'];
+                        }
+                        
+                        const aiValue = aiData?.[aiKey];
+                        
+                        // Si no hay ningún valor, no mostrar
+                        if (!fbValue && !aiValue) return null;
+                        
+                        // Determinar qué valor usar y si fue enriquecido
+                        const displayValue = aiValue || fbValue;
+                        const wasEnriched = aiValue && aiValue !== fbValue;
+                        
+                        // DEBUG: Log detallado para cada campo
+                        
+                        return (
+                          <div key={key} className={`flex justify-between items-start py-2 border-b border-gray-200 last:border-0 ${wasEnriched ? 'bg-purple-50 px-2 rounded' : ''}`}>
+                            <dt className="text-gray-700 font-medium text-sm flex items-center gap-2">
+                              {label}
+                              {wasEnriched && (
+                                <span className="text-xs text-purple-600 font-normal">(Corregido por IA)</span>
+                              )}
+                            </dt>
+                            <dd className="text-gray-900 text-sm text-right max-w-[60%] break-words">
+                              {Array.isArray(displayValue) ? displayValue.join(', ') : String(displayValue)}
+                            </dd>
+                          </div>
+                        );
+                      });
+                    })()}
+                    
+                    {/* Otros campos de Facebook que no están en la lista principal */}
                     {Object.entries(selectedLead.facebook_cleaned_data).map(([key, value]) => {
-                      // Skip metadata fields
+                      // Skip metadata y campos ya mostrados
                       if (key.startsWith('_')) return null;
+                      
+                      // Lista de campos principales (incluyendo variantes con guiones bajos mal formateados)
+                      const mainFields = [
+                        'fullname', 'firstname', 'lastname', 'email', 'phone', 'prefijo', 
+                        'pais_salesforce', 'state', 'proyecto_de_interes', 'servicio_de_interes',
+                        'servicio_de_inter_s', 'proyecto_de_inter_s', // Variantes mal formateadas de Facebook
+                        'Ubicacion__c', 'Ubicacion_c' // Variantes de ubicación
+                      ];
+                      
+                      if (mainFields.includes(key)) return null;
                       
                       return (
                         <div key={key} className="flex justify-between items-start py-2 border-b border-gray-200 last:border-0">
                           <dt className="text-gray-600 font-medium text-sm capitalize">{key.replace(/_/g, ' ')}</dt>
-                          <dd className="text-gray-900 text-sm text-right max-w-[60%]">
+                          <dd className="text-gray-900 text-sm text-right max-w-[60%] break-words">
                             {Array.isArray(value) ? value.join(', ') : String(value)}
                           </dd>
                         </div>
                       );
                     })}
+                    
+                    {/* Campos adicionales de IA */}
+                    {selectedLead.ai_enriched_data?.description && (
+                      <div className="mt-4 pt-4 border-t border-gray-300">
+                        <dt className="text-gray-700 font-medium text-sm mb-2">Información Adicional</dt>
+                        <dd className="text-gray-600 text-xs bg-white p-3 rounded border border-gray-200">
+                          {selectedLead.ai_enriched_data.description}
+                        </dd>
+                      </div>
+                    )}
+                    
+                    {selectedLead.ai_processed_at && (
+                      <div className="mt-3 pt-3 border-t border-gray-300 text-xs text-gray-500">
+                        Enriquecido con IA el {new Date(selectedLead.ai_processed_at).toLocaleString('es-ES')}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

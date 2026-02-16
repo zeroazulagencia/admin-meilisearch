@@ -6,7 +6,6 @@ import {
   selectRandomOwner,
   getSalesforceProjects,
   selectValidProject,
-  createSalesforceOpportunity,
 } from './salesforce';
 
 // Orquestador principal del flujo completo

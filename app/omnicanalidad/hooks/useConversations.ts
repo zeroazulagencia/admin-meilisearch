@@ -286,9 +286,15 @@ export function useConversations(): UseConversationsReturn {
   }, [selectedAgentName, checkForUpdates]);
 
   // Cargar conversaciones cuando cambia el agente
+  // Limpiar conversaciones y mensajes cuando no hay agente seleccionado
   useEffect(() => {
     if (selectedAgentName && readByRef.current) {
       loadConversations();
+    } else {
+      // Limpiar conversaciones y mensajes cuando no hay agente seleccionado
+      setConversations([]);
+      setMessages([]);
+      setSelectedConversation(null);
     }
   }, [selectedAgentName, loadConversations]);
 
