@@ -894,7 +894,7 @@ export default function LogLeadsSUVI() {
                       <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${
                         selectedLead.salesforce_opportunity_id
                           ? 'bg-green-100 border-green-500'
-                          : selectedLead.processing_status === 'error' && selectedLead.error_step?.includes('Salesforce')
+                          : selectedLead.processing_status === 'error' && selectedLead.current_step?.includes('Salesforce')
                           ? 'bg-red-100 border-red-500'
                           : 'bg-gray-100 border-gray-300'
                       }`}>
@@ -902,7 +902,7 @@ export default function LogLeadsSUVI() {
                           <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                        ) : selectedLead.processing_status === 'error' && selectedLead.error_step?.includes('Salesforce') ? (
+                        ) : selectedLead.processing_status === 'error' && selectedLead.current_step?.includes('Salesforce') ? (
                           <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
@@ -914,7 +914,7 @@ export default function LogLeadsSUVI() {
                     <div className="flex-1">
                       <h4 className={`font-semibold ${
                         selectedLead.salesforce_opportunity_id ? 'text-green-600' : 
-                        selectedLead.processing_status === 'error' && selectedLead.error_step?.includes('Salesforce') ? 'text-red-600' :
+                        selectedLead.processing_status === 'error' && selectedLead.current_step?.includes('Salesforce') ? 'text-red-600' :
                         selectedLead.ai_enriched_data ? 'text-gray-900' : 'text-gray-400'
                       }`}>
                         4. Envío a Salesforce
@@ -948,9 +948,6 @@ export default function LogLeadsSUVI() {
                                 <div className="flex-1">
                                   <strong className="text-green-900">Cuenta:</strong>{' '}
                                   <span className="text-green-800">{selectedLead.salesforce_account_name}</span>
-                                  {selectedLead.salesforce_account_id && (
-                                    <div className="text-xs text-green-600 mt-0.5">ID: {selectedLead.salesforce_account_id}</div>
-                                  )}
                                 </div>
                               </div>
                             )}
