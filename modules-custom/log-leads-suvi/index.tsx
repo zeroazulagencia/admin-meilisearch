@@ -938,8 +938,46 @@ export default function LogLeadsSUVI() {
                         </div>
                       )}
                       
-                      {/* Resultado final: Cuenta y Oportunidad creadas */}
-                      {(selectedLead.salesforce_account_name || selectedLead.salesforce_opportunity_id) && (
+                      {/* Botón para procesar en Salesforce */}
+                      {selectedLead.ai_enriched_data && salesforceStatus?.has_active_tokens && (
+                        <button
+                          onClick={() => processSalesforce(selectedLead.id)}
+                          disabled={processingSalesforce}
+                          className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#4BC5C9] text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {processingSalesforce ? 'Procesando...' : (selectedLead.salesforce_opportunity_id ? 'Reprocesar en Salesforce' : 'Procesar en Salesforce')}
+                        </button>
+                      )}
+                      
+                      {/* Error de Salesforce con formato amigable */}
+                      {salesforceError && (
+                        <ErrorDisplay error={translateSalesforceError(salesforceError)} />
+                      )}
+                      
+                      {/* Resultado de procesamiento manual (cuando se hace clic en el botón) */}
+                      {salesforceResult && (
+                        <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="text-sm space-y-1">
+                            <div className="flex items-start gap-2">
+                              <span className="text-green-600 flex-shrink-0 mt-0.5">✓</span>
+                              <div className="flex-1">
+                                <strong className="text-green-900">Cuenta:</strong>{' '}
+                                <span className="text-green-800">{salesforceResult.accountAction === 'created' ? 'Creada' : 'Actualizada'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <span className="text-green-600 flex-shrink-0 mt-0.5">✓</span>
+                              <div className="flex-1">
+                                <strong className="text-green-900">Oportunidad:</strong>{' '}
+                                <span className="text-green-800">{salesforceResult.opportunityAction === 'created' ? 'Creada' : 'Actualizada'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Resultado final del lead ya procesado (desde la base de datos) */}
+                      {!salesforceResult && (selectedLead.salesforce_account_name || selectedLead.salesforce_opportunity_id) && (
                         <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
                           <div className="text-sm space-y-1">
                             {selectedLead.salesforce_account_name && (
@@ -961,42 +999,6 @@ export default function LogLeadsSUVI() {
                               </div>
                             )}
                           </div>
-                        </div>
-                      )}
-                      
-                      {/* Botón para procesar en Salesforce */}
-                      {selectedLead.ai_enriched_data && salesforceStatus?.has_active_tokens && (
-                        <button
-                          onClick={() => processSalesforce(selectedLead.id)}
-                          disabled={processingSalesforce}
-                          className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#4BC5C9] text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {processingSalesforce ? 'Procesando...' : (selectedLead.salesforce_opportunity_id ? 'Reprocesar en Salesforce' : 'Procesar en Salesforce')}
-                        </button>
-                      )}
-                      
-                      {/* Error de Salesforce con formato amigable */}
-                      {salesforceError && (
-                        <ErrorDisplay error={translateSalesforceError(salesforceError)} />
-                      )}
-                      
-                      {salesforceResult && (
-                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
-                          <p className="text-green-700">
-                            <span className="font-medium">Cuenta:</span> {salesforceResult.accountAction === 'created' ? 'Creada' : 'Actualizada'}
-                          </p>
-                          <p className="text-green-700">
-                            <span className="font-medium">Oportunidad:</span> {salesforceResult.opportunityAction === 'created' ? 'Creada' : 'Actualizada'}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {selectedLead.salesforce_account_name && (
-                        <div className="mt-2 text-xs text-gray-600">
-                          <div><span className="font-medium">Cuenta:</span> {selectedLead.salesforce_account_name}</div>
-                          {selectedLead.salesforce_opportunity_id && (
-                            <div><span className="font-medium">Oportunidad:</span> {selectedLead.salesforce_opportunity_id}</div>
-                          )}
                         </div>
                       )}
                     </div>
