@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
     // Obtener datos del lead
     const [rows]: any = await pool.query(
       `SELECT id, leadgen_id, form_id, campaign_name, ad_name, 
-              ai_enriched_data, campaign_type, opportunity_type_id 
+              ai_enriched_data, campaign_type, opportunity_type_id,
+              salesforce_opportunity_id, salesforce_account_id
        FROM modulos_suvi_12_leads WHERE id = ?`,
       [leadId]
     );
@@ -113,7 +114,8 @@ export async function POST(req: NextRequest) {
       lead.campaign_type || 'Pauta Agencia',
       lead.opportunity_type_id || '',
       campaignInfo,
-      leadId
+      leadId,
+      lead.salesforce_opportunity_id || null  // Pasar el ID existente si hay
     );
 
     console.log(`[PROCESS-SALESFORCE] Oportunidad procesada:`, opportunity.id, 'wasCreated:', opportunity.wasCreated);

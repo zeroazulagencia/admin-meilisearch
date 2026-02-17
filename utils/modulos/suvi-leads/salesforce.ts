@@ -226,13 +226,22 @@ export async function upsertSalesforceOpportunity(
   origen: string,
   opportunityTypeId: string,
   campaignInfo: string,
-  leadId: number
+  leadId: number,
+  existingOpportunityId: string | null = null  // Nuevo parámetro opcional
 ) {
   try {
-    // Buscar si existe oportunidad para esta cuenta + proyecto + mes actual
-    const existingOpportunity = await findExistingOpportunity(accountId, projectId, leadId);
+    // Prioridad 1: Si el lead ya tiene un opportunity_id en BD, actualizar esa
+    let opportunityIdToUpdate = existingOpportunityId;
     
-    const isUpdate = !!existingOpportunity;
+    // Prioridad 2: Si no tiene ID en BD, buscar si existe otra oportunidad del mismo proyecto/mes
+    if (!opportunityIdToUpdate) {
+      const existingOpportunity = await findExistingOpportunity(accountId, projectId, leadId);
+      if (existingOpportunity) {
+        opportunityIdToUpdate = existingOpportunity.Id;
+      }
+    }
+    
+    const isUpdate = !!opportunityIdToUpdate;
     
     await updateLeadLog(leadId, {
       processing_status: 'creando_oportunidad',
@@ -266,7 +275,7 @@ export async function upsertSalesforceOpportunity(
     if (isUpdate) {
       // Actualizar oportunidad existente
       response = await fetch(
-        `${instanceUrl}/services/data/v60.0/sobjects/Opportunity/${existingOpportunity.Id}`,
+        `${instanceUrl}/services/data/v60.0/sobjects/Opportunity/${opportunityIdToUpdate}`,
         {
           method: 'PATCH',
           headers: {
@@ -335,7 +344,7 @@ export async function upsertSalesforceOpportunity(
     
     if (isUpdate) {
       // En PATCH, Salesforce retorna 204 sin body
-      opportunityId = existingOpportunity.Id;
+      opportunityId = opportunityIdToUpdate;
     } else {
       // En POST, Salesforce retorna el objeto creado
       const result = await response.json();
