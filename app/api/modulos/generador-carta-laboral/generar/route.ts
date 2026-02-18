@@ -5,7 +5,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 
-const CARTAS_DIR = join(process.cwd(), 'cartas-pdf', 'autolarte');
+const CARTAS_DIR = join(process.cwd(), 'cartas-pdf', 'generador-carta-laboral');
 
 async function getConfig(): Promise<Record<string, string>> {
   const [rows] = await query<any>('SELECT config_key, config_value FROM modulos_lucas_9_config');
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
     );
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://workers.zeroazul.com';
-    const pdfUrl = `${baseUrl}/api/modulos/carta-laboral/pdf?token=${pdfToken}`;
+    const pdfUrl = `${baseUrl}/api/modulos/generador-carta-laboral/pdf?token=${pdfToken}`;
 
     return NextResponse.json({
       status: 'ok',

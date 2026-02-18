@@ -3,7 +3,7 @@ import { query } from '@/utils/db';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-const CARTAS_DIR = join(process.cwd(), 'cartas-pdf', 'autolarte');
+const CARTAS_DIR = join(process.cwd(), 'cartas-pdf', 'generador-carta-laboral');
 
 export async function GET(req: NextRequest) {
   const token = new URL(req.url).searchParams.get('token');

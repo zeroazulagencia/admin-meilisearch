@@ -224,18 +224,40 @@ CREATE TABLE modulos_{agent}_{id}_config (
 
 ### Reglas
 
-- ✅ Tablas propias del módulo, sin foreign keys al sistema base
-- ✅ Migraciones SQL en `/database/`
-- ✅ El módulo accede a su BD solo a través de APIs externas o endpoints propios
-- ❌ No acceder directamente a tablas del sistema (`clients`, `agents`, `modules`)
+- Tablas propias del modulo, sin foreign keys al sistema base
+- Migraciones SQL en `/database/`
+- El modulo accede a su BD solo a traves de sus API routes en `app/api/modulos/{folder_name}/`
+- No acceder directamente a tablas del sistema (`clients`, `agents`, `modules`)
 
-## 🔒 Seguridad
+## APIs del Modulo — Regla de Namespace
 
-- Los módulos corren en el contexto del cliente (navegador)
+Cuando un modulo necesita API routes propias (para acceder a la BD, generar archivos, etc.)
+estas DEBEN vivir en `app/api/modulos/{folder_name}/` usando exactamente el mismo `folder_name`
+que la carpeta del modulo en `modules-custom/`.
+
+```
+modules-custom/generador-carta-laboral/   <- folder_name del modulo
+app/api/modulos/generador-carta-laboral/  <- API routes (mismo slug, obligatorio)
+cartas-pdf/generador-carta-laboral/       <- archivos generados (mismo slug, obligatorio)
+```
+
+Usar un alias corto o inventado (ej: `carta-laboral` en lugar de `generador-carta-laboral`)
+esta PROHIBIDO. Causa colisiones si en el futuro existe otro modulo con nombre similar.
+
+El `folder_name` es el identificador unico del modulo en todo el sistema. Usarlo en todos
+los namespaces garantiza que cada modulo sea completamente independiente.
+
+> Excepcion legacy: `log-leads-suvi` tiene sus APIs en `app/api/modulos/suvi-leads/` —
+> esto es anterior a esta regla y no debe cambiarse. Todos los modulos nuevos deben
+> seguir la convencion de arriba.
+
+## Seguridad
+
+- Los modulos corren en el contexto del cliente (navegador)
 - No tienen acceso al backend ni a la BD directamente
-- Solo pueden comunicarse con APIs externas públicas
-- El sistema principal está protegido del código de los módulos
+- Solo pueden comunicarse con sus propias API routes o APIs externas
+- El sistema principal esta protegido del codigo de los modulos
 
 ---
 
-**Desarrollado por DWORKERS** 🚀
+**Desarrollado por DWORKERS**

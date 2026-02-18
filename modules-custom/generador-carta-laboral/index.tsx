@@ -31,7 +31,7 @@ interface Config {
   sigha_nit_cliente: string;
 }
 
-const BASE = '/api/modulos/carta-laboral';
+const BASE = '/api/modulos/generador-carta-laboral';
 
 function tokenExpirado(expires: string | null): boolean {
   if (!expires) return true;
@@ -385,13 +385,13 @@ export default function GeneradorCartaLaboral({ moduleData }: { moduleData?: any
 
           <div>
             <p className="text-sm font-semibold text-gray-700 mb-2">
-              POST /api/modulos/carta-laboral/generar
+              POST /api/modulos/generador-carta-laboral/generar
             </p>
             <p className="text-sm text-gray-500 mb-2">
               Genera una carta laboral para el empleado con la cedula indicada. Retorna la URL temporal del PDF (valida 48 horas).
             </p>
             <pre className="bg-gray-900 text-green-400 text-xs rounded-lg px-4 py-3 overflow-x-auto font-mono whitespace-pre">
-{`curl -X POST https://workers.zeroazul.com/api/modulos/carta-laboral/generar \\
+{`curl -X POST https://workers.zeroazul.com/api/modulos/generador-carta-laboral/generar \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: ${apiKey || 'TU_API_KEY'}" \\
   -d '{"nit": "71317374"}'`}
@@ -403,7 +403,7 @@ export default function GeneradorCartaLaboral({ moduleData }: { moduleData?: any
   "nombre_completo": "JUAN DAVID BALLESTEROS TORRES",
   "nit_consultado": "71317374",
   "mail": "jballesteros@empresa.com",
-  "pdf_url": "https://workers.zeroazul.com/api/modulos/carta-laboral/pdf?token=abc123...",
+  "pdf_url": "https://workers.zeroazul.com/api/modulos/generador-carta-laboral/pdf?token=abc123...",
   "pdf_token": "abc123...",
   "pdf_token_expires_at": "2025-01-20 14:30:00"
 }`}
@@ -412,42 +412,42 @@ export default function GeneradorCartaLaboral({ moduleData }: { moduleData?: any
 
           <div>
             <p className="text-sm font-semibold text-gray-700 mb-2">
-              GET /api/modulos/carta-laboral/pdf?token=TOKEN
+              GET /api/modulos/generador-carta-laboral/pdf?token=TOKEN
             </p>
             <p className="text-sm text-gray-500 mb-2">
               Sirve el PDF de la carta especifica vinculada al token. El token expira en 48 horas desde la generacion. Cada generacion produce un token distinto que apunta a ese archivo especifico.
             </p>
             <pre className="bg-gray-900 text-green-400 text-xs rounded-lg px-4 py-3 overflow-x-auto font-mono whitespace-pre">
 {`curl -o carta.pdf \\
-  "https://workers.zeroazul.com/api/modulos/carta-laboral/pdf?token=abc123..."`}
+  "https://workers.zeroazul.com/api/modulos/generador-carta-laboral/pdf?token=abc123..."`}
             </pre>
           </div>
 
           <div>
             <p className="text-sm font-semibold text-gray-700 mb-2">
-              GET /api/modulos/carta-laboral/historial
+              GET /api/modulos/generador-carta-laboral/historial
             </p>
             <p className="text-sm text-gray-500 mb-2">
               Lista el historial de cartas generadas con paginacion.
             </p>
             <pre className="bg-gray-900 text-green-400 text-xs rounded-lg px-4 py-3 overflow-x-auto font-mono whitespace-pre">
-{`curl "https://workers.zeroazul.com/api/modulos/carta-laboral/historial?page=1&limit=20"`}
+{`curl "https://workers.zeroazul.com/api/modulos/generador-carta-laboral/historial?page=1&limit=20"`}
             </pre>
           </div>
 
           <div>
             <p className="text-sm font-semibold text-gray-700 mb-2">
-              GET/PUT /api/modulos/carta-laboral/config
+              GET/PUT /api/modulos/generador-carta-laboral/config
             </p>
             <p className="text-sm text-gray-500 mb-2">
               Retorna la API key y todos los campos editables. PUT actualiza uno o mas campos.
             </p>
             <pre className="bg-gray-900 text-green-400 text-xs rounded-lg px-4 py-3 overflow-x-auto font-mono whitespace-pre">
 {`# Leer configuracion
-curl "https://workers.zeroazul.com/api/modulos/carta-laboral/config"
+curl "https://workers.zeroazul.com/api/modulos/generador-carta-laboral/config"
 
 # Actualizar campo
-curl -X PUT "https://workers.zeroazul.com/api/modulos/carta-laboral/config" \\
+curl -X PUT "https://workers.zeroazul.com/api/modulos/generador-carta-laboral/config" \\
   -H "Content-Type: application/json" \\
   -d '{"firma_nombre": "Nuevo Firmante", "empresa_ciudad": "Bogota"}'`}
             </pre>
@@ -464,13 +464,13 @@ curl -X PUT "https://workers.zeroazul.com/api/modulos/carta-laboral/config" \\
 |   |-- config.json          # Metadata del modulo (id, nombre, agente, cliente)
 |   +-- index.tsx            # UI del modulo (cargada dinamicamente en /modulos/3)
 |
-|-- app/api/modulos/carta-laboral/
+|-- app/api/modulos/generador-carta-laboral/
 |   |-- generar/route.ts     # POST: auth sigha -> datos empleado -> PDF -> DB log
 |   |-- pdf/route.ts         # GET ?token=TOKEN: sirve PDF con validacion de expiracion
 |   |-- historial/route.ts   # GET: lista cartas de modulos_lucas_9_cartas
 |   +-- config/route.ts      # GET: api_key + config | PUT: actualiza config en DB
 |
-|-- cartas-pdf/autolarte/
+|-- cartas-pdf/generador-carta-laboral/
 |   +-- {cedula}_{id}.pdf    # PDFs generados (fuera del build, persisten entre deploys)
 |
 +-- database/

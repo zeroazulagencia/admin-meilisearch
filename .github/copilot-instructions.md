@@ -168,6 +168,18 @@ if (permissions?.type !== 'admin') {
 - Component receives `moduleData` prop with metadata
 - **No direct DB access** from modules (use external APIs)
 
+**CRITICAL — Module API path MUST match folder_name exactly:**
+```
+modules-custom/generador-carta-laboral/   ← folder_name = "generador-carta-laboral"
+app/api/modulos/generador-carta-laboral/  ← API routes MUST use the same slug
+cartas-pdf/generador-carta-laboral/       ← file storage MUST use the same slug
+```
+Using any other name (e.g., a shortened alias like `carta-laboral`) is NOT allowed.
+It will cause namespace collisions if two modules share similar names.
+
+> **Legacy exception:** `log-leads-suvi` uses `suvi-leads` as API path — this predates the rule
+> and is not to be changed. All new modules must follow the convention above.
+
 ## Important Files
 
 - `AGENTS.md` - Agent development rules (always follow)
