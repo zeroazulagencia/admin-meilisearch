@@ -491,6 +491,13 @@ export default function LogLeadsSUVI() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ leadId: lead.id })
             });
+            
+            // Verificar si la respuesta es OK antes de parsear JSON
+            if (!metaRes.ok) {
+              const errorText = await metaRes.text();
+              throw new Error(`META (${metaRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+            }
+            
             const metaData = await metaRes.json();
             if (!metaData.ok) throw new Error(`META: ${metaData.error}`);
             
@@ -506,6 +513,13 @@ export default function LogLeadsSUVI() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ leadId: lead.id })
             });
+            
+            // Verificar si la respuesta es OK antes de parsear JSON
+            if (!aiRes.ok) {
+              const errorText = await aiRes.text();
+              throw new Error(`IA (${aiRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+            }
+            
             const aiData = await aiRes.json();
             if (!aiData.ok) throw new Error(`IA: ${aiData.error}`);
             
@@ -520,6 +534,13 @@ export default function LogLeadsSUVI() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ leadId: lead.id })
             });
+            
+            // Verificar si la respuesta es OK antes de parsear JSON
+            if (!sfRes.ok) {
+              const errorText = await sfRes.text();
+              throw new Error(`Salesforce (${sfRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+            }
+            
             const sfData = await sfRes.json();
             if (!sfData.ok) throw new Error(`Salesforce: ${sfData.error}`);
           }
