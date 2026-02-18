@@ -13,7 +13,7 @@ interface Carta {
   created_at: string;
 }
 
-const BASE = '/api/module-api/3';
+const BASE = '/api/modulos/carta-laboral';
 
 export default function GeneradorCartaLaboral({ moduleData }: { moduleData?: any }) {
   const [nit, setNit] = useState('');

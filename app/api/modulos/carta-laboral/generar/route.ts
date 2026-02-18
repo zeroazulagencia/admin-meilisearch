@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
       [nombreCompleto, nit, contrato.desc_cargo, contrato.salario_mes, contrato.tipo_contrato, contrato.fecha_ingreso]
     );
 
-    const pdfUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://workers.zeroazul.com'}/api/module-api/3/pdf?nit=${nit}`;
+    const pdfUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://workers.zeroazul.com'}/api/modulos/carta-laboral/pdf?nit=${nit}`;
 
     return NextResponse.json({
       status: 'ok',
