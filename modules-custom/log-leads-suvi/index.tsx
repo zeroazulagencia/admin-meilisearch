@@ -46,7 +46,7 @@ interface SalesforceStatus {
 
 const STATUS_COLORS: Record<string, string> = {
   'recibido': 'bg-blue-100 text-blue-800',
-  'consultando_facebook': 'bg-purple-100 text-purple-800',
+  'consultando_facebook': 'bg-secondary-light text-secondary-dark',
   'limpiando_datos': 'bg-indigo-100 text-indigo-800',
   'enriqueciendo_ia': 'bg-cyan-100 text-cyan-800',
   'clasificando': 'bg-teal-100 text-teal-800',
@@ -792,7 +792,7 @@ export default function LogLeadsSUVI() {
         <div className="flex items-center justify-between gap-6">
           {/* Salesforce Status - Compacto */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
@@ -825,7 +825,7 @@ export default function LogLeadsSUVI() {
                       </span>
                       <button
                         onClick={connectSalesforce}
-                        className="px-3 py-1 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors text-xs font-semibold ml-2"
+                        className="px-3 py-1 bg-primary text-gray-900 rounded-lg hover:bg-primary-dark transition-colors text-xs font-semibold ml-2"
                       >
                         Conectar
                       </button>
@@ -874,7 +874,7 @@ export default function LogLeadsSUVI() {
               
               <div className="flex flex-col items-center">
                 <span className="text-xs text-gray-600 font-medium">Tiempo Prom.</span>
-                <span className="text-2xl font-bold text-[#5DE1E5]">
+                <span className="text-2xl font-bold text-primary">
                   {formatTime(Math.round(stats.avg_time || 0))}
                 </span>
               </div>
@@ -889,12 +889,12 @@ export default function LogLeadsSUVI() {
           <input
             type="text"
             placeholder="Buscar por ID, form, cuenta..."
-            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           />
           <select
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
@@ -906,14 +906,14 @@ export default function LogLeadsSUVI() {
           </select>
           <button
             onClick={loadLeads}
-            className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold"
+            className="px-4 py-2 text-sm bg-primary text-gray-900 rounded-lg hover:bg-primary-dark transition-colors font-semibold"
           >
             Actualizar
           </button>
           <button
             onClick={processAllIncomplete}
             disabled={batchProcessing || !salesforceStatus?.has_active_tokens}
-            className="px-4 py-2 text-sm bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 text-sm bg-gradient-to-r from-secondary to-primary text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             title={!salesforceStatus?.has_active_tokens ? 'Conecta Salesforce primero' : 'Procesar todos los leads incompletos'}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -928,7 +928,7 @@ export default function LogLeadsSUVI() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+            <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: "#5DE1E5" }}></div>
           </div>
         ) : leads.length === 0 ? (
           <div className="text-center py-12">
@@ -939,42 +939,51 @@ export default function LogLeadsSUVI() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID Facebook</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Form ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuenta SF</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Recibido</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tiempo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID Facebook</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Form ID</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Teléfono</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cuenta SF</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Recibido</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {leads.map((lead) => (
                   <tr key={lead.id} className="hover:bg-gray-50 transition">
-                    <td className="px-4 py-3 text-sm font-mono text-gray-900">
-                      {lead.leadgen_id.substring(0, 15)}...
+                    <td className="px-2 py-2 text-xs font-mono text-gray-900">
+                      {lead.leadgen_id}
                     </td>
-                    <td className="px-4 py-3 text-sm font-mono text-gray-600">
-                      {lead.form_id ? lead.form_id.substring(0, 12) + '...' : '-'}
+                    <td className="px-2 py-2 text-xs font-mono text-gray-600">
+                      {lead.form_id || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-2 py-2 text-xs text-gray-700">
+                      {(() => {
+                        try {
+                          const enrichedData = typeof lead.ai_enriched_data === 'string' 
+                            ? JSON.parse(lead.ai_enriched_data) 
+                            : lead.ai_enriched_data;
+                          return enrichedData?.phone || '-';
+                        } catch {
+                          return '-';
+                        }
+                      })()}
+                    </td>
+                    <td className="px-2 py-2 text-xs">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[lead.processing_status] || 'bg-gray-100 text-gray-800'}`}>
                         {STATUS_LABELS[lead.processing_status] || lead.processing_status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
+                    <td className="px-2 py-2 text-xs text-gray-900">
                       {lead.salesforce_account_name || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-2 py-2 text-xs text-gray-500">
                       {formatDate(lead.received_at)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {formatTime(lead.processing_time_seconds)}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-2 py-2 text-xs">
                       <button
                         onClick={() => viewDetail(lead.id)}
-                        className="text-[#5DE1E5] hover:text-[#4BC5C9] font-medium"
+                        className="text-primary hover:text-primary-dark font-medium"
                       >
                         Ver detalle
                       </button>
@@ -1019,7 +1028,7 @@ export default function LogLeadsSUVI() {
       {showDetail && selectedLead && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-[#5DE1E5] text-gray-900 p-6 rounded-t-xl">
+            <div className="sticky top-0 bg-primary text-gray-900 p-6 rounded-t-xl">
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold mb-1">Detalle del Lead</h2>
@@ -1131,7 +1140,7 @@ export default function LogLeadsSUVI() {
                         <button
                           onClick={() => consultMeta(selectedLead.id)}
                           disabled={consultingMeta}
-                          className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#4BC5C9] text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-3 px-4 py-2 bg-primary hover:bg-primary-dark text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {consultingMeta ? '⏳ Consultando...' : '▶️ Consultar en META'}
                         </button>
@@ -1184,7 +1193,7 @@ export default function LogLeadsSUVI() {
                           <button
                             onClick={() => processAI(selectedLead.id)}
                             disabled={processingAI}
-                            className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#4BC5C9] text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="mt-3 px-4 py-2 bg-primary hover:bg-primary-dark text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {processingAI ? 'Procesando...' : 'Procesar con IA'}
                           </button>
@@ -1254,7 +1263,7 @@ export default function LogLeadsSUVI() {
                         <button
                           onClick={() => processSalesforce(selectedLead.id)}
                           disabled={processingSalesforce}
-                          className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#4BC5C9] text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-3 px-4 py-2 bg-primary hover:bg-primary-dark text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {processingSalesforce ? 'Procesando...' : (selectedLead.salesforce_opportunity_id ? 'Reprocesar en Salesforce' : 'Procesar en Salesforce')}
                         </button>
@@ -1270,14 +1279,14 @@ export default function LogLeadsSUVI() {
                         <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
                           <div className="text-sm space-y-1">
                             <div className="flex items-start gap-2">
-                              <span className="text-green-600 flex-shrink-0 mt-0.5">✓</span>
+                              <span className="text-green-600 flex-shrink-0 mt-0.5"></span>
                               <div className="flex-1">
                                 <strong className="text-green-900">Cuenta:</strong>{' '}
                                 <span className="text-green-800">{salesforceResult.accountAction === 'created' ? 'Creada' : 'Actualizada'}</span>
                               </div>
                             </div>
                             <div className="flex items-start gap-2">
-                              <span className="text-green-600 flex-shrink-0 mt-0.5">✓</span>
+                              <span className="text-green-600 flex-shrink-0 mt-0.5"></span>
                               <div className="flex-1">
                                 <strong className="text-green-900">Oportunidad:</strong>{' '}
                                 <span className="text-green-800">{salesforceResult.opportunityAction === 'created' ? 'Creada' : 'Actualizada'}</span>
@@ -1293,7 +1302,7 @@ export default function LogLeadsSUVI() {
                           <div className="text-sm space-y-1">
                             {selectedLead.salesforce_account_name && (
                               <div className="flex items-start gap-2">
-                                <span className="text-green-600 flex-shrink-0 mt-0.5">✓</span>
+                                <span className="text-green-600 flex-shrink-0 mt-0.5"></span>
                                 <div className="flex-1">
                                   <strong className="text-green-900">Cuenta:</strong>{' '}
                                   <span className="text-green-800">{selectedLead.salesforce_account_name}</span>
@@ -1302,7 +1311,7 @@ export default function LogLeadsSUVI() {
                             )}
                             {selectedLead.salesforce_opportunity_id && (
                               <div className="flex items-start gap-2">
-                                <span className="text-green-600 flex-shrink-0 mt-0.5">✓</span>
+                                <span className="text-green-600 flex-shrink-0 mt-0.5"></span>
                                 <div className="flex-1">
                                   <strong className="text-green-900">Oportunidad:</strong>{' '}
                                   <span className="text-green-800">{selectedLead.salesforce_opportunity_id}</span>
@@ -1323,7 +1332,7 @@ export default function LogLeadsSUVI() {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-gray-900">Datos del Lead</h3>
                     {selectedLead.ai_enriched_data && (
-                      <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                      <span className="px-2 py-1 bg-secondary-light text-secondary-dark text-xs font-medium rounded">
                         Enriquecido con IA
                       </span>
                     )}
@@ -1374,11 +1383,11 @@ export default function LogLeadsSUVI() {
                         // DEBUG: Log detallado para cada campo
                         
                         return (
-                          <div key={key} className={`flex justify-between items-start py-2 border-b border-gray-200 last:border-0 ${wasEnriched ? 'bg-purple-50 px-2 rounded' : ''}`}>
+                          <div key={key} className={`flex justify-between items-start py-2 border-b border-gray-200 last:border-0 ${wasEnriched ? 'bg-secondary-light px-2 rounded' : ''}`}>
                             <dt className="text-gray-700 font-medium text-sm flex items-center gap-2">
                               {label}
                               {wasEnriched && (
-                                <span className="text-xs text-purple-600 font-normal">(Corregido por IA)</span>
+                                <span className="text-xs text-secondary font-normal">(Corregido por IA)</span>
                               )}
                             </dt>
                             <dd className="text-gray-900 text-sm text-right max-w-[60%] break-words">
@@ -1442,11 +1451,11 @@ export default function LogLeadsSUVI() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-6 text-white">
+            <div className="bg-gradient-to-r from-secondary to-primary p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">Procesamiento en Lote</h2>
-                  <p className="text-purple-100 text-sm mt-1">
+                  <p className="text-white text-sm mt-1">
                     {batchProcessing ? 'Procesando leads incompletos...' : 'Procesamiento finalizado'}
                   </p>
                 </div>
@@ -1470,12 +1479,12 @@ export default function LogLeadsSUVI() {
                   Progreso: {batchProgress.current} / {batchProgress.total}
                 </span>
                 <span className="text-sm text-gray-600">
-                  ✅ {batchProgress.processed} | ❌ {batchProgress.errors}
+                  OK: {batchProgress.processed} | ERR: {batchProgress.errors}
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 h-full transition-all duration-300 rounded-full"
+                  className="bg-gradient-to-r from-secondary to-primary h-full transition-all duration-300 rounded-full"
                   style={{ width: `${batchProgress.total > 0 ? (batchProgress.current / batchProgress.total) * 100 : 0}%` }}
                 ></div>
               </div>
@@ -1483,7 +1492,7 @@ export default function LogLeadsSUVI() {
               {batchProcessing && batchProgress.currentStep && (
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center gap-3 text-sm">
-                    <div className="animate-spin h-5 w-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                    <div className="animate-spin h-5 w-5 border-2 border-secondary border-t-transparent rounded-full"></div>
                     <span className="text-gray-700">{batchProgress.currentStep}</span>
                   </div>
                   <button
@@ -1545,7 +1554,7 @@ export default function LogLeadsSUVI() {
               <div className="p-6 border-t bg-gray-50">
                 <button
                   onClick={() => setShowBatchModal(false)}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-colors font-semibold"
+                  className="w-full px-4 py-3 bg-gradient-to-r from-secondary to-primary text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-colors font-semibold"
                 >
                   Cerrar
                 </button>
