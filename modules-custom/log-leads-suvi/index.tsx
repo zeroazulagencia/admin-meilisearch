@@ -471,6 +471,9 @@ export default function LogLeadsSUVI() {
         logs: []
       });
       
+      // Contador local de errores consecutivos (fuera del estado de React)
+      let consecutiveErrorCount = 0;
+      
       // Procesar cada lead
       for (let i = 0; i < leads.length; i++) {
         // Verificar si el usuario canceló
@@ -515,12 +518,16 @@ export default function LogLeadsSUVI() {
             if (!metaRes.ok) {
               const errorText = await metaRes.text();
               // Intentar parsear el error como JSON para obtener el mensaje real
+              let errorMessage = `META (${metaRes.status}): ${errorText}`;
               try {
                 const errorJson = JSON.parse(errorText);
-                throw new Error(`META: ${errorJson.error || errorText}`);
+                if (errorJson.error) {
+                  errorMessage = `META: ${errorJson.error}`;
+                }
               } catch (e) {
-                throw new Error(`META (${metaRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+                // Si falla el parse, usar el mensaje por defecto
               }
+              throw new Error(errorMessage);
             }
             
             const metaData = await metaRes.json();
@@ -543,12 +550,16 @@ export default function LogLeadsSUVI() {
             if (!aiRes.ok) {
               const errorText = await aiRes.text();
               // Intentar parsear el error como JSON para obtener el mensaje real
+              let errorMessage = `IA (${aiRes.status}): ${errorText}`;
               try {
                 const errorJson = JSON.parse(errorText);
-                throw new Error(`IA: ${errorJson.error || errorText}`);
+                if (errorJson.error) {
+                  errorMessage = `IA: ${errorJson.error}`;
+                }
               } catch (e) {
-                throw new Error(`IA (${aiRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+                // Si falla el parse, usar el mensaje por defecto
               }
+              throw new Error(errorMessage);
             }
             
             const aiData = await aiRes.json();
@@ -570,12 +581,16 @@ export default function LogLeadsSUVI() {
             if (!sfRes.ok) {
               const errorText = await sfRes.text();
               // Intentar parsear el error como JSON para obtener el mensaje real
+              let errorMessage = `Salesforce (${sfRes.status}): ${errorText}`;
               try {
                 const errorJson = JSON.parse(errorText);
-                throw new Error(`Salesforce: ${errorJson.error || errorText}`);
+                if (errorJson.error) {
+                  errorMessage = `Salesforce: ${errorJson.error}`;
+                }
               } catch (e) {
-                throw new Error(`Salesforce (${sfRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+                // Si falla el parse, usar el mensaje por defecto
               }
+              throw new Error(errorMessage);
             }
             
             const sfData = await sfRes.json();
@@ -583,10 +598,11 @@ export default function LogLeadsSUVI() {
           }
           
           // Éxito - resetear contador de errores consecutivos
+          consecutiveErrorCount = 0;
           setBatchProgress(prev => ({
             ...prev,
             processed: prev.processed + 1,
-            consecutiveErrors: 0, // Reset en éxito
+            consecutiveErrors: 0,
             logs: [...prev.logs, { 
               leadId: lead.leadgen_id, 
               status: 'success', 
@@ -596,23 +612,20 @@ export default function LogLeadsSUVI() {
           
         } catch (error: any) {
           // Error en este lead, registrar y continuar
-          let consecutiveErrors = 0;
-          setBatchProgress(prev => {
-            consecutiveErrors = prev.consecutiveErrors + 1;
-            return {
-              ...prev,
-              errors: prev.errors + 1,
-              consecutiveErrors: consecutiveErrors,
-              logs: [...prev.logs, { 
-                leadId: lead.leadgen_id, 
-                status: 'error', 
-                message: error.message || 'Error desconocido' 
-              }]
-            };
-          });
+          consecutiveErrorCount++;
+          setBatchProgress(prev => ({
+            ...prev,
+            errors: prev.errors + 1,
+            consecutiveErrors: consecutiveErrorCount,
+            logs: [...prev.logs, { 
+              leadId: lead.leadgen_id, 
+              status: 'error', 
+              message: error.message || 'Error desconocido' 
+            }]
+          }));
           
           // Detener si hay 5 errores consecutivos
-          if (consecutiveErrors >= 5) {
+          if (consecutiveErrorCount >= 5) {
             setBatchProgress(prev => ({
               ...prev,
               currentStep: 'Procesamiento detenido: 5 errores consecutivos',
