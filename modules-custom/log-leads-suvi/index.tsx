@@ -869,15 +869,6 @@ export default function LogLeadsSUVI() {
                 <span className="text-xs text-gray-600 font-medium">Errores</span>
                 <span className="text-2xl font-bold text-red-600">{stats.errores}</span>
               </div>
-              
-              <div className="h-10 w-px bg-gray-200"></div>
-              
-              <div className="flex flex-col items-center">
-                <span className="text-xs text-gray-600 font-medium">Tiempo Prom.</span>
-                <span className="text-2xl font-bold text-primary">
-                  {formatTime(Math.round(stats.avg_time || 0))}
-                </span>
-              </div>
             </div>
           )}
         </div>
@@ -913,7 +904,7 @@ export default function LogLeadsSUVI() {
           <button
             onClick={processAllIncomplete}
             disabled={batchProcessing || !salesforceStatus?.has_active_tokens}
-            className="px-4 py-2 text-sm bg-gradient-to-r from-secondary to-primary text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 text-sm bg-gradient-to-r from-secondary to-primary text-white rounded-lg hover:from-secondary-dark hover:to-primary-dark transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             title={!salesforceStatus?.has_active_tokens ? 'Conecta Salesforce primero' : 'Procesar todos los leads incompletos'}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1348,10 +1339,10 @@ export default function LogLeadsSUVI() {
                       // Campos a mostrar en orden
                       const fieldsToShow = [
                         { key: 'fullname', label: 'Nombre Completo', aiKey: 'fullname' },
+                        { key: 'phone', label: 'Teléfono', aiKey: 'phone' },
                         { key: 'firstname', label: 'Nombre', aiKey: 'firstname' },
                         { key: 'lastname', label: 'Apellido', aiKey: 'lastname' },
                         { key: 'email', label: 'Email', aiKey: 'email' },
-                        { key: 'phone', label: 'Teléfono', aiKey: 'phone' },
                         { key: 'prefijo', label: 'Prefijo Internacional', aiKey: 'prefijo' },
                         { key: 'pais_salesforce', label: 'País', aiKey: 'pais_salesforce' },
                         { key: 'state', label: 'Estado/Ciudad', aiKey: 'state' },
