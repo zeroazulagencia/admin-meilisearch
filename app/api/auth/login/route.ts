@@ -38,6 +38,9 @@ export async function POST(req: NextRequest) {
       console.error('[LOGIN API] Error parsing permissions:', parseError);
     }
 
+    // Agregar clientId a los permisos para filtrado
+    permissions.clientId = foundUser.id;
+
     // Validar permiso de login
     const canLogin = permissions?.canLogin !== false && permissions?.login !== false;
     if (!canLogin) {
