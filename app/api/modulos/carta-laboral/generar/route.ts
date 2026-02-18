@@ -3,6 +3,7 @@ import { query } from '@/utils/db';
 import { jsPDF } from 'jspdf';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
+import { randomUUID } from 'crypto';
 
 const CARTAS_DIR = join(process.cwd(), 'cartas-pdf', 'autolarte');
 
@@ -48,7 +49,7 @@ function formatearSalario(valor: number): string {
   return new Intl.NumberFormat('es-CO').format(valor);
 }
 
-async function generarPDF(empleado: any, nit: string, config: Record<string, string>): Promise<string> {
+async function generarPDF(empleado: any, nit: string, cartaId: number, config: Record<string, string>): Promise<string> {
   const personal = empleado.datos_personales;
   const contrato = empleado.contratos[0][Object.keys(empleado.contratos[0])[0]].datos_contrato;
 
@@ -128,41 +129,60 @@ async function generarPDF(empleado: any, nit: string, config: Record<string, str
   y += 7;
   doc.text('AUTOLARTE S.A.', margin, y);
 
-  // Guardar
+  // Guardar con nombre unico por generacion
   if (!existsSync(CARTAS_DIR)) mkdirSync(CARTAS_DIR, { recursive: true });
-  const filePath = join(CARTAS_DIR, `${nit}.pdf`);
+  const filename = `${nit}_${cartaId}.pdf`;
+  const filePath = join(CARTAS_DIR, filename);
   const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
   writeFileSync(filePath, pdfBuffer);
-  return filePath;
+  return filename;
 }
 
 export async function POST(req: NextRequest) {
   try {
+    // Verificar API key
+    const config = await getConfig();
+    const apiKey = req.headers.get('x-api-key');
+    if (!apiKey || apiKey !== config.api_key) {
+      return NextResponse.json({ status: 'error', message: 'No autorizado' }, { status: 401 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const nit = body.nit || new URL(req.url).searchParams.get('nit');
     if (!nit) return NextResponse.json({ status: 'error', message: 'El parametro nit es requerido' }, { status: 400 });
 
-    const config = await getConfig();
-    const token = await getSighaToken(config);
-    const empleado = await getEmpleado(config, token, nit);
+    const sighaToken = await getSighaToken(config);
+    const empleado = await getEmpleado(config, sighaToken, nit);
 
     const personal = empleado.datos_personales;
     const nombreCompleto = personal.nombre_completo;
     const email = personal.mail || '';
-
-    await generarPDF(empleado, nit, config);
-
-    // Log en DB
     const contrato = empleado.contratos[0][Object.keys(empleado.contratos[0])[0]].datos_contrato;
-    await query(
+
+    // Insertar registro primero para obtener ID
+    const [insertResult] = await query<any>(
       `INSERT INTO modulos_lucas_9_cartas 
         (empleado_nombre, empleado_cedula, empleado_cargo, empleado_salario, empleado_tipo_contrato, empleado_fecha_ingreso, carta_generada_por, estado, solicitado_via)
-       VALUES (?, ?, ?, ?, ?, ?, 'IA', 'generada', 'api')
-       ON DUPLICATE KEY UPDATE estado='generada', empleado_nombre=VALUES(empleado_nombre), updated_at=NOW()`,
+       VALUES (?, ?, ?, ?, ?, ?, 'IA', 'pendiente', 'api')`,
       [nombreCompleto, nit, contrato.desc_cargo, contrato.salario_mes, contrato.tipo_contrato, contrato.fecha_ingreso]
     );
+    const cartaId = (insertResult as any).insertId;
 
-    const pdfUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://workers.zeroazul.com'}/api/modulos/carta-laboral/pdf?nit=${nit}`;
+    // Generar PDF con nombre unico
+    const filename = await generarPDF(empleado, nit, cartaId, config);
+
+    // Generar token con expiracion de 48 horas
+    const pdfToken = randomUUID().replace(/-/g, '');
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    const expiresAtStr = expiresAt.toISOString().slice(0, 19).replace('T', ' ');
+
+    await query(
+      `UPDATE modulos_lucas_9_cartas SET estado='generada', pdf_filename=?, pdf_token=?, pdf_token_expires_at=? WHERE id=?`,
+      [filename, pdfToken, expiresAtStr, cartaId]
+    );
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://workers.zeroazul.com';
+    const pdfUrl = `${baseUrl}/api/modulos/carta-laboral/pdf?token=${pdfToken}`;
 
     return NextResponse.json({
       status: 'ok',
@@ -171,6 +191,8 @@ export async function POST(req: NextRequest) {
       nombre_completo: nombreCompleto,
       mail: email,
       pdf_url: pdfUrl,
+      pdf_token: pdfToken,
+      pdf_token_expires_at: expiresAtStr,
     });
   } catch (e: any) {
     return NextResponse.json({ status: 'error', message: e.message }, { status: 500 });

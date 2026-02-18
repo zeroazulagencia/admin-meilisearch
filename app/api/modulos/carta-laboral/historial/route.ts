@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
     const [rows] = await query<any>(
       `SELECT id, empleado_nombre, empleado_cedula, empleado_cargo, empleado_salario,
-              estado, solicitado_via, created_at
+              estado, solicitado_via, created_at, pdf_token, pdf_token_expires_at
        FROM modulos_lucas_9_cartas
        ORDER BY created_at DESC
        LIMIT ? OFFSET ?`,
