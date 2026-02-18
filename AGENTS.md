@@ -97,6 +97,7 @@ Estas reglas **siempre deben cumplirse**. No son sugerencias.
 - Usar solo lo definido en el template o tema base.
 - Agregar íconos **solo** cuando se indique.
 - No añadir elementos visuales adicionales.
+- **JAMÁS usar emojis en ningún lugar: código, UI, comentarios, logs ni documentación.**
 
 ### 6. Documentación
 - No crear archivos `.md` innecesarios.

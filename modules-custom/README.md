@@ -179,6 +179,56 @@ Ver módulo de ejemplo en: `modules-custom/ejemplo-dashboard/`
 4. **Abrir módulo** → Click en "Abrir Módulo" en el listado
 5. **Desarrollar** → Editar, guardar, ver cambios
 
+## 🗄️ Base de Datos — Aislamiento por Módulo
+
+Cada módulo que requiera persistencia de datos crea sus **propias tablas**, completamente independientes del sistema base. Esto garantiza que eliminar o desactivar un módulo no afecte otras partes del sistema.
+
+### Convención de Naming
+
+```
+modulos_{agent_name}_{agent_id}_{purpose}
+```
+
+**Ejemplos:**
+| Módulo | Tablas |
+|--------|--------|
+| Log Leads SUVI (agent: suvi, id: 12) | `modulos_suvi_12_leads`, `modulos_suvi_12_config` |
+| Generador Carta Laboral (agent: lucas, id: 9) | `modulos_lucas_9_cartas`, `modulos_lucas_9_config` |
+
+### Archivos de Migración
+
+Cada módulo tiene su propio archivo SQL en `/database/`:
+```
+database/migration_create_modulos_{agent}_{id}_{purpose}.sql
+```
+
+Para ejecutar una migración en el servidor:
+```bash
+mysql -u root admin_dworkers < database/migration_create_modulos_{agent}_{id}_{purpose}.sql
+```
+
+### Tabla `_config` estándar
+
+Todos los módulos que necesiten guardar credenciales o configuración usan esta estructura:
+```sql
+CREATE TABLE modulos_{agent}_{id}_config (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  config_key VARCHAR(100) UNIQUE NOT NULL,
+  config_value TEXT,
+  is_encrypted BOOLEAN DEFAULT FALSE,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+### Reglas
+
+- ✅ Tablas propias del módulo, sin foreign keys al sistema base
+- ✅ Migraciones SQL en `/database/`
+- ✅ El módulo accede a su BD solo a través de APIs externas o endpoints propios
+- ❌ No acceder directamente a tablas del sistema (`clients`, `agents`, `modules`)
+
 ## 🔒 Seguridad
 
 - Los módulos corren en el contexto del cliente (navegador)
