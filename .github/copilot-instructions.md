@@ -168,17 +168,26 @@ if (permissions?.type !== 'admin') {
 - Component receives `moduleData` prop with metadata
 - **No direct DB access** from modules (use external APIs)
 
-**CRITICAL — Module API path MUST match folder_name exactly:**
+**CRITICAL — Module API path convention:**
 ```
-modules-custom/generador-carta-laboral/   ← folder_name = "generador-carta-laboral"
-app/api/modulos/generador-carta-laboral/  ← API routes MUST use the same slug
-cartas-pdf/generador-carta-laboral/       ← file storage MUST use the same slug
+modules-custom/{folder_name}/            ← UI del modulo
+app/api/custom-module{id}/{folder_name}/ ← API routes del modulo
+{storage}/{folder_name}/                 ← archivos generados del modulo
 ```
-Using any other name (e.g., a shortened alias like `carta-laboral`) is NOT allowed.
-It will cause namespace collisions if two modules share similar names.
 
-> **Legacy exception:** `log-leads-suvi` uses `suvi-leads` as API path — this predates the rule
-> and is not to be changed. All new modules must follow the convention above.
+Ejemplos reales:
+```
+modules-custom/log-leads-suvi/                        (modulo ID 1)
+app/api/custom-module1/log-leads-suvi/
+
+modules-custom/generador-carta-laboral/               (modulo ID 3)
+app/api/custom-module3/generador-carta-laboral/
+cartas-pdf/generador-carta-laboral/
+```
+
+El prefijo `custom-module{id}` permite encontrar instantaneamente todas las rutas de
+cualquier modulo por su ID, sin importar cuantos modulos existan.
+JAMAS usar `app/api/modulos/` para routes de modulos custom. Esa carpeta queda eliminada.
 
 ## Important Files
 

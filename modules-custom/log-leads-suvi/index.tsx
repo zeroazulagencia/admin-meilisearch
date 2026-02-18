@@ -199,7 +199,7 @@ export default function LogLeadsSUVI() {
         ...(filters.search && { search: filters.search })
       });
 
-      const res = await fetch(`/api/modulos/suvi-leads?${params}`, {
+      const res = await fetch(`/api/custom-module1/log-leads-suvi?${params}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -235,7 +235,7 @@ export default function LogLeadsSUVI() {
       setConsultingMeta(true);
       setMetaError(null);
 
-      const res = await fetch(`/api/modulos/suvi-leads/${leadId}/consult-meta`, {
+      const res = await fetch(`/api/custom-module1/log-leads-suvi/${leadId}/consult-meta`, {
         method: 'POST'
       });
 
@@ -246,7 +246,7 @@ export default function LogLeadsSUVI() {
       }
 
       // Recargar el lead completo desde la BD
-      const detailRes = await fetch(`/api/modulos/suvi-leads/${leadId}`, {
+      const detailRes = await fetch(`/api/custom-module1/log-leads-suvi/${leadId}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -300,7 +300,7 @@ export default function LogLeadsSUVI() {
       setProcessingAI(true);
       setAiError(null);
 
-      const res = await fetch(`/api/modulos/suvi-leads/reprocess-from-cleaned`, {
+      const res = await fetch(`/api/custom-module1/log-leads-suvi/reprocess-from-cleaned`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadId })
@@ -313,7 +313,7 @@ export default function LogLeadsSUVI() {
       }
 
       // Recargar el lead completo desde la BD para asegurar que está parseado correctamente
-      const detailRes = await fetch(`/api/modulos/suvi-leads/${leadId}`, {
+      const detailRes = await fetch(`/api/custom-module1/log-leads-suvi/${leadId}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -367,7 +367,7 @@ export default function LogLeadsSUVI() {
       setProcessingSalesforce(true);
       setSalesforceError(null);
 
-      const res = await fetch(`/api/modulos/suvi-leads/process-salesforce`, {
+      const res = await fetch(`/api/custom-module1/log-leads-suvi/process-salesforce`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadId })
@@ -387,7 +387,7 @@ export default function LogLeadsSUVI() {
       });
 
       // Recargar el lead completo desde la BD
-      const detailRes = await fetch(`/api/modulos/suvi-leads/${leadId}`, {
+      const detailRes = await fetch(`/api/custom-module1/log-leads-suvi/${leadId}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -447,7 +447,7 @@ export default function LogLeadsSUVI() {
       setBatchCancelled(false);
       
       // Obtener todos los leads incompletos
-      const res = await fetch('/api/modulos/suvi-leads/incomplete', {
+      const res = await fetch('/api/custom-module1/log-leads-suvi/incomplete', {
         cache: 'no-store'
       });
       const data = await res.json();
@@ -510,7 +510,7 @@ export default function LogLeadsSUVI() {
           // Paso 1: Consultar META si falta
           if (needsMeta) {
             setBatchProgress(prev => ({ ...prev, currentStep: `Lead ${lead.leadgen_id}: Consultando META...` }));
-            const metaRes = await fetch(`/api/modulos/suvi-leads/${lead.id}/consult-meta`, {
+            const metaRes = await fetch(`/api/custom-module1/log-leads-suvi/${lead.id}/consult-meta`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' }
             });
@@ -535,7 +535,7 @@ export default function LogLeadsSUVI() {
             if (!metaData.ok) throw new Error(`META: ${metaData.error}`);
             
             // Recargar lead actualizado de BD
-            const reloadRes = await fetch(`/api/modulos/suvi-leads/${lead.id}`, { cache: 'no-store' });
+            const reloadRes = await fetch(`/api/custom-module1/log-leads-suvi/${lead.id}`, { cache: 'no-store' });
             if (reloadRes.ok) {
               const reloadData = await reloadRes.json();
               if (reloadData.ok) {
@@ -548,7 +548,7 @@ export default function LogLeadsSUVI() {
           const needsAIAfterMeta = lead.facebook_cleaned_data && !lead.ai_enriched_data;
           if (needsAI || needsAIAfterMeta) {
             setBatchProgress(prev => ({ ...prev, currentStep: `Lead ${lead.leadgen_id}: Enriqueciendo con IA...` }));
-            const aiRes = await fetch(`/api/modulos/suvi-leads/reprocess-from-cleaned`, {
+            const aiRes = await fetch(`/api/custom-module1/log-leads-suvi/reprocess-from-cleaned`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ leadId: lead.id })
@@ -574,7 +574,7 @@ export default function LogLeadsSUVI() {
             if (!aiData.ok) throw new Error(`IA: ${aiData.error}`);
             
             // Recargar lead actualizado de BD
-            const reloadRes = await fetch(`/api/modulos/suvi-leads/${lead.id}`, { cache: 'no-store' });
+            const reloadRes = await fetch(`/api/custom-module1/log-leads-suvi/${lead.id}`, { cache: 'no-store' });
             if (reloadRes.ok) {
               const reloadData = await reloadRes.json();
               if (reloadData.ok) {
@@ -587,7 +587,7 @@ export default function LogLeadsSUVI() {
           const needsSalesforceAfterAI = lead.ai_enriched_data && !lead.salesforce_opportunity_id;
           if (needsSalesforce || needsSalesforceAfterAI) {
             setBatchProgress(prev => ({ ...prev, currentStep: `Lead ${lead.leadgen_id}: Enviando a Salesforce...` }));
-            const sfRes = await fetch(`/api/modulos/suvi-leads/process-salesforce`, {
+            const sfRes = await fetch(`/api/custom-module1/log-leads-suvi/process-salesforce`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ leadId: lead.id })
@@ -688,7 +688,7 @@ export default function LogLeadsSUVI() {
 
   const viewDetail = async (leadId: number) => {
     try {
-      const res = await fetch(`/api/modulos/suvi-leads/${leadId}`, {
+      const res = await fetch(`/api/custom-module1/log-leads-suvi/${leadId}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',

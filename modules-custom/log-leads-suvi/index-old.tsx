@@ -102,7 +102,7 @@ export default function LogLeadsSUVI() {
         ...(filters.search && { search: filters.search })
       });
 
-      const res = await fetch(`/api/modulos/suvi-leads?${params}`);
+      const res = await fetch(`/api/custom-module1/log-leads-suvi?${params}`);
       const data = await res.json();
 
       if (data.ok) {
@@ -132,7 +132,7 @@ export default function LogLeadsSUVI() {
 
   const viewDetail = async (leadId: number) => {
     try {
-      const res = await fetch(`/api/modulos/suvi-leads/${leadId}`);
+      const res = await fetch(`/api/custom-module1/log-leads-suvi/${leadId}`);
       const data = await res.json();
       if (data.ok) {
         setSelectedLead(data.lead);

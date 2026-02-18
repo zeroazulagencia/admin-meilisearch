@@ -229,27 +229,31 @@ CREATE TABLE modulos_{agent}_{id}_config (
 - El modulo accede a su BD solo a traves de sus API routes en `app/api/modulos/{folder_name}/`
 - No acceder directamente a tablas del sistema (`clients`, `agents`, `modules`)
 
-## APIs del Modulo — Regla de Namespace
+## APIs del Modulo — Convencion de Rutas
 
 Cuando un modulo necesita API routes propias (para acceder a la BD, generar archivos, etc.)
-estas DEBEN vivir en `app/api/modulos/{folder_name}/` usando exactamente el mismo `folder_name`
-que la carpeta del modulo en `modules-custom/`.
+estas DEBEN seguir esta estructura:
 
 ```
-modules-custom/generador-carta-laboral/   <- folder_name del modulo
-app/api/modulos/generador-carta-laboral/  <- API routes (mismo slug, obligatorio)
-cartas-pdf/generador-carta-laboral/       <- archivos generados (mismo slug, obligatorio)
+app/api/custom-module{id}/{folder_name}/
 ```
 
-Usar un alias corto o inventado (ej: `carta-laboral` en lugar de `generador-carta-laboral`)
-esta PROHIBIDO. Causa colisiones si en el futuro existe otro modulo con nombre similar.
+Donde `{id}` es el ID del modulo en la tabla `modules` y `{folder_name}` es el slug
+exacto del modulo en `modules-custom/`.
 
-El `folder_name` es el identificador unico del modulo en todo el sistema. Usarlo en todos
-los namespaces garantiza que cada modulo sea completamente independiente.
+```
+modules-custom/log-leads-suvi/                    <- modulo ID 1
+app/api/custom-module1/log-leads-suvi/            <- sus API routes
 
-> Excepcion legacy: `log-leads-suvi` tiene sus APIs en `app/api/modulos/suvi-leads/` —
-> esto es anterior a esta regla y no debe cambiarse. Todos los modulos nuevos deben
-> seguir la convencion de arriba.
+modules-custom/generador-carta-laboral/           <- modulo ID 3
+app/api/custom-module3/generador-carta-laboral/   <- sus API routes
+cartas-pdf/generador-carta-laboral/               <- sus archivos generados
+```
+
+El prefijo `custom-module{id}` permite encontrar al instante todas las rutas de
+un modulo por su ID, sin importar cuantos modulos existan en el proyecto.
+
+JAMAS usar `app/api/modulos/` para routes de modulos custom. Esa carpeta no existe.
 
 ## Seguridad
 

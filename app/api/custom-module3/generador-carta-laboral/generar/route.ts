@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
     );
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://workers.zeroazul.com';
-    const pdfUrl = `${baseUrl}/api/modulos/generador-carta-laboral/pdf?token=${pdfToken}`;
+    const pdfUrl = `${baseUrl}/api/custom-module3/generador-carta-laboral/pdf?token=${pdfToken}`;
 
     return NextResponse.json({
       status: 'ok',
