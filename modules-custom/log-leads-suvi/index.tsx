@@ -128,6 +128,7 @@ export default function LogLeadsSUVI() {
   const searchParams = useSearchParams();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [pagination, setPagination] = useState<{ page: number; limit: number; total: number; totalPages: number; } | null>(null);
   const [salesforceStatus, setSalesforceStatus] = useState<SalesforceStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -192,7 +193,7 @@ export default function LogLeadsSUVI() {
       setLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '20',
+        limit: '100',
         ...(filters.status && { status: filters.status }),
         ...(filters.campaign_type && { campaign_type: filters.campaign_type }),
         ...(filters.search && { search: filters.search })
@@ -210,6 +211,7 @@ export default function LogLeadsSUVI() {
       if (data.ok) {
         setLeads(data.leads);
         setStats(data.stats);
+        setPagination(data.pagination);
       }
     } catch (e) {
       console.error('Error cargando leads:', e);
@@ -532,12 +534,19 @@ export default function LogLeadsSUVI() {
             const metaData = await metaRes.json();
             if (!metaData.ok) throw new Error(`META: ${metaData.error}`);
             
-            // Actualizar lead con los nuevos datos
-            lead.facebook_cleaned_data = metaData.cleanedData;
+            // Recargar lead actualizado de BD
+            const reloadRes = await fetch(`/api/modulos/suvi-leads/${lead.id}`, { cache: 'no-store' });
+            if (reloadRes.ok) {
+              const reloadData = await reloadRes.json();
+              if (reloadData.ok) {
+                Object.assign(lead, reloadData.lead);
+              }
+            }
           }
           
-          // Paso 2: Procesar con IA si falta
-          if (needsAI || (needsMeta && lead.facebook_cleaned_data)) {
+          // Paso 2: Procesar con IA si falta (recalcular needsAI)
+          const needsAIAfterMeta = lead.facebook_cleaned_data && !lead.ai_enriched_data;
+          if (needsAI || needsAIAfterMeta) {
             setBatchProgress(prev => ({ ...prev, currentStep: `Lead ${lead.leadgen_id}: Enriqueciendo con IA...` }));
             const aiRes = await fetch(`/api/modulos/suvi-leads/reprocess-from-cleaned`, {
               method: 'POST',
@@ -564,11 +573,19 @@ export default function LogLeadsSUVI() {
             const aiData = await aiRes.json();
             if (!aiData.ok) throw new Error(`IA: ${aiData.error}`);
             
-            lead.ai_enriched_data = aiData.enrichedData;
+            // Recargar lead actualizado de BD
+            const reloadRes = await fetch(`/api/modulos/suvi-leads/${lead.id}`, { cache: 'no-store' });
+            if (reloadRes.ok) {
+              const reloadData = await reloadRes.json();
+              if (reloadData.ok) {
+                Object.assign(lead, reloadData.lead);
+              }
+            }
           }
           
-          // Paso 3: Enviar a Salesforce si falta
-          if (needsSalesforce || ((needsMeta || needsAI) && lead.ai_enriched_data)) {
+          // Paso 3: Enviar a Salesforce si falta (recalcular needsSalesforce)
+          const needsSalesforceAfterAI = lead.ai_enriched_data && !lead.salesforce_opportunity_id;
+          if (needsSalesforce || needsSalesforceAfterAI) {
             setBatchProgress(prev => ({ ...prev, currentStep: `Lead ${lead.leadgen_id}: Enviando a Salesforce...` }));
             const sfRes = await fetch(`/api/modulos/suvi-leads/process-salesforce`, {
               method: 'POST',
@@ -966,6 +983,34 @@ export default function LogLeadsSUVI() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        
+        {/* Paginación */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <div className="text-sm text-gray-600">
+              Mostrando {leads.length} de {pagination.total} leads
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Anterior
+              </button>
+              <span className="px-4 py-2 text-sm text-gray-700">
+                Página {page} de {pagination.totalPages}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                disabled={page === pagination.totalPages}
+                className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Siguiente
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -36,6 +36,55 @@ export async function upsertSalesforceAccount(enrichedData: any, origen: string,
 
     if (!response.ok) {
       const error = await response.json();
+      
+      // Si falla por teléfono duplicado, buscar la cuenta existente por teléfono
+      const isDuplicatePhone = error.some((e: any) => 
+        e.errorCode === 'FIELD_CUSTOM_VALIDATION_EXCEPTION' && 
+        e.message?.includes('Ya existe una cuenta con el mismo número de teléfono')
+      );
+      
+      if (isDuplicatePhone) {
+        console.log('[SALESFORCE] Cuenta duplicada por teléfono, buscando cuenta existente...');
+        
+        // Buscar cuenta por teléfono
+        const searchQuery = `SELECT Id FROM Account WHERE Phone = '${enrichedData.phone}' LIMIT 1`;
+        const searchUrl = `${instanceUrl}/services/data/v60.0/query?q=${encodeURIComponent(searchQuery)}`;
+        
+        const searchResponse = await fetch(searchUrl, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        
+        if (searchResponse.ok) {
+          const searchResult = await searchResponse.json();
+          if (searchResult.records && searchResult.records.length > 0) {
+            const existingAccountId = searchResult.records[0].Id;
+            console.log('[SALESFORCE] Cuenta encontrada por teléfono:', existingAccountId);
+            
+            // Actualizar la cuenta existente
+            const updateResponse = await fetch(
+              `${instanceUrl}/services/data/v60.0/sobjects/Account/${existingAccountId}`,
+              {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify(accountData),
+              }
+            );
+            
+            if (updateResponse.ok) {
+              await updateLeadLog(leadId, {
+                salesforce_account_id: existingAccountId,
+                salesforce_account_created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+              });
+              
+              return { id: existingAccountId, wasCreated: false };
+            }
+          }
+        }
+      }
+      
       throw new Error(`Salesforce error: ${JSON.stringify(error)}`);
     }
 
