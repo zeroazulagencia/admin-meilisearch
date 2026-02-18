@@ -31,6 +31,7 @@ export default function ModulosPage() {
   const [loadingModules, setLoadingModules] = useState(false);
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [formData, setFormData] = useState({ agent_id: '', title: '', description: '' });
+  const [selectedAgentFilter, setSelectedAgentFilter] = useState<string>(''); // Nuevo: filtro por agente
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
@@ -48,13 +49,35 @@ export default function ModulosPage() {
     return [...agents].sort((a, b) => a.name.localeCompare(b.name));
   }, [agents]);
 
+  // Filtrar módulos por agente seleccionado
+  const filteredModules = useMemo(() => {
+    if (!selectedAgentFilter) return modules;
+    return modules.filter(m => m.agent_id === Number(selectedAgentFilter));
+  }, [modules, selectedAgentFilter]);
+
   const loadAgents = async () => {
     try {
       setLoadingAgents(true);
       const res = await fetch('/api/agents');
       const data = await res.json();
       if (data.ok) {
-        setAgents(data.agents || []);
+        let agentsToShow = data.agents || [];
+        
+        // Si no es admin, filtrar solo agentes del mismo cliente
+        if (!isAdmin) {
+          const permissions = getPermissions();
+          const userClientId = permissions?.clientId;
+          
+          if (userClientId) {
+            agentsToShow = agentsToShow.filter((agent: Agent) => {
+              return agent.client_id === userClientId;
+            });
+          } else {
+            agentsToShow = [];
+          }
+        }
+        
+        setAgents(agentsToShow);
       } else {
         throw new Error(data.error || 'No se pudieron cargar los agentes');
       }
@@ -270,21 +293,37 @@ export default function ModulosPage() {
         )}
 
         <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 ${isAdmin ? '' : 'lg:col-span-2'}`}>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Módulos registrados</h2>
-            <span className="text-sm text-gray-500">{modules.length} módulo(s)</span>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <select
+                value={selectedAgentFilter}
+                onChange={(e) => setSelectedAgentFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm"
+              >
+                <option value="">Todos los agentes</option>
+                {sortedAgents.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name}
+                  </option>
+                ))}
+              </select>
+              <span className="text-sm text-gray-500 whitespace-nowrap">
+                {filteredModules.length} módulo(s)
+              </span>
+            </div>
           </div>
           {loadingModules ? (
             <div className="flex items-center justify-center min-h-[200px]">
               <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
             </div>
-          ) : modules.length === 0 ? (
+          ) : filteredModules.length === 0 ? (
             <div className="text-center py-10 text-gray-500">
-              Aún no hay módulos registrados.
+              {selectedAgentFilter ? 'No hay módulos para este agente.' : 'Aún no hay módulos registrados.'}
             </div>
           ) : (
             <div className="space-y-4 max-h-[520px] overflow-y-auto pr-1">
-              {modules.map((module) => (
+              {filteredModules.map((module) => (
                 <div key={module.id} className="border border-gray-200 rounded-lg p-4 hover:border-[#5DE1E5] transition-colors">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
