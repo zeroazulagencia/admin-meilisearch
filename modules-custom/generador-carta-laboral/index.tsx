@@ -434,6 +434,81 @@ export default function GeneradorCartaLaboral({ moduleData }: { moduleData?: any
 {`curl "https://workers.zeroazul.com/api/modulos/carta-laboral/historial?page=1&limit=20"`}
             </pre>
           </div>
+
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-2">
+              GET/PUT /api/modulos/carta-laboral/config
+            </p>
+            <p className="text-sm text-gray-500 mb-2">
+              Retorna la API key y todos los campos editables. PUT actualiza uno o mas campos.
+            </p>
+            <pre className="bg-gray-900 text-green-400 text-xs rounded-lg px-4 py-3 overflow-x-auto font-mono whitespace-pre">
+{`# Leer configuracion
+curl "https://workers.zeroazul.com/api/modulos/carta-laboral/config"
+
+# Actualizar campo
+curl -X PUT "https://workers.zeroazul.com/api/modulos/carta-laboral/config" \\
+  -H "Content-Type: application/json" \\
+  -d '{"firma_nombre": "Nuevo Firmante", "empresa_ciudad": "Bogota"}'`}
+            </pre>
+          </div>
+
+          <hr className="border-gray-200" />
+
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-3">Estructura de archivos del modulo</p>
+            <pre className="bg-gray-900 text-gray-300 text-xs rounded-lg px-4 py-3 overflow-x-auto font-mono whitespace-pre">
+{`admin-meilisearch/
+|
+|-- modules-custom/generador-carta-laboral/
+|   |-- config.json          # Metadata del modulo (id, nombre, agente, cliente)
+|   +-- index.tsx            # UI del modulo (cargada dinamicamente en /modulos/3)
+|
+|-- app/api/modulos/carta-laboral/
+|   |-- generar/route.ts     # POST: auth sigha -> datos empleado -> PDF -> DB log
+|   |-- pdf/route.ts         # GET ?token=TOKEN: sirve PDF con validacion de expiracion
+|   |-- historial/route.ts   # GET: lista cartas de modulos_lucas_9_cartas
+|   +-- config/route.ts      # GET: api_key + config | PUT: actualiza config en DB
+|
+|-- cartas-pdf/autolarte/
+|   +-- {cedula}_{id}.pdf    # PDFs generados (fuera del build, persisten entre deploys)
+|
++-- database/
+    |-- migration_create_modulos_lucas_9_config.sql
+    |-- migration_update_modulos_lucas_9_config_v2.sql
+    |-- migration_create_modulos_lucas_9_cartas.sql
+    +-- migration_update_modulos_lucas_9_cartas_v2.sql`}
+            </pre>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-3">Tablas en la base de datos</p>
+            <pre className="bg-gray-900 text-gray-300 text-xs rounded-lg px-4 py-3 overflow-x-auto font-mono whitespace-pre">
+{`modulos_lucas_9_config         -- Configuracion del modulo (clave/valor)
+  config_key      VARCHAR(100)  -- Ej: sigha_email, firma_nombre, api_key
+  config_value    TEXT
+
+modulos_lucas_9_cartas          -- Registro de cartas generadas
+  id                    INT (PK autoincrement)
+  empleado_nombre       VARCHAR(255)
+  empleado_cedula       VARCHAR(50)
+  empleado_cargo        VARCHAR(255)
+  empleado_salario      DECIMAL(15,2)
+  empleado_tipo_contrato VARCHAR(100)
+  empleado_fecha_ingreso DATE
+  carta_motivo          VARCHAR(500)
+  carta_contenido       TEXT
+  carta_generada_por    VARCHAR(100)   -- 'IA' por defecto
+  estado                ENUM(pendiente, generada, enviada, error)
+  solicitado_via        VARCHAR(100)   -- 'api', 'whatsapp', etc
+  conversation_id       VARCHAR(255)
+  pdf_token             VARCHAR(64)    -- Token unico para acceder al PDF
+  pdf_token_expires_at  DATETIME       -- Expira 48h despues de la generacion
+  pdf_filename          VARCHAR(255)   -- Nombre del archivo: {cedula}_{id}.pdf
+  created_at            TIMESTAMP
+  updated_at            TIMESTAMP`}
+            </pre>
+          </div>
         </div>
       )}
     </div>
