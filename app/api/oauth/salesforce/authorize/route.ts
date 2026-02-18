@@ -1,5 +1,9 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * OAuth Salesforce: Autorización inicial
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthorizationUrl, hasOAuthCredentials } from '@/utils/modulos/suvi-leads/salesforce-oauth';
+import { getAuthorizationUrl, hasOAuthCredentials } from '@/utils/modulos/suvi-leads/module1-salesforce-oauth';
 
 // Marcar como ruta dinámica
 export const dynamic = 'force-dynamic';

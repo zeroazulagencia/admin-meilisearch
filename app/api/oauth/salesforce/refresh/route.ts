@@ -1,5 +1,9 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * OAuth Salesforce: Renovar access token
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { refreshAccessToken } from '@/utils/modulos/suvi-leads/salesforce-oauth';
+import { refreshAccessToken } from '@/utils/modulos/suvi-leads/module1-salesforce-oauth';
 
 // POST - Renovar manualmente el access token
 export async function POST(request: NextRequest) {

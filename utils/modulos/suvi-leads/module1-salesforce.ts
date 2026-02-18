@@ -1,5 +1,9 @@
-import { getConfig, updateLeadLog } from './config';
-import { getSalesforceTokens } from './salesforce-oauth';
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * Integración con Salesforce: cuentas y oportunidades
+ */
+import { getConfig, updateLeadLog } from './module1-config';
+import { getSalesforceTokens } from './module1-salesforce-oauth';
 
 // PASO 6: Crear o actualizar cuenta en Salesforce
 export async function upsertSalesforceAccount(enrichedData: any, origen: string, leadId: number) {

@@ -1,4 +1,8 @@
-import { getConfig, updateLeadLog } from './config';
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * Procesadores: Facebook API, limpieza de datos, IA y clasificación
+ */
+import { getConfig, updateLeadLog } from './module1-config';
 
 // PASO 2: Consultar lead de Facebook Graph API
 export async function consultFacebookLead(leadgenId: string, leadId: number) {

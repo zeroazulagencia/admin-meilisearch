@@ -1,5 +1,9 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * API: Procesar y enviar lead a Salesforce
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { getConfig, updateLeadLog } from '@/utils/modulos/suvi-leads/config';
+import { getConfig, updateLeadLog } from '@/utils/modulos/suvi-leads/module1-config';
 import {
   upsertSalesforceAccount,
   getSalesforceAccount,
@@ -8,7 +12,7 @@ import {
   getSalesforceProjects,
   selectValidProject,
   upsertSalesforceOpportunity,
-} from '@/utils/modulos/suvi-leads/salesforce';
+} from '@/utils/modulos/suvi-leads/module1-salesforce';
 import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({

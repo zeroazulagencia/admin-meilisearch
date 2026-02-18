@@ -1,6 +1,10 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * OAuth Salesforce: Verificar estado de autenticación
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { hasOAuthCredentials, hasActiveTokens } from '@/utils/modulos/suvi-leads/salesforce-oauth';
-import { getConfig } from '@/utils/modulos/suvi-leads/config';
+import { hasOAuthCredentials, hasActiveTokens } from '@/utils/modulos/suvi-leads/module1-salesforce-oauth';
+import { getConfig } from '@/utils/modulos/suvi-leads/module1-config';
 
 // GET - Verificar estado de OAuth
 export async function GET(request: NextRequest) {

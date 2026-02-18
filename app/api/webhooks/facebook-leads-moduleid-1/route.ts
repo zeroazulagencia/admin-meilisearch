@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createLeadLog, getConfig } from '@/utils/modulos/suvi-leads/config';
-import { processLeadFlow } from '@/utils/modulos/suvi-leads/orchestrator';
-
 /**
- * Webhook específico para Módulo SUVI (ID: 1)
+ * MÓDULO 1 - SUVI LEADS
+ * Webhook de Facebook para recepción de leads
  * URL: https://workers.zeroazul.com/api/webhooks/facebook-leads-moduleid-1
  */
+import { NextRequest, NextResponse } from 'next/server';
+import { createLeadLog, getConfig } from '@/utils/modulos/suvi-leads/module1-config';
+import { processLeadComplete } from '@/utils/modulos/suvi-leads/module1-orchestrator';
 
 // GET - Verificación del webhook de Facebook
 export async function GET(request: NextRequest) {
@@ -103,10 +103,11 @@ export async function POST(request: NextRequest) {
 
           console.log(`[WEBHOOK SUVI] ✅ Lead ${value.leadgen_id} → ID ${leadId}`);
 
-          // Procesamiento automático desactivado - solo recibir leads
-          // processLeadFlow(leadId, value.leadgen_id, formId).catch((e) => {
-          //   console.error('[WEBHOOK SUVI] Error procesando:', e);
-          // });
+          // Procesamiento automático: META → IA → Salesforce
+          // Se ejecuta de forma asíncrona después de responder 200 OK
+          processLeadComplete(leadId, value.leadgen_id, formId).catch((e) => {
+            console.error(`[WEBHOOK SUVI] ❌ Error procesando lead ${leadId}:`, e);
+          });
         } catch (dbError: any) {
           console.error('[WEBHOOK SUVI] Error BD:', dbError);
         }

@@ -1,3 +1,7 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * API: Listar y crear leads
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 

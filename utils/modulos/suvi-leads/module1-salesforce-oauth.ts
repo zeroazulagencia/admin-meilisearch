@@ -1,4 +1,8 @@
-import { getConfig, setConfig } from './config';
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * OAuth 2.0 para Salesforce con PKCE
+ */
+import { getConfig, setConfig } from './module1-config';
 import crypto from 'crypto';
 
 interface TokenResponse {

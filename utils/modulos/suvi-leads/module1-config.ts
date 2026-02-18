@@ -1,3 +1,7 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * Configuración y utilidades de base de datos para el módulo
+ */
 import { query } from '@/utils/db';
 
 // Obtener configuración del módulo

@@ -1,5 +1,10 @@
+/**
+ * WEBHOOK ANTIGUO - NO USAR
+ * Usar en su lugar: /api/webhooks/facebook-leads-moduleid-1
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { createLeadLog, getConfig } from '@/utils/modulos/suvi-leads/config';
+import { createLeadLog, getConfig } from '@/utils/modulos/suvi-leads/module1-config';
+import { processLeadFlow } from '@/utils/modulos/suvi-leads/module1-orchestrator';
 import { processLeadFlow } from '@/utils/modulos/suvi-leads/orchestrator';
 
 // GET - Verificación del webhook de Facebook

@@ -1,5 +1,9 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * API: Procesar lead con IA (GPT-4)
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { processWithAI } from '@/utils/modulos/suvi-leads/processors';
+import { processWithAI } from '@/utils/modulos/suvi-leads/module1-processors';
 import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({

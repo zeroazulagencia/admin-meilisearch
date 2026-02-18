@@ -1,5 +1,9 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * API: Reprocesar lead completo usando orchestrator
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { processLeadFlow } from '@/utils/modulos/suvi-leads/orchestrator';
+import { processLeadFlow } from '@/utils/modulos/suvi-leads/module1-orchestrator';
 import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({

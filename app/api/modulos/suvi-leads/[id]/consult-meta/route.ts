@@ -1,6 +1,10 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * API: Consultar datos de META para un lead específico
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
-import { getConfig } from '@/utils/modulos/suvi-leads/config';
+import { getConfig } from '@/utils/modulos/suvi-leads/module1-config';
 
 // Desactivar caché completamente
 export const dynamic = 'force-dynamic';

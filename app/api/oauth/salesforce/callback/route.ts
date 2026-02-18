@@ -1,5 +1,9 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * OAuth Salesforce: Callback después de autorización
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { exchangeCodeForTokens } from '@/utils/modulos/suvi-leads/salesforce-oauth';
+import { exchangeCodeForTokens } from '@/utils/modulos/suvi-leads/module1-salesforce-oauth';
 
 // Marcar como ruta dinámica
 export const dynamic = 'force-dynamic';

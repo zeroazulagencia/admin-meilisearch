@@ -1,3 +1,7 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * API: Obtener leads incompletos (menos de 4 pasos)
+ */
 import { NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
 

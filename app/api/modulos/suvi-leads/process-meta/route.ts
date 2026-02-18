@@ -1,5 +1,9 @@
+/**
+ * MÓDULO 1 - SUVI LEADS
+ * API: Consultar y limpiar datos de Facebook/META
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { consultFacebookLead, cleanFacebookData } from '@/utils/modulos/suvi-leads/processors';
+import { consultFacebookLead, cleanFacebookData } from '@/utils/modulos/suvi-leads/module1-processors';
 import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({

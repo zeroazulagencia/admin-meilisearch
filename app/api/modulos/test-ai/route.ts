@@ -1,5 +1,8 @@
+/**
+ * TEST ENDPOINT - Usado para testing de IA
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { processWithAI } from '@/utils/modulos/suvi-leads/processors';
+import { processWithAI } from '@/utils/modulos/suvi-leads/module1-processors';
 
 export async function POST(req: NextRequest) {
   try {
