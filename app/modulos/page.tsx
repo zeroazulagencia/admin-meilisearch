@@ -55,7 +55,18 @@ export default function ModulosPage() {
     return modules.filter(m => m.agent_id === Number(selectedAgentFilter));
   }, [modules, selectedAgentFilter]);
 
-  const loadAgents = async () => {
+  useEffect(() => {
+    // Verificar si el usuario es admin PRIMERO
+    const permissions = getPermissions();
+    const adminStatus = permissions?.type === 'admin';
+    setIsAdmin(adminStatus);
+    
+    // Cargar con el estado correcto de admin
+    loadAgentsWithPermissions(adminStatus, permissions);
+    loadModulesWithPermissions(adminStatus, permissions);
+  }, []);
+  
+  const loadAgentsWithPermissions = async (isAdminUser: boolean, permissions: any) => {
     try {
       setLoadingAgents(true);
       const res = await fetch('/api/agents');
@@ -64,8 +75,7 @@ export default function ModulosPage() {
         let agentsToShow = data.agents || [];
         
         // Si no es admin, filtrar solo agentes del mismo cliente
-        if (!isAdmin) {
-          const permissions = getPermissions();
+        if (!isAdminUser) {
           const userClientId = permissions?.clientId;
           
           if (userClientId) {
@@ -93,8 +103,8 @@ export default function ModulosPage() {
       setLoadingAgents(false);
     }
   };
-
-  const loadModules = async () => {
+  
+  const loadModulesWithPermissions = async (isAdminUser: boolean, permissions: any) => {
     try {
       setLoadingModules(true);
       const res = await fetch('/api/modules');
@@ -103,8 +113,7 @@ export default function ModulosPage() {
         let modulesToShow = data.modules || [];
         
         // Si no es admin, filtrar solo módulos de agentes del mismo cliente
-        if (!isAdmin) {
-          const permissions = getPermissions();
+        if (!isAdminUser) {
           const userClientId = permissions?.clientId;
           
           if (userClientId) {
@@ -134,15 +143,6 @@ export default function ModulosPage() {
       setLoadingModules(false);
     }
   };
-
-  useEffect(() => {
-    // Verificar si el usuario es admin
-    const permissions = getPermissions();
-    setIsAdmin(permissions?.type === 'admin');
-    
-    loadAgents();
-    loadModules();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,7 +179,8 @@ export default function ModulosPage() {
         type: 'success',
       });
       setFormData({ agent_id: '', title: '', description: '' });
-      loadModules();
+      const permissions = getPermissions();
+      loadModulesWithPermissions(isAdmin, permissions);
     } catch (error: any) {
       console.error('[MODULOS] Error creando módulo:', error);
       setAlertModal({
@@ -210,7 +211,8 @@ export default function ModulosPage() {
         type: 'success',
       });
       setConfirmDelete({ isOpen: false, moduleId: null, moduleName: '' });
-      loadModules();
+      const permissions = getPermissions();
+      loadModulesWithPermissions(isAdmin, permissions);
     } catch (error: any) {
       console.error('[MODULOS] Error eliminando módulo:', error);
       setAlertModal({
