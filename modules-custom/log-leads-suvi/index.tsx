@@ -46,7 +46,7 @@ interface SalesforceStatus {
 
 const STATUS_COLORS: Record<string, string> = {
   'recibido': 'bg-blue-100 text-blue-800',
-  'consultando_facebook': 'bg-secondary-light text-secondary-dark',
+  'consultando_facebook': 'bg-purple-50 text-purple-700',
   'limpiando_datos': 'bg-indigo-100 text-indigo-800',
   'enriqueciendo_ia': 'bg-cyan-100 text-cyan-800',
   'clasificando': 'bg-teal-100 text-teal-800',
@@ -825,7 +825,7 @@ export default function LogLeadsSUVI() {
                       </span>
                       <button
                         onClick={connectSalesforce}
-                        className="px-3 py-1 bg-primary text-gray-900 rounded-lg hover:bg-primary-dark transition-colors text-xs font-semibold ml-2"
+                        className="px-3 py-1 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#5DE1E5]-dark transition-colors text-xs font-semibold ml-2"
                       >
                         Conectar
                       </button>
@@ -897,14 +897,14 @@ export default function LogLeadsSUVI() {
           </select>
           <button
             onClick={loadLeads}
-            className="px-4 py-2 text-sm bg-primary text-gray-900 rounded-lg hover:bg-primary-dark transition-colors font-semibold"
+            className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#5DE1E5]-dark transition-colors font-semibold"
           >
             Actualizar
           </button>
           <button
             onClick={processAllIncomplete}
             disabled={batchProcessing || !salesforceStatus?.has_active_tokens}
-            className="px-4 py-2 text-sm bg-gradient-to-r from-secondary to-primary text-white rounded-lg hover:from-secondary-dark hover:to-primary-dark transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 text-sm bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-lg hover:from-purple-600 hover:to-cyan-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             title={!salesforceStatus?.has_active_tokens ? 'Conecta Salesforce primero' : 'Procesar todos los leads incompletos'}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -974,7 +974,7 @@ export default function LogLeadsSUVI() {
                     <td className="px-2 py-2 text-xs">
                       <button
                         onClick={() => viewDetail(lead.id)}
-                        className="text-primary hover:text-primary-dark font-medium"
+                        className="text-[#5DE1E5] hover:text-[#5DE1E5]-dark font-medium"
                       >
                         Ver detalle
                       </button>
@@ -1019,7 +1019,7 @@ export default function LogLeadsSUVI() {
       {showDetail && selectedLead && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-primary text-gray-900 p-6 rounded-t-xl">
+            <div className="sticky top-0 bg-[#5DE1E5] text-gray-900 p-6 rounded-t-xl">
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold mb-1">Detalle del Lead</h2>
@@ -1131,7 +1131,7 @@ export default function LogLeadsSUVI() {
                         <button
                           onClick={() => consultMeta(selectedLead.id)}
                           disabled={consultingMeta}
-                          className="mt-3 px-4 py-2 bg-primary hover:bg-primary-dark text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#5DE1E5]-dark text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {consultingMeta ? '⏳ Consultando...' : '▶️ Consultar en META'}
                         </button>
@@ -1184,7 +1184,7 @@ export default function LogLeadsSUVI() {
                           <button
                             onClick={() => processAI(selectedLead.id)}
                             disabled={processingAI}
-                            className="mt-3 px-4 py-2 bg-primary hover:bg-primary-dark text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#5DE1E5]-dark text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {processingAI ? 'Procesando...' : 'Procesar con IA'}
                           </button>
@@ -1254,7 +1254,7 @@ export default function LogLeadsSUVI() {
                         <button
                           onClick={() => processSalesforce(selectedLead.id)}
                           disabled={processingSalesforce}
-                          className="mt-3 px-4 py-2 bg-primary hover:bg-primary-dark text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#5DE1E5]-dark text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {processingSalesforce ? 'Procesando...' : (selectedLead.salesforce_opportunity_id ? 'Reprocesar en Salesforce' : 'Procesar en Salesforce')}
                         </button>
@@ -1323,7 +1323,7 @@ export default function LogLeadsSUVI() {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-gray-900">Datos del Lead</h3>
                     {selectedLead.ai_enriched_data && (
-                      <span className="px-2 py-1 bg-secondary-light text-secondary-dark text-xs font-medium rounded">
+                      <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded">
                         Enriquecido con IA
                       </span>
                     )}
@@ -1374,11 +1374,11 @@ export default function LogLeadsSUVI() {
                         // DEBUG: Log detallado para cada campo
                         
                         return (
-                          <div key={key} className={`flex justify-between items-start py-2 border-b border-gray-200 last:border-0 ${wasEnriched ? 'bg-secondary-light px-2 rounded' : ''}`}>
+                          <div key={key} className={`flex justify-between items-start py-2 border-b border-gray-200 last:border-0 ${wasEnriched ? 'bg-purple-50 px-2 rounded' : ''}`}>
                             <dt className="text-gray-700 font-medium text-sm flex items-center gap-2">
                               {label}
                               {wasEnriched && (
-                                <span className="text-xs text-secondary font-normal">(Corregido por IA)</span>
+                                <span className="text-xs text-purple-600 font-normal">(Corregido por IA)</span>
                               )}
                             </dt>
                             <dd className="text-gray-900 text-sm text-right max-w-[60%] break-words">
@@ -1442,7 +1442,7 @@ export default function LogLeadsSUVI() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="bg-gradient-to-r from-secondary to-primary p-6 text-white">
+            <div className="bg-gradient-to-r from-purple-500 to-cyan-500 p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">Procesamiento en Lote</h2>
@@ -1475,7 +1475,7 @@ export default function LogLeadsSUVI() {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-secondary to-primary h-full transition-all duration-300 rounded-full"
+                  className="bg-gradient-to-r from-purple-500 to-cyan-500 h-full transition-all duration-300 rounded-full"
                   style={{ width: `${batchProgress.total > 0 ? (batchProgress.current / batchProgress.total) * 100 : 0}%` }}
                 ></div>
               </div>
@@ -1545,7 +1545,7 @@ export default function LogLeadsSUVI() {
               <div className="p-6 border-t bg-gray-50">
                 <button
                   onClick={() => setShowBatchModal(false)}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-secondary to-primary text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-colors font-semibold"
+                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-colors font-semibold"
                 >
                   Cerrar
                 </button>
