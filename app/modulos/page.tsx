@@ -21,6 +21,7 @@ interface ModuleItem {
   description: string | null;
   agent_name: string;
   client_name?: string;
+  client_id?: number;
   created_at: string;
 }
 
@@ -76,7 +77,25 @@ export default function ModulosPage() {
       const res = await fetch('/api/modules');
       const data = await res.json();
       if (data.ok) {
-        setModules(data.modules || []);
+        let modulesToShow = data.modules || [];
+        
+        // Si no es admin, filtrar solo módulos de agentes del mismo cliente
+        if (!isAdmin) {
+          const permissions = getPermissions();
+          const userClientId = permissions?.clientId;
+          
+          if (userClientId) {
+            // Filtrar módulos donde el client_id del agente coincida
+            modulesToShow = modulesToShow.filter((module: ModuleItem) => {
+              return module.client_id === userClientId;
+            });
+          } else {
+            // Si no tiene clientId, no mostrar módulos
+            modulesToShow = [];
+          }
+        }
+        
+        setModules(modulesToShow);
       } else {
         throw new Error(data.error || 'No se pudieron cargar los módulos');
       }
@@ -193,8 +212,9 @@ export default function ModulosPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Crear nuevo módulo</h2>
+        {isAdmin && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Crear nuevo módulo</h2>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Agente *</label>
@@ -247,8 +267,9 @@ export default function ModulosPage() {
             </button>
           </form>
         </div>
+        )}
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 ${isAdmin ? '' : 'lg:col-span-2'}`}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Módulos registrados</h2>
             <span className="text-sm text-gray-500">{modules.length} módulo(s)</span>
