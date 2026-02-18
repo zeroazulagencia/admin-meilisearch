@@ -146,6 +146,27 @@ export default function LogLeadsSUVI() {
   const [salesforceError, setSalesforceError] = useState<string | null>(null);
   const [salesforceResult, setSalesforceResult] = useState<any>(null);
   
+  // Estados para procesamiento en lote
+  const [batchProcessing, setBatchProcessing] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{
+    total: number;
+    current: number;
+    currentLeadId: string;
+    currentStep: string;
+    processed: number;
+    errors: number;
+    logs: Array<{ leadId: string; status: 'success' | 'error'; message: string; }>;
+  }>({
+    total: 0,
+    current: 0,
+    currentLeadId: '',
+    currentStep: '',
+    processed: 0,
+    errors: 0,
+    logs: []
+  });
+  
   const oauthSuccess = searchParams.get('oauth_success');
   const oauthError = searchParams.get('oauth_error');
 
@@ -414,6 +435,145 @@ export default function LogLeadsSUVI() {
     window.location.href = '/api/oauth/salesforce/authorize';
   };
 
+  const processAllIncomplete = async () => {
+    try {
+      setBatchProcessing(true);
+      setShowBatchModal(true);
+      
+      // Obtener todos los leads incompletos
+      const res = await fetch('/api/modulos/suvi-leads/incomplete', {
+        cache: 'no-store'
+      });
+      const data = await res.json();
+      
+      if (!data.ok || !data.leads || data.leads.length === 0) {
+        setBatchProgress(prev => ({
+          ...prev,
+          logs: [{ leadId: '-', status: 'error', message: 'No hay leads incompletos para procesar' }]
+        }));
+        setBatchProcessing(false);
+        return;
+      }
+      
+      const leads = data.leads;
+      setBatchProgress({
+        total: leads.length,
+        current: 0,
+        currentLeadId: '',
+        currentStep: '',
+        processed: 0,
+        errors: 0,
+        logs: []
+      });
+      
+      // Procesar cada lead
+      for (let i = 0; i < leads.length; i++) {
+        const lead = leads[i];
+        
+        setBatchProgress(prev => ({
+          ...prev,
+          current: i + 1,
+          currentLeadId: lead.leadgen_id,
+          currentStep: `Procesando lead ${i + 1} de ${leads.length}...`
+        }));
+        
+        try {
+          // Determinar qué pasos faltan
+          const needsMeta = !lead.facebook_cleaned_data;
+          const needsAI = lead.facebook_cleaned_data && !lead.ai_enriched_data;
+          const needsSalesforce = lead.ai_enriched_data && !lead.salesforce_opportunity_id;
+          
+          // Paso 1: Consultar META si falta
+          if (needsMeta) {
+            setBatchProgress(prev => ({ ...prev, currentStep: `Lead ${lead.leadgen_id}: Consultando META...` }));
+            const metaRes = await fetch(`/api/modulos/suvi-leads/process-meta`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ leadId: lead.id })
+            });
+            const metaData = await metaRes.json();
+            if (!metaData.ok) throw new Error(`META: ${metaData.error}`);
+            
+            // Actualizar lead con los nuevos datos
+            lead.facebook_cleaned_data = metaData.cleanedData;
+          }
+          
+          // Paso 2: Procesar con IA si falta
+          if (needsAI || (needsMeta && lead.facebook_cleaned_data)) {
+            setBatchProgress(prev => ({ ...prev, currentStep: `Lead ${lead.leadgen_id}: Enriqueciendo con IA...` }));
+            const aiRes = await fetch(`/api/modulos/suvi-leads/process-ai`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ leadId: lead.id })
+            });
+            const aiData = await aiRes.json();
+            if (!aiData.ok) throw new Error(`IA: ${aiData.error}`);
+            
+            lead.ai_enriched_data = aiData.enrichedData;
+          }
+          
+          // Paso 3: Enviar a Salesforce si falta
+          if (needsSalesforce || ((needsMeta || needsAI) && lead.ai_enriched_data)) {
+            setBatchProgress(prev => ({ ...prev, currentStep: `Lead ${lead.leadgen_id}: Enviando a Salesforce...` }));
+            const sfRes = await fetch(`/api/modulos/suvi-leads/process-salesforce`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ leadId: lead.id })
+            });
+            const sfData = await sfRes.json();
+            if (!sfData.ok) throw new Error(`Salesforce: ${sfData.error}`);
+          }
+          
+          // Éxito
+          setBatchProgress(prev => ({
+            ...prev,
+            processed: prev.processed + 1,
+            logs: [...prev.logs, { 
+              leadId: lead.leadgen_id, 
+              status: 'success', 
+              message: 'Procesado exitosamente' 
+            }]
+          }));
+          
+        } catch (error: any) {
+          // Error en este lead, registrar y continuar
+          setBatchProgress(prev => ({
+            ...prev,
+            errors: prev.errors + 1,
+            logs: [...prev.logs, { 
+              leadId: lead.leadgen_id, 
+              status: 'error', 
+              message: error.message || 'Error desconocido' 
+            }]
+          }));
+        }
+      }
+      
+      // Finalizar
+      setBatchProgress(prev => ({
+        ...prev,
+        currentStep: 'Procesamiento completado',
+        currentLeadId: ''
+      }));
+      
+      // Recargar leads
+      loadLeads();
+      
+    } catch (error: any) {
+      console.error('Error en procesamiento en lote:', error);
+      setBatchProgress(prev => ({
+        ...prev,
+        logs: [...prev.logs, { 
+          leadId: '-', 
+          status: 'error', 
+          message: `Error general: ${error.message}` 
+        }]
+      }));
+    } finally {
+      setBatchProcessing(false);
+    }
+  };
+
   const viewDetail = async (leadId: number) => {
     try {
       const res = await fetch(`/api/modulos/suvi-leads/${leadId}`, {
@@ -637,6 +797,17 @@ export default function LogLeadsSUVI() {
             className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold"
           >
             Actualizar
+          </button>
+          <button
+            onClick={processAllIncomplete}
+            disabled={batchProcessing || !salesforceStatus?.has_active_tokens}
+            className="px-4 py-2 text-sm bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            title={!salesforceStatus?.has_active_tokens ? 'Conecta Salesforce primero' : 'Procesar todos los leads incompletos'}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            {batchProcessing ? 'Procesando...' : 'Procesar Todos'}
           </button>
         </div>
       </div>
@@ -1122,6 +1293,113 @@ export default function LogLeadsSUVI() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Procesamiento en Lote */}
+      {showBatchModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Procesamiento en Lote</h2>
+                  <p className="text-purple-100 text-sm mt-1">
+                    {batchProcessing ? 'Procesando leads incompletos...' : 'Procesamiento finalizado'}
+                  </p>
+                </div>
+                {!batchProcessing && (
+                  <button
+                    onClick={() => setShowBatchModal(false)}
+                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Progreso: {batchProgress.current} / {batchProgress.total}
+                </span>
+                <span className="text-sm text-gray-600">
+                  ✅ {batchProgress.processed} | ❌ {batchProgress.errors}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 h-full transition-all duration-300 rounded-full"
+                  style={{ width: `${batchProgress.total > 0 ? (batchProgress.current / batchProgress.total) * 100 : 0}%` }}
+                ></div>
+              </div>
+              
+              {batchProcessing && batchProgress.currentStep && (
+                <div className="mt-4 flex items-center gap-3 text-sm">
+                  <div className="animate-spin h-5 w-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                  <span className="text-gray-700">{batchProgress.currentStep}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Logs */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Registro de Procesamiento:</h3>
+              {batchProgress.logs.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">Esperando procesamiento...</p>
+              ) : (
+                <div className="space-y-2">
+                  {batchProgress.logs.map((log, idx) => (
+                    <div 
+                      key={idx}
+                      className={`flex items-start gap-3 p-3 rounded-lg text-sm ${
+                        log.status === 'success' 
+                          ? 'bg-green-50 border border-green-200' 
+                          : 'bg-red-50 border border-red-200'
+                      }`}
+                    >
+                      <span className="flex-shrink-0 mt-0.5">
+                        {log.status === 'success' ? (
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-medium ${log.status === 'success' ? 'text-green-900' : 'text-red-900'}`}>
+                          Lead: {log.leadId}
+                        </p>
+                        <p className={`text-xs mt-0.5 ${log.status === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+                          {log.message}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {!batchProcessing && (
+              <div className="p-6 border-t bg-gray-50">
+                <button
+                  onClick={() => setShowBatchModal(false)}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-colors font-semibold"
+                >
+                  Cerrar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
