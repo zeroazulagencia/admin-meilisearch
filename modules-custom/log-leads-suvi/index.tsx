@@ -792,7 +792,7 @@ export default function LogLeadsSUVI() {
         <div className="flex items-center justify-between gap-6">
           {/* Salesforce Status - Compacto */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-[#5DE1E5] rounded-lg flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
@@ -904,7 +904,7 @@ export default function LogLeadsSUVI() {
           <button
             onClick={processAllIncomplete}
             disabled={batchProcessing || !salesforceStatus?.has_active_tokens}
-            className="px-4 py-2 text-sm bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-lg hover:from-purple-600 hover:to-cyan-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             title={!salesforceStatus?.has_active_tokens ? 'Conecta Salesforce primero' : 'Procesar todos los leads incompletos'}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1442,7 +1442,7 @@ export default function LogLeadsSUVI() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-500 to-cyan-500 p-6 text-white">
+            <div className="bg-[#5DE1E5] p-6 text-gray-900">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">Procesamiento en Lote</h2>
@@ -1475,7 +1475,7 @@ export default function LogLeadsSUVI() {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-purple-500 to-cyan-500 h-full transition-all duration-300 rounded-full"
+                  className="bg-[#5DE1E5] h-full transition-all duration-300 rounded-full"
                   style={{ width: `${batchProgress.total > 0 ? (batchProgress.current / batchProgress.total) * 100 : 0}%` }}
                 ></div>
               </div>
@@ -1545,7 +1545,7 @@ export default function LogLeadsSUVI() {
               <div className="p-6 border-t bg-gray-50">
                 <button
                   onClick={() => setShowBatchModal(false)}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-colors font-semibold"
+                  className="w-full px-4 py-3 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold"
                 >
                   Cerrar
                 </button>
