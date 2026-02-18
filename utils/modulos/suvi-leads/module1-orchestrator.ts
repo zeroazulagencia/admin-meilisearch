@@ -59,7 +59,7 @@ export async function processLeadComplete(leadId: number, leadgenId: string, for
     console.log(`[ORCHESTRATOR] ${projects.length} proyectos encontrados`);
 
     // PASO 11: Seleccionar proyecto válido
-    const projectId = await selectValidProject(projects, leadId);
+    const projectId = await selectValidProject(projects);
     console.log(`[ORCHESTRATOR] Proyecto seleccionado:`, projectId);
 
     // PASO 12: Crear oportunidad

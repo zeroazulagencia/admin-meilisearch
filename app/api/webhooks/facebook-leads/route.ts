@@ -5,7 +5,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createLeadLog, getConfig } from '@/utils/modulos/suvi-leads/module1-config';
 import { processLeadFlow } from '@/utils/modulos/suvi-leads/module1-orchestrator';
-import { processLeadFlow } from '@/utils/modulos/suvi-leads/orchestrator';
 
 // GET - Verificación del webhook de Facebook
 export async function GET(request: NextRequest) {
