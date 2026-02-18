@@ -508,10 +508,9 @@ export default function LogLeadsSUVI() {
           // Paso 1: Consultar META si falta
           if (needsMeta) {
             setBatchProgress(prev => ({ ...prev, currentStep: `Lead ${lead.leadgen_id}: Consultando META...` }));
-            const metaRes = await fetch(`/api/modulos/suvi-leads/process-meta`, {
+            const metaRes = await fetch(`/api/modulos/suvi-leads/${lead.id}/consult-meta`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ leadId: lead.id })
+              headers: { 'Content-Type': 'application/json' }
             });
             
             // Verificar si la respuesta es OK antes de parsear JSON
@@ -540,7 +539,7 @@ export default function LogLeadsSUVI() {
           // Paso 2: Procesar con IA si falta
           if (needsAI || (needsMeta && lead.facebook_cleaned_data)) {
             setBatchProgress(prev => ({ ...prev, currentStep: `Lead ${lead.leadgen_id}: Enriqueciendo con IA...` }));
-            const aiRes = await fetch(`/api/modulos/suvi-leads/process-ai`, {
+            const aiRes = await fetch(`/api/modulos/suvi-leads/reprocess-from-cleaned`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ leadId: lead.id })
