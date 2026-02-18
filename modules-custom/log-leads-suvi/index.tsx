@@ -149,6 +149,7 @@ export default function LogLeadsSUVI() {
   // Estados para procesamiento en lote
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchCancelled, setBatchCancelled] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{
     total: number;
     current: number;
@@ -156,6 +157,7 @@ export default function LogLeadsSUVI() {
     currentStep: string;
     processed: number;
     errors: number;
+    consecutiveErrors: number;
     logs: Array<{ leadId: string; status: 'success' | 'error'; message: string; }>;
   }>({
     total: 0,
@@ -164,6 +166,7 @@ export default function LogLeadsSUVI() {
     currentStep: '',
     processed: 0,
     errors: 0,
+    consecutiveErrors: 0,
     logs: []
   });
   
@@ -439,6 +442,7 @@ export default function LogLeadsSUVI() {
     try {
       setBatchProcessing(true);
       setShowBatchModal(true);
+      setBatchCancelled(false);
       
       // Obtener todos los leads incompletos
       const res = await fetch('/api/modulos/suvi-leads/incomplete', {
@@ -463,11 +467,26 @@ export default function LogLeadsSUVI() {
         currentStep: '',
         processed: 0,
         errors: 0,
+        consecutiveErrors: 0,
         logs: []
       });
       
       // Procesar cada lead
       for (let i = 0; i < leads.length; i++) {
+        // Verificar si el usuario canceló
+        if (batchCancelled) {
+          setBatchProgress(prev => ({
+            ...prev,
+            currentStep: 'Procesamiento cancelado por el usuario',
+            logs: [...prev.logs, { 
+              leadId: '-', 
+              status: 'error', 
+              message: 'Procesamiento detenido manualmente' 
+            }]
+          }));
+          break;
+        }
+        
         const lead = leads[i];
         
         setBatchProgress(prev => ({
@@ -495,7 +514,13 @@ export default function LogLeadsSUVI() {
             // Verificar si la respuesta es OK antes de parsear JSON
             if (!metaRes.ok) {
               const errorText = await metaRes.text();
-              throw new Error(`META (${metaRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+              // Intentar parsear el error como JSON para obtener el mensaje real
+              try {
+                const errorJson = JSON.parse(errorText);
+                throw new Error(`META: ${errorJson.error || errorText}`);
+              } catch (e) {
+                throw new Error(`META (${metaRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+              }
             }
             
             const metaData = await metaRes.json();
@@ -517,7 +542,13 @@ export default function LogLeadsSUVI() {
             // Verificar si la respuesta es OK antes de parsear JSON
             if (!aiRes.ok) {
               const errorText = await aiRes.text();
-              throw new Error(`IA (${aiRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+              // Intentar parsear el error como JSON para obtener el mensaje real
+              try {
+                const errorJson = JSON.parse(errorText);
+                throw new Error(`IA: ${errorJson.error || errorText}`);
+              } catch (e) {
+                throw new Error(`IA (${aiRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+              }
             }
             
             const aiData = await aiRes.json();
@@ -538,17 +569,24 @@ export default function LogLeadsSUVI() {
             // Verificar si la respuesta es OK antes de parsear JSON
             if (!sfRes.ok) {
               const errorText = await sfRes.text();
-              throw new Error(`Salesforce (${sfRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+              // Intentar parsear el error como JSON para obtener el mensaje real
+              try {
+                const errorJson = JSON.parse(errorText);
+                throw new Error(`Salesforce: ${errorJson.error || errorText}`);
+              } catch (e) {
+                throw new Error(`Salesforce (${sfRes.status}): ${errorText || 'Sin respuesta del servidor'}`);
+              }
             }
             
             const sfData = await sfRes.json();
             if (!sfData.ok) throw new Error(`Salesforce: ${sfData.error}`);
           }
           
-          // Éxito
+          // Éxito - resetear contador de errores consecutivos
           setBatchProgress(prev => ({
             ...prev,
             processed: prev.processed + 1,
+            consecutiveErrors: 0, // Reset en éxito
             logs: [...prev.logs, { 
               leadId: lead.leadgen_id, 
               status: 'success', 
@@ -558,22 +596,46 @@ export default function LogLeadsSUVI() {
           
         } catch (error: any) {
           // Error en este lead, registrar y continuar
-          setBatchProgress(prev => ({
-            ...prev,
-            errors: prev.errors + 1,
-            logs: [...prev.logs, { 
-              leadId: lead.leadgen_id, 
-              status: 'error', 
-              message: error.message || 'Error desconocido' 
-            }]
-          }));
+          let consecutiveErrors = 0;
+          setBatchProgress(prev => {
+            consecutiveErrors = prev.consecutiveErrors + 1;
+            return {
+              ...prev,
+              errors: prev.errors + 1,
+              consecutiveErrors: consecutiveErrors,
+              logs: [...prev.logs, { 
+                leadId: lead.leadgen_id, 
+                status: 'error', 
+                message: error.message || 'Error desconocido' 
+              }]
+            };
+          });
+          
+          // Detener si hay 5 errores consecutivos
+          if (consecutiveErrors >= 5) {
+            setBatchProgress(prev => ({
+              ...prev,
+              currentStep: 'Procesamiento detenido: 5 errores consecutivos',
+              logs: [...prev.logs, { 
+                leadId: '-', 
+                status: 'error', 
+                message: '⛔ Detenido automáticamente por 5 errores consecutivos' 
+              }]
+            }));
+            break;
+          }
         }
+        
+        // Delay de 1 segundo entre cada lead
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
       // Finalizar
       setBatchProgress(prev => ({
         ...prev,
-        currentStep: 'Procesamiento completado',
+        currentStep: prev.currentStep.includes('detenido') || prev.currentStep.includes('cancelado') 
+          ? prev.currentStep 
+          : 'Procesamiento completado',
         currentLeadId: ''
       }));
       
@@ -1362,9 +1424,20 @@ export default function LogLeadsSUVI() {
               </div>
               
               {batchProcessing && batchProgress.currentStep && (
-                <div className="mt-4 flex items-center gap-3 text-sm">
-                  <div className="animate-spin h-5 w-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
-                  <span className="text-gray-700">{batchProgress.currentStep}</span>
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="animate-spin h-5 w-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                    <span className="text-gray-700">{batchProgress.currentStep}</span>
+                  </div>
+                  <button
+                    onClick={() => setBatchCancelled(true)}
+                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Detener
+                  </button>
                 </div>
               )}
             </div>
