@@ -3,7 +3,7 @@
  * API: Reprocesar lead completo usando orchestrator
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { processLeadFlow } from '@/utils/modulos/suvi-leads/module1-orchestrator';
+import { processLeadComplete } from '@/utils/modulos/suvi-leads/module1-orchestrator';
 import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({
@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
       [leadId]
     );
 
-    // Procesar flujo completo
-    processLeadFlow(lead.id, lead.leadgen_id, lead.form_id).catch((e) => {
+    // Procesar flujo completo con Salesforce
+    processLeadComplete(lead.id, lead.leadgen_id, lead.form_id).catch((e) => {
       console.error('[REPROCESS] Error:', e);
     });
 

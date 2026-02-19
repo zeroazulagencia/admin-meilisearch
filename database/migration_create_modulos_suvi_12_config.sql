@@ -20,7 +20,7 @@ INSERT INTO modulos_suvi_12_config (config_key, config_value, is_encrypted, desc
 ('facebook_app_id', '1997100487493360', FALSE, 'Facebook App ID'),
 ('facebook_app_secret', '', TRUE, 'Facebook App Secret (debe configurarse)'),
 ('facebook_access_token', '', TRUE, 'Facebook Access Token para Graph API'),
-('openai_api_key', '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', TRUE, 'OpenAI API Key'),
+('openai_api_key', 'sk-proj-J2nSrXwHa0z7Ipr6h2UE9ku7SK_OPENAI_API_KEY_REDACTED3BlbkFJB8xXTUsTP0zNbVlQL_euLKX5NBTOXX4z-l5hT4FQPb5G22MnFPeXeKWtK2flrR6pfxwuXvlPEA', TRUE, 'OpenAI API Key'),
 ('salesforce_instance_url', 'https://suvivienda.my.salesforce.com', FALSE, 'Salesforce Instance URL'),
 ('salesforce_access_token', '', TRUE, 'Salesforce Access Token (debe configurarse)'),
 ('salesforce_group_id', '00G4W000006rHIN', FALSE, 'Salesforce Group ID para asignación de Owner'),

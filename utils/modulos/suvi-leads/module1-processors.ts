@@ -13,19 +13,19 @@ export async function consultFacebookLead(leadgenId: string, leadId: number) {
       facebook_fetched_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
     });
 
-    const appId = await getConfig('facebook_app_id');
-    const appSecret = await getConfig('facebook_app_secret');
-    
-    if (!appId || !appSecret) {
-      throw new Error('Credenciales de Facebook no configuradas');
+    const accessToken = await getConfig('facebook_access_token');
+
+    if (!accessToken) {
+      throw new Error('facebook_access_token no configurado en la config del modulo');
     }
 
-    const accessToken = `${appId}|${appSecret}`;
     const url = `https://graph.facebook.com/v18.0/${leadgenId}?access_token=${accessToken}`;
 
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Facebook API error: ${response.statusText}`);
+      const errBody = await response.json().catch(() => ({}));
+      const errMsg = errBody?.error?.message || response.statusText;
+      throw new Error(`Facebook API error: ${errMsg}`);
     }
 
     const data = await response.json();

@@ -18,6 +18,8 @@ interface Lead {
   error_message: string;
   salesforce_account_name: string;
   salesforce_opportunity_id: string;
+  salesforce_owner_id: string;
+  opportunity_type_id: string;
   received_at: string;
   completed_at: string;
   processing_time_seconds: number;
@@ -150,6 +152,11 @@ export default function LogLeadsSUVI() {
   // Estados para procesamiento en lote
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'leads' | 'bloqueados' | 'flujo'>('leads');
+  const [blockedForms, setBlockedForms] = useState<string[]>([]);
+  const [blockedLoading, setBlockedLoading] = useState(false);
+  const [newFormId, setNewFormId] = useState('');
+  const [blockedMsg, setBlockedMsg] = useState('');
   const [batchCancelled, setBatchCancelled] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{
     total: number;
@@ -177,6 +184,7 @@ export default function LogLeadsSUVI() {
   useEffect(() => {
     loadLeads();
     loadSalesforceStatus();
+    loadBlockedForms();
   }, [page, filters]);
 
   // Recargar estado de Salesforce cuando se conecta exitosamente
@@ -187,6 +195,48 @@ export default function LogLeadsSUVI() {
       }, 1000);
     }
   }, [oauthSuccess]);
+
+  const loadBlockedForms = async () => {
+    try {
+      const res = await fetch('/api/custom-module1/log-leads-suvi/config');
+      const data = await res.json();
+      if (data.ok) setBlockedForms(data.blocked_form_ids);
+    } catch {}
+  };
+
+  const saveBlockedForms = async (list: string[]) => {
+    setBlockedLoading(true);
+    setBlockedMsg('');
+    try {
+      const res = await fetch('/api/custom-module1/log-leads-suvi/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocked_form_ids: list }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setBlockedForms(data.blocked_form_ids);
+        setBlockedMsg('Guardado correctamente');
+      } else {
+        setBlockedMsg('Error: ' + (data.error || 'No se pudo guardar'));
+      }
+    } catch (e: any) {
+      setBlockedMsg('Error: ' + e.message);
+    }
+    setBlockedLoading(false);
+  };
+
+  const addBlockedForm = () => {
+    const id = newFormId.trim();
+    if (!id || blockedForms.includes(id)) return;
+    const updated = [...blockedForms, id];
+    setNewFormId('');
+    saveBlockedForms(updated);
+  };
+
+  const removeBlockedForm = (id: string) => {
+    saveBlockedForms(blockedForms.filter(f => f !== id));
+  };
 
   const loadLeads = async () => {
     try {
@@ -756,6 +806,28 @@ export default function LogLeadsSUVI() {
 
   return (
     <div className="space-y-4">
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-gray-200">
+        {([
+          { id: 'leads',    label: 'Leads' },
+          { id: 'bloqueados', label: 'Formularios Bloqueados' },
+          { id: 'flujo',    label: 'Flujo y Documentacion' },
+        ] as const).map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === t.id
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'leads' && (<>
       {/* Mensajes de OAuth */}
       {oauthSuccess && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 shadow-sm">
@@ -1309,6 +1381,24 @@ export default function LogLeadsSUVI() {
                                 </div>
                               </div>
                             )}
+                            {selectedLead.salesforce_owner_id && (
+                              <div className="flex items-start gap-2">
+                                <span className="text-green-600 flex-shrink-0 mt-0.5"></span>
+                                <div className="flex-1">
+                                  <strong className="text-green-900">Asesor asignado:</strong>{' '}
+                                  <span className="text-green-800 font-mono text-xs">{selectedLead.salesforce_owner_id}</span>
+                                </div>
+                              </div>
+                            )}
+                            {selectedLead.opportunity_type_id && (
+                              <div className="flex items-start gap-2">
+                                <span className="text-green-600 flex-shrink-0 mt-0.5"></span>
+                                <div className="flex-1">
+                                  <strong className="text-green-900">Tipo de oportunidad:</strong>{' '}
+                                  <span className="text-green-800 font-mono text-xs">{selectedLead.opportunity_type_id}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1551,6 +1641,199 @@ export default function LogLeadsSUVI() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      </>)}
+
+      {/* TAB: Formularios Bloqueados */}
+      {activeTab === 'bloqueados' && (
+        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">Formularios Bloqueados</h2>
+            <p className="text-sm text-gray-500">
+              Los leads cuyo <code className="bg-gray-100 px-1 rounded text-xs">form_id</code> esté en esta lista son ignorados completamente al recibir el webhook: no se guardan en la base de datos ni se procesan.
+            </p>
+          </div>
+
+          {/* Agregar */}
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={newFormId}
+              onChange={e => setNewFormId(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addBlockedForm()}
+              placeholder="ID del formulario a bloquear"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={addBlockedForm}
+              disabled={blockedLoading || !newFormId.trim()}
+              className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
+            >
+              Agregar
+            </button>
+          </div>
+
+          {blockedMsg && (
+            <p className={`text-sm ${blockedMsg.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
+              {blockedMsg}
+            </p>
+          )}
+
+          {/* Lista */}
+          {blockedForms.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">No hay formularios bloqueados</p>
+          ) : (
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Form ID</th>
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500 text-right">Accion</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {blockedForms.map(id => (
+                    <tr key={id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 font-mono text-xs text-gray-800">{id}</td>
+                      <td className="px-4 py-2 text-right">
+                        <button
+                          onClick={() => removeBlockedForm(id)}
+                          disabled={blockedLoading}
+                          className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: Flujo y Documentacion */}
+      {activeTab === 'flujo' && (
+        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-8">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">Sincronizador Leads Meta SUVI</h2>
+            <p className="text-sm text-gray-500">
+              Pipeline automatizado que procesa leads provenientes de formularios nativos de Meta (Facebook Lead Ads). Cuando un usuario completa un formulario dentro de una campaña de Meta, Facebook envía el evento vía webhook. El sistema lo captura, extrae los datos del formulario, los enriquece con IA y los sincroniza en Salesforce CRM.
+            </p>
+          </div>
+
+          {/* Flujo paso a paso */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Flujo de procesamiento</p>
+            <div className="space-y-3">
+              {[
+                { paso: '00', titulo: 'Verificacion de formulario bloqueado', desc: 'Antes de guardar cualquier registro, se verifica si el form_id está en la lista blocked_form_ids de la config. Si está bloqueado, el lead se descarta silenciosamente: no se guarda en BD ni se procesa.' },
+                { paso: '01', titulo: 'Webhook recibido',          desc: 'Facebook envía el evento a /api/webhooks/facebook-leads. Se guarda el lead con estado recibido y se inicia el pipeline.' },
+                { paso: '02', titulo: 'Consulta a Facebook',       desc: 'Se llama a Graph API con el leadgen_id para obtener los datos completos del formulario (nombre, teléfono, email, campaña).' },
+                { paso: '03', titulo: 'Limpieza de datos',         desc: 'Se normalizan los campos del lead: nombres, teléfonos con código de país, emails. Se guarda en facebook_cleaned_data.' },
+                { paso: '04', titulo: 'Enriquecimiento con IA',    desc: 'GPT-4 estructura los datos: nombre completo, detección de país, inferencia del servicio de interés. Se guarda en ai_enriched_data.' },
+                { paso: '05', titulo: 'Clasificación de campaña',  desc: 'Se determina el tipo de campaña comparando campaign_name contra dos listas en config. Si está en suvi_campaigns (ej: "Grupo 2 Familia", "Retiro-Julio") → Pauta Interna. Si está en agency_campaigns (ej: "E3D Grupo 3 Inversionistas") → Pauta Agencia. Excepción fija: form_id 1200513015221690 siempre es Pauta Interna. Si no aparece en ninguna lista → Pauta Agencia por defecto. El tipo define el RecordTypeId de la oportunidad en Salesforce (ID: 0124W000000OiIrQAK configurado en salesforce_opportunity_type_id).' },
+                { paso: '06', titulo: 'Cuenta en Salesforce',         desc: 'UPSERT de Account usando Correo_Electrónico__c como External ID. Si existe, actualiza; si no, crea. Campos: Name, Phone, AccountSource (tipo de campaña), prefijos telefónicos.' },
+                { paso: '07', titulo: 'Ruleta de asesores',            desc: "Se consulta Salesforce: GET /services/data/v60.0/query?q=SELECT+UserOrGroupId+FROM+GroupMember+WHERE+GroupId='00G4W000006rHIN'. Retorna todos los UserOrGroupId del grupo. Se elige uno al azar con Math.random() para asignarle tanto la cuenta como la oportunidad." },
+                { paso: '08', titulo: 'Actualizar dueño de la cuenta', desc: 'Se actualiza el campo OwnerId de la Account en Salesforce con el asesor seleccionado en la ruleta. Esto asegura que cuenta y oportunidad queden asignadas al mismo asesor.' },
+                { paso: '09', titulo: 'Oportunidad en Salesforce',     desc: 'Se busca si ya existe una Opportunity para la misma cuenta + proyecto + mes actual. Si existe, se actualiza; si no, se crea. Campos: StageName = "Nuevo", OwnerId = asesor de la ruleta, Proyecto__c = uno de los 15 IDs válidos (valid_project_ids), RecordTypeId = 0124W000000OiIrQAK (omitido si falla validación cruzada). CloseDate = hoy + 30 días. Description = info de campaña + resumen IA.' },
+                { paso: '10', titulo: 'Completado',                    desc: 'El lead queda en estado completado con salesforce_account_name y salesforce_opportunity_id registrados.' },
+                { paso: '11', titulo: 'Error',                         desc: 'Si falla cualquier paso, se guarda el estado error con error_message y error_step para diagnóstico y reprocesamiento manual.' },
+              ].map(({ paso, titulo, desc }) => (
+                <div key={paso} className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center">
+                    <span className="text-xs font-bold text-blue-600">{paso}</span>
+                  </div>
+                  <div className="flex-1 pb-3 border-b border-gray-100 last:border-0">
+                    <p className="text-sm font-semibold text-gray-800">{titulo}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Rutas del módulo */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Rutas del módulo</p>
+            <pre className="bg-gray-900 text-gray-300 text-xs rounded-lg px-4 py-4 overflow-x-auto font-mono whitespace-pre">
+{`app/api/webhooks/facebook-leads/route.ts
+  POST  /api/webhooks/facebook-leads                              Recibe eventos de Facebook Lead Ads
+  GET   /api/webhooks/facebook-leads                              Verificación del webhook (hub.verify_token)
+
+app/api/custom-module1/log-leads-suvi/
+  GET   /api/custom-module1/log-leads-suvi                        Lista de leads con filtros y paginación
+  GET   /api/custom-module1/log-leads-suvi/[id]                   Detalle de un lead
+  POST  /api/custom-module1/log-leads-suvi/[id]/consult-meta      Reconsulta datos en Meta Graph API
+  POST  /api/custom-module1/log-leads-suvi/reprocess-from-cleaned Reprocesa IA desde datos limpios
+  POST  /api/custom-module1/log-leads-suvi/process-salesforce     Envía lead a Salesforce
+  GET   /api/custom-module1/log-leads-suvi/incomplete             Lista leads incompletos para batch
+  POST  /api/custom-module1/log-leads-suvi/reprocess              Reprocesa un lead desde cero
+
+app/api/oauth/salesforce/
+  GET   /api/oauth/salesforce/authorize                           Inicia flujo OAuth con Salesforce
+  GET   /api/oauth/salesforce/status                              Estado del token (activo / tiempo restante)
+
+utils/modulos/suvi-leads/
+  orchestrator.ts   Coordinador principal del pipeline (paso a paso)
+  processors.ts     Lógica de Facebook, IA y clasificación de campaña
+  salesforce.ts     Llamadas a Salesforce REST API (account UPSERT, opportunity)`}
+            </pre>
+          </div>
+
+          {/* Tablas */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Tablas en base de datos</p>
+            <pre className="bg-gray-900 text-gray-300 text-xs rounded-lg px-4 py-4 overflow-x-auto font-mono whitespace-pre">
+{`modulos_suvi_12_leads
+  id                         INT (PK)
+  leadgen_id                 VARCHAR(100)   ID único del lead en Facebook
+  page_id / form_id          VARCHAR(100)   Página y formulario de origen
+  campaign_name / ad_name    VARCHAR(255)   Campaña y anuncio
+  campaign_type              ENUM           Interna | Agencia
+  processing_status          VARCHAR(50)    Estado actual del pipeline
+  current_step               VARCHAR(100)   Paso en ejecución
+  error_message / error_step TEXT           Diagnóstico de errores
+  facebook_raw_data          JSON           Respuesta cruda de Graph API
+  facebook_cleaned_data      JSON           Datos normalizados
+  ai_enriched_data           JSON           Datos enriquecidos por GPT-4
+  salesforce_account_name    VARCHAR(255)   Cuenta creada/actualizada en SF
+  salesforce_opportunity_id  VARCHAR(100)   Oportunidad en Salesforce
+  received_at / completed_at DATETIME       Tiempos del pipeline
+  processing_time_seconds    INT            Duración total
+
+modulos_suvi_12_config
+  config_key    VARCHAR(100)   facebook_app_id, openai_api_key, agency_campaigns, etc.
+  config_value  TEXT
+  is_encrypted  BOOLEAN
+
+salesforce_oauth_tokens
+  instance_url   VARCHAR(255)
+  access_token   TEXT
+  refresh_token  TEXT
+  expires_at     DATETIME`}
+            </pre>
+          </div>
+
+          {/* Integraciones */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Integraciones externas</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { nombre: 'Facebook Graph API', uso: 'Verificación de webhook y consulta de datos del lead por leadgen_id', auth: 'App Secret + Access Token' },
+                { nombre: 'OpenAI GPT-4',       uso: 'Estructuración de datos: nombre completo, país, servicio de interés', auth: 'API Key' },
+                { nombre: 'Salesforce REST API', uso: 'UPSERT de Account por email, creación de Opportunity con propietario aleatorio', auth: 'OAuth 2.0 (refresh token)' },
+              ].map(({ nombre, uso, auth }) => (
+                <div key={nombre} className="border border-gray-200 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-gray-800 mb-1">{nombre}</p>
+                  <p className="text-xs text-gray-500 mb-2">{uso}</p>
+                  <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">{auth}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
