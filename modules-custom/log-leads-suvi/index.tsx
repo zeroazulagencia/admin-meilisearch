@@ -1947,6 +1947,13 @@ app/api/custom-module1/log-leads-suvi/
   GET   /api/custom-module1/log-leads-suvi/incomplete             Lista leads incompletos para batch
   POST  /api/custom-module1/log-leads-suvi/reprocess              Reprocesa un lead desde cero
 
+app/api/custom-module1/log-leads-suvi/config/
+  GET   /api/custom-module1/log-leads-suvi/config                 Lista blocked_form_ids
+  GET   /api/custom-module1/log-leads-suvi/config?all=true        Lista todas las configs (enmascaradas)
+  PUT   /api/custom-module1/log-leads-suvi/config                 Actualiza blocked_form_ids
+  POST  /api/custom-module1/log-leads-suvi/config                 Actualiza config individual (editables)
+  POST  /api/custom-module1/log-leads-suvi/config/test            Prueba validez de API key
+
 app/api/oauth/salesforce/
   GET   /api/oauth/salesforce/authorize                           Inicia flujo OAuth con Salesforce
   GET   /api/oauth/salesforce/status                              Estado del token (activo / tiempo restante)
@@ -1954,7 +1961,8 @@ app/api/oauth/salesforce/
 utils/modulos/suvi-leads/
   orchestrator.ts   Coordinador principal del pipeline (paso a paso)
   processors.ts     Lógica de Facebook, IA y clasificación de campaña
-  salesforce.ts     Llamadas a Salesforce REST API (account UPSERT, opportunity)`}
+  salesforce.ts     Llamadas a Salesforce REST API (account UPSERT, opportunity)
+  config.ts         Funciones getConfig() y setConfig() para modulos_suvi_12_config`}
             </pre>
           </div>
 
@@ -1980,15 +1988,27 @@ utils/modulos/suvi-leads/
   processing_time_seconds    INT            Duración total
 
 modulos_suvi_12_config
-  config_key    VARCHAR(100)   facebook_app_id, openai_api_key, agency_campaigns, etc.
-  config_value  TEXT
-  is_encrypted  BOOLEAN
+  config_key    VARCHAR(100)   Clave de configuración (PK)
+  config_value  TEXT           Valor (puede ser JSON para arrays)
+  is_encrypted  BOOLEAN        Indica si el valor está encriptado
 
-salesforce_oauth_tokens
-  instance_url   VARCHAR(255)
-  access_token   TEXT
-  refresh_token  TEXT
-  expires_at     DATETIME`}
+  Keys disponibles:
+  - openai_api_key            API Key de OpenAI (editable, sensible)
+  - facebook_access_token     Token de Facebook Graph API (editable, sensible)
+  - facebook_app_id           App ID de Facebook
+  - facebook_app_secret       App Secret de Facebook
+  - salesforce_consumer_key   Client ID OAuth (editable, sensible)
+  - salesforce_consumer_secret Client Secret OAuth (editable, sensible)
+  - salesforce_access_token   Token activo (manejado por OAuth)
+  - salesforce_refresh_token  Refresh token (manejado por OAuth)
+  - salesforce_instance_url   URL de Salesforce
+  - salesforce_token_expiry   Expiración del token
+  - salesforce_group_id       ID del grupo de asesores para ruleta
+  - salesforce_opportunity_type_id  RecordTypeId para oportunidades
+  - agency_campaigns          JSON array de campañas de agencia
+  - suvi_campaigns            JSON array de campañas internas
+  - valid_project_ids         JSON array de proyectos válidos
+  - blocked_form_ids          JSON array de formularios bloqueados`}
             </pre>
           </div>
 
