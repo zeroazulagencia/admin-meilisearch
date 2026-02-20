@@ -55,6 +55,14 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
   const [toggleando, setToggleando] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Modal llamada asesor
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalStatus, setModalStatus] = useState<'conectando' | 'en-llamada' | 'finalizada' | 'error'>('conectando');
+  const [modalMuted, setModalMuted] = useState(false);
+  const [modalError, setModalError] = useState('');
+  const modalDeviceRef = useRef<any>(null);
+  const modalCallRef = useRef<any>(null);
+
   // Historial
   const [llamadas, setLlamadas] = useState<Llamada[]>([]);
   const [stats, setStats] = useState<Stats>({ total_llamadas: 0, total_minutos: 0, promedio_segundos: 0 });
@@ -106,6 +114,91 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
   useEffect(() => {
     cargarEstadoAsesor();
   }, [cargarEstadoAsesor]);
+
+  const abrirModalLlamada = useCallback(async (room: string) => {
+    setModalOpen(true);
+    setModalStatus('conectando');
+    setModalMuted(false);
+    setModalError('');
+
+    try {
+      const tokenRes = await fetch(`${BASE}/token?room=${encodeURIComponent(room)}&role=asesor`);
+      const tokenData = await tokenRes.json();
+      if (!tokenData.ok) throw new Error(tokenData.error || 'Error al obtener token');
+
+      const { Device } = await import('@twilio/voice-sdk');
+      const device = new Device(tokenData.token, { logLevel: 1 });
+      modalDeviceRef.current = device;
+
+      device.on('error', (twilioError: any) => {
+        setModalError(twilioError?.message || 'Error de dispositivo');
+        setModalStatus('error');
+      });
+
+      await device.register();
+
+      const call = await device.connect({ params: { room } });
+      modalCallRef.current = call;
+
+      call.on('accept', () => setModalStatus('en-llamada'));
+      call.on('disconnect', () => {
+        setModalStatus('finalizada');
+        modalCallRef.current = null;
+        fetch(`${BASE}/finalizar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ room_id: room }),
+        }).catch(() => {});
+        cargarEstadoAsesor();
+      });
+      call.on('error', (err: any) => {
+        setModalError(err?.message || 'Error en llamada');
+        setModalStatus('error');
+      });
+    } catch (e: any) {
+      setModalError(e.message || 'Error al conectar');
+      setModalStatus('error');
+    }
+  }, [cargarEstadoAsesor]);
+
+  const colgarModal = useCallback(() => {
+    if (modalCallRef.current) {
+      modalCallRef.current.disconnect();
+      modalCallRef.current = null;
+    }
+    setModalStatus('finalizada');
+    if (asesorRoom) {
+      fetch(`${BASE}/finalizar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room_id: asesorRoom }),
+      }).catch(() => {});
+    }
+    cargarEstadoAsesor();
+  }, [asesorRoom, cargarEstadoAsesor]);
+
+  const cerrarModal = useCallback(() => {
+    if (modalCallRef.current) {
+      modalCallRef.current.disconnect();
+      modalCallRef.current = null;
+    }
+    if (modalDeviceRef.current) {
+      modalDeviceRef.current.destroy();
+      modalDeviceRef.current = null;
+    }
+    setModalOpen(false);
+    setModalStatus('conectando');
+    setModalMuted(false);
+    setModalError('');
+    cargarEstadoAsesor();
+  }, [cargarEstadoAsesor]);
+
+  const toggleMuteModal = useCallback(() => {
+    if (!modalCallRef.current) return;
+    const next = !modalMuted;
+    modalCallRef.current.mute(next);
+    setModalMuted(next);
+  }, [modalMuted]);
 
   useEffect(() => {
     if (tab === 'asesor' && (asesorEstado === 'online' || asesorEstado === 'ocupado')) {
@@ -280,14 +373,12 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-blue-800">Llamada entrante</p>
               <p className="text-xs text-blue-600 font-mono">{asesorRoom}</p>
-              <a
-                href={`${CALL_PATH}/${asesorRoom}?role=asesor`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition-colors"
+              <button
+                onClick={() => abrirModalLlamada(asesorRoom)}
+                className="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition-colors"
               >
                 Atender llamada
-              </a>
+              </button>
             </div>
           )}
 
@@ -445,7 +536,7 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
         <div className="space-y-4">
           <div className="bg-white border border-gray-200 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Uso y Creditos - Twilio</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Uso y Creditos</h2>
               <div className="flex items-center gap-3">
                 {usoTimestamp && <span className="text-xs text-gray-400">Actualizado: {usoTimestamp}</span>}
                 <button onClick={cargarUso} className="text-sm text-blue-500 hover:underline">Actualizar</button>
@@ -462,7 +553,7 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {uso.balance && (
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
-                    <p className="text-2xl font-bold text-gray-900">${uso.balance.saldo.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-gray-900">${(uso.balance.saldo * 3).toFixed(2)}</p>
                     <p className="text-xs text-gray-500 mt-1">Balance ({uso.balance.moneda})</p>
                   </div>
                 )}
@@ -475,11 +566,12 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
                   <p className="text-xs text-gray-500 mt-1">Llamadas este mes</p>
                 </div>
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-gray-900">${uso.costo_estimado.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-gray-900">${(uso.costo_estimado * 3).toFixed(2)}</p>
                   <p className="text-xs text-gray-500 mt-1">Costo estimado</p>
                 </div>
               </div>
             )}
+            <p className="text-xs text-gray-400 mt-3">Tarifa Zero Azul Promta Dx 3x</p>
           </div>
         </div>
       )}
@@ -592,6 +684,81 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
             <pre className="bg-gray-900 text-gray-300 text-xs rounded-lg px-4 py-3 overflow-x-auto font-mono whitespace-pre">{`modulos_sara_11_config     -- Credenciales Twilio + config grabacion
 modulos_sara_11_llamadas   -- Registro de llamadas (room_id, estado, duracion, recording_url)
 modulos_sara_11_asesores   -- Estado del asesor (online/offline/ocupado)`}</pre>
+          </div>
+        </div>
+      )}
+
+      {/* Modal llamada asesor */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-8 text-center space-y-5">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Llamada activa</h2>
+              {asesorRoom && (
+                <p className="text-xs text-gray-400 font-mono mt-1 break-all">{asesorRoom}</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-center gap-2">
+              <span className={`w-3 h-3 rounded-full ${
+                modalStatus === 'en-llamada' ? 'bg-green-500' :
+                modalStatus === 'conectando' ? 'bg-yellow-500 animate-pulse' :
+                modalStatus === 'error' ? 'bg-red-500' :
+                'bg-gray-400'
+              }`} />
+              <span className={`text-sm font-semibold ${
+                modalStatus === 'en-llamada' ? 'text-green-600' :
+                modalStatus === 'conectando' ? 'text-yellow-600' :
+                modalStatus === 'error' ? 'text-red-600' :
+                'text-gray-500'
+              }`}>
+                {modalStatus === 'conectando' ? 'Conectando...' :
+                 modalStatus === 'en-llamada' ? 'En llamada' :
+                 modalStatus === 'finalizada' ? 'Llamada finalizada' :
+                 'Error'}
+              </span>
+            </div>
+
+            {modalStatus === 'error' && modalError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                {modalError}
+              </div>
+            )}
+
+            {modalStatus === 'conectando' && (
+              <div className="flex items-center justify-center gap-2 py-2 text-gray-500">
+                <div className="animate-spin h-5 w-5 border-2 border-t-transparent border-blue-500 rounded-full" />
+                <span className="text-sm">Conectando...</span>
+              </div>
+            )}
+
+            {modalStatus === 'en-llamada' && (
+              <div className="flex gap-3">
+                <button
+                  onClick={toggleMuteModal}
+                  className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-colors ${
+                    modalMuted ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {modalMuted ? 'Silenciado' : 'Silenciar'}
+                </button>
+                <button
+                  onClick={colgarModal}
+                  className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-sm transition-colors"
+                >
+                  Colgar
+                </button>
+              </div>
+            )}
+
+            {(modalStatus === 'finalizada' || modalStatus === 'error') && (
+              <button
+                onClick={cerrarModal}
+                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-xl text-sm transition-colors"
+              >
+                Cerrar
+              </button>
+            )}
           </div>
         </div>
       )}

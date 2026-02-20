@@ -140,12 +140,6 @@ export default function LlamarPage() {
     return () => { if (status !== 'ocupado') limpiarPolling(); };
   }, [status, solicitarLlamada, conectarTwilio, limpiarPolling]);
 
-  useEffect(() => {
-    if (status === 'conectando' && roomId) {
-      conectarTwilio(roomId);
-    }
-  }, [status, roomId, conectarTwilio]);
-
   const colgar = () => {
     callRef.current?.disconnect();
     callRef.current = null;
@@ -187,8 +181,8 @@ export default function LlamarPage() {
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 w-full max-w-sm p-8 text-center space-y-6">
 
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Llamada SARA</h1>
-          <p className="text-xs text-gray-400 mt-1">DWORKERS - Modulo 5</p>
+          <h1 className="text-xl font-bold text-gray-900">Modulo de llamadas PromtaDx</h1>
+          <p className="text-xs text-gray-400 mt-1">DWORKERS - Modulo de llamadas PromtaDx</p>
         </div>
 
         <div className="flex items-center justify-center gap-2">

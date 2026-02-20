@@ -121,7 +121,7 @@ export default function LlamadaSaraPage() {
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 w-full max-w-sm p-8 text-center space-y-6">
 
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Llamada SARA</h1>
+          <h1 className="text-xl font-bold text-gray-900">Modulo de llamadas PromtaDx</h1>
           <p className="text-xs text-gray-400 font-mono mt-1 break-all">{room}</p>
           {role === 'asesor' && (
             <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Asesor</span>
@@ -182,7 +182,7 @@ export default function LlamadaSaraPage() {
           )}
         </div>
 
-        <p className="text-xs text-gray-400">DWORKERS - Sara - Modulo 5</p>
+        <p className="text-xs text-gray-400">DWORKERS - Modulo de llamadas PromtaDx</p>
       </div>
     </div>
   );

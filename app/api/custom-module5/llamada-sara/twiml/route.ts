@@ -27,7 +27,7 @@ async function handler(req: NextRequest) {
     );
     const recordingEnabled = cfg.length > 0 && cfg[0].config_value === 'true';
 
-    let conferenceAttrs = 'startConferenceOnEnter="true" endConferenceOnExit="false"';
+    let conferenceAttrs = 'startConferenceOnEnter="true" endConferenceOnExit="true" waitUrl="" beep="false"';
     if (recordingEnabled) {
       conferenceAttrs += ` record="record-from-start" recordingStatusCallback="${BASE_URL}/api/custom-module5/llamada-sara/recording-callback" recordingStatusCallbackEvent="completed"`;
     }
