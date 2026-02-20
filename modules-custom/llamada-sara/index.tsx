@@ -393,16 +393,17 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
             <div className="flex items-center gap-2">
               <input
                 readOnly
-                value={`${BASE_URL}${CALL_PATH}/llamar`}
+                value="https://bit.ly/promtadx"
                 className="flex-1 text-xs font-mono bg-gray-50 border border-gray-200 rounded px-3 py-2 text-gray-700"
               />
               <button
-                onClick={() => navigator.clipboard.writeText(`${BASE_URL}${CALL_PATH}/llamar`)}
+                onClick={() => navigator.clipboard.writeText('https://bit.ly/promtadx')}
                 className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
               >
                 Copiar
               </button>
             </div>
+            <p className="text-xs text-gray-400 mt-2 font-mono">{`${BASE_URL}${CALL_PATH}/llamar`}</p>
           </div>
         </div>
       )}
