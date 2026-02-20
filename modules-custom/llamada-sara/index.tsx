@@ -111,6 +111,23 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
     setToggleando(false);
   };
 
+  const resetAsesor = async () => {
+    setToggleando(true);
+    try {
+      const res = await fetch(`${BASE}/asesor/estado`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'reset' }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setAsesorEstado(data.estado);
+        setAsesorRoom(null);
+      }
+    } catch {}
+    setToggleando(false);
+  };
+
   useEffect(() => {
     cargarEstadoAsesor();
   }, [cargarEstadoAsesor]);
@@ -360,6 +377,15 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
                 {toggleando ? 'Cambiando...' : asesorEstado === 'offline' ? 'Conectarse' : 'Desconectarse'}
               </button>
             )}
+            {asesorEstado === 'ocupado' && (
+              <button
+                onClick={resetAsesor}
+                disabled={toggleando}
+                className="px-4 py-2 text-xs font-medium rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors disabled:opacity-50"
+              >
+                {toggleando ? 'Reseteando...' : 'Forzar reset'}
+              </button>
+            )}
           </div>
 
           {asesorEstado === 'online' && !asesorRoom && (
@@ -518,7 +544,7 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
                           </div>
                           {audioPlaying === l.room_id && l.recording_url && (
                             <div className="mt-2">
-                              <audio controls src={l.recording_url} className="w-full h-8" />
+                              <audio controls src={`${BASE}/recording?url=${encodeURIComponent(l.recording_url)}`} className="w-full h-8" />
                             </div>
                           )}
                         </td>
