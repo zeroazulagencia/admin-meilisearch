@@ -137,6 +137,100 @@ Estas reglas **siempre deben cumplirse**. No son sugerencias.
 - Crear archivo `log.txt`.
 - Agregar líneas **solo** cuando se pida explícitamente.
 
-### 11. Depuración
+### 11. Depuracion
 Si se solicita debug, usar formato simple en consola:
+
+### 12. API Keys para Modulos Custom
+Para integraciones con servicios externos (OpenAI, etc.), usar el sistema centralizado de API keys:
+
+**Tabla:** `api_keys`
+```sql
+CREATE TABLE api_keys (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  service_name VARCHAR(50) UNIQUE NOT NULL,
+  api_key TEXT NOT NULL,
+  is_active TINYINT(1) DEFAULT 1,
+  last_verified_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+**Uso en codigo:**
+```typescript
+import { getApiKey } from '@/utils/api-keys';
+
+const apiKey = await getApiKey('openai');
+```
+
+**Endpoints disponibles:**
+- `GET /api/api-keys` - Listar keys (enmascaradas)
+- `POST /api/api-keys` - Crear/actualizar key
+- `DELETE /api/api-keys` - Eliminar key
+- `POST /api/api-keys/verify` - Verificar validez
+
+**Reglas:**
+- NUNCA hardcodear API keys en codigo ni `.env`
+- Usar `getApiKey('service_name')` para obtener keys
+- Las keys se almacenan en BD, no en archivos
+- La UI debe mostrar keys enmascaradas (primeros 10 + ultimos 4 caracteres)
+- Cada modulo custom debe tener su pestana de configuracion para API keys
+
+---
+
+## Deployment
+
+### Servidor de Produccion
+- **Proveedor:** Hetzner Cloud
+- **IP:** 89.167.79.168
+- **Dominio:** https://workers.zeroazul.com
+- **OS:** Ubuntu
+- **Acceso SSH:** `ssh root@89.167.79.168` (via SSH key ed25519)
+- **App path:** `/root/admin-meilisearch`
+
+### Stack en Produccion
+- **Runtime:** Node.js 20
+- **BD:** MariaDB (usuario: bitnami, BD: admin_dworkers)
+- **Reverse Proxy:** nginx
+- **Process Manager:** PM2 (nombre: admin-meilisearch)
+- **SSL:** Let's Encrypt (certbot, auto-renovacion)
+
+### Flujo de Deploy
+```bash
+# 1. Desde local: push cambios
+git add . && git commit -m "descripcion" && git push origin master
+
+# 2. En el servidor remoto: pull + rebuild
+ssh root@89.167.79.168
+cd /root/admin-meilisearch
+git pull origin master
+npm run build
+pm2 restart admin-meilisearch
+
+# 3. O en un solo comando desde local:
+ssh root@89.167.79.168 "cd /root/admin-meilisearch && git pull origin master && npm run build && pm2 restart admin-meilisearch"
+```
+
+### Desarrollo Local (conexion a BD remota)
+```bash
+# Tunel SSH para conectar a la BD de produccion
+ssh -L 3307:127.0.0.1:3306 root@89.167.79.168 -N -f
+
+# .env local usa MYSQL_PORT=3307
+```
+
+### Comandos Utiles
+```bash
+# Ver logs en produccion
+ssh root@89.167.79.168 "pm2 logs admin-meilisearch --lines 50"
+
+# Estado del proceso
+ssh root@89.167.79.168 "pm2 status"
+
+# Reiniciar app
+ssh root@89.167.79.168 "pm2 restart admin-meilisearch"
+
+# Renovar certificado SSL (automatico, pero manual si necesario)
+ssh root@89.167.79.168 "certbot renew"
+```
 

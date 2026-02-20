@@ -152,12 +152,19 @@ export default function LogLeadsSUVI() {
   // Estados para procesamiento en lote
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'leads' | 'bloqueados' | 'flujo'>('leads');
+  const [activeTab, setActiveTab] = useState<'leads' | 'bloqueados' | 'flujo' | 'config'>('leads');
   const [blockedForms, setBlockedForms] = useState<string[]>([]);
   const [blockedLoading, setBlockedLoading] = useState(false);
   const [newFormId, setNewFormId] = useState('');
   const [blockedMsg, setBlockedMsg] = useState('');
   const [batchCancelled, setBatchCancelled] = useState(false);
+  
+  // Estados para configuracion de API keys
+  const [apiKeys, setApiKeys] = useState<Array<{ service_name: string; api_key_masked: string; is_active: boolean; last_verified_at: string | null }>>([]);
+  const [apiKeysLoading, setApiKeysLoading] = useState(false);
+  const [newApiKey, setNewApiKey] = useState({ service_name: 'openai', api_key: '' });
+  const [apiKeyMsg, setApiKeyMsg] = useState('');
+  const [verifyingKey, setVerifyingKey] = useState<string | null>(null);
   const [batchProgress, setBatchProgress] = useState<{
     total: number;
     current: number;
@@ -185,6 +192,7 @@ export default function LogLeadsSUVI() {
     loadLeads();
     loadSalesforceStatus();
     loadBlockedForms();
+    loadApiKeys();
   }, [page, filters]);
 
   // Recargar estado de Salesforce cuando se conecta exitosamente
@@ -195,6 +203,75 @@ export default function LogLeadsSUVI() {
       }, 1000);
     }
   }, [oauthSuccess]);
+
+  const loadApiKeys = async () => {
+    try {
+      setApiKeysLoading(true);
+      const res = await fetch('/api/api-keys');
+      const data = await res.json();
+      if (data.ok) setApiKeys(data.keys || []);
+    } catch {} finally {
+      setApiKeysLoading(false);
+    }
+  };
+
+  const saveApiKey = async () => {
+    if (!newApiKey.api_key.trim()) return;
+    setApiKeysLoading(true);
+    setApiKeyMsg('');
+    try {
+      const res = await fetch('/api/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newApiKey),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setApiKeyMsg('API key guardada correctamente');
+        setNewApiKey({ ...newApiKey, api_key: '' });
+        loadApiKeys();
+      } else {
+        setApiKeyMsg('Error: ' + (data.error || 'No se pudo guardar'));
+      }
+    } catch (e: any) {
+      setApiKeyMsg('Error: ' + e.message);
+    }
+    setApiKeysLoading(false);
+  };
+
+  const verifyApiKey = async (serviceName: string) => {
+    setVerifyingKey(serviceName);
+    setApiKeyMsg('');
+    try {
+      const res = await fetch('/api/api-keys/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service_name: serviceName }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setApiKeyMsg('API key valida');
+        loadApiKeys();
+      } else {
+        setApiKeyMsg('Error: ' + (data.message || 'API key invalida'));
+      }
+    } catch (e: any) {
+      setApiKeyMsg('Error: ' + e.message);
+    }
+    setVerifyingKey(null);
+  };
+
+  const deleteApiKey = async (serviceName: string) => {
+    if (!confirm('Eliminar esta API key?')) return;
+    try {
+      const res = await fetch(`/api/api-keys?service_name=${serviceName}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.ok) {
+        setApiKeyMsg('API key eliminada');
+        loadApiKeys();
+      }
+    } catch {}
+  };
 
   const loadBlockedForms = async () => {
     try {
@@ -811,6 +888,7 @@ export default function LogLeadsSUVI() {
         {([
           { id: 'leads',    label: 'Leads' },
           { id: 'bloqueados', label: 'Formularios Bloqueados' },
+          { id: 'config',   label: 'Configuracion' },
           { id: 'flujo',    label: 'Flujo y Documentacion' },
         ] as const).map(t => (
           <button
@@ -1702,6 +1780,102 @@ export default function LogLeadsSUVI() {
                           onClick={() => removeBlockedForm(id)}
                           disabled={blockedLoading}
                           className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: Configuracion */}
+      {activeTab === 'config' && (
+        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">API Keys</h2>
+            <p className="text-sm text-gray-500">
+              Configura las claves de API para los servicios externos que usa este modulo.
+            </p>
+          </div>
+
+          {/* Agregar nueva API key */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Agregar o actualizar API Key</h3>
+            <div className="flex gap-3">
+              <select
+                value={newApiKey.service_name}
+                onChange={e => setNewApiKey({ ...newApiKey, service_name: e.target.value })}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="openai">OpenAI</option>
+                <option value="facebook">Facebook</option>
+                <option value="sendgrid">SendGrid</option>
+              </select>
+              <input
+                type="password"
+                value={newApiKey.api_key}
+                onChange={e => setNewApiKey({ ...newApiKey, api_key: e.target.value })}
+                placeholder="sk-..."
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={saveApiKey}
+                disabled={apiKeysLoading || !newApiKey.api_key.trim()}
+                className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+
+          {apiKeyMsg && (
+            <p className={`text-sm ${apiKeyMsg.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
+              {apiKeyMsg}
+            </p>
+          )}
+
+          {/* Lista de API keys */}
+          {apiKeysLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full" style={{ borderColor: "#5DE1E5" }}></div>
+            </div>
+          ) : apiKeys.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">No hay API keys configuradas</p>
+          ) : (
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Servicio</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">API Key</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Verificada</th>
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {apiKeys.map(key => (
+                    <tr key={key.service_name} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800 capitalize">{key.service_name}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-600">{key.api_key_masked}</td>
+                      <td className="px-4 py-3 text-xs text-gray-500">
+                        {key.last_verified_at ? new Date(key.last_verified_at).toLocaleString('es-ES') : 'No verificada'}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-2">
+                        <button
+                          onClick={() => verifyApiKey(key.service_name)}
+                          disabled={verifyingKey === key.service_name}
+                          className="text-xs text-blue-500 hover:text-blue-700 disabled:opacity-50 transition-colors"
+                        >
+                          {verifyingKey === key.service_name ? 'Verificando...' : 'Verificar'}
+                        </button>
+                        <button
+                          onClick={() => deleteApiKey(key.service_name)}
+                          className="text-xs text-red-500 hover:text-red-700 transition-colors"
                         >
                           Eliminar
                         </button>
