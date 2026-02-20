@@ -140,41 +140,38 @@ Estas reglas **siempre deben cumplirse**. No son sugerencias.
 ### 11. Depuracion
 Si se solicita debug, usar formato simple en consola:
 
-### 12. API Keys para Modulos Custom
-Para integraciones con servicios externos (OpenAI, etc.), usar el sistema centralizado de API keys:
+### 12. Configuracion de Modulos Custom
+Cada modulo custom tiene su propia tabla de configuracion siguiendo el patron `modulos_{nombre}_{id}_config`.
 
-**Tabla:** `api_keys`
+**Tabla:** `modulos_suvi_12_config` (ejemplo para modulo 1)
 ```sql
-CREATE TABLE api_keys (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  service_name VARCHAR(50) UNIQUE NOT NULL,
-  api_key TEXT NOT NULL,
-  is_active TINYINT(1) DEFAULT 1,
-  last_verified_at DATETIME,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+CREATE TABLE modulos_suvi_12_config (
+  config_key VARCHAR(100) PRIMARY KEY,
+  config_value TEXT,
+  is_encrypted BOOLEAN DEFAULT FALSE
 );
 ```
 
 **Uso en codigo:**
 ```typescript
-import { getApiKey } from '@/utils/api-keys';
+import { getConfig } from './module1-config';
 
-const apiKey = await getApiKey('openai');
+const apiKey = await getConfig('openai_api_key');
+const fbToken = await getConfig('facebook_access_token');
 ```
 
 **Endpoints disponibles:**
-- `GET /api/api-keys` - Listar keys (enmascaradas)
-- `POST /api/api-keys` - Crear/actualizar key
-- `DELETE /api/api-keys` - Eliminar key
-- `POST /api/api-keys/verify` - Verificar validez
+- `GET /api/custom-module1/log-leads-suvi/config?all=true` - Listar configs (enmascaradas)
+- `POST /api/custom-module1/log-leads-suvi/config` - Actualizar config
+- `POST /api/custom-module1/log-leads-suvi/config/test` - Probar validez de key
 
 **Reglas:**
 - NUNCA hardcodear API keys en codigo ni `.env`
-- Usar `getApiKey('service_name')` para obtener keys
-- Las keys se almacenan en BD, no en archivos
-- La UI debe mostrar keys enmascaradas (primeros 10 + ultimos 4 caracteres)
-- Cada modulo custom debe tener su pestana de configuracion para API keys
+- Usar `getConfig('key_name')` para obtener configs
+- Las keys se almacenan en la tabla del modulo, no globalmente
+- La UI de "Configuracion" muestra keys enmascaradas (primeros 10 + ultimos 4 caracteres)
+- Keys sensibles tienen boton "Probar" para verificar validez
+- Solo ciertas keys son editables desde UI (openai_api_key, facebook_access_token, etc.)
 
 ---
 

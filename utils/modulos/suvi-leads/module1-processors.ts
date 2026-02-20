@@ -3,7 +3,6 @@
  * Procesadores: Facebook API, limpieza de datos, IA y clasificación
  */
 import { getConfig, updateLeadLog } from './module1-config';
-import { getApiKey } from '@/utils/api-keys';
 
 // PASO 2: Consultar lead de Facebook Graph API
 export async function consultFacebookLead(leadgenId: string, leadId: number) {
@@ -83,7 +82,7 @@ export async function processWithAI(cleanedData: any, leadId: number) {
       });
     }
 
-    const apiKey = await getApiKey('openai') || await getConfig('openai_api_key');
+    const apiKey = await getConfig('openai_api_key');
     if (!apiKey) {
       throw new Error('OpenAI API Key no configurada. Ve a Configuracion para agregarla.');
     }

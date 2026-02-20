@@ -159,12 +159,12 @@ export default function LogLeadsSUVI() {
   const [blockedMsg, setBlockedMsg] = useState('');
   const [batchCancelled, setBatchCancelled] = useState(false);
   
-  // Estados para configuracion de API keys
-  const [apiKeys, setApiKeys] = useState<Array<{ service_name: string; api_key_masked: string; is_active: boolean; last_verified_at: string | null }>>([]);
-  const [apiKeysLoading, setApiKeysLoading] = useState(false);
-  const [newApiKey, setNewApiKey] = useState({ service_name: 'openai', api_key: '' });
-  const [apiKeyMsg, setApiKeyMsg] = useState('');
-  const [verifyingKey, setVerifyingKey] = useState<string | null>(null);
+  // Estados para configuracion del modulo
+  const [moduleConfigs, setModuleConfigs] = useState<Array<{ key: string; value_masked: string; has_value: boolean; is_sensitive: boolean; is_editable: boolean }>>([]);
+  const [configsLoading, setConfigsLoading] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<{ key: string; value: string } | null>(null);
+  const [configMsg, setConfigMsg] = useState('');
+  const [testingKey, setTestingKey] = useState<string | null>(null);
   const [batchProgress, setBatchProgress] = useState<{
     total: number;
     current: number;
@@ -192,7 +192,7 @@ export default function LogLeadsSUVI() {
     loadLeads();
     loadSalesforceStatus();
     loadBlockedForms();
-    loadApiKeys();
+    loadModuleConfigs();
   }, [page, filters]);
 
   // Recargar estado de Salesforce cuando se conecta exitosamente
@@ -204,73 +204,60 @@ export default function LogLeadsSUVI() {
     }
   }, [oauthSuccess]);
 
-  const loadApiKeys = async () => {
+  const loadModuleConfigs = async () => {
     try {
-      setApiKeysLoading(true);
-      const res = await fetch('/api/api-keys');
+      setConfigsLoading(true);
+      const res = await fetch('/api/custom-module1/log-leads-suvi/config?all=true');
       const data = await res.json();
-      if (data.ok) setApiKeys(data.keys || []);
+      if (data.ok) setModuleConfigs(data.configs || []);
     } catch {} finally {
-      setApiKeysLoading(false);
+      setConfigsLoading(false);
     }
   };
 
-  const saveApiKey = async () => {
-    if (!newApiKey.api_key.trim()) return;
-    setApiKeysLoading(true);
-    setApiKeyMsg('');
+  const saveConfig = async () => {
+    if (!editingConfig || !editingConfig.value.trim()) return;
+    setConfigsLoading(true);
+    setConfigMsg('');
     try {
-      const res = await fetch('/api/api-keys', {
+      const res = await fetch('/api/custom-module1/log-leads-suvi/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newApiKey),
+        body: JSON.stringify({ key: editingConfig.key, value: editingConfig.value }),
       });
       const data = await res.json();
       if (data.ok) {
-        setApiKeyMsg('API key guardada correctamente');
-        setNewApiKey({ ...newApiKey, api_key: '' });
-        loadApiKeys();
+        setConfigMsg('Configuracion guardada correctamente');
+        setEditingConfig(null);
+        loadModuleConfigs();
       } else {
-        setApiKeyMsg('Error: ' + (data.error || 'No se pudo guardar'));
+        setConfigMsg('Error: ' + (data.error || 'No se pudo guardar'));
       }
     } catch (e: any) {
-      setApiKeyMsg('Error: ' + e.message);
+      setConfigMsg('Error: ' + e.message);
     }
-    setApiKeysLoading(false);
+    setConfigsLoading(false);
   };
 
-  const verifyApiKey = async (serviceName: string) => {
-    setVerifyingKey(serviceName);
-    setApiKeyMsg('');
+  const testConfig = async (key: string) => {
+    setTestingKey(key);
+    setConfigMsg('');
     try {
-      const res = await fetch('/api/api-keys/verify', {
+      const res = await fetch('/api/custom-module1/log-leads-suvi/config/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ service_name: serviceName }),
+        body: JSON.stringify({ key }),
       });
       const data = await res.json();
       if (data.valid) {
-        setApiKeyMsg('API key valida');
-        loadApiKeys();
+        setConfigMsg(data.message || 'Configuracion valida');
       } else {
-        setApiKeyMsg('Error: ' + (data.message || 'API key invalida'));
+        setConfigMsg('Error: ' + (data.message || 'Configuracion invalida'));
       }
     } catch (e: any) {
-      setApiKeyMsg('Error: ' + e.message);
+      setConfigMsg('Error: ' + e.message);
     }
-    setVerifyingKey(null);
-  };
-
-  const deleteApiKey = async (serviceName: string) => {
-    if (!confirm('Eliminar esta API key?')) return;
-    try {
-      const res = await fetch(`/api/api-keys?service_name=${serviceName}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.ok) {
-        setApiKeyMsg('API key eliminada');
-        loadApiKeys();
-      }
-    } catch {}
+    setTestingKey(null);
   };
 
   const loadBlockedForms = async () => {
@@ -1797,88 +1784,101 @@ export default function LogLeadsSUVI() {
       {activeTab === 'config' && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">API Keys</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">Configuracion del Modulo</h2>
             <p className="text-sm text-gray-500">
-              Configura las claves de API para los servicios externos que usa este modulo.
+              Configuraciones almacenadas en la tabla del modulo. Las keys sensibles se muestran enmascaradas.
             </p>
           </div>
 
-          {/* Agregar nueva API key */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Agregar o actualizar API Key</h3>
-            <div className="flex gap-3">
-              <select
-                value={newApiKey.service_name}
-                onChange={e => setNewApiKey({ ...newApiKey, service_name: e.target.value })}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="openai">OpenAI</option>
-                <option value="facebook">Facebook</option>
-                <option value="sendgrid">SendGrid</option>
-              </select>
-              <input
-                type="password"
-                value={newApiKey.api_key}
-                onChange={e => setNewApiKey({ ...newApiKey, api_key: e.target.value })}
-                placeholder="sk-..."
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={saveApiKey}
-                disabled={apiKeysLoading || !newApiKey.api_key.trim()}
-                className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-
-          {apiKeyMsg && (
-            <p className={`text-sm ${apiKeyMsg.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
-              {apiKeyMsg}
+          {configMsg && (
+            <p className={`text-sm ${configMsg.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
+              {configMsg}
             </p>
           )}
 
-          {/* Lista de API keys */}
-          {apiKeysLoading ? (
+          {/* Modal de edicion */}
+          {editingConfig && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-blue-900 mb-3">Editar: {editingConfig.key}</h3>
+              <div className="flex gap-3">
+                <input
+                  type="password"
+                  value={editingConfig.value}
+                  onChange={e => setEditingConfig({ ...editingConfig, value: e.target.value })}
+                  placeholder="Nuevo valor..."
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={saveConfig}
+                  disabled={configsLoading || !editingConfig.value.trim()}
+                  className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                >
+                  Guardar
+                </button>
+                <button
+                  onClick={() => setEditingConfig(null)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Lista de configuraciones */}
+          {configsLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full" style={{ borderColor: "#5DE1E5" }}></div>
             </div>
-          ) : apiKeys.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No hay API keys configuradas</p>
+          ) : moduleConfigs.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">No hay configuraciones</p>
           ) : (
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Servicio</th>
-                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">API Key</th>
-                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Verificada</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Key</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Valor</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Estado</th>
                     <th className="px-4 py-2 text-xs font-medium text-gray-500 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {apiKeys.map(key => (
-                    <tr key={key.service_name} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-800 capitalize">{key.service_name}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-600">{key.api_key_masked}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500">
-                        {key.last_verified_at ? new Date(key.last_verified_at).toLocaleString('es-ES') : 'No verificada'}
+                  {moduleConfigs.map(cfg => (
+                    <tr key={cfg.key} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-mono text-xs text-gray-800">{cfg.key}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-600">
+                        {cfg.is_sensitive ? (
+                          <span className="text-gray-400">{cfg.value_masked || '(vacio)'}</span>
+                        ) : (
+                          <span className="max-w-xs truncate block">{cfg.value_masked || '(vacio)'}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {cfg.has_value ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Configurado</span>
+                        ) : (
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Sin valor</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right space-x-2">
-                        <button
-                          onClick={() => verifyApiKey(key.service_name)}
-                          disabled={verifyingKey === key.service_name}
-                          className="text-xs text-blue-500 hover:text-blue-700 disabled:opacity-50 transition-colors"
-                        >
-                          {verifyingKey === key.service_name ? 'Verificando...' : 'Verificar'}
-                        </button>
-                        <button
-                          onClick={() => deleteApiKey(key.service_name)}
-                          className="text-xs text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          Eliminar
-                        </button>
+                        {cfg.is_sensitive && cfg.has_value && (
+                          <button
+                            onClick={() => testConfig(cfg.key)}
+                            disabled={testingKey === cfg.key}
+                            className="text-xs text-blue-500 hover:text-blue-700 disabled:opacity-50 transition-colors"
+                          >
+                            {testingKey === cfg.key ? 'Probando...' : 'Probar'}
+                          </button>
+                        )}
+                        {cfg.is_editable && (
+                          <button
+                            onClick={() => setEditingConfig({ key: cfg.key, value: '' })}
+                            className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                          >
+                            Editar
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
