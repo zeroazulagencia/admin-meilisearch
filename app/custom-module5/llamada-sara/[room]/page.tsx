@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 type CallStatus = 'cargando' | 'listo' | 'conectando' | 'en-llamada' | 'colgado' | 'error';
 
 const TOKEN_URL = '/api/custom-module5/llamada-sara/token';
+const FINALIZAR_URL = '/api/custom-module5/llamada-sara/finalizar';
 
 export default function LlamadaSaraPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const room = Array.isArray(params?.room) ? params.room[0] : (params?.room ?? '');
+  const role = searchParams?.get('role') || 'cliente';
 
   const [status, setStatus] = useState<CallStatus>('cargando');
   const [errorMsg, setErrorMsg] = useState('');
@@ -19,10 +22,20 @@ export default function LlamadaSaraPage() {
   const callRef = useRef<any>(null);
 
   const fetchToken = useCallback(async () => {
-    const res = await fetch(`${TOKEN_URL}?room=${encodeURIComponent(room)}`);
+    const res = await fetch(`${TOKEN_URL}?room=${encodeURIComponent(room)}&role=${encodeURIComponent(role)}`);
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Error al obtener token');
     return data.token as string;
+  }, [room, role]);
+
+  const finalizarLlamada = useCallback(async () => {
+    try {
+      await fetch(FINALIZAR_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room_id: room }),
+      });
+    } catch {}
   }, [room]);
 
   useEffect(() => {
@@ -32,14 +45,11 @@ export default function LlamadaSaraPage() {
     const setup = async () => {
       try {
         const jwt = await fetchToken();
-
-        // Import dinámico para evitar SSR
         const { Device } = await import('@twilio/voice-sdk');
 
         device = new Device(jwt, { logLevel: 1 });
         deviceRef.current = device;
 
-        // v2.x usa 'registered' (no 'ready')
         device.on('registered', () => setStatus('listo'));
 
         device.on('error', (twilioError: any) => {
@@ -62,13 +72,19 @@ export default function LlamadaSaraPage() {
     if (!deviceRef.current) return;
     setStatus('conectando');
     try {
-      // En v2.x connect() retorna un objeto Call; los eventos van en el Call
       const call = await deviceRef.current.connect({ params: { room } });
       callRef.current = call;
 
       call.on('accept', () => setStatus('en-llamada'));
-      call.on('disconnect', () => { setStatus('colgado'); callRef.current = null; });
-      call.on('error', (err: any) => { setErrorMsg(err?.message || 'Error'); setStatus('error'); });
+      call.on('disconnect', () => {
+        setStatus('colgado');
+        callRef.current = null;
+        finalizarLlamada();
+      });
+      call.on('error', (err: any) => {
+        setErrorMsg(err?.message || 'Error');
+        setStatus('error');
+      });
     } catch (e: any) {
       setErrorMsg(e.message);
       setStatus('error');
@@ -77,7 +93,9 @@ export default function LlamadaSaraPage() {
 
   const colgar = () => {
     callRef.current?.disconnect();
+    callRef.current = null;
     setStatus('colgado');
+    finalizarLlamada();
   };
 
   const toggleMute = () => {
@@ -87,37 +105,34 @@ export default function LlamadaSaraPage() {
     setMuted(next);
   };
 
-  const statusLabels: Record<CallStatus, string> = {
-    cargando:    'Iniciando...',
-    listo:       'Listo para conectar',
-    conectando:  'Conectando...',
-    'en-llamada':'En llamada',
-    colgado:     'Llamada finalizada',
-    error:       'Error',
+  const statusConfig: Record<CallStatus, { color: string; textColor: string; label: string }> = {
+    cargando:    { color: 'bg-gray-400', textColor: 'text-gray-500', label: 'Iniciando...' },
+    listo:       { color: 'bg-blue-500', textColor: 'text-blue-600', label: 'Listo para conectar' },
+    conectando:  { color: 'bg-yellow-500', textColor: 'text-yellow-600', label: 'Conectando...' },
+    'en-llamada':{ color: 'bg-green-500', textColor: 'text-green-600', label: 'En llamada' },
+    colgado:     { color: 'bg-gray-400', textColor: 'text-gray-500', label: 'Llamada finalizada' },
+    error:       { color: 'bg-red-500', textColor: 'text-red-600', label: 'Error' },
   };
 
-  const statusColors: Record<CallStatus, string> = {
-    cargando:    'text-gray-500',
-    listo:       'text-blue-600',
-    conectando:  'text-yellow-600',
-    'en-llamada':'text-green-600',
-    colgado:     'text-gray-500',
-    error:       'text-red-600',
-  };
+  const current = statusConfig[status];
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 w-full max-w-sm p-8 text-center space-y-6">
 
-        <div className="text-5xl">📞</div>
-
         <div>
           <h1 className="text-xl font-bold text-gray-900">Llamada SARA</h1>
           <p className="text-xs text-gray-400 font-mono mt-1 break-all">{room}</p>
+          {role === 'asesor' && (
+            <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Asesor</span>
+          )}
         </div>
 
-        <div className={`text-sm font-semibold ${statusColors[status]}`}>
-          {statusLabels[status]}
+        <div className="flex items-center justify-center gap-2">
+          <span className={`w-3 h-3 rounded-full ${current.color} ${(status === 'cargando' || status === 'conectando') ? 'animate-pulse' : ''}`} />
+          <span className={`text-sm font-semibold ${current.textColor}`}>
+            {current.label}
+          </span>
         </div>
 
         {status === 'error' && (
@@ -132,7 +147,7 @@ export default function LlamadaSaraPage() {
               onClick={conectar}
               className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-colors"
             >
-              📞 Unirse a la llamada
+              Unirse a la llamada
             </button>
           )}
 
@@ -144,13 +159,13 @@ export default function LlamadaSaraPage() {
                   muted ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {muted ? '🔇 Silenciado' : '🎤 Mutear'}
+                {muted ? 'Silenciado' : 'Silenciar'}
               </button>
               <button
                 onClick={colgar}
                 className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-sm transition-colors"
               >
-                📵 Colgar
+                Colgar
               </button>
             </div>
           )}
@@ -167,7 +182,7 @@ export default function LlamadaSaraPage() {
           )}
         </div>
 
-        <p className="text-xs text-gray-400">DWORKERS · Sara · Módulo 5</p>
+        <p className="text-xs text-gray-400">DWORKERS - Sara - Modulo 5</p>
       </div>
     </div>
   );
