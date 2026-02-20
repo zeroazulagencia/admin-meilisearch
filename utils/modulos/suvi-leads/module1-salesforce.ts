@@ -4,6 +4,32 @@
  */
 import { getConfig, updateLeadLog } from './module1-config';
 import { getSalesforceTokens } from './module1-salesforce-oauth';
+import { query } from '@/utils/db';
+
+// Buscar owner existente de leads anteriores para la misma cuenta
+export async function findExistingOwnerForAccount(accountId: string, currentLeadId: number): Promise<string | null> {
+  try {
+    const [rows] = await query<any>(
+      `SELECT salesforce_owner_id FROM modulos_suvi_12_leads 
+       WHERE salesforce_account_id = ? 
+       AND salesforce_owner_id IS NOT NULL 
+       AND salesforce_owner_id != '' 
+       AND id != ?
+       ORDER BY completed_at DESC LIMIT 1`,
+      [accountId, currentLeadId]
+    );
+    
+    if (rows && rows.length > 0 && rows[0].salesforce_owner_id) {
+      console.log(`[SALESFORCE] Owner existente encontrado para cuenta ${accountId}: ${rows[0].salesforce_owner_id}`);
+      return rows[0].salesforce_owner_id;
+    }
+    
+    return null;
+  } catch (e: any) {
+    console.error('[SALESFORCE] Error buscando owner existente:', e?.message);
+    return null;
+  }
+}
 
 // PASO 6: Crear o actualizar cuenta en Salesforce
 export async function upsertSalesforceAccount(enrichedData: any, origen: string, leadId: number) {

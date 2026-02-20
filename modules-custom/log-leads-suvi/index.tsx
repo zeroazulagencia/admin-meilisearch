@@ -34,6 +34,7 @@ interface Stats {
   total: number;
   completados: number;
   errores: number;
+  omitidos: number;
   en_proceso: number;
   avg_time: number;
 }
@@ -55,6 +56,7 @@ const STATUS_COLORS: Record<string, string> = {
   'creando_cuenta': 'bg-orange-100 text-orange-800',
   'creando_oportunidad': 'bg-amber-100 text-amber-800',
   'completado': 'bg-green-100 text-green-800',
+  'omitido_interno': 'bg-red-100 text-red-800',
   'error': 'bg-red-100 text-red-800'
 };
 
@@ -67,6 +69,7 @@ const STATUS_LABELS: Record<string, string> = {
   'creando_cuenta': '3/4 - Creando Cuenta',
   'creando_oportunidad': '3/4 - Creando Oportunidad',
   'completado': '4/4 - Completado',
+  'omitido_interno': '1/4 - Omitido (Interno)',
   'error': 'Error'
 };
 
@@ -1006,6 +1009,13 @@ export default function LogLeadsSUVI() {
                 <span className="text-xs text-gray-600 font-medium">Errores</span>
                 <span className="text-2xl font-bold text-red-600">{stats.errores}</span>
               </div>
+              
+              <div className="h-10 w-px bg-gray-200"></div>
+              
+              <div className="flex flex-col items-center">
+                <span className="text-xs text-gray-600 font-medium">Omitidos</span>
+                <span className="text-2xl font-bold text-red-500">{stats.omitidos || 0}</span>
+              </div>
             </div>
           )}
         </div>
@@ -1030,6 +1040,7 @@ export default function LogLeadsSUVI() {
             <option value="recibido">Recibido</option>
             <option value="consultando_facebook">Consultando FB</option>
             <option value="completado">Completado</option>
+            <option value="omitido_interno">Omitido (Interno)</option>
             <option value="error">Error</option>
           </select>
           <button
@@ -1387,7 +1398,7 @@ export default function LogLeadsSUVI() {
                       )}
                       
                       {/* Botón para procesar en Salesforce */}
-                      {selectedLead.ai_enriched_data && salesforceStatus?.has_active_tokens && (
+                      {selectedLead.ai_enriched_data && salesforceStatus?.has_active_tokens && selectedLead.processing_status !== 'omitido_interno' && (
                         <button
                           onClick={() => processSalesforce(selectedLead.id)}
                           disabled={processingSalesforce}
@@ -1910,8 +1921,9 @@ export default function LogLeadsSUVI() {
                 { paso: '03', titulo: 'Limpieza de datos',         desc: 'Se normalizan los campos del lead: nombres, teléfonos con código de país, emails. Se guarda en facebook_cleaned_data.' },
                 { paso: '04', titulo: 'Enriquecimiento con IA',    desc: 'GPT-4 estructura los datos: nombre completo, detección de país, inferencia del servicio de interés. Se guarda en ai_enriched_data.' },
                 { paso: '05', titulo: 'Clasificación de campaña',  desc: 'Se determina el tipo de campaña comparando campaign_name contra dos listas en config. Si está en suvi_campaigns (ej: "Grupo 2 Familia", "Retiro-Julio") → Pauta Interna. Si está en agency_campaigns (ej: "E3D Grupo 3 Inversionistas") → Pauta Agencia. Excepción fija: form_id 1200513015221690 siempre es Pauta Interna. Si no aparece en ninguna lista → Pauta Agencia por defecto. El tipo define el RecordTypeId de la oportunidad en Salesforce (ID: 0124W000000OiIrQAK configurado en salesforce_opportunity_type_id).' },
+                { paso: '05b', titulo: 'Omisión por Pauta Interna', desc: 'Si el form_name (extraido por IA) contiene "Pauta interna" (case-insensitive), el lead se marca como omitido_interno y NO se envia a Salesforce. El estado final queda como "1/4 - Omitido (Interno)" en rojo. El lead se guarda en BD con todos sus datos pero sin cuenta ni oportunidad en Salesforce.' },
                 { paso: '06', titulo: 'Cuenta en Salesforce',         desc: 'UPSERT de Account usando Correo_Electrónico__c como External ID. Si existe, actualiza; si no, crea. Campos: Name, Phone, AccountSource (tipo de campaña), prefijos telefónicos.' },
-                { paso: '07', titulo: 'Ruleta de asesores',            desc: "Se consulta Salesforce: GET /services/data/v60.0/query?q=SELECT+UserOrGroupId+FROM+GroupMember+WHERE+GroupId='00G4W000006rHIN'. Retorna todos los UserOrGroupId del grupo. Se elige uno al azar con Math.random() para asignarle tanto la cuenta como la oportunidad." },
+                { paso: '07', titulo: 'Ruleta de asesores',            desc: "Se consulta Salesforce: GET /services/data/v60.0/query?q=SELECT+UserOrGroupId+FROM+GroupMember+WHERE+GroupId='00G4W000006rHIN'. Retorna todos los UserOrGroupId del grupo. Si la cuenta ya tiene leads anteriores con un owner asignado, se reutiliza ese owner. Si no, se elige uno al azar con Math.random()." },
                 { paso: '08', titulo: 'Actualizar dueño de la cuenta', desc: 'Se actualiza el campo OwnerId de la Account en Salesforce con el asesor seleccionado en la ruleta. Esto asegura que cuenta y oportunidad queden asignadas al mismo asesor.' },
                 { paso: '09', titulo: 'Oportunidad en Salesforce',     desc: 'Se busca si ya existe una Opportunity para la misma cuenta + proyecto + mes actual. Si existe, se actualiza; si no, se crea. Campos: StageName = "Nuevo", OwnerId = asesor de la ruleta, Proyecto__c = uno de los 15 IDs válidos (valid_project_ids), RecordTypeId = 0124W000000OiIrQAK (omitido si falla validación cruzada). CloseDate = hoy + 30 días. Description = info de campaña + resumen IA.' },
                 { paso: '10', titulo: 'Completado',                    desc: 'El lead queda en estado completado con salesforce_account_name y salesforce_opportunity_id registrados.' },
@@ -1976,7 +1988,7 @@ utils/modulos/suvi-leads/
   page_id / form_id          VARCHAR(100)   Página y formulario de origen
   campaign_name / ad_name    VARCHAR(255)   Campaña y anuncio
   campaign_type              ENUM           Interna | Agencia
-  processing_status          VARCHAR(50)    Estado actual del pipeline
+  processing_status          ENUM           recibido|consultando_facebook|limpiando_datos|enriqueciendo_ia|clasificando|creando_cuenta|creando_oportunidad|completado|omitido_interno|error
   current_step               VARCHAR(100)   Paso en ejecución
   error_message / error_step TEXT           Diagnóstico de errores
   facebook_raw_data          JSON           Respuesta cruda de Graph API
@@ -1984,6 +1996,7 @@ utils/modulos/suvi-leads/
   ai_enriched_data           JSON           Datos enriquecidos por GPT-4
   salesforce_account_name    VARCHAR(255)   Cuenta creada/actualizada en SF
   salesforce_opportunity_id  VARCHAR(100)   Oportunidad en Salesforce
+  salesforce_owner_id        VARCHAR(100)   Owner asignado en Salesforce
   received_at / completed_at DATETIME       Tiempos del pipeline
   processing_time_seconds    INT            Duración total
 
@@ -2019,7 +2032,7 @@ modulos_suvi_12_config
               {[
                 { nombre: 'Facebook Graph API', uso: 'Verificación de webhook y consulta de datos del lead por leadgen_id', auth: 'App Secret + Access Token' },
                 { nombre: 'OpenAI GPT-4',       uso: 'Estructuración de datos: nombre completo, país, servicio de interés', auth: 'API Key' },
-                { nombre: 'Salesforce REST API', uso: 'UPSERT de Account por email, creación de Opportunity con propietario aleatorio', auth: 'OAuth 2.0 (refresh token)' },
+                { nombre: 'Salesforce REST API', uso: 'UPSERT de Account por email, creación de Opportunity con propietario (reutilizado de leads anteriores o aleatorio)', auth: 'OAuth 2.0 (refresh token)' },
               ].map(({ nombre, uso, auth }) => (
                 <div key={nombre} className="border border-gray-200 rounded-lg p-4">
                   <p className="text-sm font-semibold text-gray-800 mb-1">{nombre}</p>

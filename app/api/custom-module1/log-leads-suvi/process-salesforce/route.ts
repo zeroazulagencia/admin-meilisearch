@@ -17,6 +17,7 @@ import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST || 'localhost',
+  port: parseInt(process.env.MYSQL_PORT || '3306'),
   user: process.env.MYSQL_USER || 'bitnami',
   password: process.env.MYSQL_PASSWORD || '',
   database: process.env.MYSQL_DATABASE || 'admin_dworkers',
@@ -67,6 +68,22 @@ export async function POST(req: NextRequest) {
       ? JSON.parse(lead.ai_enriched_data) 
       : lead.ai_enriched_data;
 
+    // Verificar si el formulario contiene "Pauta interna" - omitir Salesforce
+    const formName = enrichedData.form_name || '';
+    if (formName.toLowerCase().includes('pauta interna')) {
+      console.log(`[PROCESS-SALESFORCE] Lead ${leadId} omitido: formulario "${formName}" contiene "Pauta interna"`);
+      await updateLeadLog(leadId, {
+        processing_status: 'omitido_interno',
+        current_step: 'Omitido - Formulario de Pauta Interna',
+        completed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      });
+      return NextResponse.json({
+        ok: true,
+        message: 'Lead omitido: formulario de Pauta Interna',
+        omitted: true,
+      });
+    }
+
     console.log(`[PROCESS-SALESFORCE] Iniciando proceso para lead ${leadId}`);
 
     // PASO 6: Crear/actualizar cuenta en Salesforce
@@ -90,9 +107,25 @@ export async function POST(req: NextRequest) {
     const groupMembers = await getSalesforceGroup(leadId);
     console.log(`[PROCESS-SALESFORCE] ${groupMembers.length} usuarios en grupo`);
 
-    // PASO 9: Seleccionar owner aleatorio
-    const ownerId = selectRandomOwner(groupMembers);
-    console.log(`[PROCESS-SALESFORCE] Owner seleccionado:`, ownerId);
+    // PASO 9: Seleccionar owner - priorizar owner existente de leads anteriores de la misma cuenta
+    let ownerId: string;
+    const [existingLeads]: any = await pool.query(
+      `SELECT salesforce_owner_id FROM modulos_suvi_12_leads 
+       WHERE salesforce_account_id = ? 
+       AND salesforce_owner_id IS NOT NULL 
+       AND salesforce_owner_id != '' 
+       AND id != ?
+       ORDER BY completed_at DESC LIMIT 1`,
+      [account.Id, leadId]
+    );
+    
+    if (existingLeads.length > 0 && existingLeads[0].salesforce_owner_id) {
+      ownerId = existingLeads[0].salesforce_owner_id;
+      console.log(`[PROCESS-SALESFORCE] Owner reutilizado de lead anterior:`, ownerId);
+    } else {
+      ownerId = selectRandomOwner(groupMembers);
+      console.log(`[PROCESS-SALESFORCE] Owner seleccionado aleatoriamente:`, ownerId);
+    }
 
     // PASO 10: Obtener proyectos
     const projects = await getSalesforceProjects(leadId);

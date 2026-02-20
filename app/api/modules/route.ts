@@ -16,6 +16,7 @@ export async function GET() {
         m.created_at,
         m.updated_at,
         a.name as agent_name,
+        a.photo as agent_photo,
         a.client_id,
         c.name as client_name
       FROM modules m

@@ -40,6 +40,8 @@ interface AgentDB {
   whatsapp_webhook_verify_token?: string;
   whatsapp_app_secret?: string;
   n8n_data_table_id?: string;
+  bird_api_key?: string;
+  bird_environment_id?: string;
 }
 
 export default function EditarAgente() {
@@ -56,10 +58,12 @@ export default function EditarAgente() {
     whatsapp_phone_number_id: '',
     whatsapp_access_token: '',
     whatsapp_webhook_verify_token: '',
-    whatsapp_app_secret: ''
+    whatsapp_app_secret: '',
+    bird_api_key: '',
+    bird_environment_id: ''
   });
   // Guardar los primeros caracteres del token original para mostrar
-  const [tokenPrefix, setTokenPrefix] = useState<{ access_token?: string; webhook_token?: string; app_secret?: string }>({});
+  const [tokenPrefix, setTokenPrefix] = useState<{ access_token?: string; webhook_token?: string; app_secret?: string; bird_api_key?: string }>({});
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [availableIndexes, setAvailableIndexes] = useState<Index[]>([]);
@@ -86,7 +90,7 @@ export default function EditarAgente() {
   const [refreshingData, setRefreshingData] = useState(false);
   const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
   const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores' | 'conexiones-bd'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores' | 'conexiones-bd' | 'bird'>('general');
   const [showAIImageModal, setShowAIImageModal] = useState(false);
   const [aiImagePrompt, setAiImagePrompt] = useState('');
   const [generatingImage, setGeneratingImage] = useState(false);
@@ -136,22 +140,26 @@ export default function EditarAgente() {
           const accessToken = agent.whatsapp_access_token || '';
           const webhookToken = agent.whatsapp_webhook_verify_token || '';
           const appSecret = agent.whatsapp_app_secret || '';
+          const birdApiKey = agent.bird_api_key || '';
           
           // Extraer los primeros caracteres si el token está enmascarado
           const accessTokenPrefix = accessToken.endsWith('...') ? accessToken.substring(0, 4) : (accessToken.length > 0 && accessToken.length <= 7 ? accessToken.substring(0, 4) : undefined);
           const webhookTokenPrefix = webhookToken.endsWith('...') ? webhookToken.substring(0, 4) : (webhookToken.length > 0 && webhookToken.length <= 7 ? webhookToken.substring(0, 4) : undefined);
           const appSecretPrefix = appSecret.endsWith('...') ? appSecret.substring(0, 4) : (appSecret.length > 0 && appSecret.length <= 7 ? appSecret.substring(0, 4) : undefined);
+          const birdApiKeyPrefix = birdApiKey.endsWith('...') ? birdApiKey.substring(0, 4) : (birdApiKey.length > 0 && birdApiKey.length <= 7 ? birdApiKey.substring(0, 4) : undefined);
           
           console.log('[EDIT AGENT] [LOAD] Prefijos de tokens extraídos:', {
             access_token_prefix: accessTokenPrefix,
             webhook_token_prefix: webhookTokenPrefix,
-            app_secret_prefix: appSecretPrefix
+            app_secret_prefix: appSecretPrefix,
+            bird_api_key_prefix: birdApiKeyPrefix
           });
           
           setTokenPrefix({
             access_token: accessTokenPrefix,
             webhook_token: webhookTokenPrefix,
-            app_secret: appSecretPrefix
+            app_secret: appSecretPrefix,
+            bird_api_key: birdApiKeyPrefix
           });
           
           setFormData({
@@ -164,7 +172,9 @@ export default function EditarAgente() {
             // Si está enmascarado, dejar vacío para que se muestre el placeholder con los primeros caracteres
             whatsapp_access_token: accessToken.endsWith('...') ? '' : accessToken,
             whatsapp_webhook_verify_token: webhookToken.endsWith('...') ? '' : webhookToken,
-            whatsapp_app_secret: appSecret.endsWith('...') ? '' : appSecret
+            whatsapp_app_secret: appSecret.endsWith('...') ? '' : appSecret,
+            bird_api_key: birdApiKey.endsWith('...') ? '' : birdApiKey,
+            bird_environment_id: agent.bird_environment_id || ''
           });
           try {
             const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {});
@@ -430,16 +440,19 @@ export default function EditarAgente() {
             const accessToken = agent.whatsapp_access_token || '';
             const webhookToken = agent.whatsapp_webhook_verify_token || '';
             const appSecret = agent.whatsapp_app_secret || '';
+            const birdApiKey = agent.bird_api_key || '';
             
             // Extraer los primeros caracteres si el token está enmascarado
             const accessTokenPrefix = accessToken.endsWith('...') ? accessToken.substring(0, 4) : (accessToken.length > 0 && accessToken.length <= 7 ? accessToken.substring(0, 4) : undefined);
             const webhookTokenPrefix = webhookToken.endsWith('...') ? webhookToken.substring(0, 4) : (webhookToken.length > 0 && webhookToken.length <= 7 ? webhookToken.substring(0, 4) : undefined);
             const appSecretPrefix = appSecret.endsWith('...') ? appSecret.substring(0, 4) : (appSecret.length > 0 && appSecret.length <= 7 ? appSecret.substring(0, 4) : undefined);
+            const birdApiKeyPrefix = birdApiKey.endsWith('...') ? birdApiKey.substring(0, 4) : (birdApiKey.length > 0 && birdApiKey.length <= 7 ? birdApiKey.substring(0, 4) : undefined);
             
             setTokenPrefix({
               access_token: accessTokenPrefix,
               webhook_token: webhookTokenPrefix,
-              app_secret: appSecretPrefix
+              app_secret: appSecretPrefix,
+              bird_api_key: birdApiKeyPrefix
             });
             
             setFormData({
@@ -452,7 +465,9 @@ export default function EditarAgente() {
               // Si está enmascarado, dejar vacío para que se muestre el placeholder con los primeros caracteres
               whatsapp_access_token: accessToken.endsWith('...') ? '' : accessToken,
               whatsapp_webhook_verify_token: webhookToken.endsWith('...') ? '' : webhookToken,
-              whatsapp_app_secret: appSecret.endsWith('...') ? '' : appSecret
+              whatsapp_app_secret: appSecret.endsWith('...') ? '' : appSecret,
+              bird_api_key: birdApiKey.endsWith('...') ? '' : birdApiKey,
+              bird_environment_id: agent.bird_environment_id || ''
             });
             try {
               const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {});
@@ -571,7 +586,15 @@ export default function EditarAgente() {
         n8n_data_table_id: selectedDataTable || null,
       };
       
-      // CRÍTICO: Protección de campos WhatsApp
+      // Campos Bird - incluir siempre (el API maneja la validacion)
+      if (formData.bird_api_key !== undefined) {
+        requestData.bird_api_key = formData.bird_api_key;
+      }
+      if (formData.bird_environment_id !== undefined) {
+        requestData.bird_environment_id = formData.bird_environment_id;
+      }
+      
+      // CRITICO: Proteccion de campos WhatsApp
       // Solo incluir campos WhatsApp si tienen valores válidos (no vacíos, no solo espacios)
       // Esto previene que se sobrescriban valores existentes con null o vacíos
       if (isValidWhatsAppField(formData.whatsapp_business_account_id)) {
@@ -1033,6 +1056,17 @@ export default function EditarAgente() {
                     }`}
                   >
                     Conexiones BD
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('bird')}
+                    className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                      activeTab === 'bird'
+                        ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Integracion Bird
                   </button>
                 </>
               )}
@@ -1679,6 +1713,75 @@ export default function EditarAgente() {
                 </div>
               </div>
             </div>
+            </div>
+          )}
+
+          {/* Tab: Integracion Bird */}
+          {activeTab === 'bird' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
+              <div className="mb-6">
+                <h2 className="text-base/7 font-semibold text-gray-900">Integracion Bird</h2>
+                <p className="mt-1 text-sm/6 text-gray-600">
+                  Configuracion de credenciales para integrar con la plataforma Bird.
+                </p>
+              </div>
+
+              <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                <div className="sm:col-span-3">
+                  <label htmlFor="bird_environment_id" className="block text-sm/6 font-medium text-gray-900">
+                    ID de Entorno (Environment ID)
+                  </label>
+                  <div className="mt-2">
+                    <input
+                      id="bird_environment_id"
+                      name="bird_environment_id"
+                      type="text"
+                      disabled={!canEdit}
+                      value={formData.bird_environment_id}
+                      onChange={(e) => setFormData({ ...formData, bird_environment_id: e.target.value })}
+                      className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
+                      placeholder="ej: env_abc123..."
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    El identificador del entorno/workspace de Bird.
+                  </p>
+                </div>
+
+                <div className="sm:col-span-3">
+                  <label htmlFor="bird_api_key" className="block text-sm/6 font-medium text-gray-900">
+                    API Key
+                  </label>
+                  <div className="mt-2">
+                    <input
+                      id="bird_api_key"
+                      name="bird_api_key"
+                      type="password"
+                      disabled={!canEdit}
+                      value={formData.bird_api_key}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        if (newValue.length > 0) {
+                          setTokenPrefix({ ...tokenPrefix, bird_api_key: newValue.substring(0, 4) });
+                        }
+                        setFormData({ ...formData, bird_api_key: newValue });
+                      }}
+                      className={`block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
+                      placeholder={tokenPrefix.bird_api_key ? `${tokenPrefix.bird_api_key}... (key guardada)` : "Ingresa tu API key de Bird"}
+                    />
+                  </div>
+                  {tokenPrefix.bird_api_key && !formData.bird_api_key && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      API Key guardada (inicia con: {tokenPrefix.bird_api_key}...). Deja vacio para mantener la actual o ingresa una nueva para reemplazarla.
+                    </p>
+                  )}
+                  {!tokenPrefix.bird_api_key && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      La API Key de Bird para autenticar las solicitudes.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

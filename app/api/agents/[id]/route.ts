@@ -63,6 +63,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       reportsAgentNameExists = false;
     }
     
+    // Verificar si las columnas de Bird existen
+    let birdColumnsExist = false;
+    try {
+      const [birdCheck] = await query<any>(
+        `SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'agents' 
+         AND COLUMN_NAME IN ('bird_api_key', 'bird_environment_id')`
+      );
+      birdColumnsExist = birdCheck && birdCheck.length > 0 && birdCheck[0].count === 2;
+      console.log('[API AGENTS] [GET] Columnas Bird existen:', birdColumnsExist);
+    } catch (checkError) {
+      console.log('[API AGENTS] [GET] Error verificando columnas Bird:', checkError);
+      birdColumnsExist = false;
+    }
+    
     // Construir query base
     let baseFields = 'id, client_id, name, description, photo, status, knowledge, workflows, conversation_agent_name';
     let queryFields = baseFields;
@@ -76,6 +92,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     if (n8nDataTableIdExists) {
       queryFields += ', n8n_data_table_id';
+    }
+    if (birdColumnsExist) {
+      queryFields += ', bird_api_key, bird_environment_id';
     }
     
     console.log('[API AGENTS] [GET] Query fields:', queryFields);
@@ -146,6 +165,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!n8nDataTableIdExists) {
       agent.n8n_data_table_id = null;
     }
+    if (!birdColumnsExist) {
+      agent.bird_api_key = null;
+      agent.bird_environment_id = null;
+    }
     
     // Enmascarar campos sensibles antes de enviar al frontend
     // Si está encriptado, intentar desencriptar para obtener los primeros caracteres del original
@@ -211,6 +234,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           }
         } else {
           agent.whatsapp_app_secret = maskSensitiveValue(agent.whatsapp_app_secret, 4);
+        }
+      }
+      
+      // Enmascarar bird_api_key si existe
+      if (agent.bird_api_key) {
+        if (isEncrypted(agent.bird_api_key)) {
+          try {
+            const decrypted = decrypt(agent.bird_api_key);
+            if (decrypted && decrypted.length > 0) {
+              agent.bird_api_key = decrypted.substring(0, 4) + '...';
+            } else {
+              console.error('[API AGENTS] [GET] bird_api_key: Desencriptacion devolvio vacio, token puede estar corrupto');
+              agent.bird_api_key = maskSensitiveValue(agent.bird_api_key, 4);
+            }
+          } catch (e: any) {
+            console.error('[API AGENTS] [GET] bird_api_key: Error al desencriptar:', e?.message);
+            agent.bird_api_key = maskSensitiveValue(agent.bird_api_key, 4);
+          }
+        } else {
+          agent.bird_api_key = maskSensitiveValue(agent.bird_api_key, 4);
         }
       }
       
@@ -483,6 +526,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       n8nDataTableIdExists = false;
     }
 
+    // Verificar si las columnas de Bird existen
+    let birdColumnsExist = false;
+    try {
+      const [birdCheck] = await query<any>(
+        `SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'agents' 
+         AND COLUMN_NAME IN ('bird_api_key', 'bird_environment_id')`
+      );
+      birdColumnsExist = birdCheck && birdCheck.length > 0 && birdCheck[0].count === 2;
+      console.log('[API AGENTS] [PUT] Columnas Bird existen:', birdColumnsExist);
+    } catch (checkError) {
+      console.log('[API AGENTS] Error checking Bird columns:', checkError);
+      birdColumnsExist = false;
+    }
+
     // Intentar actualizar con todos los campos si las columnas existen
     if (whatsappColumnsExist) {
       try {
@@ -565,6 +624,43 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: Agregado a query UPDATE`);
         } else {
           console.log(`[API AGENTS] [TOKEN UPDATE] whatsapp_app_secret: NO agregado a query UPDATE (manteniendo valor existente)`);
+        }
+        
+        // Agregar campos Bird si las columnas existen
+        if (birdColumnsExist) {
+          // bird_api_key - encriptar si se proporciona un valor valido
+          if ('bird_api_key' in body) {
+            const birdApiKey = body.bird_api_key;
+            if (birdApiKey && typeof birdApiKey === 'string' && birdApiKey.trim().length > 0 && !birdApiKey.endsWith('...')) {
+              // Encriptar el API key
+              const encryptedBirdApiKey = isEncrypted(birdApiKey) ? birdApiKey : encrypt(birdApiKey);
+              updateFields.push('bird_api_key = ?');
+              updateValues.push(encryptedBirdApiKey);
+              console.log('[API AGENTS] [BIRD UPDATE] bird_api_key: Agregado a query UPDATE (encriptado)');
+            } else if (birdApiKey === '' || birdApiKey === null) {
+              // Si se envia vacio explicitamente, limpiar el campo
+              updateFields.push('bird_api_key = ?');
+              updateValues.push(null);
+              console.log('[API AGENTS] [BIRD UPDATE] bird_api_key: Limpiado (valor vacio)');
+            } else {
+              console.log('[API AGENTS] [BIRD PROTECTION] bird_api_key: Valor invalido o enmascarado, manteniendo existente');
+            }
+          }
+          
+          // bird_environment_id - no requiere encriptacion
+          if ('bird_environment_id' in body) {
+            const birdEnvId = body.bird_environment_id;
+            if (birdEnvId && typeof birdEnvId === 'string' && birdEnvId.trim().length > 0) {
+              updateFields.push('bird_environment_id = ?');
+              updateValues.push(birdEnvId.trim());
+              console.log('[API AGENTS] [BIRD UPDATE] bird_environment_id: Agregado a query UPDATE');
+            } else {
+              // Si se envia vacio, limpiar el campo
+              updateFields.push('bird_environment_id = ?');
+              updateValues.push(null);
+              console.log('[API AGENTS] [BIRD UPDATE] bird_environment_id: Limpiado (valor vacio)');
+            }
+          }
         }
         
         // Agregar el id al final para el WHERE

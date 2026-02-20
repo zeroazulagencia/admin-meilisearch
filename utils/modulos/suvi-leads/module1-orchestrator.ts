@@ -11,7 +11,9 @@ import {
   getSalesforceProjects,
   selectValidProject,
   upsertSalesforceOpportunity,
+  findExistingOwnerForAccount,
 } from './module1-salesforce';
+import { updateLeadLog } from './module1-config';
 
 /**
  * Procesa un lead completamente desde Facebook hasta Salesforce
@@ -38,6 +40,24 @@ export async function processLeadComplete(leadId: number, leadgenId: string, for
     const classification = await classifyCampaign(campaignName, formId, leadId);
     console.log(`[ORCHESTRATOR] Campaña clasificada:`, classification);
 
+    // Verificar si el formulario contiene "Pauta interna" - omitir Salesforce
+    const formName = enrichedData.form_name || '';
+    if (formName.toLowerCase().includes('pauta interna')) {
+      console.log(`[ORCHESTRATOR] Lead ${leadId} omitido: formulario "${formName}" contiene "Pauta interna"`);
+      await updateLeadLog(leadId, {
+        processing_status: 'omitido_interno',
+        current_step: 'Omitido - Formulario de Pauta Interna',
+        completed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      });
+      return {
+        success: true,
+        leadId,
+        accountId: null,
+        opportunityId: null,
+        omitted: true,
+      };
+    }
+
     // PASO 6: Crear/actualizar cuenta en Salesforce
     const accountResult = await upsertSalesforceAccount(enrichedData, classification.origen, leadId);
     console.log(`[ORCHESTRATOR] Cuenta Salesforce creada/actualizada:`, accountResult.id);
@@ -50,9 +70,16 @@ export async function processLeadComplete(leadId: number, leadgenId: string, for
     const groupMembers = await getSalesforceGroup(leadId);
     console.log(`[ORCHESTRATOR] ${groupMembers.length} usuarios encontrados en el grupo`);
 
-    // PASO 9: Seleccionar owner aleatorio
-    const ownerId = selectRandomOwner(groupMembers);
-    console.log(`[ORCHESTRATOR] Owner seleccionado:`, ownerId);
+    // PASO 9: Seleccionar owner - priorizar owner existente de leads anteriores
+    let ownerId: string;
+    const existingOwnerId = await findExistingOwnerForAccount(accountResult.id, leadId);
+    if (existingOwnerId) {
+      ownerId = existingOwnerId;
+      console.log(`[ORCHESTRATOR] Owner reutilizado de lead anterior:`, ownerId);
+    } else {
+      ownerId = selectRandomOwner(groupMembers);
+      console.log(`[ORCHESTRATOR] Owner seleccionado aleatoriamente:`, ownerId);
+    }
 
     // PASO 10: Obtener proyectos
     const projects = await getSalesforceProjects(leadId);

@@ -90,7 +90,8 @@ export async function GET(request: NextRequest) {
         COUNT(*) as total,
         SUM(CASE WHEN processing_status = 'completado' THEN 1 ELSE 0 END) as completados,
         SUM(CASE WHEN processing_status = 'error' THEN 1 ELSE 0 END) as errores,
-        SUM(CASE WHEN processing_status NOT IN ('completado', 'error') THEN 1 ELSE 0 END) as en_proceso,
+        SUM(CASE WHEN processing_status = 'omitido_interno' THEN 1 ELSE 0 END) as omitidos,
+        SUM(CASE WHEN processing_status NOT IN ('completado', 'error', 'omitido_interno') THEN 1 ELSE 0 END) as en_proceso,
         AVG(CASE WHEN processing_time_seconds IS NOT NULL THEN processing_time_seconds ELSE NULL END) as avg_time
       FROM modulos_suvi_12_leads`
     );
