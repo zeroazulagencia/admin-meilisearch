@@ -17,6 +17,25 @@ interface Client {
   permissions?: any;
 }
 
+const AgentAvatar = ({ photo, name }: { photo?: string | null; name: string }) => {
+  const [imgError, setImgError] = useState(false);
+  if (photo && !imgError) {
+    return (
+      <img
+        src={photo}
+        alt={name}
+        className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  return (
+    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center border-2 border-gray-200">
+      <span className="text-white font-semibold text-xl">{name.charAt(0).toUpperCase()}</span>
+    </div>
+  );
+};
+
 export default function EditarCliente() {
   const router = useRouter();
   const params = useParams();
@@ -692,15 +711,9 @@ export default function EditarCliente() {
                     onClick={() => router.push(`/agentes/${agent.id}/editar`)}
                   >
                     <div className="flex items-center gap-3">
-                      {agent.photo && (
-                        <div className="flex-shrink-0">
-                          <img
-                            src={agent.photo}
-                            alt={agent.name}
-                            className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                          />
-                        </div>
-                      )}
+                      <div className="flex-shrink-0">
+                        <AgentAvatar photo={agent.photo} name={agent.name} />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-gray-900 truncate">{agent.name}</h3>
                         {agent.description && (

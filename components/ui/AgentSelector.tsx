@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from '@headlessui/react';
 import { ChevronUpDownIcon } from '@heroicons/react/16/solid';
 import { CheckIcon } from '@heroicons/react/20/solid';
@@ -25,6 +26,30 @@ interface AgentSelectorProps {
   loading?: boolean;
   className?: string;
 }
+
+const AgentAvatar = ({ photo, name, size = 8 }: { photo?: string | null; name: string; size?: number }) => {
+  const [imgError, setImgError] = useState(false);
+  
+  if (photo && !imgError) {
+    return (
+      <img
+        alt=""
+        src={photo}
+        className={`size-${size} shrink-0 rounded-full bg-gray-100 object-cover`}
+        style={{ width: `${size * 4}px`, height: `${size * 4}px` }}
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  return (
+    <div 
+      className={`shrink-0 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center text-white font-bold`}
+      style={{ width: `${size * 4}px`, height: `${size * 4}px`, fontSize: `${size * 1.5}px` }}
+    >
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
+};
 
 export default function AgentSelector({
   label,
@@ -92,12 +117,8 @@ export default function AgentSelector({
         <div className="relative mt-2">
           <ListboxButton className="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-2 pr-3 pl-3 text-left text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#5DE1E5] sm:text-sm/6 border border-gray-300">
             <span className="col-start-1 row-start-1 flex items-center gap-3 pr-7">
-              {currentSelected?.photo ? (
-                <img
-                  alt=""
-                  src={currentSelected.photo}
-                  className="size-8 shrink-0 rounded-full bg-gray-100 object-cover"
-                />
+              {currentSelected ? (
+                <AgentAvatar photo={currentSelected.photo} name={currentSelected.name} size={8} />
               ) : (
                 <div className="size-8 shrink-0 rounded-full bg-gray-100"></div>
               )}
@@ -126,15 +147,7 @@ export default function AgentSelector({
                   {({ focus, selected }) => (
                     <>
                       <div className="flex items-center">
-                        {agent.photo ? (
-                          <img
-                            alt=""
-                            src={agent.photo}
-                            className="size-8 shrink-0 rounded-full"
-                          />
-                        ) : (
-                          <div className="size-8 shrink-0 rounded-full bg-gray-200"></div>
-                        )}
+                        <AgentAvatar photo={agent.photo} name={agent.name} size={8} />
                         <span className={`ml-3 block truncate ${selected ? 'font-semibold' : 'font-normal'}`}>
                           {getAgentDisplayText(agent)}
                         </span>

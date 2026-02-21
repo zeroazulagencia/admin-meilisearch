@@ -27,6 +27,26 @@ interface AgentDB {
   reports_agent_name?: string;
 }
 
+const AgentAvatar = ({ photo, name, size = 12 }: { photo?: string | null; name: string; size?: number }) => {
+  const [imgError, setImgError] = useState(false);
+  const sizeClass = size === 12 ? 'w-12 h-12' : size === 10 ? 'w-10 h-10' : `w-${size} h-${size}`;
+  if (photo && !imgError) {
+    return (
+      <img
+        src={photo}
+        alt={name}
+        className={`${sizeClass} rounded-full object-cover border-2 border-gray-200`}
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  return (
+    <div className={`${sizeClass} rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center border-2 border-gray-200`}>
+      <span className="text-white font-semibold text-lg">{name.charAt(0).toUpperCase()}</span>
+    </div>
+  );
+};
+
 export default function Reportes() {
   const [allPlatformAgents, setAllPlatformAgents] = useState<AgentDB[]>([]);
   const [agentsInitialized, setAgentsInitialized] = useState<boolean>(false);
@@ -573,13 +593,7 @@ export default function Reportes() {
               const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
               return agent ? (
                 <>
-                  {agent.photo && (
-                    <img
-                      src={agent.photo}
-                      alt={agent.name}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                    />
-                  )}
+                  <AgentAvatar photo={agent.photo} name={agent.name} />
                   <div>
                     <p className="font-medium text-gray-900">{agent.name}</p>
                     {agent.description && (

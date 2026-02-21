@@ -19,6 +19,25 @@ interface AgentDB {
   workflows?: any;
 }
 
+const AgentAvatar = ({ photo, name }: { photo?: string | null; name: string }) => {
+  const [imgError, setImgError] = useState(false);
+  if (photo && !imgError) {
+    return (
+      <img
+        src={photo}
+        alt={name}
+        className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  return (
+    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center border-2 border-gray-200">
+      <span className="text-white font-semibold text-lg">{name.charAt(0).toUpperCase()}</span>
+    </div>
+  );
+};
+
 export default function Ejecuciones() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -859,13 +878,9 @@ export default function Ejecuciones() {
           }}
           className="w-full"
         />
-        {selectedAgent && selectedAgent.photo && (
+        {selectedAgent && (
           <div className="mt-3 flex items-center gap-3">
-            <img
-              src={selectedAgent.photo}
-              alt={selectedAgent.name}
-              className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-            />
+            <AgentAvatar photo={selectedAgent.photo} name={selectedAgent.name} />
             <div>
               <p className="font-medium text-gray-900">{selectedAgent.name}</p>
               {selectedAgent.description && (

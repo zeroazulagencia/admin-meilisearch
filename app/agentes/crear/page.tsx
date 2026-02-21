@@ -410,14 +410,21 @@ export default function CrearAgente() {
                         src={formData.photo} 
                         alt={formData.name || 'Avatar'} 
                         className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement?.querySelector('.fallback-avatar')?.classList.remove('hidden');
+                        }}
                       />
+                      <div className="fallback-avatar hidden w-32 h-32 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] border-4 border-white shadow-lg flex items-center justify-center text-white text-4xl font-bold">
+                        {(formData.name || 'A').charAt(0).toUpperCase()}
+                      </div>
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-full transition-all flex items-center justify-center">
                         <PhotoIcon className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
                   ) : (
-                    <div className="w-32 h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center group-hover:bg-gray-300 transition-colors">
-                      <UserCircleIcon className="w-24 h-24 text-gray-400" />
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] border-4 border-white shadow-lg flex items-center justify-center text-white text-4xl font-bold group-hover:opacity-90 transition-opacity">
+                      {(formData.name || 'A').charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>

@@ -685,13 +685,20 @@ export default function Conversaciones() {
               const agent = allPlatformAgents.find(a => a.id === parseInt(selectedPlatformAgent));
               return agent ? (
                 <div className="flex items-center gap-3">
-                  {agent.photo && (
+                  {agent.photo ? (
                     <img
                       src={agent.photo}
                       alt={agent.name}
                       className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
                     />
-                  )}
+                  ) : null}
+                  <div className={`w-12 h-12 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center text-white text-lg font-bold border-2 border-gray-200 ${agent.photo ? 'hidden' : ''}`}>
+                    {agent.name.charAt(0).toUpperCase()}
+                  </div>
                   <div>
                     <p className="font-medium text-gray-900">{agent.name}</p>
                     {agent.description && (
