@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { documentsToMessages } from '@/app/omnicanalidad/utils/conversation-helpers';
+import { adaptBirdMessages } from '@/app/omnicanalidad/utils/bird-adapter';
+import { listMessages as listBirdMessages } from '@/utils/bird-api';
+import { decrypt, isEncrypted } from '@/utils/encryption';
 import { Message } from '@/app/omnicanalidad/utils/types';
 
 const INDEX_UID = 'bd_conversations_dworkers';
@@ -38,18 +41,59 @@ export async function GET(req: NextRequest) {
       // Para session_id, necesitamos buscar en los documentos
     }
 
-    // 2. Obtener agent_id
+    // 2. Obtener agent_id y conversation_source
     let agent_id: number | null = null;
+    let conversation_source: string = 'meilisearch';
+    let bird_api_key: string | null = null;
+    let bird_environment_id: string | null = null;
+    
     try {
       const [agentRows] = await query<any>(
-        'SELECT id FROM agents WHERE conversation_agent_name = ? LIMIT 1',
+        'SELECT id, conversation_source, bird_api_key, bird_environment_id FROM agents WHERE conversation_agent_name = ? LIMIT 1',
         [agent_name]
       );
       if (agentRows && agentRows.length > 0) {
         agent_id = agentRows[0].id;
+        conversation_source = agentRows[0].conversation_source || 'meilisearch';
+        bird_api_key = agentRows[0].bird_api_key || null;
+        bird_environment_id = agentRows[0].bird_environment_id || null;
       }
     } catch (e: any) {
       console.error('[OMNICANALIDAD MESSAGES] Error obteniendo agente:', e?.message);
+    }
+    
+    console.log('[OMNICANALIDAD MESSAGES] Fuente de conversaciones:', conversation_source);
+    
+    // Si la fuente es Bird, usar Bird API
+    if (conversation_source === 'bird' && bird_api_key && bird_environment_id) {
+      try {
+        // Extraer Bird conversation ID (format: bird_{conversationId})
+        const birdConversationId = conversation_id.startsWith('bird_') 
+          ? conversation_id.replace('bird_', '') 
+          : conversation_id;
+        
+        // Desencriptar API key si está encriptada
+        const decryptedApiKey = isEncrypted(bird_api_key) ? decrypt(bird_api_key) : bird_api_key;
+        
+        console.log('[OMNICANALIDAD MESSAGES] Cargando mensajes desde Bird API...');
+        const birdResponse = await listBirdMessages(decryptedApiKey, bird_environment_id, birdConversationId, {
+          limit: 100,
+        });
+        
+        const { messages: birdMessages } = adaptBirdMessages(birdResponse);
+        
+        console.log('[OMNICANALIDAD MESSAGES] Mensajes Bird cargados:', birdMessages.length);
+        
+        return NextResponse.json({
+          ok: true,
+          messages: birdMessages,
+          total: birdMessages.length,
+          source: 'bird'
+        });
+      } catch (e: any) {
+        console.error('[OMNICANALIDAD MESSAGES] Error cargando desde Bird:', e?.message);
+        return NextResponse.json({ ok: false, error: 'Error cargando mensajes de Bird: ' + e?.message }, { status: 500 });
+      }
     }
 
     // 3. Cargar documentos de Meilisearch para esta conversación

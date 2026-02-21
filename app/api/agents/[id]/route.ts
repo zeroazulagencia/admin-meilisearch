@@ -80,7 +80,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     
     // Construir query base
-    let baseFields = 'id, client_id, name, description, photo, status, knowledge, workflows, conversation_agent_name';
+    let baseFields = 'id, client_id, name, description, photo, status, knowledge, workflows, conversation_agent_name, conversation_source';
     let queryFields = baseFields;
     
     // Agregar campos opcionales si existen
@@ -660,6 +660,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               updateValues.push(null);
               console.log('[API AGENTS] [BIRD UPDATE] bird_environment_id: Limpiado (valor vacio)');
             }
+          }
+        }
+        
+        // Agregar conversation_source si se proporciona
+        if ('conversation_source' in body) {
+          const conversationSource = body.conversation_source;
+          if (conversationSource === 'meilisearch' || conversationSource === 'bird') {
+            updateFields.push('conversation_source = ?');
+            updateValues.push(conversationSource);
+            console.log('[API AGENTS] [CONVERSATION SOURCE UPDATE] conversation_source:', conversationSource);
           }
         }
         

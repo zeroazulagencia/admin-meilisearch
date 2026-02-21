@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { groupDocumentsIntoConversations } from '@/app/omnicanalidad/utils/conversation-helpers';
+import { adaptBirdConversations } from '@/app/omnicanalidad/utils/bird-adapter';
+import { listConversations as listBirdConversations } from '@/utils/bird-api';
+import { decrypt, isEncrypted } from '@/utils/encryption';
 import { Conversation } from '@/app/omnicanalidad/utils/types';
 
 const INDEX_UID = 'bd_conversations_dworkers';
@@ -24,17 +27,55 @@ export async function GET(req: NextRequest) {
 
     // 1. Obtener agente si se proporciona agent_name
     let agent_id: number | null = null;
+    let conversation_source: string = 'meilisearch';
+    let bird_api_key: string | null = null;
+    let bird_environment_id: string | null = null;
+    
     if (agent_name) {
       try {
         const [agentRows] = await query<any>(
-          'SELECT id FROM agents WHERE conversation_agent_name = ? LIMIT 1',
+          'SELECT id, conversation_source, bird_api_key, bird_environment_id FROM agents WHERE conversation_agent_name = ? LIMIT 1',
           [agent_name]
         );
         if (agentRows && agentRows.length > 0) {
           agent_id = agentRows[0].id;
+          conversation_source = agentRows[0].conversation_source || 'meilisearch';
+          bird_api_key = agentRows[0].bird_api_key || null;
+          bird_environment_id = agentRows[0].bird_environment_id || null;
         }
       } catch (e: any) {
         console.error('[OMNICANALIDAD CONVERSATIONS] Error obteniendo agente:', e?.message);
+      }
+    }
+    
+    console.log('[OMNICANALIDAD CONVERSATIONS] Fuente de conversaciones:', conversation_source);
+    
+    // Si la fuente es Bird, usar Bird API
+    if (conversation_source === 'bird' && bird_api_key && bird_environment_id) {
+      try {
+        // Desencriptar API key si está encriptada
+        const decryptedApiKey = isEncrypted(bird_api_key) ? decrypt(bird_api_key) : bird_api_key;
+        
+        console.log('[OMNICANALIDAD CONVERSATIONS] Cargando desde Bird API...');
+        const birdResponse = await listBirdConversations(decryptedApiKey, bird_environment_id, {
+          limit: limit,
+        });
+        
+        const { conversations: birdConversations } = adaptBirdConversations(birdResponse, agent_id || undefined);
+        
+        console.log('[OMNICANALIDAD CONVERSATIONS] Conversaciones Bird cargadas:', birdConversations.length);
+        
+        return NextResponse.json({
+          ok: true,
+          conversations: birdConversations.slice(offset, offset + limit),
+          total: birdConversations.length,
+          limit,
+          offset,
+          source: 'bird'
+        });
+      } catch (e: any) {
+        console.error('[OMNICANALIDAD CONVERSATIONS] Error cargando desde Bird:', e?.message);
+        return NextResponse.json({ ok: false, error: 'Error cargando conversaciones de Bird: ' + e?.message }, { status: 500 });
       }
     }
 

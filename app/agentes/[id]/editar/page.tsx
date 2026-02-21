@@ -33,6 +33,7 @@ interface AgentDB {
   knowledge?: any;
   workflows?: any;
   conversation_agent_name?: string;
+  conversation_source?: 'meilisearch' | 'bird';
   reports_agent_name?: string;
   whatsapp_business_account_id?: string;
   whatsapp_phone_number_id?: string;
@@ -60,7 +61,8 @@ export default function EditarAgente() {
     whatsapp_webhook_verify_token: '',
     whatsapp_app_secret: '',
     bird_api_key: '',
-    bird_environment_id: ''
+    bird_environment_id: '',
+    conversation_source: 'meilisearch' as 'meilisearch' | 'bird'
   });
   // Guardar los primeros caracteres del token original para mostrar
   const [tokenPrefix, setTokenPrefix] = useState<{ access_token?: string; webhook_token?: string; app_secret?: string; bird_api_key?: string }>({});
@@ -90,7 +92,7 @@ export default function EditarAgente() {
   const [refreshingData, setRefreshingData] = useState(false);
   const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
   const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores' | 'conexiones-bd' | 'bird'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores' | 'conexiones-bd' | 'bird' | 'conversaciones'>('general');
   const [showAIImageModal, setShowAIImageModal] = useState(false);
   const [aiImagePrompt, setAiImagePrompt] = useState('');
   const [generatingImage, setGeneratingImage] = useState(false);
@@ -174,7 +176,8 @@ export default function EditarAgente() {
             whatsapp_webhook_verify_token: webhookToken.endsWith('...') ? '' : webhookToken,
             whatsapp_app_secret: appSecret.endsWith('...') ? '' : appSecret,
             bird_api_key: birdApiKey.endsWith('...') ? '' : birdApiKey,
-            bird_environment_id: agent.bird_environment_id || ''
+            bird_environment_id: agent.bird_environment_id || '',
+            conversation_source: agent.conversation_source || 'meilisearch'
           });
           try {
             const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {});
@@ -593,6 +596,9 @@ export default function EditarAgente() {
       if (formData.bird_environment_id !== undefined) {
         requestData.bird_environment_id = formData.bird_environment_id;
       }
+      
+      // Conversation source - incluir siempre
+      requestData.conversation_source = formData.conversation_source;
       
       // CRITICO: Proteccion de campos WhatsApp
       // Solo incluir campos WhatsApp si tienen valores válidos (no vacíos, no solo espacios)
@@ -1074,6 +1080,17 @@ export default function EditarAgente() {
                     }`}
                   >
                     Integracion Bird
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('conversaciones')}
+                    className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                      activeTab === 'conversaciones'
+                        ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Conversaciones
                   </button>
                 </>
               )}
@@ -1786,6 +1803,58 @@ export default function EditarAgente() {
                     <p className="mt-1 text-xs text-gray-500">
                       La API Key de Bird para autenticar las solicitudes.
                     </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab: Conversaciones */}
+          {activeTab === 'conversaciones' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
+              <h2 className="text-base/7 font-semibold text-gray-900">Configuracion de Conversaciones</h2>
+              <p className="mt-1 text-sm/6 text-gray-600">
+                Selecciona la fuente de donde se obtendran las conversaciones para este agente.
+              </p>
+              
+              <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                <div className="sm:col-span-4">
+                  <label htmlFor="conversation_source" className="block text-sm/6 font-medium text-gray-900">
+                    Fuente de Conversaciones
+                  </label>
+                  <div className="mt-2 grid grid-cols-1">
+                    <select
+                      id="conversation_source"
+                      name="conversation_source"
+                      disabled={!canEdit}
+                      value={formData.conversation_source}
+                      onChange={(e) => setFormData({ ...formData, conversation_source: e.target.value as 'meilisearch' | 'bird' })}
+                      className={`col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] sm:text-sm/6 ${!canEdit ? 'bg-gray-50 cursor-not-allowed opacity-60' : ''}`}
+                    >
+                      <option value="meilisearch">Meilisearch (por defecto)</option>
+                      <option 
+                        value="bird" 
+                        disabled={!formData.bird_environment_id || (!formData.bird_api_key && !tokenPrefix.bird_api_key)}
+                      >
+                        Bird {(!formData.bird_environment_id || (!formData.bird_api_key && !tokenPrefix.bird_api_key)) ? '(configurar credenciales primero)' : ''}
+                      </option>
+                    </select>
+                    <ChevronDownIcon
+                      aria-hidden="true"
+                      className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4"
+                    />
+                  </div>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {formData.conversation_source === 'meilisearch' 
+                      ? 'Las conversaciones se obtendran del indice de Meilisearch configurado para este agente.'
+                      : 'Las conversaciones se obtendran directamente de la API de Bird.com usando las credenciales configuradas en la pestana "Integracion Bird".'}
+                  </p>
+                  {formData.conversation_source === 'bird' && (!formData.bird_environment_id || (!formData.bird_api_key && !tokenPrefix.bird_api_key)) && (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">
+                        Para usar Bird como fuente de conversaciones, primero configura las credenciales en la pestana "Integracion Bird".
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
