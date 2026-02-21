@@ -470,7 +470,8 @@ export default function EditarAgente() {
               whatsapp_webhook_verify_token: webhookToken.endsWith('...') ? '' : webhookToken,
               whatsapp_app_secret: appSecret.endsWith('...') ? '' : appSecret,
               bird_api_key: birdApiKey.endsWith('...') ? '' : birdApiKey,
-              bird_environment_id: agent.bird_environment_id || ''
+              bird_environment_id: agent.bird_environment_id || '',
+              conversation_source: agent.conversation_source || 'meilisearch'
             });
             try {
               const k = typeof agent.knowledge === 'string' ? JSON.parse(agent.knowledge) : (agent.knowledge || {});
