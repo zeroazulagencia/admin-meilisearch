@@ -1847,12 +1847,12 @@ export default function EditarAgente() {
                   <p className="mt-2 text-sm text-gray-500">
                     {formData.conversation_source === 'meilisearch' 
                       ? 'Las conversaciones se obtendran del indice de Meilisearch configurado para este agente.'
-                      : 'Las conversaciones se obtendran directamente de la API de Bird.com usando las credenciales configuradas en la pestana "Integracion Bird".'}
+                      : 'Las conversaciones se obtendran directamente de la API de Bird.com usando las credenciales configuradas en la pestana Integracion Bird.'}
                   </p>
                   {formData.conversation_source === 'bird' && (!formData.bird_environment_id || (!formData.bird_api_key && !tokenPrefix.bird_api_key)) && (
                     <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                       <p className="text-sm text-yellow-800">
-                        Para usar Bird como fuente de conversaciones, primero configura las credenciales en la pestana "Integracion Bird".
+                        Para usar Bird como fuente de conversaciones, primero configura las credenciales en la pestana Integracion Bird.
                       </p>
                     </div>
                   )}
