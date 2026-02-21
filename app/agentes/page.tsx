@@ -519,15 +519,22 @@ export default function Agentes() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {!agentsLoading && filteredAgents.map((agent) => (
             <div key={agent.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              {agent.photo && (
-                <div className="w-full h-48 flex items-center justify-center bg-gray-100">
+              <div className="w-full h-48 flex items-center justify-center bg-gray-100">
+                {agent.photo ? (
                   <img 
                     src={agent.photo} 
                     alt={agent.name}
                     className="w-32 h-32 rounded-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
                   />
+                ) : null}
+                <div className={`w-32 h-32 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center text-white text-4xl font-bold ${agent.photo ? 'hidden' : ''}`}>
+                  {agent.name.charAt(0).toUpperCase()}
                 </div>
-              )}
+              </div>
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{agent.name}</h3>
                 <div className="mb-2">
