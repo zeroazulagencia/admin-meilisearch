@@ -84,6 +84,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Verificar si el form_id esta en la lista de bloqueados - omitir Salesforce
+    const blockedFormIds = JSON.parse(await getConfig('blocked_form_ids') || '[]');
+    if (lead.form_id && blockedFormIds.includes(lead.form_id)) {
+      console.log(`[PROCESS-SALESFORCE] Lead ${leadId} omitido: form_id "${lead.form_id}" esta bloqueado`);
+      await updateLeadLog(leadId, {
+        processing_status: 'omitido_interno',
+        current_step: 'Omitido - Formulario Bloqueado',
+        completed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      });
+      return NextResponse.json({
+        ok: true,
+        message: 'Lead omitido: formulario bloqueado',
+        omitted: true,
+      });
+    }
+
     console.log(`[PROCESS-SALESFORCE] Iniciando proceso para lead ${leadId}`);
 
     // PASO 6: Crear/actualizar cuenta en Salesforce

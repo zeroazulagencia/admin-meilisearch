@@ -87,10 +87,10 @@ export async function POST(request: NextRequest) {
 
         const value = change.value;
         const formId = value.form_id;
+        const isBlocked = blockedFormIds.includes(formId);
 
-        if (blockedFormIds.includes(formId)) {
-          console.log(`[WEBHOOK SUVI] Formulario ${formId} bloqueado`);
-          continue;
+        if (isBlocked) {
+          console.log(`[WEBHOOK SUVI] Formulario ${formId} bloqueado, se guardara pero no se enviara a Salesforce`);
         }
 
         try {
@@ -101,12 +101,12 @@ export async function POST(request: NextRequest) {
             facebook_raw_data: body,
           });
 
-          console.log(`[WEBHOOK SUVI] ✅ Lead ${value.leadgen_id} → ID ${leadId}`);
+          console.log(`[WEBHOOK SUVI] Lead ${value.leadgen_id} → ID ${leadId}`);
 
-          // Procesamiento automático: META → IA → Salesforce
-          // Se ejecuta de forma asíncrona después de responder 200 OK
+          // Procesamiento automatico: META → IA → Salesforce
+          // Si esta bloqueado, el proceso se detendra antes de Salesforce
           processLeadComplete(leadId, value.leadgen_id, formId).catch((e) => {
-            console.error(`[WEBHOOK SUVI] ❌ Error procesando lead ${leadId}:`, e);
+            console.error(`[WEBHOOK SUVI] Error procesando lead ${leadId}:`, e);
           });
         } catch (dbError: any) {
           console.error('[WEBHOOK SUVI] Error BD:', dbError);

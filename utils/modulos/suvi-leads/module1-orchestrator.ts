@@ -13,7 +13,7 @@ import {
   upsertSalesforceOpportunity,
   findExistingOwnerForAccount,
 } from './module1-salesforce';
-import { updateLeadLog } from './module1-config';
+import { updateLeadLog, getConfig } from './module1-config';
 
 /**
  * Procesa un lead completamente desde Facebook hasta Salesforce
@@ -47,6 +47,24 @@ export async function processLeadComplete(leadId: number, leadgenId: string, for
       await updateLeadLog(leadId, {
         processing_status: 'omitido_interno',
         current_step: 'Omitido - Formulario de Pauta Interna',
+        completed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      });
+      return {
+        success: true,
+        leadId,
+        accountId: null,
+        opportunityId: null,
+        omitted: true,
+      };
+    }
+
+    // Verificar si el form_id esta en la lista de bloqueados - omitir Salesforce
+    const blockedFormIds = JSON.parse(await getConfig('blocked_form_ids') || '[]');
+    if (formId && blockedFormIds.includes(formId)) {
+      console.log(`[ORCHESTRATOR] Lead ${leadId} omitido: form_id "${formId}" esta bloqueado`);
+      await updateLeadLog(leadId, {
+        processing_status: 'omitido_interno',
+        current_step: 'Omitido - Formulario Bloqueado',
         completed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       });
       return {

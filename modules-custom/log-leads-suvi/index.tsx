@@ -1915,7 +1915,7 @@ export default function LogLeadsSUVI() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Flujo de procesamiento</p>
             <div className="space-y-3">
               {[
-                { paso: '00', titulo: 'Verificacion de formulario bloqueado', desc: 'Antes de guardar cualquier registro, se verifica si el form_id está en la lista blocked_form_ids de la config. Si está bloqueado, el lead se descarta silenciosamente: no se guarda en BD ni se procesa.' },
+                { paso: '00', titulo: 'Verificacion de formulario bloqueado', desc: 'Si el form_id está en blocked_form_ids, el lead SE GUARDA pero se marca como omitido_interno y NO se envia a Salesforce. Muestra "1/4 - Omitido (Interno)" en rojo.' },
                 { paso: '01', titulo: 'Webhook recibido',          desc: 'Facebook envía el evento a /api/webhooks/facebook-leads. Se guarda el lead con estado recibido y se inicia el pipeline.' },
                 { paso: '02', titulo: 'Consulta a Facebook',       desc: 'Se llama a Graph API con el leadgen_id para obtener los datos completos del formulario (nombre, teléfono, email, campaña).' },
                 { paso: '03', titulo: 'Limpieza de datos',         desc: 'Se normalizan los campos del lead: nombres, teléfonos con código de país, emails. Se guarda en facebook_cleaned_data.' },

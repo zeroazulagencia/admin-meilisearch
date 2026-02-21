@@ -46,14 +46,13 @@ export async function POST(request: NextRequest) {
 
         const value = change.value;
         const formId = value.form_id;
+        const isBlocked = blockedFormIds.includes(formId);
 
-        // Verificar si el formulario está bloqueado
-        if (blockedFormIds.includes(formId)) {
-          console.log(`[WEBHOOK] Formulario ${formId} bloqueado, ignorando lead`);
-          continue;
+        if (isBlocked) {
+          console.log(`[WEBHOOK] Formulario ${formId} bloqueado, se guardara pero no se enviara a Salesforce`);
         }
 
-        // Crear registro inicial en la BD
+        // Crear registro inicial en la BD (incluso si bloqueado)
         const leadId = await createLeadLog({
           leadgen_id: value.leadgen_id,
           page_id: value.page_id,
@@ -64,6 +63,7 @@ export async function POST(request: NextRequest) {
         console.log(`[WEBHOOK] Lead ${value.leadgen_id} registrado con ID ${leadId}`);
 
         // Procesar flujo completo en background (no bloquear respuesta)
+        // Si esta bloqueado, el proceso se detendra antes de Salesforce
         processLeadFlow(leadId, value.leadgen_id, formId).catch((e) => {
           console.error('[WEBHOOK] Error procesando lead:', e);
         });
