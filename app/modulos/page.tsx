@@ -160,8 +160,10 @@ export default function ModulosPage() {
 
   const AgentAvatar = ({ photo, name, size = 'md' }: { photo?: string | null; name: string; size?: 'sm' | 'md' | 'lg' }) => {
     const sizeClasses = { sm: 'w-6 h-6 text-xs', md: 'w-8 h-8 text-sm', lg: 'w-10 h-10 text-sm' };
-    if (photo) {
-      return <img src={photo} alt={name} className={`${sizeClasses[size]} rounded-full object-cover flex-shrink-0`} />;
+    const [imgError, setImgError] = useState(false);
+    
+    if (photo && !imgError) {
+      return <img src={photo} alt={name} className={`${sizeClasses[size]} rounded-full object-cover flex-shrink-0`} onError={() => setImgError(true)} />;
     }
     return (
       <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center text-white font-bold flex-shrink-0`}>
