@@ -14,6 +14,7 @@ import {
   findExistingOwnerForAccount,
 } from './module1-salesforce';
 import { updateLeadLog, getConfig } from './module1-config';
+import { sendOmitidoToWebhook } from './module1-webhook-omitidos';
 
 /**
  * Procesa un lead completamente desde Facebook hasta Salesforce
@@ -44,9 +45,16 @@ export async function processLeadComplete(leadId: number, leadgenId: string, for
     const formName = enrichedData.form_name || '';
     if (formName.toLowerCase().includes('pauta interna')) {
       console.log(`[ORCHESTRATOR] Lead ${leadId} omitido: formulario "${formName}" contiene "Pauta interna"`);
+      await sendOmitidoToWebhook(leadId, enrichedData, {
+        leadgen_id: leadgenId,
+        campaign_name: campaignName,
+        ad_name: facebookData.ad_name,
+        form_id: formId,
+        omitido_reason: 'Pauta Interna',
+      });
       await updateLeadLog(leadId, {
         processing_status: 'omitido_interno',
-        current_step: 'Omitido - Formulario de Pauta Interna',
+        current_step: 'Omitido - Enviado a Google Sheet',
         completed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       });
       return {
@@ -62,9 +70,16 @@ export async function processLeadComplete(leadId: number, leadgenId: string, for
     const blockedFormIds = JSON.parse(await getConfig('blocked_form_ids') || '[]');
     if (formId && blockedFormIds.includes(formId)) {
       console.log(`[ORCHESTRATOR] Lead ${leadId} omitido: form_id "${formId}" esta bloqueado`);
+      await sendOmitidoToWebhook(leadId, enrichedData, {
+        leadgen_id: leadgenId,
+        campaign_name: campaignName,
+        ad_name: facebookData.ad_name,
+        form_id: formId,
+        omitido_reason: 'Formulario Bloqueado',
+      });
       await updateLeadLog(leadId, {
         processing_status: 'omitido_interno',
-        current_step: 'Omitido - Formulario Bloqueado',
+        current_step: 'Omitido - Enviado a Google Sheet',
         completed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       });
       return {

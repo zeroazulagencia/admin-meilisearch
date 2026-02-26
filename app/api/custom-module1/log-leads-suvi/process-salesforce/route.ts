@@ -4,6 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getConfig, updateLeadLog } from '@/utils/modulos/suvi-leads/module1-config';
+import { sendOmitidoToWebhook } from '@/utils/modulos/suvi-leads/module1-webhook-omitidos';
 import {
   upsertSalesforceAccount,
   getSalesforceAccount,
@@ -72,9 +73,16 @@ export async function POST(req: NextRequest) {
     const formName = enrichedData.form_name || '';
     if (formName.toLowerCase().includes('pauta interna')) {
       console.log(`[PROCESS-SALESFORCE] Lead ${leadId} omitido: formulario "${formName}" contiene "Pauta interna"`);
+      await sendOmitidoToWebhook(leadId, enrichedData, {
+        leadgen_id: lead.leadgen_id,
+        campaign_name: lead.campaign_name,
+        ad_name: lead.ad_name,
+        form_id: lead.form_id,
+        omitido_reason: 'Pauta Interna',
+      });
       await updateLeadLog(leadId, {
         processing_status: 'omitido_interno',
-        current_step: 'Omitido - Formulario de Pauta Interna',
+        current_step: 'Omitido - Enviado a Google Sheet',
         completed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       });
       return NextResponse.json({
@@ -88,9 +96,16 @@ export async function POST(req: NextRequest) {
     const blockedFormIds = JSON.parse(await getConfig('blocked_form_ids') || '[]');
     if (lead.form_id && blockedFormIds.includes(lead.form_id)) {
       console.log(`[PROCESS-SALESFORCE] Lead ${leadId} omitido: form_id "${lead.form_id}" esta bloqueado`);
+      await sendOmitidoToWebhook(leadId, enrichedData, {
+        leadgen_id: lead.leadgen_id,
+        campaign_name: lead.campaign_name,
+        ad_name: lead.ad_name,
+        form_id: lead.form_id,
+        omitido_reason: 'Formulario Bloqueado',
+      });
       await updateLeadLog(leadId, {
         processing_status: 'omitido_interno',
-        current_step: 'Omitido - Formulario Bloqueado',
+        current_step: 'Omitido - Enviado a Google Sheet',
         completed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
       });
       return NextResponse.json({

@@ -132,6 +132,14 @@ Permite actualizar manualmente el estado de un lead.
 - Define `opportunity_type_id` para Salesforce
 - Estado: `clasificando`
 
+### Paso 5b: Leads Omitidos - Enviado a Google Sheet
+- Si el formulario contiene "Pauta interna" o el form_id está en `blocked_form_ids`, el lead se marca como omitido.
+- **Solo para omitidos:** Tras enriquecer con IA, se envía el payload por POST a:
+  `https://automation.zeroazul.com/webhook/f3e51e7f-5c02-41c3-999e-0c11f72c1e85`
+- Payload incluye: lead_id, leadgen_id, form_id, campaign_name, ad_name, omitido_reason, ai_enriched_data, sent_at.
+- Estado final: `omitido_interno` con paso "Omitido - Enviado a Google Sheet".
+- No se crea cuenta ni oportunidad en Salesforce.
+
 ### Paso 6: Crear/Actualizar Cuenta en Salesforce
 - Hace UPSERT usando `Correo_Electr_nico__c` como External ID
 - Incluye: Nombre, teléfono, prefijos, email
@@ -246,6 +254,20 @@ admin-meilisearch/
     ├── migration_create_modulos_suvi_12_leads.sql
     └── migration_create_modulos_suvi_12_config.sql
 ```
+
+---
+
+## 📤 Webhook para Leads Omitidos (Google Sheet)
+
+Los leads que se marcan como `omitido_interno` (Pauta interna o formulario bloqueado) se envían automáticamente a un Google Sheet vía webhook:
+
+- **URL:** `POST https://automation.zeroazul.com/webhook/f3e51e7f-5c02-41c3-999e-0c11f72c1e85`
+- **Cuándo:** Solo para omitidos, después de enriquecer con IA
+- **Payload (JSON):**
+  - `lead_id`, `leadgen_id`, `form_id`, `campaign_name`, `ad_name`
+  - `omitido_reason`: "Pauta Interna" o "Formulario Bloqueado"
+  - `ai_enriched_data`: datos enriquecidos por IA
+  - `sent_at`: timestamp ISO
 
 ---
 

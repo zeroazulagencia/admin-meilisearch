@@ -69,7 +69,7 @@ const STATUS_LABELS: Record<string, string> = {
   'creando_cuenta': '3/4 - Creando Cuenta',
   'creando_oportunidad': '3/4 - Creando Oportunidad',
   'completado': '4/4 - Completado',
-  'omitido_interno': '1/4 - Omitido (Interno)',
+  'omitido_interno': '1/4 - Omitido - Enviado a Google Sheet',
   'error': 'Error'
 };
 
@@ -1915,13 +1915,13 @@ export default function LogLeadsSUVI() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Flujo de procesamiento</p>
             <div className="space-y-3">
               {[
-                { paso: '00', titulo: 'Verificacion de formulario bloqueado', desc: 'Si el form_id está en blocked_form_ids, el lead SE GUARDA pero se marca como omitido_interno y NO se envia a Salesforce. Muestra "1/4 - Omitido (Interno)" en rojo.' },
+                { paso: '00', titulo: 'Verificacion de formulario bloqueado', desc: 'Si el form_id está en blocked_form_ids, el lead SE GUARDA, se envía el payload enriquecido por POST a automation.zeroazul.com/webhook (Google Sheet) y se marca como omitido_interno. NO se envía a Salesforce. Muestra "1/4 - Omitido - Enviado a Google Sheet" en rojo.' },
                 { paso: '01', titulo: 'Webhook recibido',          desc: 'Facebook envía el evento a /api/webhooks/facebook-leads. Se guarda el lead con estado recibido y se inicia el pipeline.' },
                 { paso: '02', titulo: 'Consulta a Facebook',       desc: 'Se llama a Graph API con el leadgen_id para obtener los datos completos del formulario (nombre, teléfono, email, campaña).' },
                 { paso: '03', titulo: 'Limpieza de datos',         desc: 'Se normalizan los campos del lead: nombres, teléfonos con código de país, emails. Se guarda en facebook_cleaned_data.' },
                 { paso: '04', titulo: 'Enriquecimiento con IA',    desc: 'GPT-4 estructura los datos: nombre completo, detección de país, inferencia del servicio de interés. Se guarda en ai_enriched_data.' },
                 { paso: '05', titulo: 'Clasificación de campaña',  desc: 'Se determina el tipo de campaña comparando campaign_name contra dos listas en config. Si está en suvi_campaigns (ej: "Grupo 2 Familia", "Retiro-Julio") → Pauta Interna. Si está en agency_campaigns (ej: "E3D Grupo 3 Inversionistas") → Pauta Agencia. Excepción fija: form_id 1200513015221690 siempre es Pauta Interna. Si no aparece en ninguna lista → Pauta Agencia por defecto. El tipo define el RecordTypeId de la oportunidad en Salesforce (ID: 0124W000000OiIrQAK configurado en salesforce_opportunity_type_id).' },
-                { paso: '05b', titulo: 'Omisión por Pauta Interna', desc: 'Si el form_name (extraido por IA) contiene "Pauta interna" (case-insensitive), el lead se marca como omitido_interno y NO se envia a Salesforce. El estado final queda como "1/4 - Omitido (Interno)" en rojo. El lead se guarda en BD con todos sus datos pero sin cuenta ni oportunidad en Salesforce.' },
+                { paso: '05b', titulo: 'Omisión por Pauta Interna - Enviado a Google Sheet', desc: 'Si el form_name (extraído por IA) contiene "Pauta interna" (case-insensitive), tras enriquecer con IA se envía el payload por POST a https://automation.zeroazul.com/webhook/f3e51e7f-5c02-41c3-999e-0c11f72c1e85. El lead se marca como omitido_interno y NO se envía a Salesforce. Estado final: "1/4 - Omitido - Enviado a Google Sheet" en rojo.' },
                 { paso: '06', titulo: 'Cuenta en Salesforce',         desc: 'UPSERT de Account usando Correo_Electrónico__c como External ID. Si existe, actualiza; si no, crea. Campos: Name, Phone, AccountSource (tipo de campaña), prefijos telefónicos.' },
                 { paso: '07', titulo: 'Ruleta de asesores',            desc: "Se consulta Salesforce: GET /services/data/v60.0/query?q=SELECT+UserOrGroupId+FROM+GroupMember+WHERE+GroupId='00G4W000006rHIN'. Retorna todos los UserOrGroupId del grupo. Si la cuenta ya tiene leads anteriores con un owner asignado, se reutiliza ese owner. Si no, se elige uno al azar con Math.random()." },
                 { paso: '08', titulo: 'Actualizar dueño de la cuenta', desc: 'Se actualiza el campo OwnerId de la Account en Salesforce con el asesor seleccionado en la ruleta. Esto asegura que cuenta y oportunidad queden asignadas al mismo asesor.' },
@@ -1974,7 +1974,8 @@ utils/modulos/suvi-leads/
   orchestrator.ts   Coordinador principal del pipeline (paso a paso)
   processors.ts     Lógica de Facebook, IA y clasificación de campaña
   salesforce.ts     Llamadas a Salesforce REST API (account UPSERT, opportunity)
-  config.ts         Funciones getConfig() y setConfig() para modulos_suvi_12_config`}
+  config.ts         Funciones getConfig() y setConfig() para modulos_suvi_12_config
+  webhook-omitidos.ts  Envía payload de leads omitidos a automation.zeroazul.com (Google Sheet)`}
             </pre>
           </div>
 
@@ -2033,6 +2034,7 @@ modulos_suvi_12_config
                 { nombre: 'Facebook Graph API', uso: 'Verificación de webhook y consulta de datos del lead por leadgen_id', auth: 'App Secret + Access Token' },
                 { nombre: 'OpenAI GPT-4',       uso: 'Estructuración de datos: nombre completo, país, servicio de interés', auth: 'API Key' },
                 { nombre: 'Salesforce REST API', uso: 'UPSERT de Account por email, creación de Opportunity con propietario (reutilizado de leads anteriores o aleatorio)', auth: 'OAuth 2.0 (refresh token)' },
+                { nombre: 'Webhook Google Sheet (omitidos)', uso: 'Leads omitidos (Pauta interna o formulario bloqueado): tras enriquecer con IA se envía POST a automation.zeroazul.com con payload completo', auth: 'URL fija' },
               ].map(({ nombre, uso, auth }) => (
                 <div key={nombre} className="border border-gray-200 rounded-lg p-4">
                   <p className="text-sm font-semibold text-gray-800 mb-1">{nombre}</p>
