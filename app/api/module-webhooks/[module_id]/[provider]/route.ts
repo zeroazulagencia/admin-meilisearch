@@ -27,24 +27,29 @@ async function handleWebhook(req: NextRequest, params: any, method: string) {
     }
     
     const folderName = rows[0].folder_name;
+
+    if (folderName === 'suvi-opportunity' && (provider === 'ventas' || provider === 'credito')) {
+      const mod = provider === 'ventas'
+        ? await import('@/modules-custom/suvi-opportunity/api/webhooks/ventas')
+        : await import('@/modules-custom/suvi-opportunity/api/webhooks/credito');
+      if (method === 'POST' && mod.POST) return await mod.POST(req);
+      return NextResponse.json({ error: 'Método no soportado' }, { status: 405 });
+    }
+
     const webhookPath = resolve(
-      process.cwd(), 
-      'modules-custom', 
-      folderName, 
-      'api/webhooks', 
+      process.cwd(),
+      'modules-custom',
+      folderName,
+      'api/webhooks',
       `${provider}.ts`
     );
-    
     if (!existsSync(webhookPath)) {
       return NextResponse.json({ error: 'Webhook no implementado' }, { status: 404 });
     }
-    
     const handler = await import(webhookPath);
-    
     if (handler[method]) {
       return await handler[method](req, { params });
     }
-    
     return NextResponse.json({ error: 'Método no soportado' }, { status: 405 });
   } catch (error: any) {
     console.error('[WEBHOOK] Error:', error);
