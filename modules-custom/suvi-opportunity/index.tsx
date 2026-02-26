@@ -26,6 +26,11 @@ interface Stats {
   en_proceso: number;
 }
 
+interface SalesforceStatus {
+  has_active_tokens: boolean;
+  time_until_expiry_minutes: number | null;
+}
+
 const BASE = '/api/custom-module6/suvi-opportunity';
 const WEBHOOK_BASE = typeof window !== 'undefined' ? `${window.location.origin}/api/module-webhooks/6` : 'https://workers.zeroazul.com/api/module-webhooks/6';
 
@@ -41,13 +46,15 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
   const [data, setData] = useState<Row[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ tipo: '', status: '' });
+  const [filters, setFilters] = useState({ tipo: '', status: '', search: '' });
   const [config, setConfig] = useState<Record<string, string | null>>({});
   const [detailId, setDetailId] = useState<number | null>(null);
   const [detailData, setDetailData] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [reenviandoId, setReenviandoId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'oportunidades' | 'documentacion'>('oportunidades');
+  const [salesforceStatus, setSalesforceStatus] = useState<SalesforceStatus | null>(null);
+  const [batchProcessing, setBatchProcessing] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -55,6 +62,7 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
       const params = new URLSearchParams();
       if (filters.tipo) params.set('tipo', filters.tipo);
       if (filters.status) params.set('status', filters.status);
+      if (filters.search) params.set('search', filters.search);
       const res = await fetch(`${BASE}?${params.toString()}`);
       const json = await res.json();
       if (json.ok) {
@@ -78,8 +86,53 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
     }
   };
 
+  const loadSalesforceStatus = async () => {
+    try {
+      const res = await fetch('/api/oauth/salesforce/status');
+      const data = await res.json();
+      setSalesforceStatus(data);
+    } catch (e) {
+      console.error('Error cargando estado Salesforce:', e);
+    }
+  };
+
+  const connectSalesforce = () => {
+    window.location.href = '/api/oauth/salesforce/authorize';
+  };
+
+  const processAllIncomplete = async () => {
+    try {
+      setBatchProcessing(true);
+      const res = await fetch(`${BASE}?status=error&limit=200`);
+      const json = await res.json();
+      if (!json.ok || !json.data?.length) {
+        alert('No hay registros con error para reprocesar');
+        return;
+      }
+      const rows: Row[] = json.data;
+      let processed = 0;
+      for (const row of rows) {
+        try {
+          await fetch(`${BASE}/reenviar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: row.id }),
+          });
+          processed++;
+        } catch (_) { /* continuar */ }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      alert(`Procesados: ${processed}/${rows.length}`);
+      await load();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBatchProcessing(false);
+    }
+  };
+
   useEffect(() => { load(); }, [filters.tipo, filters.status]);
-  useEffect(() => { loadConfig(); }, []);
+  useEffect(() => { loadConfig(); loadSalesforceStatus(); }, []);
 
   const getVariacion = (row: Row): string => {
     if (row.form_variant) return row.form_variant;
@@ -171,23 +224,99 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
 
       {activeTab === 'oportunidades' && (
         <>
-          {stats && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-              <div className="flex flex-wrap items-center gap-6">
-                <div><span className="text-sm text-gray-500">Total</span><span className="ml-2 font-bold text-gray-900">{stats.total}</span></div>
-                <div><span className="text-sm text-gray-500">Enviados</span><span className="ml-2 font-bold text-green-600">{stats.completados}</span></div>
-                <div><span className="text-sm text-gray-500">Errores</span><span className="ml-2 font-bold text-red-600">{stats.errores}</span></div>
-                <div><span className="text-sm text-gray-500">En proceso</span><span className="ml-2 font-bold text-amber-600">{stats.en_proceso}</span></div>
+          {/* ROW 1: Salesforce Status + Estadísticas */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#5DE1E5] rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700">Salesforce:</span>
+                  {salesforceStatus ? (
+                    <>
+                      {salesforceStatus.has_active_tokens ? (
+                        <>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Conectado
+                          </span>
+                          {salesforceStatus.time_until_expiry_minutes !== null && (
+                            <span className="text-xs text-gray-500">
+                              ({salesforceStatus.time_until_expiry_minutes}m)
+                            </span>
+                          )}
+                          <button
+                            onClick={loadSalesforceStatus}
+                            className="text-xs text-gray-500 hover:text-gray-700 underline ml-1"
+                          >
+                            verificar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            No conectado
+                          </span>
+                          <button
+                            onClick={connectSalesforce}
+                            className="px-3 py-1 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors text-xs font-semibold ml-2"
+                          >
+                            Conectar
+                          </button>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-xs text-gray-500">Verificando...</span>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 flex flex-wrap gap-2">
+              <div className="h-10 w-px bg-gray-300"></div>
+
+              {stats && (
+                <div className="flex items-center gap-6">
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-gray-600 font-medium">Total</span>
+                    <span className="text-2xl font-bold text-gray-900">{stats.total}</span>
+                  </div>
+                  <div className="h-10 w-px bg-gray-200"></div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-gray-600 font-medium">Completados</span>
+                    <span className="text-2xl font-bold text-green-600">{stats.completados}</span>
+                  </div>
+                  <div className="h-10 w-px bg-gray-200"></div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-gray-600 font-medium">En Proceso</span>
+                    <span className="text-2xl font-bold text-yellow-600">{stats.en_proceso}</span>
+                  </div>
+                  <div className="h-10 w-px bg-gray-200"></div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-gray-600 font-medium">Errores</span>
+                    <span className="text-2xl font-bold text-red-600">{stats.errores}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ROW 2: Filtros compactos */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3">
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                placeholder="Buscar por ID, email, cuenta..."
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onKeyDown={(e) => { if (e.key === 'Enter') load(); }}
+              />
               <select
                 value={filters.tipo}
                 onChange={(e) => setFilters((f) => ({ ...f, tipo: e.target.value }))}
-                className="border border-gray-300 rounded px-3 py-2 text-sm"
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
               >
                 <option value="">Todos los tipos</option>
                 <option value="ventas">Ventas</option>
@@ -196,17 +325,32 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
               <select
                 value={filters.status}
                 onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
-                className="border border-gray-300 rounded px-3 py-2 text-sm"
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
               >
                 <option value="">Todos los estados</option>
                 <option value="recibido">Recibido</option>
-                <option value="creando_cuenta">Creando cuenta</option>
-                <option value="creando_oportunidad">Creando oportunidad</option>
                 <option value="completado">Completado</option>
                 <option value="error">Error</option>
               </select>
-              <button type="button" onClick={() => load()} className="px-4 py-2 bg-gray-800 text-white text-sm rounded hover:bg-gray-700">Actualizar</button>
+              <button
+                onClick={() => load()}
+                className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold"
+              >
+                Actualizar
+              </button>
+              <button
+                onClick={processAllIncomplete}
+                disabled={batchProcessing || !salesforceStatus?.has_active_tokens}
+                className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                title={!salesforceStatus?.has_active_tokens ? 'Conecta Salesforce primero' : 'Reprocesar todos los leads con error'}
+              >
+                {batchProcessing ? 'Procesando...' : 'Procesar Todos'}
+              </button>
             </div>
+          </div>
+
+          {/* ROW 3: Tabla */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }} />

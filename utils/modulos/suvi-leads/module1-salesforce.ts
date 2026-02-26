@@ -31,6 +31,113 @@ export async function findExistingOwnerForAccount(accountId: string, currentLead
   }
 }
 
+async function updateAccountById(
+  accountId: string,
+  body: Record<string, any>,
+  accessToken: string,
+  instanceUrl: string
+): Promise<boolean> {
+  const res = await fetch(
+    `${instanceUrl}/services/data/v60.0/sobjects/Account/${accountId}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(body),
+    }
+  );
+  return res.ok || res.status === 204;
+}
+
+async function resolveMultipleAccounts(
+  urls: string[],
+  accountData: Record<string, any>,
+  accessToken: string,
+  instanceUrl: string,
+  leadId: number
+): Promise<{ id: string; wasCreated: boolean }> {
+  const accountIds = urls
+    .map((u) => { const m = u.match(/Account\/([A-Za-z0-9]+)/); return m ? m[1] : null; })
+    .filter(Boolean) as string[];
+
+  if (accountIds.length === 0) throw new Error('No se pudieron extraer IDs de las cuentas duplicadas');
+
+  const idList = accountIds.map((id) => `'${id}'`).join(',');
+  const soql = `SELECT AccountId, COUNT(Id) cnt FROM Opportunity WHERE AccountId IN (${idList}) GROUP BY AccountId`;
+  const qUrl = `${instanceUrl}/services/data/v60.0/query?q=${encodeURIComponent(soql)}`;
+  const qRes = await fetch(qUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+  const oppCounts: Record<string, number> = {};
+  if (qRes.ok) {
+    const qData = await qRes.json();
+    for (const rec of qData.records || []) oppCounts[rec.AccountId] = rec.cnt;
+  }
+
+  const detailSoql = `SELECT Id, CreatedDate FROM Account WHERE Id IN (${idList}) ORDER BY CreatedDate ASC`;
+  const dUrl = `${instanceUrl}/services/data/v60.0/query?q=${encodeURIComponent(detailSoql)}`;
+  const dRes = await fetch(dUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+  let sorted = accountIds;
+  if (dRes.ok) {
+    const dData = await dRes.json();
+    const records: any[] = dData.records || [];
+    records.sort((a, b) => {
+      const aOpp = oppCounts[a.Id] || 0;
+      const bOpp = oppCounts[b.Id] || 0;
+      if (aOpp !== bOpp) return bOpp - aOpp;
+      return new Date(a.CreatedDate).getTime() - new Date(b.CreatedDate).getTime();
+    });
+    sorted = records.map((r) => r.Id);
+  }
+
+  const winnerId = sorted[0];
+  const losers = sorted.filter((id) => id !== winnerId);
+  console.log(`[SALESFORCE] Cuenta ganadora de ${accountIds.length} duplicadas: ${winnerId} (opps: ${oppCounts[winnerId] || 0}). Limpiando email de ${losers.length} perdedoras.`);
+
+  for (const loserId of losers) {
+    try {
+      await updateAccountById(loserId, { Correo_Electr_nico__c: `merged-${loserId}@suvivienda.com` }, accessToken, instanceUrl);
+      console.log(`[SALESFORCE] Email limpiado de cuenta perdedora: ${loserId}`);
+    } catch (e: any) {
+      console.error(`[SALESFORCE] No se pudo limpiar email de ${loserId}:`, e?.message);
+    }
+  }
+
+  await updateAccountById(winnerId, accountData, accessToken, instanceUrl);
+  await updateLeadLog(leadId, {
+    salesforce_account_id: winnerId,
+    salesforce_account_created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+  });
+  return { id: winnerId, wasCreated: false };
+}
+
+async function resolveByPhone(
+  phone: string,
+  accountData: Record<string, any>,
+  accessToken: string,
+  instanceUrl: string,
+  leadId: number
+): Promise<{ id: string; wasCreated: boolean } | null> {
+  const searchQuery = `SELECT Id FROM Account WHERE Phone = '${phone}' LIMIT 1`;
+  const searchUrl = `${instanceUrl}/services/data/v60.0/query?q=${encodeURIComponent(searchQuery)}`;
+  const searchResponse = await fetch(searchUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+
+  if (searchResponse.ok) {
+    const searchResult = await searchResponse.json();
+    if (searchResult.records && searchResult.records.length > 0) {
+      const existingAccountId = searchResult.records[0].Id;
+      console.log('[SALESFORCE] Cuenta encontrada por teléfono:', existingAccountId);
+
+      const ok = await updateAccountById(existingAccountId, accountData, accessToken, instanceUrl);
+      if (ok) {
+        await updateLeadLog(leadId, {
+          salesforce_account_id: existingAccountId,
+          salesforce_account_created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        });
+        return { id: existingAccountId, wasCreated: false };
+      }
+    }
+  }
+  return null;
+}
+
 // PASO 6: Crear o actualizar cuenta en Salesforce
 export async function upsertSalesforceAccount(enrichedData: any, origen: string, leadId: number) {
   try {
@@ -64,57 +171,27 @@ export async function upsertSalesforceAccount(enrichedData: any, origen: string,
       }
     );
 
+    if (response.status === 300) {
+      const multipleUrls: string[] = await response.json();
+      console.log('[SALESFORCE] MULTIPLE_CHOICES: email duplicado en varias cuentas', multipleUrls);
+      const resolved = await resolveMultipleAccounts(multipleUrls, accountData, accessToken, instanceUrl, leadId);
+      return resolved;
+    }
+
     if (!response.ok) {
       const error = await response.json();
-      
-      // Si falla por teléfono duplicado, buscar la cuenta existente por teléfono
-      const isDuplicatePhone = error.some((e: any) => 
-        e.errorCode === 'FIELD_CUSTOM_VALIDATION_EXCEPTION' && 
+
+      const isDuplicatePhone = Array.isArray(error) && error.some((e: any) =>
+        e.errorCode === 'FIELD_CUSTOM_VALIDATION_EXCEPTION' &&
         e.message?.includes('Ya existe una cuenta con el mismo número de teléfono')
       );
-      
+
       if (isDuplicatePhone) {
         console.log('[SALESFORCE] Cuenta duplicada por teléfono, buscando cuenta existente...');
-        
-        // Buscar cuenta por teléfono
-        const searchQuery = `SELECT Id FROM Account WHERE Phone = '${enrichedData.phone}' LIMIT 1`;
-        const searchUrl = `${instanceUrl}/services/data/v60.0/query?q=${encodeURIComponent(searchQuery)}`;
-        
-        const searchResponse = await fetch(searchUrl, {
-          headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-        
-        if (searchResponse.ok) {
-          const searchResult = await searchResponse.json();
-          if (searchResult.records && searchResult.records.length > 0) {
-            const existingAccountId = searchResult.records[0].Id;
-            console.log('[SALESFORCE] Cuenta encontrada por teléfono:', existingAccountId);
-            
-            // Actualizar la cuenta existente
-            const updateResponse = await fetch(
-              `${instanceUrl}/services/data/v60.0/sobjects/Account/${existingAccountId}`,
-              {
-                method: 'PATCH',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${accessToken}`,
-                },
-                body: JSON.stringify(accountData),
-              }
-            );
-            
-            if (updateResponse.ok) {
-              await updateLeadLog(leadId, {
-                salesforce_account_id: existingAccountId,
-                salesforce_account_created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-              });
-              
-              return { id: existingAccountId, wasCreated: false };
-            }
-          }
-        }
+        const resolved = await resolveByPhone(enrichedData.phone, accountData, accessToken, instanceUrl, leadId);
+        if (resolved) return resolved;
       }
-      
+
       throw new Error(`Salesforce error: ${JSON.stringify(error)}`);
     }
 
@@ -379,42 +456,70 @@ export async function upsertSalesforceOpportunity(
       );
     }
 
-    // Si falla por RecordTypeId inválido, reintentar sin ese campo
     if (!response.ok) {
       const error = await response.json();
-      
-      // Si el error es INVALID_CROSS_REFERENCE_KEY en RecordTypeId, reintentar sin ese campo
-      if (!isUpdate && 
-          error[0]?.errorCode === 'INVALID_CROSS_REFERENCE_KEY' && 
+
+      // Trigger duplicado de email: "Ya existe una cuenta con el correo. Id: 001..."
+      const dupEmailErr = Array.isArray(error) && error.find((e: any) =>
+        e.errorCode === 'CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY' &&
+        e.message?.includes('Ya existe una cuenta con el correo')
+      );
+      if (dupEmailErr) {
+        const dupMatch = dupEmailErr.message.match(/Id:\s*([A-Za-z0-9]{15,18})/);
+        if (dupMatch) {
+          const dupAccountId = dupMatch[1];
+          console.log(`[SALESFORCE] Trigger detectó cuenta duplicada ${dupAccountId}, limpiando email...`);
+          try {
+            await updateAccountById(dupAccountId, { Correo_Electr_nico__c: `merged-${dupAccountId}@suvivienda.com` }, accessToken, instanceUrl);
+            console.log(`[SALESFORCE] Email limpiado de ${dupAccountId}, reintentando Opportunity...`);
+
+            const retryRes = await fetch(
+              isUpdate
+                ? `${instanceUrl}/services/data/v60.0/sobjects/Opportunity/${opportunityIdToUpdate}`
+                : `${instanceUrl}/services/data/v60.0/sobjects/Opportunity`,
+              {
+                method: isUpdate ? 'PATCH' : 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                body: JSON.stringify(opportunityData),
+              }
+            );
+            if (retryRes.ok || retryRes.status === 204) {
+              response = retryRes;
+            } else {
+              const retryErr = await retryRes.json();
+              throw new Error(`Salesforce error (después de limpiar duplicado): ${JSON.stringify(retryErr)}`);
+            }
+          } catch (cleanErr: any) {
+            if (cleanErr.message?.includes('después de limpiar')) throw cleanErr;
+            throw new Error(`Salesforce error: ${JSON.stringify(error)}`);
+          }
+        } else {
+          throw new Error(`Salesforce error: ${JSON.stringify(error)}`);
+        }
+      }
+      // RecordTypeId inválido
+      else if (!isUpdate &&
+          error[0]?.errorCode === 'INVALID_CROSS_REFERENCE_KEY' &&
           error[0]?.fields?.includes('RecordTypeId')) {
-        
+
         console.log('[SALESFORCE] RecordTypeId inválido, reintentando sin ese campo...');
-        
-        // Remover RecordTypeId
         delete opportunityData.RecordTypeId;
-        
-        // Actualizar descripción para indicar que se usó fallback
         opportunityData.Description += ' [RecordType omitido - se usará el default de Salesforce]';
-        
-        // Intento 2: Sin RecordTypeId
+
         response = await fetch(
           `${instanceUrl}/services/data/v60.0/sobjects/Opportunity`,
           {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-            },
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
             body: JSON.stringify(opportunityData),
           }
         );
-        
+
         if (!response.ok) {
           const retryError = await response.json();
           throw new Error(`Salesforce error (después de fallback): ${JSON.stringify(retryError)}`);
         }
       } else {
-        // Otro tipo de error, lanzar inmediatamente
         throw new Error(`Salesforce error: ${JSON.stringify(error)}`);
       }
     }
