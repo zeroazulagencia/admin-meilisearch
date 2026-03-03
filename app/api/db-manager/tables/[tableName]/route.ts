@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 
-console.log('[DB MANAGER ROUTE] Archivo route.ts cargado');
+const DB_MANAGER_API_KEY_HEADER = 'x-api-key';
+
+function isAuthorized(req: NextRequest): boolean {
+  const requiredKey = process.env.DB_MANAGER_API_KEY;
+  if (!requiredKey) {
+    return false;
+  }
+  const providedKey = req.headers.get(DB_MANAGER_API_KEY_HEADER) || '';
+  return providedKey === requiredKey;
+}
 
 // GET - Obtener datos paginados de una tabla
 export async function GET(
@@ -9,6 +18,9 @@ export async function GET(
   { params }: { params: Promise<{ tableName: string }> }
 ) {
   try {
+    if (!isAuthorized(req)) {
+      return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 401 });
+    }
     const { tableName } = await params;
     const searchParams = req.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
@@ -72,6 +84,9 @@ export async function POST(
   { params }: { params: Promise<{ tableName: string }> }
 ) {
   try {
+    if (!isAuthorized(req)) {
+      return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 401 });
+    }
     const { tableName } = await params;
     const body = await req.json();
 
@@ -147,11 +162,11 @@ export async function PUT(
   { params }: { params: Promise<{ tableName: string }> }
 ) {
   try {
-    console.log('[DB MANAGER PUT] Iniciando actualización...');
+    if (!isAuthorized(req)) {
+      return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 401 });
+    }
     const { tableName } = await params;
-    console.log('[DB MANAGER PUT] Tabla:', tableName);
     const body = await req.json();
-    console.log('[DB MANAGER PUT] Body recibido:', JSON.stringify(body).substring(0, 200));
 
     // Validar nombre de tabla
     if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
@@ -222,11 +237,9 @@ export async function PUT(
       [...updateValues, pkValue]
     );
 
-    console.log('[DB MANAGER PUT] Actualización exitosa');
     return NextResponse.json({ ok: true, message: 'Registro actualizado exitosamente' });
   } catch (e: any) {
     console.error('[DB MANAGER PUT] Error updating record:', e?.message || e);
-    console.error('[DB MANAGER PUT] Stack:', e?.stack);
     return NextResponse.json({ ok: false, error: e?.message || 'Error al actualizar registro' }, { status: 500 });
   }
 }
@@ -237,6 +250,9 @@ export async function DELETE(
   { params }: { params: Promise<{ tableName: string }> }
 ) {
   try {
+    if (!isAuthorized(req)) {
+      return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 401 });
+    }
     const { tableName } = await params;
     const searchParams = req.nextUrl.searchParams;
     const id = searchParams.get('id');
@@ -269,4 +285,3 @@ export async function DELETE(
     return NextResponse.json({ ok: false, error: e?.message || 'Error al eliminar registro' }, { status: 500 });
   }
 }
-

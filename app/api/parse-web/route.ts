@@ -151,6 +151,31 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Bloquear acceso a IPs privadas/loopback para evitar SSRF
+    const hostname = urlObj.hostname.toLowerCase();
+    const blockedHosts = new Set(['localhost']);
+    const privateIpPatterns = [
+      /^127\./,
+      /^10\./,
+      /^192\.168\./,
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+      /^0\./
+    ];
+    if (blockedHosts.has(hostname) || privateIpPatterns.some(pattern => pattern.test(hostname))) {
+      return NextResponse.json(
+        { success: false, error: 'URL no permitida' },
+        { status: 403 }
+      );
+    }
+
+    // Requerir esquema seguro
+    if (urlObj.protocol !== 'https:') {
+      return NextResponse.json(
+        { success: false, error: 'Solo se permiten URLs HTTPS' },
+        { status: 400 }
+      );
+    }
     
     console.log('[WEB-PARSE] Iniciando parseo de URL:', url);
     
@@ -256,4 +281,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

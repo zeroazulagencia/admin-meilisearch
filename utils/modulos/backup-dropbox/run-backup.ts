@@ -2,14 +2,12 @@
  * Módulo 7 - Ejecutar backup de BD y subir a Dropbox
  * Escribe en modulos_backup_7_sync_log
  */
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import { readFile, unlink, mkdir } from 'fs/promises';
+import { createWriteStream } from 'fs';
 import path from 'path';
 import { query } from '@/utils/db';
 import { getConfig } from './config';
-
-const execAsync = promisify(exec);
 
 const TMP_DIR = path.join(process.cwd(), 'tmp');
 
@@ -56,9 +54,37 @@ export async function runBackup(): Promise<{ logId: number; status: string; erro
     const user = process.env.MYSQL_USER || 'root';
     const pass = process.env.MYSQL_PASSWORD || '';
     const db = process.env.MYSQL_DATABASE || 'admin_dworkers';
-    const safePass = pass ? `-p${pass.replace(/'/g, "'\\''")}` : '';
-    const cmd = `mysqldump -h"${host}" -u"${user}" ${safePass} "${db}" > "${filePath}"`;
-    await execAsync(cmd, { maxBuffer: 50 * 1024 * 1024 });
+    const passArg = pass ? `-p${pass}` : undefined;
+    const dumpArgs = [
+      `-h${host}`,
+      `-u${user}`,
+      passArg,
+      db,
+    ].filter(Boolean) as string[];
+
+    await new Promise<void>((resolve, reject) => {
+      const outStream = createWriteStream(filePath, { flags: 'w' });
+      const child = spawn('mysqldump', dumpArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+      let stderr = '';
+
+      child.stdout.pipe(outStream);
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+
+      child.on('error', (err) => {
+        reject(err);
+      });
+
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(stderr || `mysqldump falló con código ${code}`));
+        }
+      });
+      outStream.on('error', (err) => reject(err));
+    });
 
     const buf = await readFile(filePath);
     const bytesSize = buf.length;

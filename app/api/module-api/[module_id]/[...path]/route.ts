@@ -3,6 +3,17 @@ import { query } from '@/utils/db';
 import { resolve, join } from 'path';
 import { existsSync } from 'fs';
 
+const MODULE_API_KEY_HEADER = 'x-api-key';
+
+function isAuthorized(req: NextRequest): boolean {
+  const requiredKey = process.env.MODULE_API_KEY;
+  if (!requiredKey) {
+    return false;
+  }
+  const providedKey = req.headers.get(MODULE_API_KEY_HEADER) || '';
+  return providedKey === requiredKey;
+}
+
 export async function GET(req: NextRequest, { params }: any) {
   return handleModuleRequest(req, params, 'GET');
 }
@@ -25,6 +36,9 @@ export async function DELETE(req: NextRequest, { params }: any) {
 
 async function handleModuleRequest(req: NextRequest, params: any, method: string) {
   try {
+    if (!isAuthorized(req)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
     const { module_id, path: apiPath } = params;
     
     const [rows] = await query<any>(
