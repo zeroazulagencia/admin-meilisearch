@@ -5,13 +5,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConfig, setConfig } from '@/utils/modulos/backup-dropbox/config';
 import { query } from '@/utils/db';
+import { maskSensitiveValue } from '@/utils/encryption';
 
 export const dynamic = 'force-dynamic';
 
 function maskToken(v: string | null): string | null {
   if (!v) return null;
-  if (v.length <= 8) return '****';
-  return v.slice(0, 4) + '****' + v.slice(-4);
+  const masked = maskSensitiveValue(v, 4);
+  return masked || '****';
 }
 
 export async function GET() {

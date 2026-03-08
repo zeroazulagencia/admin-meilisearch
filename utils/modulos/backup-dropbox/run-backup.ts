@@ -3,13 +3,9 @@
  * Escribe en modulos_backup_7_sync_log
  */
 import { spawn } from 'child_process';
-import { readFile, unlink, mkdir } from 'fs/promises';
-import { createWriteStream } from 'fs';
-import path from 'path';
 import { query } from '@/utils/db';
 import { getConfig } from './config';
-
-const TMP_DIR = path.join(process.cwd(), 'tmp');
+import { validateDropboxToken } from './dropbox';
 
 export interface SyncLogRow {
   id: number;
@@ -22,10 +18,44 @@ export interface SyncLogRow {
   error_message: string | null;
 }
 
+async function dumpDatabaseToBuffer(): Promise<{ ok: boolean; buffer?: Buffer; error?: string }> {
+  const host = process.env.MYSQL_HOST || 'localhost';
+  const user = process.env.MYSQL_USER || 'root';
+  const pass = process.env.MYSQL_PASSWORD || '';
+  const db = process.env.MYSQL_DATABASE || 'admin_dworkers';
+  const passArg = pass ? `-p${pass}` : undefined;
+  const dumpArgs = [`-h${host}`, `-u${user}`, passArg, db].filter(Boolean) as string[];
+
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    const child = spawn('mysqldump', dumpArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stderr = '';
+
+    child.stdout.on('data', (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', (err) => {
+      resolve({ ok: false, error: err?.message || 'Error ejecutando mysqldump' });
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ ok: true, buffer: Buffer.concat(chunks) });
+      } else {
+        resolve({ ok: false, error: stderr || `mysqldump fallo con codigo ${code}` });
+      }
+    });
+  });
+}
+
 export async function runBackup(): Promise<{ logId: number; status: string; error?: string }> {
   const startedAt = new Date();
   const fileName = `admin_dworkers_${startedAt.toISOString().slice(0, 10).replace(/-/g, '')}_${String(startedAt.getHours()).padStart(2, '0')}${String(startedAt.getMinutes()).padStart(2, '0')}${String(startedAt.getSeconds()).padStart(2, '0')}.sql`;
-  const filePath = path.join(TMP_DIR, fileName);
 
   const [insertResult] = await query<{ insertId: number }>(
     `INSERT INTO modulos_backup_7_sync_log (started_at, status) VALUES (?, 'running')`,
@@ -49,47 +79,6 @@ export async function runBackup(): Promise<{ logId: number; status: string; erro
   };
 
   try {
-    await mkdir(TMP_DIR, { recursive: true });
-    const host = process.env.MYSQL_HOST || 'localhost';
-    const user = process.env.MYSQL_USER || 'root';
-    const pass = process.env.MYSQL_PASSWORD || '';
-    const db = process.env.MYSQL_DATABASE || 'admin_dworkers';
-    const passArg = pass ? `-p${pass}` : undefined;
-    const dumpArgs = [
-      `-h${host}`,
-      `-u${user}`,
-      passArg,
-      db,
-    ].filter(Boolean) as string[];
-
-    await new Promise<void>((resolve, reject) => {
-      const outStream = createWriteStream(filePath, { flags: 'w' });
-      const child = spawn('mysqldump', dumpArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
-      let stderr = '';
-
-      child.stdout.pipe(outStream);
-      child.stderr.on('data', (chunk) => {
-        stderr += chunk.toString();
-      });
-
-      child.on('error', (err) => {
-        reject(err);
-      });
-
-      child.on('close', (code) => {
-        if (code === 0) {
-          resolve();
-        } else {
-          reject(new Error(stderr || `mysqldump falló con código ${code}`));
-        }
-      });
-      outStream.on('error', (err) => reject(err));
-    });
-
-    const buf = await readFile(filePath);
-    const bytesSize = buf.length;
-    await unlink(filePath).catch(() => {});
-
     const token = await getConfig('dropbox_access_token');
     const folderPath = (await getConfig('dropbox_folder_path')) || '/Aplicaciones/Zero Azul WORKERS';
     const dropboxPath = `${folderPath.replace(/\/$/, '')}/${fileName}`;
@@ -99,12 +88,37 @@ export async function runBackup(): Promise<{ logId: number; status: string; erro
         finished_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
         status: 'error',
         file_name: fileName,
-        bytes_size: bytesSize,
         error_message: 'dropbox_access_token no configurado',
       });
       return { logId, status: 'error', error: 'dropbox_access_token no configurado' };
     }
 
+    const tokenCheck = await validateDropboxToken(token);
+    if (!tokenCheck.ok) {
+      await updateLog({
+        finished_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        status: 'error',
+        file_name: fileName,
+        error_message: tokenCheck.error || 'dropbox_access_token invalido',
+      });
+      return { logId, status: 'error', error: tokenCheck.error || 'dropbox_access_token invalido' };
+    }
+
+    const dumpResult = await dumpDatabaseToBuffer();
+    if (!dumpResult.ok || !dumpResult.buffer) {
+      await updateLog({
+        finished_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        status: 'error',
+        file_name: fileName,
+        error_message: dumpResult.error || 'Error generando backup',
+      });
+      return { logId, status: 'error', error: dumpResult.error || 'Error generando backup' };
+    }
+
+    const buf = dumpResult.buffer;
+    const bytesSize = buf.length;
+
+    const uploadBody = new Uint8Array(buf);
     const uploadRes = await fetch('https://content.dropboxapi.com/2/files/upload', {
       method: 'POST',
       headers: {
@@ -116,7 +130,7 @@ export async function runBackup(): Promise<{ logId: number; status: string; erro
           autorename: true,
         }),
       },
-      body: buf,
+      body: uploadBody,
     });
 
     if (!uploadRes.ok) {
