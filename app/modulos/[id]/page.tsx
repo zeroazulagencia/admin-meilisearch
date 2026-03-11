@@ -138,7 +138,7 @@ export default function ModuleDetailPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${module.folder_name === 'sync-data-tableros-gain' ? 'p-4 md:p-6' : ''}`}>
         {loadingComponent ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
@@ -152,7 +152,13 @@ export default function ModuleDetailPage() {
               <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
             </div>
           }>
-            <ModuleComponent moduleData={module} />
+            {module.folder_name === 'sync-data-tableros-gain' ? (
+              <div className="p-4 md:p-6">
+                <ModuleComponent moduleData={module} />
+              </div>
+            ) : (
+              <ModuleComponent moduleData={module} />
+            )}
           </Suspense>
         ) : (
           <div className="p-6">
