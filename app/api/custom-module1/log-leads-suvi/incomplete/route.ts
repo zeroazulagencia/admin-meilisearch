@@ -1,6 +1,6 @@
 /**
  * MÓDULO 1 - SUVI LEADS
- * API: Obtener leads incompletos (menos de 4 pasos)
+ * API: Obtener leads en error
  */
 import { NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
@@ -17,8 +17,7 @@ const pool = mysql.createPool({
 
 export async function GET() {
   try {
-    // Obtener leads que NO estén completados (4/4)
-    // Un lead está completado si tiene: facebook_cleaned_data, ai_enriched_data, y salesforce_opportunity_id
+    // Obtener leads en estado error
     const [rows]: any = await pool.query(
       `SELECT 
         id, 
@@ -31,9 +30,7 @@ export async function GET() {
         current_step,
         error_message
        FROM modulos_suvi_12_leads 
-       WHERE processing_status != 'completado'
-       OR salesforce_opportunity_id IS NULL
-       OR salesforce_opportunity_id = ''
+       WHERE processing_status = 'error'
        ORDER BY received_at DESC
        LIMIT 100`
     );

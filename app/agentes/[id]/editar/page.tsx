@@ -45,6 +45,15 @@ interface AgentDB {
   bird_environment_id?: string;
 }
 
+interface ModuleItem {
+  id: number;
+  agent_id: number;
+  title: string;
+  folder_name: string;
+  description: string | null;
+  created_at: string;
+}
+
 export default function EditarAgente() {
   const router = useRouter();
   const params = useParams();
@@ -92,13 +101,18 @@ export default function EditarAgente() {
   const [refreshingData, setRefreshingData] = useState(false);
   const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
   const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'flujos' | 'identificadores' | 'conexiones-bd' | 'bird' | 'conversaciones'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'modulos' | 'flujos' | 'identificadores' | 'conexiones-bd' | 'bird' | 'conversaciones'>('general');
   const [showAIImageModal, setShowAIImageModal] = useState(false);
   const [aiImagePrompt, setAiImagePrompt] = useState('');
   const [generatingImage, setGeneratingImage] = useState(false);
   const [availableDataTables, setAvailableDataTables] = useState<DataTable[]>([]);
   const [loadingDataTables, setLoadingDataTables] = useState(false);
   const [selectedDataTable, setSelectedDataTable] = useState<string>('');
+  const [modules, setModules] = useState<ModuleItem[]>([]);
+  const [loadingModules, setLoadingModules] = useState(false);
+  const [showModuleModal, setShowModuleModal] = useState(false);
+  const [moduleFormData, setModuleFormData] = useState({ title: '', description: '' });
+  const [moduleSubmitting, setModuleSubmitting] = useState(false);
 
   useEffect(() => {
     // Cargar clientes desde MySQL
@@ -116,6 +130,25 @@ export default function EditarAgente() {
     
     loadClients();
   }, []);
+
+  const loadModulesForAgent = async (agentId: number) => {
+    try {
+      setLoadingModules(true);
+      const res = await fetch('/api/modules');
+      const data = await res.json();
+      if (data.ok) {
+        const modulesToShow = (data.modules || []).filter((module: ModuleItem) => module.agent_id === agentId);
+        setModules(modulesToShow);
+      } else {
+        throw new Error(data.error || 'No se pudieron cargar los modulos');
+      }
+    } catch (error: any) {
+      console.error('[AGENTES] Error cargando modulos:', error);
+      setAlertModal({ isOpen: true, title: 'Error', message: 'No se pudieron cargar los modulos: ' + (error?.message || 'Error desconocido'), type: 'error' });
+    } finally {
+      setLoadingModules(false);
+    }
+  };
 
   useEffect(() => {
     const loadAgent = async () => {
@@ -194,6 +227,7 @@ export default function EditarAgente() {
           setSelectedConversationAgent(agent.conversation_agent_name || '');
           setSelectedReportAgent(agent.reports_agent_name || '');
           setSelectedDataTable(agent.n8n_data_table_id || '');
+          loadModulesForAgent(agent.id);
         } else {
           router.push('/agentes');
         }
@@ -222,6 +256,43 @@ export default function EditarAgente() {
       console.error('Error loading data tables:', error);
     } finally {
       setLoadingDataTables(false);
+    }
+  };
+
+  const handleCreateModule = async () => {
+    if (!currentAgent?.id) {
+      setAlertModal({ isOpen: true, title: 'Error', message: 'No hay agente seleccionado.', type: 'error' });
+      return;
+    }
+
+    if (!moduleFormData.title.trim()) {
+      setAlertModal({ isOpen: true, title: 'Validacion', message: 'Escribe un titulo para el modulo.', type: 'warning' });
+      return;
+    }
+
+    try {
+      setModuleSubmitting(true);
+      const res = await fetch('/api/modules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_id: Number(currentAgent.id),
+          title: moduleFormData.title.trim(),
+          description: moduleFormData.description.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo crear el modulo');
+
+      setShowModuleModal(false);
+      setModuleFormData({ title: '', description: '' });
+      await loadModulesForAgent(currentAgent.id);
+      setAlertModal({ isOpen: true, title: 'Exito', message: 'Modulo creado correctamente.', type: 'success' });
+    } catch (error: any) {
+      console.error('[AGENTES] Error creando modulo:', error);
+      setAlertModal({ isOpen: true, title: 'Error', message: 'No se pudo crear el modulo: ' + (error?.message || 'Error desconocido'), type: 'error' });
+    } finally {
+      setModuleSubmitting(false);
     }
   };
 
@@ -1036,6 +1107,17 @@ export default function EditarAgente() {
               >
                 Conocimiento
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('modulos')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                  activeTab === 'modulos'
+                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Modulos
+              </button>
               {canEdit && (
                 <>
                   <button
@@ -1390,6 +1472,71 @@ export default function EditarAgente() {
               </>
             )}
               </div>
+            </div>
+          )}
+
+          {/* Tab: Modulos */}
+          {activeTab === 'modulos' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 pb-12">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div className="flex-1">
+                  <h2 className="text-base/7 font-semibold text-gray-900">Modulos</h2>
+                  <p className="mt-1 text-sm/6 text-gray-600">Modulos asociados a este agente.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-lg">
+                    {modules.length} modulo(s)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => currentAgent?.id && loadModulesForAgent(currentAgent.id)}
+                    disabled={loadingModules}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm disabled:opacity-50"
+                  >
+                    Actualizar
+                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setShowModuleModal(true)}
+                      className="px-4 py-2 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold text-sm"
+                    >
+                      Crear modulo
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {loadingModules ? (
+                <div className="flex items-center justify-center min-h-[200px]">
+                  <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+                </div>
+              ) : modules.length === 0 ? (
+                <div className="text-center py-16 text-gray-500">No hay modulos para este agente.</div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {modules.map((module) => (
+                    <div
+                      key={module.id}
+                      onClick={() => window.location.href = `/modulos/${module.id}`}
+                      className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-[#5DE1E5] hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <span className="text-xs text-gray-400">
+                          {new Date(module.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-900">{module.title}</h3>
+                      {module.description && (
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{module.description}</p>
+                      )}
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <span className="text-xs text-gray-400 font-mono">{module.folder_name}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1899,6 +2046,73 @@ export default function EditarAgente() {
           />
         )}
 
+        {/* Modal crear modulo */}
+        {showModuleModal && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-lg mx-4 p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-bold text-gray-900">Crear nuevo modulo</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowModuleModal(false)}
+                  className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Agente</label>
+                  <input
+                    type="text"
+                    value={currentAgent?.name || ''}
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
+                  <input
+                    type="text"
+                    value={moduleFormData.title}
+                    onChange={(e) => setModuleFormData({ ...moduleFormData, title: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm"
+                    maxLength={255}
+                    placeholder="Nombre del modulo"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripcion</label>
+                  <textarea
+                    rows={3}
+                    value={moduleFormData.description}
+                    onChange={(e) => setModuleFormData({ ...moduleFormData, description: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm"
+                    placeholder="Describe brevemente la funcionalidad del modulo"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowModuleModal(false)}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateModule}
+                    disabled={moduleSubmitting}
+                    className="flex-1 px-4 py-2.5 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold text-sm disabled:opacity-70"
+                  >
+                    {moduleSubmitting ? 'Guardando...' : 'Crear modulo'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modal de alertas */}
         <NoticeModal
           isOpen={alertModal.isOpen}
@@ -1959,4 +2173,3 @@ export default function EditarAgente() {
       </ProtectedLayout>
     );
   }
-

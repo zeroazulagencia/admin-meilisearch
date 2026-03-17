@@ -81,6 +81,8 @@ export async function processOpportunity(recordId: number): Promise<{ ok: boolea
     await updateOpportunityLog(recordId, {
       processing_status: 'completado',
       current_step: 'Oportunidad creada',
+      error_message: null,
+      error_step: null,
       salesforce_account_id: accountId,
       salesforce_opportunity_id: opportunityId,
       salesforce_owner_id: ownerId,

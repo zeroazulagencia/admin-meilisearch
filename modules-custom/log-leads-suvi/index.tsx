@@ -17,6 +17,7 @@ interface Lead {
   current_step: string;
   error_message: string;
   salesforce_account_name: string;
+  salesforce_account_id?: string;
   salesforce_opportunity_id: string;
   salesforce_owner_id: string;
   opportunity_type_id: string;
@@ -339,7 +340,13 @@ export default function LogLeadsSUVI() {
 
   const loadSalesforceStatus = async () => {
     try {
-      const res = await fetch('/api/oauth/salesforce/status');
+      const res = await fetch('/api/oauth/salesforce/status', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       const data = await res.json();
       setSalesforceStatus(data);
     } catch (e) {
@@ -501,6 +508,9 @@ export default function LogLeadsSUVI() {
         accountAction: data.accountAction,
         opportunityAction: data.opportunityAction,
         wasAlreadyProcessed: data.wasAlreadyProcessed,
+        accountId: data.accountId || null,
+        accountName: data.accountName || null,
+        opportunityId: data.opportunityId || null,
       });
 
       // Recargar el lead completo desde la BD
@@ -941,7 +951,7 @@ export default function LogLeadsSUVI() {
               <span className="text-sm font-medium text-gray-700">Salesforce:</span>
               {salesforceStatus ? (
                 <>
-                  {salesforceStatus.has_active_tokens ? (
+                  {salesforceStatus.has_active_tokens && !salesforceStatus.is_expired ? (
                     <>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Conectado
@@ -961,13 +971,13 @@ export default function LogLeadsSUVI() {
                   ) : (
                     <>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        No conectado
+                        {salesforceStatus.is_expired ? 'Expirado' : 'No conectado'}
                       </span>
                       <button
                         onClick={connectSalesforce}
                         className="px-3 py-1 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#5DE1E5]-dark transition-colors text-xs font-semibold ml-2"
                       >
-                        Conectar
+                        {salesforceStatus.is_expired ? 'Reconectar' : 'Conectar'}
                       </button>
                     </>
                   )}
@@ -1051,9 +1061,9 @@ export default function LogLeadsSUVI() {
           </button>
           <button
             onClick={processAllIncomplete}
-            disabled={batchProcessing || !salesforceStatus?.has_active_tokens}
+            disabled={batchProcessing || !salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired}
             className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            title={!salesforceStatus?.has_active_tokens ? 'Conecta Salesforce primero' : 'Procesar todos los leads incompletos'}
+            title={!salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired ? 'Reconecta Salesforce primero' : 'Procesar todos los leads incompletos'}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -1398,7 +1408,7 @@ export default function LogLeadsSUVI() {
                       )}
                       
                       {/* Botón para procesar en Salesforce */}
-                      {selectedLead.ai_enriched_data && salesforceStatus?.has_active_tokens && selectedLead.processing_status !== 'omitido_interno' && (
+                      {selectedLead.ai_enriched_data && salesforceStatus?.has_active_tokens && !salesforceStatus?.is_expired && selectedLead.processing_status !== 'omitido_interno' && (
                         <button
                           onClick={() => processSalesforce(selectedLead.id)}
                           disabled={processingSalesforce}
@@ -1424,6 +1434,15 @@ export default function LogLeadsSUVI() {
                                 <span className="text-green-800">{salesforceResult.accountAction === 'created' ? 'Creada' : 'Actualizada'}</span>
                               </div>
                             </div>
+                            {(salesforceResult.accountName || salesforceResult.accountId) && (
+                              <div className="flex items-start gap-2">
+                                <span className="text-green-600 flex-shrink-0 mt-0.5"></span>
+                                <div className="flex-1">
+                                  <strong className="text-green-900">Cuenta ID:</strong>{' '}
+                                  <span className="text-green-800">{salesforceResult.accountName || salesforceResult.accountId}</span>
+                                </div>
+                              </div>
+                            )}
                             <div className="flex items-start gap-2">
                               <span className="text-green-600 flex-shrink-0 mt-0.5"></span>
                               <div className="flex-1">
@@ -1431,12 +1450,21 @@ export default function LogLeadsSUVI() {
                                 <span className="text-green-800">{salesforceResult.opportunityAction === 'created' ? 'Creada' : 'Actualizada'}</span>
                               </div>
                             </div>
+                            {salesforceResult.opportunityId && (
+                              <div className="flex items-start gap-2">
+                                <span className="text-green-600 flex-shrink-0 mt-0.5"></span>
+                                <div className="flex-1">
+                                  <strong className="text-green-900">Oportunidad ID:</strong>{' '}
+                                  <span className="text-green-800">{salesforceResult.opportunityId}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
                       
                       {/* Resultado final del lead ya procesado (desde la base de datos) */}
-                      {!salesforceResult && (selectedLead.salesforce_account_name || selectedLead.salesforce_opportunity_id) && (
+                      {(selectedLead.salesforce_account_name || selectedLead.salesforce_opportunity_id) && (
                         <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
                           <div className="text-sm space-y-1">
                             {selectedLead.salesforce_account_name && (
@@ -1445,6 +1473,15 @@ export default function LogLeadsSUVI() {
                                 <div className="flex-1">
                                   <strong className="text-green-900">Cuenta:</strong>{' '}
                                   <span className="text-green-800">{selectedLead.salesforce_account_name}</span>
+                                </div>
+                              </div>
+                            )}
+                            {selectedLead.salesforce_account_id && (
+                              <div className="flex items-start gap-2">
+                                <span className="text-green-600 flex-shrink-0 mt-0.5"></span>
+                                <div className="flex-1">
+                                  <strong className="text-green-900">Cuenta ID:</strong>{' '}
+                                  <span className="text-green-800">{selectedLead.salesforce_account_id}</span>
                                 </div>
                               </div>
                             )}

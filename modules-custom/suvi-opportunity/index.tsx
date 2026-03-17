@@ -253,6 +253,12 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
                           >
                             verificar
                           </button>
+                          <button
+                            onClick={connectSalesforce}
+                            className="px-3 py-1 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs font-semibold ml-2"
+                          >
+                            Reconectar
+                          </button>
                         </>
                       ) : (
                         <>

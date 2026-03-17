@@ -3,13 +3,28 @@ import { NextRequest, NextResponse } from 'next/server';
 const ACCESS_TOKEN = '723462523478hjkweghk892874771234';
 const API_BASE = 'https://tarjetav.co/api/birthday';
 const API_AUTH = 'Basic YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==';
+const CORS_ORIGIN = 'https://intranet.autolarte.com.co';
+
+function withCors(res: NextResponse): NextResponse {
+  res.headers.set('Access-Control-Allow-Origin', CORS_ORIGIN);
+  return res;
+}
+
+export async function OPTIONS() {
+  return withCors(
+    new NextResponse(null, {
+      status: 204,
+      headers: { 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Max-Age': '86400' },
+    })
+  );
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const token = searchParams.get('token');
 
   if (!token || token !== ACCESS_TOKEN) {
-    return NextResponse.json({ error: 'Token requerido o inválido' }, { status: 403 });
+    return withCors(NextResponse.json({ error: 'Token requerido o inválido' }, { status: 403 }));
   }
 
   // Usar mes del query o el mes actual (America/Bogota)
@@ -30,9 +45,11 @@ export async function GET(req: NextRequest) {
     });
 
     if (!res.ok) {
-      return NextResponse.json(
-        { error: 'Error obteniendo la información de cumpleaños' },
-        { status: 500 }
+      return withCors(
+        NextResponse.json(
+          { error: 'Error obteniendo la información de cumpleaños' },
+          { status: 500 }
+        )
       );
     }
 
@@ -49,14 +66,18 @@ export async function GET(req: NextRequest) {
       return acc;
     }, {});
 
-    return NextResponse.json({
-      cantidad_registros: empleados.length,
-      empleados: [empleadosMap],
-    });
+    return withCors(
+      NextResponse.json({
+        cantidad_registros: empleados.length,
+        empleados: [empleadosMap],
+      })
+    );
   } catch {
-    return NextResponse.json(
-      { error: 'Error obteniendo la información de cumpleaños' },
-      { status: 500 }
+    return withCors(
+      NextResponse.json(
+        { error: 'Error obteniendo la información de cumpleaños' },
+        { status: 500 }
+      )
     );
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "Log Leads SUVI",
-  "version": "1.0.0",
-  "description": "Sistema de registro y seguimiento de leads para SUVI",
+  "version": "1.2.0",
+  "description": "Sistema de registro y seguimiento de leads para SUVI (v1.2, pendiente rebuild)",
   "author": "DWORKERS",
   "icon": "📋"
 }

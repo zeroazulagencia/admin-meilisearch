@@ -107,6 +107,53 @@ export interface AccountPayload {
   ciudad?: string;
 }
 
+function normalizePrefijo(raw?: string): string | null {
+  if (!raw) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return null;
+  const key = trimmed.toLowerCase();
+  const compact = key.replace(/\s+/g, '');
+  const map: Record<string, string> = {
+    'colombia(+57)': 'Colombia(+57)',
+    'estadosunidos(+1)': 'Estados Unidos(+1)',
+    'usa(+1)': 'Estados Unidos(+1)',
+    'mexico(+52)': 'Mexico(+52)',
+    'méxico(+52)': 'Mexico(+52)',
+    'espana(+34)': 'España(+34)',
+    'españa(+34)': 'España(+34)',
+    'chile(+56)': 'Chile(+56)',
+    'peru(+51)': 'Peru(+51)',
+    'perú(+51)': 'Peru(+51)',
+    'argentina(+54)': 'Argentina(+54)',
+    'ecuador(+593)': 'Ecuador(+593)',
+    'panama(+507)': 'Panamá(+507)',
+    'panamá(+507)': 'Panamá(+507)',
+    'venezuela(+58)': 'Venezuela(+58)',
+    'brasil(+55)': 'Brasil(+55)',
+    'canada(+1)': 'Canadá(+1)',
+    'canadá(+1)': 'Canadá(+1)',
+    'colombia': 'Colombia(+57)',
+    'estados unidos': 'Estados Unidos(+1)',
+    'usa': 'Estados Unidos(+1)',
+    'mexico': 'Mexico(+52)',
+    'méxico': 'Mexico(+52)',
+    'espana': 'España(+34)',
+    'españa': 'España(+34)',
+    'chile': 'Chile(+56)',
+    'peru': 'Peru(+51)',
+    'perú': 'Peru(+51)',
+    'argentina': 'Argentina(+54)',
+    'ecuador': 'Ecuador(+593)',
+    'panama': 'Panamá(+507)',
+    'panamá': 'Panamá(+507)',
+    'venezuela': 'Venezuela(+58)',
+    'brasil': 'Brasil(+55)',
+    'canada': 'Canadá(+1)',
+    'canadá': 'Canadá(+1)',
+  };
+  return map[compact] || map[key] || trimmed;
+}
+
 function buildAccountBody(data: AccountPayload): Record<string, any> {
   const name = `${(data.nombre || '').trim()} ${(data.apellido || '').trim()}`.trim() || data.email;
   const body: Record<string, any> = {
@@ -118,9 +165,11 @@ function buildAccountBody(data: AccountPayload): Record<string, any> {
     Apellido_para_creacion_de_contacto__c: data.apellido || null,
   };
   if (data.pais && String(data.pais).trim()) {
-    const prefijo = String(data.pais).trim().replace(/\s+\(/g, '(');
-    body.Prefijo_Telefono__c = prefijo;
-    body.Prefijo_M_vil__c = prefijo;
+    const prefijo = normalizePrefijo(data.pais);
+    if (prefijo) {
+      body.Prefijo_Telefono__c = prefijo;
+      body.Prefijo_M_vil__c = prefijo;
+    }
   }
   delete body.Correo_Electr_nico__c;
   return body;
@@ -329,7 +378,7 @@ export async function createOpportunity(params: {
     OwnerId: params.ownerId,
     Proyecto__c: params.projectId,
     RecordTypeId: params.recordTypeId,
-    LeadSource: params.leadSource || 'Módulo 6',
+    LeadSource: params.leadSource || 'Form Web',
   };
   const res = await fetch(`${instanceUrl}/services/data/v60.0/sobjects/Opportunity`, {
     method: 'POST',
