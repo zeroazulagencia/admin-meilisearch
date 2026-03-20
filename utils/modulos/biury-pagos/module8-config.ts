@@ -75,6 +75,60 @@ export async function createLog(data: {
   }
 }
 
+export async function updateLogById(
+  id: number,
+  data: {
+    customer_document: string;
+    product_name: string;
+    gateway: string;
+    total: number;
+    payload_raw?: string;
+    siigo_response?: string;
+    status: 'success' | 'error' | 'filtered';
+  }
+): Promise<boolean> {
+  try {
+    const [result] = await query(
+      `UPDATE modulos_biury_8_logs
+       SET customer_document = ?, product_name = ?, gateway = ?, total = ?, payload_raw = ?, siigo_response = ?, status = ?
+       WHERE id = ?
+       LIMIT 1`,
+      [
+        data.customer_document,
+        data.product_name,
+        data.gateway,
+        data.total,
+        data.payload_raw || null,
+        data.siigo_response || null,
+        data.status,
+        id,
+      ]
+    );
+
+    return (result as any).affectedRows > 0;
+  } catch (e) {
+    console.error('[MOD8-LOG] Error:', e);
+    return false;
+  }
+}
+
+export async function getSuccessLogByPaymentId(paymentId: string): Promise<any | null> {
+  try {
+    if (!paymentId) return null;
+    const [rows] = await query(
+      `SELECT * FROM modulos_biury_8_logs
+       WHERE payment_id = ? AND status = 'success'
+       ORDER BY id DESC
+       LIMIT 1`,
+      [paymentId]
+    );
+    return rows.length ? rows[0] : null;
+  } catch (e) {
+    console.error('[MOD8-LOG] Error:', e);
+    return null;
+  }
+}
+
 export async function upsertLogByPaymentId(data: {
   payment_id: string;
   customer_document: string;
@@ -215,6 +269,20 @@ export async function getLogById(id: number): Promise<any | null> {
   } catch (e) {
     console.error('[MOD8-LOG] Error:', e);
     return null;
+  }
+}
+
+export async function hasSuccessLogByPaymentId(paymentId: string): Promise<boolean> {
+  try {
+    if (!paymentId) return false;
+    const [rows] = await query(
+      'SELECT id FROM modulos_biury_8_logs WHERE payment_id = ? AND status = \"success\" LIMIT 1',
+      [paymentId]
+    );
+    return rows.length > 0;
+  } catch (e) {
+    console.error('[MOD8-LOG] Error:', e);
+    return false;
   }
 }
 

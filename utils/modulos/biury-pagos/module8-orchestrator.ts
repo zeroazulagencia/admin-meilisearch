@@ -1,4 +1,4 @@
-import { getConfig } from './module8-config';
+import { createLog as createDbLog, getConfig, updateLogById } from './module8-config';
 import { shouldProcessProduct } from './module8-siigo';
 
 interface SiigoAuthResponse {
@@ -86,14 +86,31 @@ async function getSiigoToken(): Promise<{ token: string | null; error?: string; 
   }
 }
 
+function getSiigoConsecutive(paymentId: string): number {
+  const digits = String(paymentId || '').replace(/\D/g, '');
+  if (digits.length) {
+    return parseInt(digits.slice(-9), 10);
+  }
+
+  let hash = 0;
+  for (const char of String(paymentId || '')) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 1000000000;
+  }
+  return hash || 1;
+}
+
 async function createSiigoVoucher(
   paymentData: any,
-  siigoToken: string
+  siigoToken: string,
+  rawData?: any
 ): Promise<{ success: boolean; response: SiigoVoucherResponse; error?: string }> {
-  const gateway = paymentData.payment_gateway_name;
-  const account = gateway === 'Wompi' ? '11200501' : '11100501';
+  const gatewayRaw = paymentData.payment_gateway_name || '';
+  const gateway = gatewayRaw.toLowerCase();
+  const isWompi = gateway.includes('wompi');
+  const account = isWompi ? '11200501' : '11100501';
   const totalFormatted = Number(paymentData.totals.total).toFixed(2);
   const paymentId = paymentData.payment_id;
+  const consecutive = getSiigoConsecutive(paymentId);
 
   const body = {
     document: { id: 8923 },
@@ -108,7 +125,7 @@ async function createSiigoVoucher(
           code: account,
           movement: 'Debit',
         },
-        description: gateway === 'Wompi' ? 'Wompi' : 'Mercado Pago',
+        description: isWompi ? 'Wompi' : 'Mercado Pago',
         value: totalFormatted,
       },
       {
@@ -120,7 +137,7 @@ async function createSiigoVoucher(
         value: totalFormatted,
         due: {
           prefix: 'CC',
-          consecutive: paymentId,
+          consecutive,
           quote: 1,
           date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         },
@@ -129,59 +146,97 @@ async function createSiigoVoucher(
     observations: `Treli Payment ID: ${paymentId}`,
   };
 
-  try {
-    const response = await fetch('https://api.siigo.com/v1/vouchers', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${siigoToken}`,
-        'Partner-Id': 'biury',
-        'User-Agent': 'Dworkers-Biury/1.0',
-      },
-      body: JSON.stringify(body),
-    });
+  const maxAttempts = 5;
+  let lastResponse: any = {};
+  let customerCreated = false;
 
-    const contentType = response.headers.get('content-type');
-    let responseData: any = {};
-    
-    if (contentType && contentType.includes('application/json')) {
-      try {
-        const jsonData = await response.json();
-        responseData = { status: response.status, contentType, data: jsonData };
-      } catch (error: any) {
-        responseData = { status: response.status, contentType, error: error.message || 'Respuesta inválida de Siigo' };
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await waitForSiigoSlot();
+      const response = await fetch('https://api.siigo.com/v1/vouchers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${siigoToken}`,
+          'Partner-Id': 'biury',
+          'User-Agent': 'Dworkers-Biury/1.0',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const contentType = response.headers.get('content-type');
+      let responseData: any = {};
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const jsonData = await response.json();
+          responseData = { status: response.status, contentType, data: jsonData, request: body };
+        } catch (error: any) {
+          responseData = { status: response.status, contentType, error: error.message || 'Respuesta inválida de Siigo', request: body };
+        }
+      } else {
+        const textResponse = await response.text();
+        responseData = { status: response.status, contentType, body: textResponse, request: body };
       }
-    } else {
-      const textResponse = await response.text();
-      responseData = { status: response.status, contentType, body: textResponse };
-    }
 
-    if (!response.ok) {
-      const authError = response.status === 401 || response.status === 403
-        ? `Autenticacion Siigo rechazada (HTTP ${response.status})`
-        : `Error Siigo (HTTP ${response.status})`;
+      lastResponse = responseData;
+
+      if (response.status === 429 && attempt < maxAttempts) {
+        const baseWait = parseRetrySeconds(responseData) || 4;
+        const waitSeconds = baseWait + (attempt - 1) * 5;
+        await sleep(waitSeconds * 1000);
+        continue;
+      }
+
+      if (!response.ok) {
+        if (isInvalidCustomer(responseData) && !customerCreated) {
+          const customerPayload = buildCustomerPayload(paymentData, rawData);
+          const customerResult = await createSiigoCustomer(customerPayload, siigoToken);
+          responseData = {
+            ...responseData,
+            customer_create: customerResult.response || { error: customerResult.error || 'Error al crear cliente' },
+          };
+          lastResponse = responseData;
+          if (customerResult.success) {
+            customerCreated = true;
+            continue;
+          }
+        }
+        const authError = response.status === 401 || response.status === 403
+          ? `Autenticacion Siigo rechazada (HTTP ${response.status})`
+          : `Error Siigo (HTTP ${response.status})`;
+        return {
+          success: false,
+          response: responseData,
+          error: responseData?.data?.message || responseData?.data?.error || authError,
+        };
+      }
+
       return {
-        success: false,
+        success: true,
         response: responseData,
-        error: responseData?.data?.message || responseData?.data?.error || authError,
       };
+    } catch (error: any) {
+      if (attempt >= maxAttempts) {
+        return {
+          success: false,
+          response: lastResponse || {},
+          error: error.message || 'Error desconocido',
+        };
+      }
+      await sleep(2000);
     }
-
-    return {
-      success: true,
-      response: responseData,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      response: {},
-      error: error.message || 'Error desconocido',
-    };
   }
+
+  return {
+    success: false,
+    response: lastResponse || {},
+    error: 'Error desconocido',
+  };
 }
 
-export async function processTreliWebhook(payload: { content: any }): Promise<{
+export async function processTreliWebhook(payload: { content: any; logId?: number | null }): Promise<{
   ok: boolean;
   status: 'success' | 'error' | 'filtered';
   logId?: number;
@@ -192,7 +247,7 @@ export async function processTreliWebhook(payload: { content: any }): Promise<{
   const payloadRaw = JSON.stringify(payload?.content ?? payload ?? {});
 
   if (!normalized || !normalized.items || !normalized.items.length) {
-    const logId = await createLog({
+    const logId = await saveLog(payload.logId, {
       payment_id: normalized?.payment_id || 'unknown',
       customer_document: normalized?.billing?.document || 'unknown',
       product_name: normalized?.items?.[0]?.name || 'unknown',
@@ -208,7 +263,7 @@ export async function processTreliWebhook(payload: { content: any }): Promise<{
   const productName = normalized.items[0].name;
 
   if (!shouldProcessProduct(productName)) {
-    await createLog({
+    await saveLog(payload.logId, {
       payment_id: normalized.payment_id || 'unknown',
       customer_document: normalized.billing?.document || 'unknown',
       product_name: productName,
@@ -222,7 +277,7 @@ export async function processTreliWebhook(payload: { content: any }): Promise<{
 
   const authResult = await getSiigoToken();
   if (!authResult.token) {
-    const logId = await createLog({
+    const logId = await saveLog(payload.logId, {
       payment_id: normalized.payment_id || 'unknown',
       customer_document: normalized.billing?.document || 'unknown',
       product_name: productName,
@@ -237,9 +292,9 @@ export async function processTreliWebhook(payload: { content: any }): Promise<{
     return { ok: true, status: 'error', logId, error: authResult.error || 'Error al obtener token de Siigo' };
   }
 
-  const siigoResult = await createSiigoVoucher(normalized, authResult.token);
+  const siigoResult = await createSiigoVoucher(normalized, authResult.token, data);
 
-  const logId = await createLog({
+  const logId = await saveLog(payload.logId, {
     payment_id: normalized.payment_id || 'unknown',
     customer_document: normalized.billing?.document || 'unknown',
     product_name: productName,
@@ -264,7 +319,7 @@ export async function processTreliWebhook(payload: { content: any }): Promise<{
 
 function normalizePaymentData(data: any): {
   payment_id: string;
-  billing: { document: string };
+  billing: { document: string; name?: string; email?: string; phone?: string; address?: string };
   totals: { total: number | string };
   payment_gateway_name: string;
   items: Array<{ name: string }>;
@@ -279,6 +334,37 @@ function normalizePaymentData(data: any): {
     source.transaction?.transaction_billing?.identification ||
     source.transaction?.billing?.document ||
     'unknown';
+
+  const billingName =
+    source.billing?.name ||
+    [source.billing?.first_name, source.billing?.last_name].filter(Boolean).join(' ') ||
+    source.transaction?.transaction_billing?.name ||
+    source.transaction?.billing?.name ||
+    source.customer?.name ||
+    undefined;
+
+  const billingEmail =
+    source.billing?.email ||
+    source.transaction?.transaction_billing?.email ||
+    source.transaction?.billing?.email ||
+    source.customer?.email ||
+    undefined;
+
+  const billingPhone =
+    source.billing?.phone ||
+    source.billing?.phone_number ||
+    source.transaction?.transaction_billing?.phone ||
+    source.transaction?.billing?.phone ||
+    source.customer?.phone ||
+    undefined;
+
+  const billingAddress =
+    source.billing?.address ||
+    source.billing?.address_1 ||
+    source.transaction?.transaction_billing?.address ||
+    source.transaction?.billing?.address ||
+    source.customer?.address ||
+    undefined;
 
   const total =
     source.totals?.total ??
@@ -295,14 +381,155 @@ function normalizePaymentData(data: any): {
 
   return {
     payment_id,
-    billing: { document: billingDocument },
+    billing: {
+      document: billingDocument,
+      name: billingName,
+      email: billingEmail,
+      phone: billingPhone,
+      address: billingAddress,
+    },
     totals: { total },
     payment_gateway_name: gateway,
     items: source.items || [],
   };
 }
 
-async function createLog(data: {
+function parseRetrySeconds(responseData: any): number | null {
+  const message = responseData?.data?.Errors?.[0]?.Message || responseData?.data?.message || '';
+  const match = String(message).match(/(\d+)\s*second/);
+  if (match) {
+    const seconds = parseInt(match[1], 10);
+    if (!Number.isNaN(seconds) && seconds > 0) return seconds;
+  }
+  return null;
+}
+
+function buildCustomerPayload(paymentData: any, rawData?: any) {
+  const source = rawData?.data ?? rawData ?? {};
+  const billing = source.billing || source.transaction?.transaction_billing || source.transaction?.billing || {};
+  const document = paymentData?.billing?.document || billing.document || billing.identification || 'unknown';
+  const nameRaw =
+    paymentData?.billing?.name ||
+    billing.name ||
+    [billing.first_name, billing.last_name].filter(Boolean).join(' ') ||
+    source.customer?.name ||
+    'Cliente';
+  const trimmedName = String(nameRaw || 'Cliente').trim();
+  const nameParts = trimmedName.split(/\s+/).filter(Boolean);
+  const firstName = nameParts[0] || 'Cliente';
+  const lastName = nameParts.slice(1).join(' ') || 'Biury';
+  const emailRaw = paymentData?.billing?.email || billing.email || source.customer?.email || source.email || null;
+  const phoneRaw = paymentData?.billing?.phone || billing.phone || billing.phone_number || source.customer?.phone || source.phone || null;
+
+  const payload: any = {
+    person_type: 'Person',
+    id_type: '13',
+    identification: String(document),
+    name: [firstName, lastName],
+    commercial_name: trimmedName,
+  };
+
+  if (emailRaw) {
+    payload.emails = [String(emailRaw).trim()];
+  }
+
+  if (phoneRaw) {
+    const phoneDigits = String(phoneRaw).replace(/\D/g, '');
+    if (phoneDigits) {
+      payload.phones = [{ number: phoneDigits }];
+    }
+  }
+
+  return payload;
+}
+
+function isInvalidCustomer(responseData: any): boolean {
+  const code = responseData?.data?.Errors?.[0]?.Code || responseData?.Errors?.[0]?.Code || '';
+  const message = responseData?.data?.Errors?.[0]?.Message || responseData?.Errors?.[0]?.Message || '';
+  return code === 'invalid_reference' && String(message).toLowerCase().includes('customer');
+}
+
+async function createSiigoCustomer(payload: any, siigoToken: string): Promise<{ success: boolean; response: any; error?: string }>
+{
+  const maxAttempts = 3;
+  let lastResponse: any = {};
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await waitForSiigoSlot();
+      const response = await fetch('https://api.siigo.com/v1/customers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${siigoToken}`,
+          'Partner-Id': 'biury',
+          'User-Agent': 'Dworkers-Biury/1.0',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const contentType = response.headers.get('content-type');
+      let responseData: any = {};
+
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const jsonData = await response.json();
+          responseData = { status: response.status, contentType, data: jsonData, request: payload };
+        } catch (error: any) {
+          responseData = { status: response.status, contentType, error: error.message || 'Respuesta inválida de Siigo', request: payload };
+        }
+      } else {
+        const textResponse = await response.text();
+        responseData = { status: response.status, contentType, body: textResponse, request: payload };
+      }
+
+      lastResponse = responseData;
+
+      if (response.status === 429 && attempt < maxAttempts) {
+        const baseWait = parseRetrySeconds(responseData) || 4;
+        const waitSeconds = baseWait + (attempt - 1) * 5;
+        await sleep(waitSeconds * 1000);
+        continue;
+      }
+
+      if (!response.ok) {
+        return {
+          success: false,
+          response: responseData,
+          error: responseData?.data?.message || responseData?.data?.error || `HTTP ${response.status}`,
+        };
+      }
+
+      return { success: true, response: responseData };
+    } catch (error: any) {
+      if (attempt >= maxAttempts) {
+        return { success: false, response: lastResponse || {}, error: error.message || 'Error desconocido' };
+      }
+      await sleep(2000);
+    }
+  }
+
+  return { success: false, response: lastResponse || {}, error: 'Error desconocido' };
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+let lastSiigoRequestAt = 0;
+async function waitForSiigoSlot() {
+  const minIntervalMs = 20000;
+  const elapsed = Date.now() - lastSiigoRequestAt;
+  if (elapsed < minIntervalMs) {
+    await sleep(minIntervalMs - elapsed);
+  }
+  lastSiigoRequestAt = Date.now();
+}
+
+async function saveLog(
+  logId: number | null | undefined,
+  data: {
   payment_id: string;
   customer_document: string;
   product_name: string;
@@ -312,23 +539,20 @@ async function createLog(data: {
   siigo_response?: string;
   status: 'success' | 'error' | 'filtered';
 }): Promise<number> {
-  const { query } = await import('@/utils/db');
-  const [result] = await query(
-    `INSERT INTO modulos_biury_8_logs 
-     (payment_id, customer_document, product_name, gateway, total, payload_raw, siigo_response, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      data.payment_id,
-      data.customer_document,
-      data.product_name,
-      data.gateway,
-      data.total,
-      data.payload_raw || null,
-      data.siigo_response || null,
-      data.status
-    ]
-  );
-  return (result as any).insertId;
+  if (logId) {
+    const updated = await updateLogById(logId, {
+      customer_document: data.customer_document,
+      product_name: data.product_name,
+      gateway: data.gateway,
+      total: data.total,
+      payload_raw: data.payload_raw,
+      siigo_response: data.siigo_response,
+      status: data.status,
+    });
+    if (updated) return logId;
+  }
+
+  return createDbLog(data);
 }
 
 export { shouldProcessProduct };
