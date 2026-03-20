@@ -524,21 +524,25 @@ export async function upsertSalesforceOpportunity(
       }
     }
 
-    let opportunityId;
+     let opportunityId;
     
-    if (isUpdate) {
-      // En PATCH, Salesforce retorna 204 sin body
-      opportunityId = opportunityIdToUpdate;
-    } else {
-      // En POST, Salesforce retorna el objeto creado
-      const result = await response.json();
-      opportunityId = result.id;
-    }
+     if (isUpdate) {
+       // En PATCH, Salesforce retorna 204 sin body
+       opportunityId = opportunityIdToUpdate;
+     } else {
+       // En POST, Salesforce retorna el objeto creado
+       const result = await response.json();
+       opportunityId = result.id;
+     }
+
+     if (opportunityId) {
+       await ensureOpportunityFollowUpTask(opportunityId, ownerId, accessToken, instanceUrl);
+     }
 
     const processingTime = Math.floor((Date.now() - new Date(leadId).getTime()) / 1000);
 
-    await updateLeadLog(leadId, {
-      salesforce_opportunity_id: opportunityId,
+     await updateLeadLog(leadId, {
+       salesforce_opportunity_id: opportunityId,
       salesforce_owner_id: ownerId,
       salesforce_project_id: projectId,
       processing_status: 'completado',
@@ -548,10 +552,10 @@ export async function upsertSalesforceOpportunity(
       processing_time_seconds: processingTime,
     });
 
-    return {
-      id: opportunityId,
-      wasCreated: !isUpdate
-    };
+     return {
+       id: opportunityId,
+       wasCreated: !isUpdate
+     };
   } catch (e: any) {
     await updateLeadLog(leadId, {
       processing_status: 'error',
@@ -560,4 +564,49 @@ export async function upsertSalesforceOpportunity(
     });
     throw e;
   }
+}
+
+async function ensureOpportunityFollowUpTask(
+  opportunityId: string,
+  ownerId: string,
+  accessToken: string,
+  instanceUrl: string
+) {
+  const count = await getTaskCountForOpportunity(opportunityId, accessToken, instanceUrl);
+  if (count > 0) return;
+
+  const activityDate = new Date().toISOString().split('T')[0];
+  const body = {
+    Subject: 'Contactar cliente',
+    Status: 'No Iniciada',
+    ActivityDate: activityDate,
+    WhatId: opportunityId,
+    OwnerId: ownerId,
+  };
+
+  const res = await fetch(`${instanceUrl}/services/data/v60.0/sobjects/Task`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error('[SALESFORCE] Error creando tarea seguimiento:', err);
+  }
+}
+
+async function getTaskCountForOpportunity(
+  opportunityId: string,
+  accessToken: string,
+  instanceUrl: string
+): Promise<number> {
+  const soql = `SELECT COUNT() FROM Task WHERE WhatId = '${opportunityId}'`;
+  const res = await fetch(
+    `${instanceUrl}/services/data/v60.0/query?q=${encodeURIComponent(soql)}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) return 0;
+  const json = await res.json().catch(() => ({}));
+  return json.totalSize || 0;
 }

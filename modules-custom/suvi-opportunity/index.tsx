@@ -438,7 +438,8 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
                 { paso: '04', titulo: 'Proyecto', desc: 'Si el payload trae un ID de Proyecto__c (ej. a04QU00000C6uyHYAR) se valida contra valid_project_ids y se usa directamente. Si trae un nombre, se busca por Name en SF. Si no hay match o viene vacío, fallback: se elige un Id al azar de valid_project_ids.' },
                 { paso: '05', titulo: 'Buscar oportunidad previa', desc: 'Se consulta en Salesforce si la cuenta (AccountId) ya tiene una Opportunity del mismo RecordType (ventas o crédito). Si existe, se reutiliza el OwnerId (asesor) de esa oportunidad para la nueva.' },
                 { paso: '06', titulo: 'Asesor (ruleta)', desc: 'Solo si no se encontró oportunidad previa en el paso 05. Según tipo se usa el GroupId configurado y se elige un asesor al azar de los GroupMember.' },
-                { paso: '07', titulo: 'Oportunidad en Salesforce', desc: 'Se crea la Opportunity con AccountId, OwnerId (asesor del paso 05 o 06), Proyecto__c, RecordTypeId (ventas=0124W000000OiIrQAK o crédito=0124W000000OiImQAK), StageName=Nuevo, LeadSource=Módulo 6.' },
+                { paso: '07', titulo: 'Oportunidad en Salesforce', desc: 'Se crea la Opportunity con AccountId, OwnerId (asesor del paso 05 o 06), Proyecto__c, RecordTypeId (ventas=0124W000000OiIrQAK o crédito=0124W000000OiImQAK), StageName=Nuevo, LeadSource=Web Form.' },
+                { paso: '08', titulo: 'Tarea de seguimiento', desc: 'Si la oportunidad queda sin tareas, se crea una Task de seguimiento con Subject="Contactar cliente", Status="No Iniciada" y ActivityDate=hoy.' },
               ].map(({ paso, titulo, desc }) => (
                 <div key={paso} className="flex gap-4">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center">

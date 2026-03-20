@@ -75,7 +75,7 @@ export async function processOpportunity(recordId: number): Promise<{ ok: boolea
       ownerId,
       projectId,
       recordTypeId,
-      leadSource: 'Módulo 6',
+      leadSource: 'Web Form',
     });
 
     await updateOpportunityLog(recordId, {

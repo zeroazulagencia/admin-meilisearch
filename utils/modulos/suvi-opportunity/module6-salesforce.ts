@@ -378,7 +378,7 @@ export async function createOpportunity(params: {
     OwnerId: params.ownerId,
     Proyecto__c: params.projectId,
     RecordTypeId: params.recordTypeId,
-    LeadSource: params.leadSource || 'Form Web',
+    LeadSource: params.leadSource || 'Web Form',
   };
   const res = await fetch(`${instanceUrl}/services/data/v60.0/sobjects/Opportunity`, {
     method: 'POST',
@@ -390,5 +390,56 @@ export async function createOpportunity(params: {
     throw new Error(JSON.stringify(err));
   }
   const result = await res.json();
-  return result.id || result.Id;
+  const opportunityId = result.id || result.Id;
+  if (!opportunityId) {
+    throw new Error('No se pudo obtener Id de oportunidad');
+  }
+
+  await ensureOpportunityFollowUpTask(opportunityId, params.ownerId, accessToken, instanceUrl);
+  return opportunityId;
+}
+
+async function ensureOpportunityFollowUpTask(
+  opportunityId: string,
+  ownerId: string,
+  accessToken: string,
+  instanceUrl: string
+) {
+  const count = await getTaskCountForOpportunity(opportunityId, accessToken, instanceUrl);
+  if (count > 0) return;
+
+  const activityDate = new Date().toISOString().split('T')[0];
+  const body = {
+    Subject: 'Contactar cliente',
+    Status: 'No Iniciada',
+    ActivityDate: activityDate,
+    WhatId: opportunityId,
+    OwnerId: ownerId,
+  };
+
+  const res = await fetch(`${instanceUrl}/services/data/v60.0/sobjects/Task`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error('[MOD6-SF] Error creando tarea seguimiento:', err);
+  }
+}
+
+async function getTaskCountForOpportunity(
+  opportunityId: string,
+  accessToken: string,
+  instanceUrl: string
+): Promise<number> {
+  const soql = `SELECT COUNT() FROM Task WHERE WhatId = '${opportunityId}'`;
+  const res = await fetch(
+    `${instanceUrl}/services/data/v60.0/query?q=${encodeURIComponent(soql)}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) return 0;
+  const json = await res.json().catch(() => ({}));
+  return json.totalSize || 0;
 }
