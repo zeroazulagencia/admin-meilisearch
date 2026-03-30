@@ -22,17 +22,138 @@ interface Stats {
   filtered: number;
 }
 
-const BASE = '/api/custom-module8/biury-pagos';
-const WEBHOOK_URL = typeof window !== 'undefined' 
-  ? `${window.location.origin}/api/module-webhooks/8/webhook`
-  : 'https://workers.zeroazul.com/api/module-webhooks/8/webhook';
-const PAGE_SIZE = 50;
+interface ProductRule {
+  id?: string;
+  matcher: string | string[];
+  account_code: string;
+  description?: string | null;
+  gateway_matcher?: string | null;
+  active?: boolean;
+}
 
-export default function BiuryPagosModule({ moduleData }: { moduleData?: { title?: string } }) {
+interface ReprocessResultRow {
+  payment_id: string;
+  status: string;
+  message?: string;
+}
+
+interface ReprocessModalState {
+  open: boolean;
+  title: string;
+  status: 'running' | 'success' | 'error';
+  summary: string;
+  results: ReprocessResultRow[] | null;
+}
+
+interface CatalogsResponse {
+  available_products?: string[];
+  available_gateways?: string[];
+  gateway_empty_value?: string;
+}
+
+const BASE = '/api/custom-module8/biury-pagos';
+const WEBHOOK_URL = 'https://workers.zeroazul.com/api/module-webhooks/8/webhook';
+const PAGE_SIZE = 50;
+const FALLBACK_LABEL = 'Sin gateway (fallback)';
+const FALLBACK_SENTINEL_PREFIX = 'fallback-';
+const MATCH_ANY_SENTINEL = '*';
+const createInitialReprocessModalState = (): ReprocessModalState => ({
+  open: false,
+  title: '',
+  status: 'running',
+  summary: '',
+  results: null,
+});
+
+const cloneRule = (rule: ProductRule): ProductRule => ({
+  ...rule,
+  matcher: Array.isArray(rule.matcher) ? [...rule.matcher] : rule.matcher,
+});
+
+const generateTempRuleId = () => `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const getRuleKey = (rule: ProductRule, index: number) => rule.id || `rule-${index}`;
+
+const normalizeMatcherArray = (matcher: ProductRule['matcher']): string[] => {
+  if (Array.isArray(matcher)) {
+    return Array.from(
+      new Set(
+        matcher
+          .map((item) => (typeof item === 'string' ? item.trim() : ''))
+          .filter((item) => item.length > 0)
+      )
+    );
+  }
+  if (typeof matcher === 'string') {
+    const trimmed = matcher.trim();
+    if (!trimmed || trimmed === MATCH_ANY_SENTINEL) return [];
+    return [trimmed];
+  }
+  return [];
+};
+
+const normalizeRuleForDraft = (rule: ProductRule, sentinelValue: string): ProductRule => {
+  const cloned = cloneRule(rule);
+  const isFallback = cloned.gateway_matcher === sentinelValue;
+
+  if (isFallback) {
+    return {
+      ...cloned,
+      matcher: MATCH_ANY_SENTINEL,
+      description: cloned.description || FALLBACK_LABEL,
+      gateway_matcher: sentinelValue,
+      active: cloned.active === false ? false : true,
+    };
+  }
+
+  const matcherArray = normalizeMatcherArray(cloned.matcher);
+  return {
+    ...cloned,
+    matcher: matcherArray.length ? matcherArray : MATCH_ANY_SENTINEL,
+  };
+};
+
+const sanitizeMatcherForSave = (matcher: ProductRule['matcher']): string | string[] => {
+  if (typeof matcher === 'string') {
+    const trimmed = matcher.trim();
+    return trimmed === MATCH_ANY_SENTINEL || trimmed === '' ? MATCH_ANY_SENTINEL : trimmed;
+  }
+  if (Array.isArray(matcher)) {
+    const cleaned = matcher
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0 && item !== MATCH_ANY_SENTINEL);
+    if (!cleaned.length) {
+      return MATCH_ANY_SENTINEL;
+    }
+    return Array.from(new Set(cleaned));
+  }
+  return MATCH_ANY_SENTINEL;
+};
+
+const sanitizeGatewayMatcher = (
+  gateway: string | null | undefined,
+  sentinelValue: string
+): string | null => {
+  if (!gateway) return null;
+  const trimmed = gateway.trim();
+  if (!trimmed) return null;
+  if (trimmed === sentinelValue) return sentinelValue;
+  return trimmed;
+};
+
+interface Module8Props {
+  moduleData?: { title?: string };
+}
+
+export default function BiuryPagosModule({ moduleData }: Module8Props) {
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<Record<string, string | null>>({});
+  const [productRules, setProductRules] = useState<ProductRule[]>([]);
+  const [productRulesDraft, setProductRulesDraft] = useState<ProductRule[]>([]);
+  const [productRulesSaving, setProductRulesSaving] = useState(false);
+  const [hasProductRuleChanges, setHasProductRuleChanges] = useState(false);
   const [activeTab, setActiveTab] = useState<'logs' | 'config' | 'documentacion'>('logs');
   const [showConfig, setShowConfig] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
@@ -44,18 +165,23 @@ export default function BiuryPagosModule({ moduleData }: { moduleData?: { title?
   const [reprocessDetailLoading, setReprocessDetailLoading] = useState(false);
   const [bulkIds, setBulkIds] = useState('');
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [bulkResults, setBulkResults] = useState<Array<{ payment_id: string; status: string; message?: string }>>([]);
+  const [bulkResults, setBulkResults] = useState<ReprocessResultRow[]>([]);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importLoading, setImportLoading] = useState(false);
-  const [importResults, setImportResults] = useState<Array<{ payment_id: string; status: string; message?: string }>>([]);
+  const [importResults, setImportResults] = useState<ReprocessResultRow[]>([]);
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [codeSample, setCodeSample] = useState('');
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
-  const [authResult, setAuthResult] = useState<any | null>(null);
+  const [authResult, setAuthResult] = useState<Record<string, unknown> | string | null>(null);
   const [page, setPage] = useState(1);
+  const [reprocessModal, setReprocessModal] = useState<ReprocessModalState>(createInitialReprocessModalState());
+  const updatingConfig =
+    configForm.access_key.trim() !== '' ||
+    configForm.siigo_username.trim() !== '' ||
+    configForm.siigo_access_key.trim() !== '';
 
   const load = async () => {
     setLoading(true);
@@ -78,7 +204,29 @@ export default function BiuryPagosModule({ moduleData }: { moduleData?: { title?
     try {
       const res = await fetch(`${BASE}/config`);
       const json = await res.json();
-      if (json.ok) setConfig(json.config || {});
+      if (json.ok) {
+        setConfig(json.config || {});
+         const rules = Array.isArray(json.product_rules) ? json.product_rules : [];
+         const sentinel = json.gateway_empty_value || '';
+         setProductRules(rules);
+         setEmptyGatewaySentinel(sentinel);
+         const normalizedDraft = ensureFallbackRule(
+            rules.map((rule: ProductRule) => normalizeRuleForDraft(rule, sentinel)),
+            sentinel
+         );
+         setProductRulesDraft(normalizedDraft);
+         setHasProductRuleChanges(false);
+         const catalogs: CatalogsResponse = json;
+         setAvailableProducts(catalogs.available_products || []);
+        setAvailableGateways((catalogs.available_gateways || []).map((gw) => gw.trim()).filter(Boolean));
+        const fallback = normalizedDraft.find((rule) => rule.gateway_matcher === sentinel);
+        setFallbackRuleId(fallback?.id || null);
+        if (fallback?.account_code) {
+          setFallbackSuggestionAccountCode(fallback.account_code);
+        }
+        setEnsureFallbackError(null);
+        detectConflicts(normalizedDraft);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -114,6 +262,214 @@ export default function BiuryPagosModule({ moduleData }: { moduleData?: { title?
     }
   };
 
+  const updateRuleField = (index: number, field: keyof ProductRule, value: string | boolean | string[] | null) => {
+    setProductRulesDraft((prev) => {
+      const next = prev.map((rule, i) => {
+        if (i !== index) return rule;
+        if (field === 'matcher') {
+          const nextMatcher = Array.isArray(value)
+            ? value
+            : typeof value === 'string'
+              ? value
+              : MATCH_ANY_SENTINEL;
+          return { ...rule, matcher: nextMatcher };
+        }
+        if (field === 'gateway_matcher') {
+          const gatewayValue = typeof value === 'string' ? value : '';
+          const sanitizedGateway = sanitizeGatewayMatcher(gatewayValue, emptyGatewaySentinel);
+          return { ...rule, gateway_matcher: sanitizedGateway };
+        }
+        return { ...rule, [field]: value };
+      });
+      const ensured = ensureFallbackRule(next);
+      setHasProductRuleChanges(true);
+      detectConflicts(ensured);
+      return ensured;
+    });
+  };
+
+  const ensureFallbackRule = (
+    incomingRules?: ProductRule[],
+    sentinelOverride?: string
+  ): ProductRule[] => {
+    const sentinelValue = sentinelOverride ?? emptyGatewaySentinel;
+    const baseSource = incomingRules ?? productRulesDraft;
+    const base = baseSource.map((rule) => normalizeRuleForDraft(rule, sentinelValue));
+    if (!sentinelValue) return base;
+    const existingFallback = base.find((rule) => rule.gateway_matcher === sentinelValue);
+    if (existingFallback) {
+      if (existingFallback.active === false) {
+        existingFallback.active = true;
+        setEnsureFallbackError('La regla "Sin gateway" debe permanecer activa. Reactivada automáticamente.');
+      } else {
+        setEnsureFallbackError(null);
+      }
+      return base;
+    }
+    const fallbackRule: ProductRule = {
+      id: `${FALLBACK_SENTINEL_PREFIX}${Date.now()}`,
+      matcher: MATCH_ANY_SENTINEL,
+      account_code: fallbackSuggestionAccountCode || '',
+      description: FALLBACK_LABEL,
+      gateway_matcher: sentinelValue,
+      active: true,
+    };
+    setEnsureFallbackError('Se creó automáticamente la regla de fallback. Completa los campos obligatorios.');
+    return [...base, fallbackRule];
+  };
+
+  const addProductRule = () => {
+    setProductRulesDraft((prev) => {
+      const next = [
+        ...prev,
+        {
+          id: generateTempRuleId(),
+          matcher: MATCH_ANY_SENTINEL,
+          account_code: '',
+          description: '',
+          gateway_matcher: null,
+          active: true,
+        },
+      ];
+      const ensured = ensureFallbackRule(next);
+      setHasProductRuleChanges(true);
+      detectConflicts(ensured);
+      return ensured;
+    });
+  };
+
+  const removeProductRule = (index: number) => {
+    setProductRulesDraft((prev) => {
+      const target = prev[index];
+      if (target?.gateway_matcher === emptyGatewaySentinel) {
+        alert('La regla "Sin gateway" no se puede eliminar. Debe existir siempre.');
+        return prev;
+      }
+      setHasProductRuleChanges(true);
+      const next = prev.filter((_, i) => i !== index);
+      const ensured = ensureFallbackRule(next);
+      detectConflicts(ensured);
+      return ensured;
+    });
+  };
+
+  const toggleRuleActive = (index: number) => {
+    setProductRulesDraft((prev) => {
+      const target = prev[index];
+      if (target?.gateway_matcher === emptyGatewaySentinel && target?.active !== false) {
+        alert('No puedes desactivar la regla "Sin gateway".');
+        return prev;
+      }
+      const next = prev.map((rule, i) =>
+        i === index ? { ...rule, active: rule.active === false ? true : rule.active ? false : true } : rule
+      );
+      setHasProductRuleChanges(true);
+      const ensured = ensureFallbackRule(next);
+      detectConflicts(ensured);
+      return ensured;
+    });
+  };
+
+  const resetProductRulesForm = () => {
+    const sentinel = emptyGatewaySentinel;
+    const restored = productRules.map((rule) => normalizeRuleForDraft(rule, sentinel));
+    const ensured = ensureFallbackRule(restored);
+    setProductRulesDraft(ensured);
+    setHasProductRuleChanges(false);
+    detectConflicts(ensured);
+  };
+
+  const serializeRulesForSave = (draftRules: ProductRule[]): ProductRule[] => {
+    return draftRules.map((rule) => {
+      const sanitizedMatcher = sanitizeMatcherForSave(rule.matcher);
+      const sanitizedGateway = sanitizeGatewayMatcher(rule.gateway_matcher || null, emptyGatewaySentinel);
+      return {
+        ...rule,
+        matcher: sanitizedMatcher,
+        gateway_matcher: sanitizedGateway,
+      };
+    });
+  };
+
+  const validateRulesBeforeSave = (draftRules: ProductRule[]): string | null => {
+    for (const rule of draftRules) {
+      const accountCode = (rule.account_code || '').trim();
+      if (!accountCode) {
+        if (rule.gateway_matcher === emptyGatewaySentinel) {
+          return 'Completa la cuenta contable de la regla "Sin gateway".';
+        }
+        return 'Todas las reglas activas deben tener una cuenta contable.';
+      }
+
+      const matcher = rule.matcher;
+      if (Array.isArray(matcher) && matcher.length === 0) {
+        return 'Selecciona al menos un producto o marca "Todos los productos".';
+      }
+    }
+    return null;
+  };
+
+  const saveProductRules = async () => {
+    const validationError = validateRulesBeforeSave(productRulesDraft);
+    if (validationError) {
+      alert(validationError);
+      return;
+    }
+
+    setProductRulesSaving(true);
+    try {
+      const payload = serializeRulesForSave(productRulesDraft);
+      const res = await fetch(`${BASE}/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_rules: payload }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        alert(json.error || 'Error al guardar reglas');
+        return;
+      }
+      await loadConfig();
+      setHasProductRuleChanges(false);
+    } catch (e) {
+      alert('Error al guardar reglas');
+      console.error(e);
+    } finally {
+      setProductRulesSaving(false);
+    }
+  };
+
+  const detectConflicts = (rules: ProductRule[]) => {
+    const issues: Record<string, string> = {};
+    const map = new Map<string, Set<string>>();
+
+    for (const rule of rules) {
+      if (rule.active === false) continue;
+      const matcherValues = Array.isArray(rule.matcher) ? rule.matcher : [rule.matcher];
+      for (const matcherValue of matcherValues) {
+        const normalizedMatcher = (matcherValue || '').toString().trim().toLowerCase() || MATCH_ANY_SENTINEL;
+        const isFallback = rule.gateway_matcher === emptyGatewaySentinel;
+        const normalizedGateway = isFallback
+          ? emptyGatewaySentinel
+          : (rule.gateway_matcher || '').trim().toLowerCase();
+        const key = `${normalizedMatcher}__${normalizedGateway || 'any'}`;
+        if (!map.has(key)) {
+          map.set(key, new Set());
+        }
+        map.get(key)!.add((rule.account_code || '').trim());
+      }
+    }
+
+    map.forEach((accounts, key) => {
+      if (accounts.size > 1) {
+        issues[key] = 'Hay reglas activas con la misma combinación de producto/gateway pero diferentes cuentas contables.';
+      }
+    });
+
+    setRuleConflicts(issues);
+    setShowConflictSummary(Object.keys(issues).length > 0);
+  };
+
   const openDetail = async (id: number) => {
     setDetailId(id);
     setDetailLoading(true);
@@ -133,21 +489,57 @@ export default function BiuryPagosModule({ moduleData }: { moduleData?: { title?
     setDetailData(null);
   };
 
-  const reprocessErrors = async () => {
+  const closeReprocessModal = () => {
+    setReprocessModal(createInitialReprocessModalState());
+  };
+
+  const reprocessErrors = async (options?: { status?: 'error' | 'filtered' }) => {
+    const statusLabel = options?.status === 'filtered' ? 'filtrados' : 'errores';
     setReprocessLoading(true);
+    setReprocessModal({
+      open: true,
+      title: `Reprocesando ${statusLabel}`,
+      status: 'running',
+      summary: 'Procesando lotes…',
+      results: null,
+    });
     try {
+      const body: Record<string, any> = { limit: 50 };
+      if (options?.status) {
+        body.status = options.status;
+      }
       const res = await fetch(`${BASE}/reprocess`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 50, year: 2026 }),
+        body: JSON.stringify(body),
       });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(text.slice(0, 200) || 'Respuesta no válida del servidor');
+      }
       const json = await res.json();
       if (!json.ok) {
-        alert(json.error || 'Error al reprocesar');
+        throw new Error(json.error || 'Error al reprocesar');
       }
+      setReprocessModal({
+        open: true,
+        title: `Reprocesando ${statusLabel}`,
+        status: 'success',
+        summary: `Procesados ${json.processed || 0} registros. OK: ${json.success || 0}, Fallidos: ${json.failed || 0}.`,
+        results: Array.isArray(json.results) ? json.results : null,
+      });
       await load();
     } catch (e) {
-      alert('Error al reprocesar');
+      const message = e instanceof Error ? e.message : 'Error desconocido';
+      setReprocessModal({
+        open: true,
+        title: `Reprocesando ${statusLabel}`,
+        status: 'error',
+        summary: message,
+        results: null,
+      });
     } finally {
       setReprocessLoading(false);
     }
@@ -200,12 +592,25 @@ export default function BiuryPagosModule({ moduleData }: { moduleData?: { title?
       .map((id) => id.trim())
       .filter(Boolean);
     if (!ids.length) {
-      alert('Ingresa al menos un ID de pago Treli');
+      setReprocessModal({
+        open: true,
+        title: 'Reproceso masivo',
+        status: 'error',
+        summary: 'Ingresa al menos un ID de pago Treli.',
+        results: null,
+      });
       return;
     }
 
     setBulkLoading(true);
     setBulkResults([]);
+    setReprocessModal({
+      open: true,
+      title: 'Reproceso masivo',
+      status: 'running',
+      summary: 'Procesando lotes…',
+      results: null,
+    });
     try {
       const res = await fetch(`${BASE}/reprocess`, {
         method: 'POST',
@@ -213,16 +618,33 @@ export default function BiuryPagosModule({ moduleData }: { moduleData?: { title?
         body: JSON.stringify({ payment_ids: ids }),
       });
       const contentType = res.headers.get('content-type') || '';
-      const payload = contentType.includes('application/json') ? await res.json() : await res.text();
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(text.slice(0, 200) || `Respuesta inválida (HTTP ${res.status})`);
+      }
+      const payload = await res.json();
       if (!res.ok || !payload?.ok) {
-        const message = typeof payload === 'string' ? payload : payload?.error;
-        alert(message || `Error al reprocesar (HTTP ${res.status})`);
-        return;
+        const message = typeof payload?.error === 'string' ? payload.error : `Error al reprocesar (HTTP ${res.status})`;
+        throw new Error(message);
       }
       setBulkResults(payload.results || []);
+      setReprocessModal({
+        open: true,
+        title: 'Reproceso masivo',
+        status: 'success',
+        summary: `Procesados ${payload.processed || ids.length} pagos. OK: ${payload.success || 0}, Fallidos: ${payload.failed || 0}.`,
+        results: Array.isArray(payload.results) ? payload.results : null,
+      });
       await load();
     } catch (e) {
-      alert('Error al reprocesar');
+      const message = e instanceof Error ? e.message : 'Error al reprocesar';
+      setReprocessModal({
+        open: true,
+        title: 'Reproceso masivo',
+        status: 'error',
+        summary: message,
+        results: null,
+      });
     } finally {
       setBulkLoading(false);
     }
@@ -277,6 +699,15 @@ export default function BiuryPagosModule({ moduleData }: { moduleData?: { title?
       setImportLoading(false);
     }
   };
+
+  const [availableProducts, setAvailableProducts] = useState<string[]>([]);
+  const [availableGateways, setAvailableGateways] = useState<string[]>([]);
+  const [emptyGatewaySentinel, setEmptyGatewaySentinel] = useState('');
+  const [ruleConflicts, setRuleConflicts] = useState<Record<string, string>>({});
+  const [showConflictSummary, setShowConflictSummary] = useState(false);
+  const [fallbackRuleId, setFallbackRuleId] = useState<string | null>(null);
+  const [ensureFallbackError, setEnsureFallbackError] = useState<string | null>(null);
+  const [fallbackSuggestionAccountCode, setFallbackSuggestionAccountCode] = useState('');
 
   const formatDate = (s: string) => {
     return new Date(s).toLocaleString('es-CO', { 
@@ -414,30 +845,11 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
             </svg>
           </button>
           <button
-            onClick={() => setShowBulkModal(true)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-          >
-            Reproceso masivo
-          </button>
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black text-sm"
-          >
-            Importar log
-          </button>
-          <button
             onClick={testAuth}
             disabled={authLoading}
             className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 text-sm disabled:opacity-50"
           >
             {authLoading ? 'Probando...' : 'Probar autenticacion'}
-          </button>
-          <button
-            onClick={reprocessErrors}
-            disabled={reprocessLoading}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm disabled:opacity-50"
-          >
-            {reprocessLoading ? 'Procesando...' : 'Procesar errores'}
           </button>
           <button
             onClick={() => load()}
@@ -472,24 +884,66 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
             Mostrando solo pagos BiuryBox Trimestre
           </div>
           {stats && (
-            <div className="grid grid-cols-4 gap-4">
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <p className="text-xs text-gray-500 uppercase">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <>
+              <div className="grid grid-cols-4 gap-4">
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 uppercase">Total</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 uppercase">Exitosos</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.success}</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 uppercase">Errores</p>
+                  <p className="text-2xl font-bold text-red-600">{stats.error}</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 uppercase">Filtrados</p>
+                  <p className="text-2xl font-bold text-gray-400">{stats.filtered}</p>
+                </div>
               </div>
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <p className="text-xs text-gray-500 uppercase">Exitosos</p>
-                <p className="text-2xl font-bold text-green-600">{stats.success}</p>
+              <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap items-center gap-3 mt-4">
+                <div className="text-sm text-gray-600 font-medium">Acciones rápidas</div>
+                <button
+                  onClick={() => reprocessErrors({ status: 'error' })}
+                  type="button"
+                  disabled={reprocessLoading}
+                  className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {reprocessLoading ? 'Procesando...' : 'Reprocesar errores'}
+                </button>
+                <button
+                  onClick={() => reprocessErrors({ status: 'filtered' })}
+                  type="button"
+                  disabled={reprocessLoading}
+                  className="px-3 py-1.5 bg-gray-900 text-white text-sm rounded hover:bg-black disabled:opacity-50"
+                >
+                  {reprocessLoading ? 'Procesando...' : 'Reprocesar filtrados'}
+                </button>
+                <button
+                  onClick={() => setShowBulkModal(true)}
+                  type="button"
+                  className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
+                >
+                  Reproceso masivo
+                </button>
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  type="button"
+                  className="px-3 py-1.5 bg-gray-900 text-white text-sm rounded hover:bg-black"
+                >
+                  Importar log
+                </button>
+                <button
+                  onClick={() => load()}
+                  type="button"
+                  className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200"
+                >
+                  Actualizar tabla
+                </button>
               </div>
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <p className="text-xs text-gray-500 uppercase">Errores</p>
-                <p className="text-2xl font-bold text-red-600">{stats.error}</p>
-              </div>
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <p className="text-xs text-gray-500 uppercase">Filtrados</p>
-                <p className="text-2xl font-bold text-gray-400">{stats.filtered}</p>
-              </div>
-            </div>
+            </>
           )}
 
           <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -578,15 +1032,15 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
         <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Configuración</h2>
-            <p className="text-sm text-gray-500">Las credenciales se almacenan encriptadas en la base de datos</p>
+            <p className="text-sm text-gray-500">Credenciales y reglas de filtrado + cuentas contables</p>
           </div>
 
-          {!showConfig ? (
-            <div className="space-y-4">
+      {!showConfig ? (
+          <div className="space-y-4">
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Access Key (Webhook)</p>
-                  <p className="text-xs text-gray-500">{config.access_key || 'No configurado'}</p>
+                  <p className="text-sm font-medium text-gray-900">Access key (webhook)</p>
+                  <p className="text-xs text-gray-500 font-mono">{config.access_key || 'No configurado'}</p>
                 </div>
                 <button
                   onClick={() => setShowConfig(true)}
@@ -598,7 +1052,7 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <div>
                   <p className="text-sm font-medium text-gray-900">Usuario Siigo</p>
-                  <p className="text-xs text-gray-500">{config.siigo_username || 'No configurado'}</p>
+                  <p className="text-xs text-gray-500 font-mono">{config.siigo_username || 'No configurado'}</p>
                 </div>
                 <button
                   onClick={() => setShowConfig(true)}
@@ -609,8 +1063,8 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
               </div>
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Access Key Siigo</p>
-                  <p className="text-xs text-gray-500">{config.siigo_access_key || 'No configurado'}</p>
+                  <p className="text-sm font-medium text-gray-900">Access key Siigo</p>
+                  <p className="text-xs text-gray-500 font-mono">{config.siigo_access_key || 'No configurado'}</p>
                 </div>
                 <button
                   onClick={() => setShowConfig(true)}
@@ -622,61 +1076,329 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
             </div>
           ) : (
             <div className="space-y-4 max-w-md">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Access Key
-                </label>
-                <input
-                  type="password"
-                  value={configForm.access_key}
-                  onChange={(e) => setConfigForm({ ...configForm, access_key: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Nueva access key"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Usuario Siigo
-                </label>
-                <input
-                  type="text"
-                  value={configForm.siigo_username}
-                  onChange={(e) => setConfigForm({ ...configForm, siigo_username: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Usuario de Siigo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Access Key Siigo
-                </label>
-                <input
-                  type="password"
-                  value={configForm.siigo_access_key}
-                  onChange={(e) => setConfigForm({ ...configForm, siigo_access_key: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Access Key de Siigo"
-                />
-              </div>
-              <div className="flex gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Access key</label>
+              <input
+                type="password"
+                value={configForm.access_key}
+                onChange={(e) => setConfigForm({ ...configForm, access_key: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                placeholder="Nueva access key"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Usuario Siigo</label>
+              <input
+                type="text"
+                value={configForm.siigo_username}
+                onChange={(e) => setConfigForm({ ...configForm, siigo_username: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                placeholder="Usuario de Siigo"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Access key Siigo</label>
+              <input
+                type="password"
+                value={configForm.siigo_access_key}
+                onChange={(e) => setConfigForm({ ...configForm, siigo_access_key: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                placeholder="Access key de Siigo"
+              />
+            </div>
+            <div className="flex gap-2">
                 <button
                   onClick={saveConfig}
-                  disabled={savingConfig}
+                  disabled={!updatingConfig || savingConfig}
                   className="px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 disabled:opacity-50"
                 >
                   {savingConfig ? 'Guardando...' : 'Guardar'}
                 </button>
                 <button
-                  onClick={() => { setShowConfig(false); setConfigForm({ access_key: '', siigo_username: '', siigo_access_key: '' }); }}
+                  onClick={() => {
+                    setShowConfig(false);
+                    setConfigForm({ access_key: '', siigo_username: '', siigo_access_key: '' });
+                  }}
                   className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200"
                 >
                   Cancelar
                 </button>
-              </div>
             </div>
-          )}
+          </div>
+        )}
+
+      <div className="pt-6 border-t border-gray-100 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-gray-900">Productos permitidos</h3>
+            <p className="text-sm text-gray-500">Define qué productos procesa el módulo y su cuenta contable</p>
+          </div>
+          <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-3">
+            {showConflictSummary && (
+              <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 9v4" />
+                  <path d="M12 17h.01" />
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                </svg>
+                <span>Conflictos detectados en las reglas activas.</span>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={resetProductRulesForm}
+                disabled={!hasProductRuleChanges || productRulesSaving}
+                className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200 disabled:opacity-50"
+              >
+                Restablecer
+              </button>
+              <button
+                onClick={saveProductRules}
+                disabled={!hasProductRuleChanges || productRulesSaving}
+                className="px-4 py-1.5 bg-gray-900 text-white text-sm rounded hover:bg-black disabled:opacity-50"
+              >
+                {productRulesSaving ? 'Guardando...' : 'Guardar reglas'}
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                const ensured = ensureFallbackRule(undefined, emptyGatewaySentinel);
+                if (ensured.length === productRulesDraft.length) {
+                  addProductRule();
+                } else {
+                  setProductRulesDraft(ensured);
+                  setHasProductRuleChanges(true);
+                  detectConflicts(ensured);
+                }
+              }}
+              className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+            >
+              Agregar regla
+            </button>
+          </div>
         </div>
-      )}
+
+        {ensureFallbackError && (
+          <div className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+            {ensureFallbackError}
+          </div>
+        )}
+        {productRulesDraft.length === 0 ? (
+          <div className="text-sm text-gray-500">No hay reglas configuradas.</div>
+        ) : (
+          <div className="space-y-3">
+            {productRulesDraft.map((rule, index) => {
+              const matcherValue = rule.matcher;
+              const gatewayValue = rule.gateway_matcher || '';
+              const normalizedGatewayValue =
+                gatewayValue === emptyGatewaySentinel
+                  ? emptyGatewaySentinel
+                  : gatewayValue.trim().toLowerCase() || 'any';
+              const normalizedMatcher = Array.isArray(matcherValue)
+                ? matcherValue.map((item) => item.toLowerCase()).sort().join(',')
+                : (matcherValue || '').toString().trim().toLowerCase();
+              const normalizedKey = `${normalizedMatcher || MATCH_ANY_SENTINEL}__${normalizedGatewayValue}`;
+              const conflictMessage = ruleConflicts[normalizedKey];
+              return (
+                <div
+                  key={getRuleKey(rule, index)}
+                  className={`border rounded-lg p-4 space-y-3 ${conflictMessage ? 'border-red-300 bg-red-50/50' : 'border-gray-200'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold text-gray-900">Regla #{index + 1}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-2 text-xs text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={rule.active !== false}
+                        onChange={() => toggleRuleActive(index)}
+                        className="rounded"
+                      />
+                      Activa
+                    </label>
+                     <button
+                       onClick={() => removeProductRule(index)}
+                       className="text-xs text-red-600 hover:text-red-700"
+                     >
+                       Eliminar
+                     </button>
+                  </div>
+                </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Productos permitidos</label>
+                      {availableProducts.length ? (
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                            <button
+                              type="button"
+                              onClick={() => updateRuleField(index, 'matcher', MATCH_ANY_SENTINEL)}
+                              className={`px-2 py-1 rounded border text-xs ${
+                                rule.matcher === MATCH_ANY_SENTINEL
+                                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                              }`}
+                            >
+                              Todos los productos
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateRuleField(index, 'matcher', [])}
+                              className={`px-2 py-1 rounded border text-xs ${
+                                Array.isArray(rule.matcher)
+                                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                              }`}
+                            >
+                              Seleccionar manualmente
+                            </button>
+                          </div>
+                          {Array.isArray(rule.matcher) ? (
+                            <div className="border border-gray-200 rounded-lg divide-y max-h-48 overflow-y-auto">
+                              {availableProducts.map((product) => {
+                                const selected = Array.isArray(rule.matcher) && rule.matcher.includes(product);
+                                return (
+                                  <label key={product} className="flex items-center justify-between px-3 py-2 text-sm text-gray-700">
+                                    <span className="pr-4 truncate" title={product}>
+                                      {product}
+                                    </span>
+                                    <input
+                                      type="checkbox"
+                                      checked={selected}
+                                      onChange={(e) => {
+                                        setProductRulesDraft((prev) => {
+                                          const next = prev.map((r, i) => {
+                                            if (i !== index) return r;
+                                            const current = Array.isArray(r.matcher) ? [...r.matcher] : [];
+                                            if (e.target.checked) {
+                                              if (!current.includes(product)) current.push(product);
+                                            } else {
+                                              const pos = current.indexOf(product);
+                                              if (pos >= 0) current.splice(pos, 1);
+                                            }
+                                            return { ...r, matcher: current };
+                                          });
+                                          setHasProductRuleChanges(true);
+                                          detectConflicts(next);
+                                          return next;
+                                        });
+                                      }}
+                                    />
+                                  </label>
+                                );
+                              })}
+                              {rule.matcher.length === 0 && (
+                                <div className="text-xs text-gray-500 px-3 py-2">
+                                  Selecciona al menos un producto para esta regla.
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500">
+                              Esta regla aplica para todos los productos registrados.
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <textarea
+                            value={Array.isArray(rule.matcher) ? rule.matcher.join('\n') : rule.matcher || ''}
+                            onChange={(e) => {
+                              const values = e.target.value
+                                .split(/\r?\n/)
+                                .map((v) => v.trim())
+                                .filter(Boolean);
+                              updateRuleField(index, 'matcher', values.length ? values : MATCH_ANY_SENTINEL);
+                            }}
+                            rows={4}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="BiuryBox Trimestre\nOtro producto"
+                          />
+                          <p className="text-[11px] text-gray-500">
+                            Si dejas este campo vacío, la regla aplicará para todos los productos.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Cuenta contable (Siigo)</label>
+                      <input
+                        type="text"
+                        value={rule.account_code || ''}
+                        onChange={(e) => updateRuleField(index, 'account_code', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+                        placeholder="11200501"
+                      />
+                      {(!rule.account_code || !rule.account_code.trim()) && (
+                        <p className="text-[11px] text-red-600 mt-1">
+                          Este campo es obligatorio para procesar el débito contable.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Gateway (opcional)</label>
+                      {availableGateways.length ? (
+                        <div className="relative">
+                          <select
+                            value={rule.gateway_matcher || ''}
+                            onChange={(e) => updateRuleField(index, 'gateway_matcher', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                          >
+                            <option value="">Cualquier gateway</option>
+                            {availableGateways.map((gateway) => (
+                              <option key={gateway} value={gateway}>
+                                {gateway === emptyGatewaySentinel ? FALLBACK_LABEL : gateway}
+                              </option>
+                            ))}
+                          </select>
+                          {rule.gateway_matcher === emptyGatewaySentinel && (
+                            <p className="text-[11px] text-blue-600 mt-1">
+                              Esta es la regla fallback obligatoria. No se puede desactivar.
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={rule.gateway_matcher || ''}
+                            onChange={(e) => updateRuleField(index, 'gateway_matcher', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            placeholder="wompi, mercadopago, etc"
+                          />
+                          <p className="text-[11px] text-gray-500">
+                            Deja el campo vacío para aplicar esta regla sin filtrar por gateway.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Descripción (opcional)</label>
+                    <input
+                      type="text"
+                      value={rule.description || ''}
+                      onChange={(e) => updateRuleField(index, 'description', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      placeholder="Ej: Trimestre Wompi"
+                    />
+                  </div>
+                </div>
+                {conflictMessage ? (
+                  <p className="text-xs text-red-600">{conflictMessage}</p>
+                ) : (
+                  <p className="text-xs text-gray-500">
+                    El matcher se evalúa por coincidencia parcial y no distingue mayúsculas. Selecciona "Sin gateway" para aplicar
+                    la regla cuando Treli no identifica el origen del pago.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+          </div>
+        )}
+      </div>
+    </div>
+  )}
 
       {activeTab === 'documentacion' && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-8">
@@ -1152,23 +1874,107 @@ modulos_biury_8_logs          Registros de pagos`}
               </div>
             </div>
             <div className="p-6 space-y-4">
-              {authResult ? (
+            {authResult ? (
                 <>
                   <div>
                     <p className="text-xs text-gray-500 uppercase mb-2">Request</p>
                     <pre className="bg-gray-900 text-gray-200 text-xs rounded-lg p-4 overflow-x-auto whitespace-pre-wrap">
-{typeof authResult === 'string' ? authResult : JSON.stringify(authResult.request || {}, null, 2)}
+{typeof authResult === 'string' ? authResult : JSON.stringify((authResult as Record<string, unknown>)?.request || {}, null, 2)}
                     </pre>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 uppercase mb-2">Response</p>
                     <pre className="bg-gray-900 text-gray-200 text-xs rounded-lg p-4 overflow-x-auto whitespace-pre-wrap">
-{typeof authResult === 'string' ? authResult : JSON.stringify(authResult.response || authResult, null, 2)}
+{typeof authResult === 'string' ? authResult : JSON.stringify((authResult as Record<string, unknown>)?.response || authResult, null, 2)}
                     </pre>
                   </div>
                 </>
               ) : (
                 <p className="text-sm text-gray-500">Sin respuesta</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {reprocessModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div
+              className={`sticky top-0 p-6 rounded-t-xl text-white ${
+                reprocessModal.status === 'success'
+                  ? 'bg-green-600'
+                  : reprocessModal.status === 'error'
+                    ? 'bg-red-600'
+                    : 'bg-blue-600'
+              }`}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-xl font-bold mb-1">{reprocessModal.title}</h2>
+                  <p className="text-white/80 text-sm">
+                    {reprocessModal.status === 'running'
+                      ? 'Procesando registros, esto puede tardar varios minutos...'
+                      : reprocessModal.summary}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {reprocessModal.status === 'running' && (
+                    <div className="flex items-center gap-2 text-sm text-white/80">
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                        <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" />
+                      </svg>
+                      En progreso
+                    </div>
+                  )}
+                  <button
+                    onClick={closeReprocessModal}
+                    className="text-white hover:bg-white/20 p-2 rounded-lg"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              {reprocessModal.results && reprocessModal.results.length > 0 ? (
+                <div className="border border-gray-100 rounded-lg divide-y divide-gray-100 max-h-[60vh] overflow-y-auto">
+                  {reprocessModal.results.map((result) => (
+                    <div key={`${result.payment_id}-${result.status}`} className="px-3 py-2 flex items-center justify-between text-sm">
+                      <div className="font-mono text-gray-700">{result.payment_id}</div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            result.status === 'success'
+                              ? 'bg-green-100 text-green-700'
+                              : result.status === 'filtered'
+                                ? 'bg-gray-100 text-gray-600'
+                                : result.status === 'already_processed'
+                                  ? 'bg-blue-100 text-blue-600'
+                                  : result.status === 'not_found'
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {result.status}
+                        </span>
+                        {result.message && (
+                          <span className="text-xs text-gray-500 max-w-[320px] truncate" title={result.message}>
+                            {result.message}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  {reprocessModal.status === 'running'
+                    ? 'El informe completo aparecerá aquí cuando termine.'
+                    : reprocessModal.summary}
+                </p>
               )}
             </div>
           </div>
