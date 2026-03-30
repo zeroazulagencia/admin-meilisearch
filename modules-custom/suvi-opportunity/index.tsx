@@ -425,7 +425,7 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Sincronizador Forms Web SUVI (Módulo 6)</h2>
             <p className="text-sm text-gray-500">
-              Recibe envíos por webhook (ventas o crédito), guarda en BD y permite variantes de formularios. Sin IA ni Meta. Variantes: Formulario proyecto (form[id]=b08bdc3), Interes crédito (form[id]=c197850). Misma estructura fields[Campo][value].
+              Recibe envíos por webhook (ventas o crédito), guarda en BD y permite variantes de formularios. Sin IA ni Meta. Variantes activas: Formulario proyecto (form[id]=b08bdc3), Interes crédito (form[id]=c197850), Landing Crédito (form[id]=ecbe21e) y Contacto web (form[id]=a98c5f6).
             </p>
           </div>
           <div>
@@ -433,7 +433,7 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
             <div className="space-y-3">
               {[
                 { paso: '01', titulo: 'Lead recibido', desc: 'POST al webhook /ventas o /credito. Se guarda el registro en modulos_suvi_6_opportunities con payload_raw y estado recibido. El tipo (ventas o crédito) viene del webhook usado.' },
-                { paso: '02', titulo: 'Organizar datos', desc: 'Se detecta la variante del formulario por form[id] y se extraen los campos del payload.\n\nVariantes registradas:\n• Formulario proyecto (form[id]=b08bdc3) — OK\n• Interes crédito (form[id]=c197850) — OK\n• Landing Crédito (form[id]=ecbe21e) — OK\n\nCampos: Formulario proyecto/Interes crédito usan FirstName, LastName, Email, MobilePhone, Pais_de_Residencia__c, Ciudad_de_Residencia__c, Proyecto.\nLanding Crédito usa name, field_78cc91b (apellido), email, message (teléfono), field_a27c238 (país). País sin prefijo se normaliza (ej. Colombia → Colombia(+57)).' },
+                { paso: '02', titulo: 'Organizar datos', desc: 'Se detecta la variante del formulario por form[id] y se extraen los campos del payload.\n\nVariantes registradas:\n• Formulario proyecto (form[id]=b08bdc3) — OK\n• Interes crédito (form[id]=c197850) — OK\n• Landing Crédito (form[id]=ecbe21e) — OK\n• Contacto web (form[id]=a98c5f6) — OK\n\nCampos: Formulario proyecto/Interes crédito usan FirstName, LastName, Email, MobilePhone, Pais_de_Residencia__c, Ciudad_de_Residencia__c, Proyecto.\nLanding Crédito usa name, field_78cc91b (apellido), email, message (teléfono), field_a27c238 (país). País sin prefijo se normaliza (ej. Colombia → Colombia(+57)).\nContacto web usa fields[name], fields[email], fields[tel], fields[message]; si no trae prefijo se infiere desde país/teléfono y se fuerza +1 como fallback.' },
                 { paso: '03', titulo: 'Cuenta en Salesforce', desc: 'Resolución inteligente: se buscan cuentas por email (Correo_Electr_nico__c) Y por teléfono (Phone). Si hay candidatos, se prioriza:\n1. La que tenga oportunidades asociadas.\n2. Si empatan, la más antigua (CreatedDate).\n3. Si empatan, email pesa más que teléfono.\nSe actualiza la cuenta ganadora con los datos nuevos (Name, Phone, Prefijo, Ciudad). Si no hay candidatos, se crea por UPSERT con email como External ID.' },
                 { paso: '04', titulo: 'Proyecto', desc: 'Si el payload trae un ID de Proyecto__c (ej. a04QU00000C6uyHYAR) se valida contra valid_project_ids y se usa directamente. Si trae un nombre, se busca por Name en SF. Si no hay match o viene vacío, fallback: se elige un Id al azar de valid_project_ids.' },
                 { paso: '05', titulo: 'Buscar oportunidad previa', desc: 'Se consulta en Salesforce si la cuenta (AccountId) ya tiene una Opportunity del mismo RecordType (ventas o crédito). Si existe, se reutiliza el OwnerId (asesor) de esa oportunidad para la nueva.' },
@@ -497,13 +497,12 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Webhooks</p>
             <pre className="bg-gray-900 text-gray-300 text-xs rounded-lg px-4 py-4 overflow-x-auto font-mono whitespace-pre">
-{`POST ${WEBHOOK_BASE}/ventas    Body: JSON o form-urlencoded. Se captura todo.
-POST ${WEBHOOK_BASE}/credito   Body: JSON o form-urlencoded. Se captura todo.
+{`POST ${WEBHOOK_BASE}/ventas    Body: JSON o form-urlencoded.
+POST ${WEBHOOK_BASE}/credito   Body: JSON o form-urlencoded.
 
-Sin headers ni validación de origen. Variante form Salesforce: se extraen
-fields[FirstName][value], fields[LastName][value], fields[Email][value],
-fields[MobilePhone][value], fields[Pais_de_Residencia__c][value],
-fields[Ciudad_de_Residencia__c][value], fields[Proyecto][value].`}
+Se admite carga plana o formato Elementor (fields[field][value]).
+Se detectan variantes por form[id] y se normalizan nombre/email/teléfono/
+prefijo (Contacto web ya queda soportado en crédito y ventas).`}
             </pre>
           </div>
           <div>

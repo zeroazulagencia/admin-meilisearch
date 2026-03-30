@@ -8,45 +8,57 @@ Recibe payload por webhook (ventas o crédito), crea/actualiza cuenta en Salesfo
 2. Asegurar que el módulo 6 use esta carpeta: `UPDATE modules SET folder_name = 'suvi-opportunity' WHERE id = 6;`
 - OAuth Salesforce se reutiliza del módulo 1 (mismo token en modulos_suvi_12_config).
 
-## Webhooks (solo GET)
+## Webhooks (POST)
 
 | Tipo    | URL |
 |---------|-----|
-| Ventas  | `GET https://workers.zeroazul.com/api/module-webhooks/6/ventas` |
-| Crédito | `GET https://workers.zeroazul.com/api/module-webhooks/6/credito` |
+| Ventas  | `POST https://workers.zeroazul.com/api/module-webhooks/6/ventas` |
+| Crédito | `POST https://workers.zeroazul.com/api/module-webhooks/6/credito` |
 
-- **Método:** solo **GET**. Los datos se envían en la **query string** (no hay body ni header de token).
-- **Origen permitido:** solo se aceptan peticiones cuyo **Referer** o **Origin** sea `https://suviviendainternacional.com` (p. ej. formularios o enlaces desde ese sitio). Cualquier otro origen recibe `403`.
+- **Método:** solo **POST**. Se acepta `application/json` o `application/x-www-form-urlencoded`.
+- **Origen permitido:** no se valida el `Referer`; la protección se realiza en Salesforce.
 
-### Parámetros (query string)
+### Payload
 
-Requeridos: **nombre**, **apellido**, **email** (o correo electrónico), **telefono** (o Teléfono/Celular).  
-Opcionales: **pais**, **indicativo**, **ciudad**, **proyecto** (nombre del proyecto en Salesforce).
+Enviar los campos del lead dentro del body. Se soportan dos formatos:
 
-### Ejemplo desde el dominio permitido
+1. **JSON plano** (`{ "nombre": "Juan", "apellido": "Pérez", ... }`).
+2. **Elementor / WordPress** (`fields[field][value]` o `fields[field]`).
 
-En la web de Suvivienda (suviviendainternacional.com) usar un enlace o formulario GET, por ejemplo:
+Campos mínimos: nombre, apellido, email y teléfono. Opcionales: país, indicativo, ciudad, nombre del proyecto y `form[id]` para identificar variantes.
 
-```
-https://workers.zeroazul.com/api/module-webhooks/6/ventas?nombre=Juan&apellido=Pérez&email=juan@ejemplo.com&telefono=3001234567&proyecto=MiProyecto
-```
-
-### Probar con curl (simulando Referer)
+### Ejemplo JSON
 
 ```bash
-curl -s -H "Referer: https://suviviendainternacional.com/" \
-  "https://workers.zeroazul.com/api/module-webhooks/6/ventas?nombre=Test&apellido=Uno&email=test@ejemplo.com&telefono=123456"
+curl -X POST "https://workers.zeroazul.com/api/module-webhooks/6/ventas" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "email": "juan@example.com",
+    "telefono": "+573001234567",
+    "pais": "Colombia",
+    "form[id]": "a98c5f6"
+  }'
 ```
 
-Sin el header Referer (o con otro dominio) la respuesta será `403`.
-
-Respuesta esperada al aceptar: `{"ok":true,"id":1,"tipo":"ventas"}` o similar.
-
-### Verificar que el webhook existe (sin datos)
+### Ejemplo form-urlencoded
 
 ```bash
-curl -s "https://workers.zeroazul.com/api/module-webhooks/6/ventas"
-# Sin Referer devolverá 403. Con Referer y sin params puede devolver error de validación o ok según implementación.
+curl -X POST "https://workers.zeroazul.com/api/module-webhooks/6/credito" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "fields[name]=Juan Pérez" \
+  --data-urlencode "fields[email]=juan@example.com" \
+  --data-urlencode "fields[tel]=+573001234567" \
+  --data-urlencode "form[id]=a98c5f6"
+```
+
+Respuesta esperada: `{"ok":true,"id":1,"tipo":"ventas"}` (cambiar tipo según ruta).
+
+Para verificar conectividad sin payload:
+
+```bash
+curl -X POST -s "https://workers.zeroazul.com/api/module-webhooks/6/ventas"
 ```
 
 ## Cómo verificar que llegaron los datos
@@ -56,9 +68,28 @@ curl -s "https://workers.zeroazul.com/api/module-webhooks/6/ventas"
    - Listar: `curl -s "https://workers.zeroazul.com/api/custom-module6/suvi-opportunity"`
    - Detalle: `curl -s "https://workers.zeroazul.com/api/custom-module6/suvi-opportunity/1"` (cambiar 1 por el id).
 
+## Variantes de formularios
+
+El módulo detecta la variante según `form[id]` y aplica reglas específicas para nombrar campos y calcular el prefijo telefónico (`indicativo`). Variantes activas:
+
+1. **Formulario proyecto** (`form[id]=b08bdc3`)
+   - Campos: `fields[FirstName][value]`, `fields[LastName][value]`, `fields[Email][value]`, `fields[MobilePhone][value]`, `fields[Pais_de_Residencia__c][value]`, `fields[Ciudad_de_Residencia__c][value]`, `fields[Proyecto][value]`.
+   - El país se guarda tal cual llega.
+2. **Interes crédito** (`form[id]=c197850`)
+   - Misma estructura que Formulario proyecto.
+3. **Landing Crédito** (`form[id]=ecbe21e`)
+   - Campos: `fields[name]`, `fields[field_78cc91b]` (apellido), `fields[email]`, `fields[message]` (teléfono), `fields[field_a27c238]` (país).
+   - El país se normaliza a `País(+indicativo)` usando un diccionario; si llega "Colombia" se convierte en `Colombia(+57)`.
+4. **Contacto web** (`form[id]=a98c5f6`)
+   - Campos: `fields[name]`, `fields[email]`, `fields[tel]`, `fields[message]` (comentarios). También incluye metadatos como `meta[page_url]`, `meta[user_agent]`, etc.
+   - Reglas especiales:
+     - Se divide el campo `name` en nombre y apellido (todo lo que esté después del primer espacio se convierte en apellido).
+     - Si no se recibe `indicativo`, se intenta derivar del país (`country`) o del teléfono (si trae prefijo como `+57`).
+     - Si no se detecta ningún prefijo, se asigna `1` por defecto para cumplir con Salesforce.
+
 ## Tablas
 
-- **modulos_suvi_6_opportunities**: registro por cada envío (email, nombre, apellido, tipo, estado, ids de Salesforce, etc.).
+- **modulos_suvi_6_opportunities**: registro por cada envío (email, nombre, apellido, tipo, estado, ids de Salesforce, forma variante, indicativo, etc.).
 - **modulos_suvi_6_config**: webhook_secret (no usado en GET), salesforce_group_id_ventas, salesforce_group_id_credito, record_type_ventas, record_type_credito, valid_project_ids.
 
 ## APIs del módulo
