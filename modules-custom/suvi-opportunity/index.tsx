@@ -29,6 +29,10 @@ interface Stats {
 interface SalesforceStatus {
   has_active_tokens: boolean;
   time_until_expiry_minutes: number | null;
+  connection_ok?: boolean | null;
+  connection_error?: string | null;
+  is_expired?: boolean;
+  verified_at?: string | null;
 }
 
 const BASE = '/api/custom-module6/suvi-opportunity';
@@ -52,6 +56,8 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
   const [detailData, setDetailData] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [reenviandoId, setReenviandoId] = useState<number | null>(null);
+  const [reinsercionId, setReinsercionId] = useState<number | null>(null);
+  const [eliminando, setEliminando] = useState(false);
   const [activeTab, setActiveTab] = useState<'oportunidades' | 'documentacion'>('oportunidades');
   const [salesforceStatus, setSalesforceStatus] = useState<SalesforceStatus | null>(null);
   const [batchProcessing, setBatchProcessing] = useState(false);
@@ -86,13 +92,28 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
     }
   };
 
-  const loadSalesforceStatus = async () => {
+  const loadSalesforceStatus = async (verify = false) => {
     try {
-      const res = await fetch('/api/oauth/salesforce/status');
+      const url = verify ? '/api/oauth/salesforce/status?verify=1' : '/api/oauth/salesforce/status';
+      const res = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       const data = await res.json();
       setSalesforceStatus(data);
+      if (verify) {
+        if (data.connection_ok) {
+          alert('Salesforce verificado correctamente');
+        } else if (data.connection_ok === false) {
+          alert(`Error verificando Salesforce: ${data.connection_error || 'desconocido'}`);
+        }
+      }
     } catch (e) {
       console.error('Error cargando estado Salesforce:', e);
+      if (verify) alert('No se pudo verificar Salesforce');
     }
   };
 
@@ -162,6 +183,54 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
     }
   };
 
+  const reinsertar = async (id: number) => {
+    try {
+      setReinsercionId(id);
+      const res = await fetch(`${BASE}/reinsert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        alert(json.error || 'No se pudo reinsertar el lead');
+        return;
+      }
+      alert(`Lead reinsertado como #${json.id}`);
+      await load();
+    } catch (e) {
+      console.error(e);
+      alert('Error reinsertando lead');
+    } finally {
+      setReinsercionId(null);
+    }
+  };
+
+  const eliminarLead = async (id: number) => {
+    if (!confirm(`¿Eliminar el registro #${id}?`)) return;
+    try {
+      setEliminando(true);
+      const res = await fetch(`${BASE}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [id] }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        alert(json.error || 'No se pudo eliminar');
+        return;
+      }
+      alert('Lead eliminado');
+      setDetailId(null);
+      await load();
+    } catch (e) {
+      console.error(e);
+      alert('Error eliminando lead');
+    } finally {
+      setEliminando(false);
+    }
+  };
+
   const closeDetail = () => {
     setDetailId(null);
     setDetailData(null);
@@ -227,8 +296,8 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
           {/* ROW 1: Salesforce Status + Estadísticas */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between gap-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#5DE1E5] rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#5DE1E5] rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
@@ -239,20 +308,23 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
                     <>
                       {salesforceStatus.has_active_tokens ? (
                         <>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Conectado
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${salesforceStatus.connection_ok === false || salesforceStatus.is_expired ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                            {salesforceStatus.connection_ok === false || salesforceStatus.is_expired ? 'Desconectado' : 'Conectado'}
                           </span>
-                          {salesforceStatus.time_until_expiry_minutes !== null && (
+                          {salesforceStatus.time_until_expiry_minutes !== null && !salesforceStatus.is_expired && (
                             <span className="text-xs text-gray-500">
                               ({salesforceStatus.time_until_expiry_minutes}m)
                             </span>
                           )}
-                          <button
-                            onClick={loadSalesforceStatus}
-                            className="text-xs text-gray-500 hover:text-gray-700 underline ml-1"
-                          >
-                            verificar
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => loadSalesforceStatus(true)}
+                              className="text-xs text-gray-500 hover:text-gray-700 underline"
+                            >
+                              verificar
+                            </button>
+                            <span className="text-[10px] text-gray-400">{salesforceStatus.verified_at ? new Date(salesforceStatus.verified_at).toLocaleTimeString() : ''}</span>
+                          </div>
                           <button
                             onClick={connectSalesforce}
                             className="px-3 py-1 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs font-semibold ml-2"
@@ -346,9 +418,9 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
               </button>
               <button
                 onClick={processAllIncomplete}
-                disabled={batchProcessing || !salesforceStatus?.has_active_tokens}
+                disabled={batchProcessing || !salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired || salesforceStatus?.connection_ok === false}
                 className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                title={!salesforceStatus?.has_active_tokens ? 'Conecta Salesforce primero' : 'Reprocesar todos los leads con error'}
+                title={!salesforceStatus?.has_active_tokens ? 'Conecta Salesforce primero' : salesforceStatus?.is_expired ? 'Reconecta Salesforce primero' : salesforceStatus?.connection_ok === false ? 'Verifica Salesforce primero' : 'Reprocesar todos los leads con error'}
               >
                 {batchProcessing ? 'Procesando...' : 'Procesar Todos'}
               </button>
@@ -537,14 +609,32 @@ modulos_suvi_6_config           Config (webhook_secret, salesforce_group_id_vent
                 </div>
                 <div className="flex items-center gap-2">
                   {detailId != null && (
-                    <button
-                      type="button"
-                      onClick={() => reenviar(detailId)}
-                      disabled={reenviandoId === detailId}
-                      className="px-4 py-2 bg-gray-800 text-white text-sm rounded hover:bg-gray-700 disabled:opacity-50"
-                    >
-                      {reenviandoId === detailId ? 'Enviando...' : 'Reenviar'}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => reenviar(detailId)}
+                        disabled={reenviandoId === detailId}
+                        className="px-4 py-2 bg-gray-800 text-white text-sm rounded hover:bg-gray-700 disabled:opacity-50"
+                      >
+                        {reenviandoId === detailId ? 'Enviando...' : 'Reenviar'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => reinsertar(detailId)}
+                        disabled={reinsercionId === detailId}
+                        className="px-4 py-2 bg-white border border-gray-300 text-sm rounded hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        {reinsercionId === detailId ? 'Reinsertando...' : 'Reinsertar lead'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => eliminarLead(detailId)}
+                        disabled={eliminando}
+                        className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 text-sm rounded hover:bg-red-100 disabled:opacity-50"
+                      >
+                        {eliminando ? 'Eliminando...' : 'Eliminar'}
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={closeDetail}

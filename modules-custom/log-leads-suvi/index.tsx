@@ -46,6 +46,9 @@ interface SalesforceStatus {
   instance_url: string | null;
   is_expired: boolean;
   time_until_expiry_minutes: number | null;
+  connection_ok?: boolean | null;
+  connection_error?: string | null;
+  verified_at?: string | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -338,9 +341,10 @@ export default function LogLeadsSUVI() {
     }
   };
 
-  const loadSalesforceStatus = async () => {
+  const loadSalesforceStatus = async (verify = false) => {
     try {
-      const res = await fetch('/api/oauth/salesforce/status', {
+      const url = verify ? '/api/oauth/salesforce/status?verify=1' : '/api/oauth/salesforce/status';
+      const res = await fetch(url, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -349,8 +353,16 @@ export default function LogLeadsSUVI() {
       });
       const data = await res.json();
       setSalesforceStatus(data);
+      if (verify) {
+        if (data.connection_ok) {
+          alert('Salesforce verificado correctamente');
+        } else if (data.connection_ok === false) {
+          alert(`Error verificando Salesforce: ${data.connection_error || 'desconocido'}`);
+        }
+      }
     } catch (e) {
       console.error('Error cargando estado Salesforce:', e);
+      if (verify) alert('No se pudo verificar Salesforce');
     }
   };
 
@@ -951,7 +963,7 @@ export default function LogLeadsSUVI() {
               <span className="text-sm font-medium text-gray-700">Salesforce:</span>
               {salesforceStatus ? (
                 <>
-                  {salesforceStatus.has_active_tokens && !salesforceStatus.is_expired ? (
+                  {salesforceStatus.has_active_tokens && salesforceStatus.connection_ok !== false && !salesforceStatus.is_expired ? (
                     <>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Conectado
@@ -961,23 +973,26 @@ export default function LogLeadsSUVI() {
                           ({salesforceStatus.time_until_expiry_minutes}m)
                         </span>
                       )}
-                      <button
-                        onClick={loadSalesforceStatus}
-                        className="text-xs text-gray-500 hover:text-gray-700 underline ml-1"
-                      >
-                        verificar
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => loadSalesforceStatus(true)}
+                          className="text-xs text-gray-500 hover:text-gray-700 underline"
+                        >
+                          verificar
+                        </button>
+                        <span className="text-[10px] text-gray-400">{salesforceStatus.verified_at ? new Date(salesforceStatus.verified_at).toLocaleTimeString() : ''}</span>
+                      </div>
                     </>
                   ) : (
                     <>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        {salesforceStatus.is_expired ? 'Expirado' : 'No conectado'}
+                        {salesforceStatus.connection_ok === false ? 'Sesión inválida' : salesforceStatus.is_expired ? 'Expirado' : 'No conectado'}
                       </span>
                       <button
-                        onClick={connectSalesforce}
+                        onClick={salesforceStatus.connection_ok === false ? () => loadSalesforceStatus(true) : connectSalesforce}
                         className="px-3 py-1 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#5DE1E5]-dark transition-colors text-xs font-semibold ml-2"
                       >
-                        {salesforceStatus.is_expired ? 'Reconectar' : 'Conectar'}
+                        {salesforceStatus.connection_ok === false ? 'Reintentar' : salesforceStatus.is_expired ? 'Reconectar' : 'Conectar'}
                       </button>
                     </>
                   )}
@@ -1061,9 +1076,9 @@ export default function LogLeadsSUVI() {
           </button>
           <button
             onClick={processAllIncomplete}
-            disabled={batchProcessing || !salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired}
+            disabled={batchProcessing || !salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired || salesforceStatus?.connection_ok === false}
             className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            title={!salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired ? 'Reconecta Salesforce primero' : 'Procesar todos los leads incompletos'}
+            title={!salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired ? 'Reconecta Salesforce primero' : salesforceStatus?.connection_ok === false ? 'Verifica Salesforce primero' : 'Procesar todos los leads incompletos'}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -1408,7 +1423,7 @@ export default function LogLeadsSUVI() {
                       )}
                       
                       {/* Botón para procesar en Salesforce */}
-                      {selectedLead.ai_enriched_data && salesforceStatus?.has_active_tokens && !salesforceStatus?.is_expired && selectedLead.processing_status !== 'omitido_interno' && (
+                      {selectedLead.ai_enriched_data && salesforceStatus?.has_active_tokens && !salesforceStatus?.is_expired && salesforceStatus?.connection_ok !== false && selectedLead.processing_status !== 'omitido_interno' && (
                         <button
                           onClick={() => processSalesforce(selectedLead.id)}
                           disabled={processingSalesforce}

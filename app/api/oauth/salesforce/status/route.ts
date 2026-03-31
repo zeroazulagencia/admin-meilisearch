@@ -3,7 +3,7 @@
  * OAuth Salesforce: Verificar estado de autenticación
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { hasOAuthCredentials, hasActiveTokens, refreshAccessToken } from '@/utils/modulos/suvi-leads/module1-salesforce-oauth';
+import { hasOAuthCredentials, hasActiveTokens, refreshAccessToken, getSalesforceTokens } from '@/utils/modulos/suvi-leads/module1-salesforce-oauth';
 import { getConfig } from '@/utils/modulos/suvi-leads/module1-config';
 
 // Marcar como ruta dinámica
@@ -12,8 +12,10 @@ export const dynamic = 'force-dynamic';
 // GET - Verificar estado de OAuth
 export async function GET(request: NextRequest) {
   try {
+    const url = new URL(request.url);
+    const verifyConnection = url.searchParams.get('verify') === '1';
     const hasCredentials = await hasOAuthCredentials();
-    const hasTokens = await hasActiveTokens();
+    let hasTokens = await hasActiveTokens();
     
     let instanceUrl = await getConfig('salesforce_instance_url');
     let tokenExpiry = await getConfig('salesforce_token_expiry');
@@ -35,6 +37,44 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    let connectionOk: boolean | null = null;
+    let connectionError: string | null = null;
+    let verifiedAt: string | null = null;
+    let verificationMs: number | null = null;
+
+    if (hasTokens && verifyConnection) {
+      const started = Date.now();
+      try {
+        const { accessToken, instanceUrl: verifiedInstance } = await getSalesforceTokens();
+        instanceUrl = verifiedInstance;
+        const healthRes = await fetch(`${verifiedInstance}/services/data/v60.0/limits`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        verifiedAt = new Date().toISOString();
+        verificationMs = Date.now() - started;
+        if (healthRes.ok) {
+          connectionOk = true;
+        } else {
+          connectionOk = false;
+          connectionError = `Salesforce ${healthRes.status}`;
+          if (healthRes.status === 401 || healthRes.status === 403) {
+            isExpired = true;
+            hasTokens = false;
+          }
+        }
+      } catch (err: any) {
+        verifiedAt = new Date().toISOString();
+        verificationMs = Date.now() - started;
+        connectionOk = false;
+        connectionError = err?.message || 'Error verificando conexión';
+        isExpired = true;
+        hasTokens = false;
+      }
+    }
+
     return NextResponse.json({
       oauth_configured: hasCredentials,
       has_active_tokens: hasTokens,
@@ -43,6 +83,10 @@ export async function GET(request: NextRequest) {
       token_expiry: tokenExpiry ? new Date(parseInt(tokenExpiry)).toISOString() : null,
       is_expired: isExpired,
       time_until_expiry_minutes: tokenExpiry ? Math.floor((parseInt(tokenExpiry) - Date.now()) / 60000) : null,
+      connection_ok: connectionOk,
+      connection_error: connectionError,
+      verified_at: verifiedAt,
+      verification_ms: verificationMs,
     });
   } catch (error: any) {
     console.error('[OAUTH] Error verificando estado:', error);
