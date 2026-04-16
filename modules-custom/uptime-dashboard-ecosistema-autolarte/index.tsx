@@ -537,32 +537,34 @@ export default function UptimeDashboard() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="container mx-auto px-4 py-8 pb-20">
-        <header className="mb-8 flex justify-between items-start">
+        <header className="mb-6 flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Autolarte</h1>
             <p className="text-gray-600">Panel de Status de Servicios</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveTab('status')}
-              className={`px-3 py-1 text-sm rounded ${activeTab === 'status' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 border'}`}
-            >
-              Status
-            </button>
-            <button
-              onClick={() => setActiveTab('config')}
-              className={`px-3 py-1 text-sm rounded ${activeTab === 'config' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 border'}`}
-            >
-              Config
-            </button>
-            <button
-              onClick={() => setActiveTab('docs')}
-              className={`px-3 py-1 text-sm rounded ${activeTab === 'docs' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 border'}`}
-            >
-              Docs
-            </button>
-          </div>
         </header>
+
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex gap-6">
+            {([
+              { id: 'status', label: 'Status' },
+              { id: 'config', label: 'Configuracion' },
+              { id: 'docs', label: 'Documentacion' },
+            ] as const).map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-3 px-1 border-b-2 text-sm font-semibold transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-[#5DE1E5] text-[#5DE1E5]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
 
         {activeTab === 'status' && (
           <>

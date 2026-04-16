@@ -164,7 +164,7 @@ async function checkCartaLaboral(cartaUrl: string, timeout: number = 30, nit: st
       signal: AbortSignal.timeout(10000)
     });
     const sighaCode = sighaResponse.status;
-    const sighaOk = sighaCode >= 200 && sighaCode < 300;
+    const sighaOk = (sighaCode >= 200 && sighaCode < 300) || sighaCode === 201;
     checks.push({
       label: '2) Sigha',
       ok: sighaOk,
