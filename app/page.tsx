@@ -322,7 +322,7 @@ export default function Home() {
       </main>
 
       <section id="aliado" className="py-20 bg-gray-50 border-t border-gray-200">
-        <div className="max-w-full mx-auto text-center px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <p className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#5DE1E5' }}>TU ALIADO</p>
           <p className="text-lg text-gray-600 mb-12 max-w-2xl mx-auto">Creamos agentes de inteligencia artificial para empresas que necesitan liberar tiempo, reducir friccion operativa y mantener procesos en movimiento sin depender de seguimiento manual en cada paso.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
@@ -385,7 +385,7 @@ export default function Home() {
       </main>
 
       <section className="py-16 border-t border-gray-200" style={{ backgroundColor: '#5DE1E5' }}>
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h3 className="text-center text-xl font-semibold text-gray-900 mb-10">El impacto de nuestros agentes en cifras</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             {stats.map((stat, i) => (
@@ -399,7 +399,7 @@ export default function Home() {
       </section>
 
       <section className="py-20 bg-gray-50 border-t border-gray-200">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <p className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#5DE1E5' }}>IMPACTO REAL</p>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Libera a tu equipo para lo importante</h2>
