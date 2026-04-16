@@ -238,7 +238,11 @@ async function checkConocimientoIntranet(baseUrl: string, timeout: number = 15, 
       signal: AbortSignal.timeout((timeout - 5) * 1000)
     });
     const apiOk = response.status >= 200 && response.status < 400;
-    checks.push({ label: '2) API Intranet', ok: apiOk, url, error: apiOk ? null : `status_code=${response.status}`, status_code: response.status });
+    let intranetError = apiOk ? null : `status_code=${response.status}`;
+    if (response.status === 418) {
+      intranetError = 'Bloqueado por firewall (418). Whitelistear IP 89.167.79.168 en el hosting de Intranet';
+    }
+    checks.push({ label: '2) API Intranet', ok: apiOk, url, error: intranetError, status_code: response.status });
   } catch (e: any) {
     checks.push({ label: '2) API Intranet', ok: false, url: baseUrl, error: e.message, status_code: null });
   }
