@@ -272,7 +272,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-xl" style={{ color: '#5DE1E5' }}>WORKERS</span>
+              <span className="font-bold text-xl text-gray-900">WORKERS</span>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#5DE1E5' }}></span>
             </div>
             <nav className="hidden md:flex space-x-8 items-center">
               <a href="#metodologia" className="text-gray-600 hover:text-gray-900 transition-colors">Metodologia</a>
@@ -379,21 +380,43 @@ export default function Home() {
             </div>
           </div>
         </section>
+      </main>
 
-        <section className="py-16 border-t border-gray-200" style={{ backgroundColor: '#5DE1E5' }}>
-          <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-            <h3 className="text-center text-xl font-semibold text-gray-900 mb-10">El impacto de nuestros agentes en cifras</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-              {stats.map((stat, i) => (
-                <div key={i}>
-                  <p className="text-5xl font-bold text-gray-900 mb-2">{stat.value}</p>
-                  <p className="text-gray-800 font-medium">{stat.label}</p>
-                </div>
-              ))}
+      <section className="py-16 border-t border-gray-200" style={{ backgroundColor: '#5DE1E5' }}>
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+          <h3 className="text-center text-xl font-semibold text-gray-900 mb-10">El impacto de nuestros agentes en cifras</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            {stats.map((stat, i) => (
+              <div key={i}>
+                <p className="text-5xl font-bold text-gray-900 mb-2">{stat.value}</p>
+                <p className="text-gray-800 font-medium">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20 bg-gray-50 border-t border-gray-200">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#5DE1E5' }}>IMPACTO REAL</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Libera a tu equipo para lo importante</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">Cuando contratas agentes de inteligencia artificial, tu empresa deja de gastar energia en tareas repetitivas y empieza a enfocarse mas en control, estrategia, servicio y crecimiento.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 mb-3">Menos cuellos de botella</h3>
+              <p className="text-gray-600">Los agentes sostienen procesos, reducen esperas innecesarias y ayudan a que la operacion siga avanzando sin tantos puntos de friccion.</p>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 mb-3">Mas tiempo para el equipo</h3>
+              <p className="text-gray-600">Al sacar de encima tareas manuales y repetitivas, las personas pueden enfocarse en supervisar, resolver y aportar mas valor.</p>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <section id="metodologia" className="py-20 bg-white border-t border-gray-200">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
@@ -426,26 +449,6 @@ export default function Home() {
             </div>
             <div className="text-center mt-10">
               <button onClick={() => setShowContactModal(true)} className="text-gray-900 px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md" style={{ backgroundColor: '#5DE1E5' }}>Agendar Demo</button>
-            </div>
-          </div>
-        </section>
-
-        <section className="py-20 bg-gray-50 border-t border-gray-200">
-          <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#5DE1E5' }}>IMPACTO REAL</p>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Libera a tu equipo para lo importante</h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">Cuando contratas agentes de inteligencia artificial, tu empresa deja de gastar energia en tareas repetitivas y empieza a enfocarse mas en control, estrategia, servicio y crecimiento.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">Menos cuellos de botella</h3>
-                <p className="text-gray-600">Los agentes sostienen procesos, reducen esperas innecesarias y ayudan a que la operacion siga avanzando sin tantos puntos de friccion.</p>
-              </div>
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">Mas tiempo para el equipo</h3>
-                <p className="text-gray-600">Al sacar de encima tareas manuales y repetitivas, las personas pueden enfocarse en supervisar, resolver y aportar mas valor.</p>
-              </div>
             </div>
           </div>
         </section>
