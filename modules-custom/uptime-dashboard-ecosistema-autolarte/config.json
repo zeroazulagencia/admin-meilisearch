@@ -1,0 +1,7 @@
+{
+  "name": "Uptime Dashboard - Ecosistema Autolarte",
+  "version": "1.0.0",
+  "description": "Panel de status de servicios del ecosistema Autolarte: sincronizador CRM, agente Lucas, VCARDs, web y seguridad, sistema de pago",
+  "author": "Zero Azul / DWORKERS",
+  "icon": "dashboard"
+}
