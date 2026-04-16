@@ -319,25 +319,27 @@ export default function Home() {
             </div>
           </div>
         </div>
+      </main>
 
-        <section id="aliado" className="py-20 bg-gray-50 border-t border-gray-200">
-          <div className="max-w-full mx-auto text-center px-4 sm:px-6 lg:px-8">
-            <p className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#5DE1E5' }}>TU ALIADO</p>
-            <p className="text-lg text-gray-600 mb-12 max-w-2xl mx-auto">Creamos agentes de inteligencia artificial para empresas que necesitan liberar tiempo, reducir friccion operativa y mantener procesos en movimiento sin depender de seguimiento manual en cada paso.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">Lo que nos diferencia</h3>
-                <p className="text-gray-600">No solo desarrollamos asistentes sueltos. Disenamos agentes especializados que ejecutan funciones reales dentro de tu operacion, coordinan tareas, consultan informacion y ayudan a que el trabajo avance sin detenerse.</p>
-              </div>
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">Integramos agentes a tu realidad operativa</h3>
-                <p className="text-gray-600">Nuestros agentes pueden conectarse con APIs, bases de datos, ERPs, CRMs, herramientas internas, plataformas de produccion, inventario y atencion para operar dentro de tus flujos actuales.</p>
-              </div>
+      <section id="aliado" className="py-20 bg-gray-50 border-t border-gray-200">
+        <div className="max-w-full mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <p className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#5DE1E5' }}>TU ALIADO</p>
+          <p className="text-lg text-gray-600 mb-12 max-w-2xl mx-auto">Creamos agentes de inteligencia artificial para empresas que necesitan liberar tiempo, reducir friccion operativa y mantener procesos en movimiento sin depender de seguimiento manual en cada paso.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 mb-3">Lo que nos diferencia</h3>
+              <p className="text-gray-600">No solo desarrollamos asistentes sueltos. Disenamos agentes especializados que ejecutan funciones reales dentro de tu operacion, coordinan tareas, consultan informacion y ayudan a que el trabajo avance sin detenerse.</p>
             </div>
-            <button onClick={() => setShowContactModal(true)} className="mt-10 text-gray-900 px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md" style={{ backgroundColor: '#5DE1E5' }}>Agendar Demo</button>
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 mb-3">Integramos agentes a tu realidad operativa</h3>
+              <p className="text-gray-600">Nuestros agentes pueden conectarse con APIs, bases de datos, ERPs, CRMs, herramientas internas, plataformas de produccion, inventario y atencion para operar dentro de tus flujos actuales.</p>
+            </div>
           </div>
-        </section>
+          <button onClick={() => setShowContactModal(true)} className="mt-10 text-gray-900 px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md" style={{ backgroundColor: '#5DE1E5' }}>Agendar Demo</button>
+        </div>
+      </section>
 
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <section id="portafolio" className="py-20 bg-white border-t border-gray-200">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
