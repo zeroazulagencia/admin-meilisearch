@@ -236,10 +236,11 @@ async function checkConocimientoGeneral(url: string, timeout: number = 15): Prom
       hybrid: { embedder: 'openai' }
     });
 
+    const bearer = await getModuleConfig('meilisearch_bearer') || 'Seph1rot*.*Cloud';
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer Seph1rot*.*Cloud',
+        'Authorization': `Bearer ${bearer}`,
         'Content-Type': 'application/json'
       },
       body,
@@ -471,10 +472,11 @@ async function checkConocimientoIntranet(baseUrl: string, timeout: number = 15, 
 
   try {
     const url = `${baseUrl}?search=${encodeURIComponent(search)}`;
+    const intranetAuth = await getModuleConfig('intranet_basic_auth') || 'emVyb2F6dWw6SzkjbVA3JHZMMkBuUTUheFI4';
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': 'Basic emVyb2F6dWw6SzkjbVA3JHZMMkBuUTUheFI4',
+        'Authorization': `Basic ${intranetAuth}`,
         'Accept': 'application/json'
       },
       signal: AbortSignal.timeout((timeout - 5) * 1000)
@@ -527,10 +529,11 @@ async function checkBirthdaySearch(baseUrl: string, timeout: number = 15): Promi
   const month = new Date().getMonth() + 1;
   try {
     const url = `${baseUrl}/${month}/`;
+    const tarjetavAuth = await getModuleConfig('tarjetav_basic_auth') || 'YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==';
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': 'Basic YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==',
+        'Authorization': `Basic ${tarjetavAuth}`,
         'Accept': 'application/json'
       },
       signal: AbortSignal.timeout((timeout - 5) * 1000)
@@ -567,10 +570,11 @@ async function checkDatosUsuarios(url: string, timeout: number = 15): Promise<an
   const startTime = Date.now();
   try {
     const body = JSON.stringify({ search: 'Juan ballesteros' });
+    const tarjetavAuth = await getModuleConfig('tarjetav_basic_auth') || 'YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==';
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==',
+        'Authorization': `Basic ${tarjetavAuth}`,
         'Content-Type': 'application/json'
       },
       body,
@@ -598,10 +602,11 @@ async function checkDatosUsuarios(url: string, timeout: number = 15): Promise<an
 async function checkVcardsSearch(url: string, timeout: number = 15): Promise<any> {
   const startTime = Date.now();
   let searchName = 'test';
+  const tarjetavAuth = await getModuleConfig('tarjetav_basic_auth') || 'YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==';
 
   try {
     const vcardsResponse = await fetch('https://tarjetav.co/api/vcards?order=random', {
-      headers: { 'Authorization': 'Basic YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==' },
+      headers: { 'Authorization': `Basic ${tarjetavAuth}` },
       signal: AbortSignal.timeout(10000)
     });
     const vcards = await vcardsResponse.json().catch(() => []);
@@ -616,7 +621,7 @@ async function checkVcardsSearch(url: string, timeout: number = 15): Promise<any
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==',
+        'Authorization': `Basic ${tarjetavAuth}`,
         'Content-Type': 'application/json'
       },
       body,
@@ -643,11 +648,12 @@ async function checkVcardsSearch(url: string, timeout: number = 15): Promise<any
 
 async function checkFormularioVcard(baseUrl: string, timeout: number = 15): Promise<any> {
   const startTime = Date.now();
+  const tarjetavAuth = await getModuleConfig('tarjetav_basic_auth') || 'YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==';
 
   let vcardId: string | null = null;
   try {
     const vcardsResponse = await fetch('https://tarjetav.co/api/vcards?order=random', {
-      headers: { 'Authorization': 'Basic YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==' },
+      headers: { 'Authorization': `Basic ${tarjetavAuth}` },
       signal: AbortSignal.timeout(10000)
     });
     const vcards = await vcardsResponse.json().catch(() => []);

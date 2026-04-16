@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import { getModuleConfig } from '@/modules-custom/uptime-dashboard-ecosistema-autolarte/utils/config';
 
 export async function GET() {
   try {
+    const tarjetavAuth = await getModuleConfig('tarjetav_basic_auth') || 'YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==';
     const response = await fetch('https://tarjetav.co/api/vcards?order=random&limit=1', {
-      headers: { 'Authorization': 'Basic YXV0b2xhcnRlQHplcm9henVsLmNvbTpaZXJvMTIzKg==' },
+      headers: { 'Authorization': `Basic ${tarjetavAuth}` },
       signal: AbortSignal.timeout(15000)
     });
 

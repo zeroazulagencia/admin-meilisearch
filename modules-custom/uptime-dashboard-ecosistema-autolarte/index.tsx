@@ -362,6 +362,54 @@ function ConfigTab() {
             />
           </div>
         </div>
+
+        <h3 className="font-semibold text-gray-800 pt-4">Meilisearch / Conocimiento</h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Bearer Token</label>
+          <input
+            type="password"
+            value={config['meilisearch_bearer'] || ''}
+            onChange={e => setConfig({ ...config, 'meilisearch_bearer': e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+            placeholder="token"
+          />
+        </div>
+
+        <h3 className="font-semibold text-gray-800 pt-4">Tarjetav.co API</h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Basic Auth (Base64)</label>
+          <input
+            type="password"
+            value={config['tarjetav_basic_auth'] || ''}
+            onChange={e => setConfig({ ...config, 'tarjetav_basic_auth': e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+            placeholder="Base64 encoded credentials"
+          />
+        </div>
+
+        <h3 className="font-semibold text-gray-800 pt-4">Intranet API</h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Basic Auth (Base64)</label>
+          <input
+            type="password"
+            value={config['intranet_basic_auth'] || ''}
+            onChange={e => setConfig({ ...config, 'intranet_basic_auth': e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+            placeholder="Base64 encoded credentials"
+          />
+        </div>
+
+        <h3 className="font-semibold text-gray-800 pt-4">Carta Laboral</h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+          <input
+            type="password"
+            value={config['carta_api_key'] || ''}
+            onChange={e => setConfig({ ...config, 'carta_api_key': e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+            placeholder="API key"
+          />
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

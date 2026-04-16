@@ -50,6 +50,10 @@ export interface ModuleCredentials {
   sigha_clave: string | null;
   outlook_client_id: string | null;
   outlook_client_secret: string | null;
+  meilisearch_bearer: string | null;
+  tarjetav_basic_auth: string | null;
+  intranet_basic_auth: string | null;
+  carta_api_key: string | null;
 }
 
 export async function getCredentials(): Promise<ModuleCredentials> {
@@ -59,6 +63,10 @@ export async function getCredentials(): Promise<ModuleCredentials> {
     sigha_email: config['sigha_email'] ?? null,
     sigha_clave: config['sigha_clave'] ?? null,
     outlook_client_id: config['outlook_client_id'] ?? null,
-    outlook_client_secret: config['outlook_client_secret'] ?? null
+    outlook_client_secret: config['outlook_client_secret'] ?? null,
+    meilisearch_bearer: config['meilisearch_bearer'] ?? null,
+    tarjetav_basic_auth: config['tarjetav_basic_auth'] ?? null,
+    intranet_basic_auth: config['intranet_basic_auth'] ?? null,
+    carta_api_key: config['carta_api_key'] ?? null
   };
 }
