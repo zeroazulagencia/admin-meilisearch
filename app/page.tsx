@@ -264,7 +264,7 @@ export default function Home() {
     { category: 'DATOS', title: 'Analista de Datos Operativos', description: 'Convierte grandes volumenes de informacion en alertas, reportes y senales utiles para detectar problemas, seguir indicadores y tomar mejores decisiones.' }
   ];
 
-  const textHighlights = ['AGENTES IA', 'AUTOMATIZACION', 'OPERACION 24/7', 'MENOS CUELLOS DE BOTELLA'];
+  const textHighlights = ['AUTOMATIZACION', 'OPERACION 24/7', 'MENOS CUELLOS DE BOTELLA'];
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
@@ -291,7 +291,9 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[calc(100vh-4rem)] py-8 lg:py-12">
           <div className="space-y-8">
             <div className="space-y-4">
-              <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight">AGENCIA DE AGENTES IA</h1>
+              <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight">
+                Contrata Agentes <span className="border-b-4 border-[#5DE1E5]">IA y Libera</span> tu Operacion
+              </h1>
               <p className="text-xl sm:text-2xl font-semibold text-gray-800">Contrata agentes y libera tu operacion de tareas repetitivas</p>
               <p className="text-base sm:text-lg text-gray-600 leading-relaxed">Escala tu empresa con agentes de inteligencia artificial que ejecutan tareas, sostienen procesos, reducen cuellos de botellas y mantienen tu operacion activa mientras tu equipo se concentra en lo que realmente mueve el negocio.</p>
             </div>
@@ -302,7 +304,7 @@ export default function Home() {
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
               <button onClick={() => setShowContactModal(true)} className="text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all text-center shadow-md" style={{ backgroundColor: '#5DE1E5' }}>Agendar Demo</button>
-              <a href="#metodologia" className="bg-gray-200 text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-center">Saber mas</a>
+              <a href="#metodologia" className="bg-gray-900 text-white px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors text-center">Saber mas</a>
             </div>
           </div>
           <div className="hidden lg:block relative">
@@ -318,9 +320,8 @@ export default function Home() {
         </div>
 
         <section id="aliado" className="py-20 bg-gray-50 border-t border-gray-200">
-          <div className="max-w-4xl mx-auto text-center">
+          <div className="max-w-full mx-auto text-center px-4 sm:px-6 lg:px-8">
             <p className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#5DE1E5' }}>TU ALIADO</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">Una agencia para escalar tu operacion</h2>
             <p className="text-lg text-gray-600 mb-12 max-w-2xl mx-auto">Creamos agentes de inteligencia artificial para empresas que necesitan liberar tiempo, reducir friccion operativa y mantener procesos en movimiento sin depender de seguimiento manual en cada paso.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -345,7 +346,29 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {portfolioCards.map((card, i) => (
                 <div key={i} className="bg-gray-50 rounded-xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#5DE1E5' }}>{card.category}</p>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#5DE1E5' }}>
+                      {card.category === 'OPERACION' && (
+                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                      )}
+                      {card.category === 'PRODUCCION' && (
+                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                      )}
+                      {card.category === 'ABASTECIMIENTO' && (
+                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                      )}
+                      {card.category === 'ATENCION' && (
+                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                      )}
+                      {card.category === 'AUTOMATIZACION' && (
+                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      )}
+                      {card.category === 'DATOS' && (
+                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                      )}
+                    </div>
+                    <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5DE1E5' }}>{card.category}</p>
+                  </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-3">{card.title}</h3>
                   <p className="text-sm text-gray-600">{card.description}</p>
                 </div>
@@ -358,7 +381,7 @@ export default function Home() {
         </section>
 
         <section className="py-16 border-t border-gray-200" style={{ backgroundColor: '#5DE1E5' }}>
-          <div className="max-w-4xl mx-auto px-4">
+          <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
             <h3 className="text-center text-xl font-semibold text-gray-900 mb-10">El impacto de nuestros agentes en cifras</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
               {stats.map((stat, i) => (
@@ -408,7 +431,7 @@ export default function Home() {
         </section>
 
         <section className="py-20 bg-gray-50 border-t border-gray-200">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <p className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#5DE1E5' }}>IMPACTO REAL</p>
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Libera a tu equipo para lo importante</h2>
@@ -486,7 +509,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-sm text-gray-400">© 2026 Workers. Una empresa de Zero Azul.</p>
+            <p className="text-sm text-gray-400">© 2026 Workers. Una empresa de <a href="https://zeroazul.com" target="_blank" rel="noopener noreferrer" className="text-[#5DE1E5] hover:underline">Zero Azul</a>.</p>
             <div className="flex gap-4 mt-4 md:mt-0">
               <a href="https://www.facebook.com/zeroazulagencia" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#5DE1E5] transition-colors"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
               <a href="https://www.instagram.com/zeroazulagencia/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#5DE1E5] transition-colors"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
