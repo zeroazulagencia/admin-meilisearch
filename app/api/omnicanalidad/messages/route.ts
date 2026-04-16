@@ -7,6 +7,8 @@ import { listMessages as listBirdMessages } from '@/utils/bird-api';
 import { decrypt, isEncrypted } from '@/utils/encryption';
 import { Message } from '@/app/omnicanalidad/utils/types';
 
+export const dynamic = 'force-dynamic';
+
 const INDEX_UID = 'bd_conversations_dworkers';
 
 // GET - Cargar mensajes completos de una conversación y marcar como leído
@@ -200,4 +202,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: e?.message || 'Error cargando mensajes' }, { status: 500 });
   }
 }
-

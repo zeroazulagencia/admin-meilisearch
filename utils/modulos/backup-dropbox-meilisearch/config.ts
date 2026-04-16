@@ -7,6 +7,8 @@ import { decrypt, encrypt, isEncrypted } from '@/utils/encryption';
 
 const SENSITIVE_KEYS = new Set([
   'dropbox_access_token',
+  'dropbox_refresh_token',
+  'dropbox_app_secret',
   'cron_secret',
   'ssh_password',
   'meilisearch_api_key',

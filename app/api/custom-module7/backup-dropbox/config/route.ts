@@ -1,5 +1,5 @@
 /**
- * Módulo 7 - Config (dropbox_access_token, dropbox_folder_path, cron_secret)
+ * Módulo 7 - Config (dropbox_access_token, dropbox_refresh_token, dropbox_app_key, dropbox_app_secret, dropbox_folder_path, cron_secret)
  * GET: devuelve config con token enmascarado. PUT: actualiza.
  */
 import { NextRequest, NextResponse } from 'next/server';
@@ -22,10 +22,16 @@ export async function GET() {
     );
     const config: Record<string, string | null> = {};
     for (const r of rows || []) {
-      if (r.config_key === 'dropbox_access_token' || r.config_key === 'cron_secret')
+      if (
+        r.config_key === 'dropbox_access_token' ||
+        r.config_key === 'dropbox_refresh_token' ||
+        r.config_key === 'dropbox_app_secret' ||
+        r.config_key === 'cron_secret'
+      ) {
         config[r.config_key] = r.config_value ? maskToken(r.config_value) : null;
-      else
+      } else {
         config[r.config_key] = r.config_value;
+      }
     }
     return NextResponse.json({ ok: true, config });
   } catch (e: any) {
@@ -38,6 +44,12 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     if (body.dropbox_access_token != null)
       await setConfig('dropbox_access_token', body.dropbox_access_token === '' ? null : String(body.dropbox_access_token));
+    if (body.dropbox_refresh_token != null)
+      await setConfig('dropbox_refresh_token', body.dropbox_refresh_token === '' ? null : String(body.dropbox_refresh_token));
+    if (body.dropbox_app_key != null)
+      await setConfig('dropbox_app_key', body.dropbox_app_key === '' ? null : String(body.dropbox_app_key));
+    if (body.dropbox_app_secret != null)
+      await setConfig('dropbox_app_secret', body.dropbox_app_secret === '' ? null : String(body.dropbox_app_secret));
     if (body.dropbox_folder_path != null)
       await setConfig('dropbox_folder_path', body.dropbox_folder_path === '' ? null : String(body.dropbox_folder_path));
     if (body.cron_secret != null)

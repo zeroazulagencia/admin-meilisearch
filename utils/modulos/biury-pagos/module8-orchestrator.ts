@@ -1,5 +1,9 @@
-import { createLog as createDbLog, getConfig, updateLogById } from './module8-config';
-import { shouldProcessProduct } from './module8-siigo';
+import {
+  createLog as createDbLog,
+  getConfig,
+  updateLogById,
+  matchProductRule,
+} from './module8-config';
 
 interface SiigoAuthResponse {
   access_token?: string;
@@ -102,12 +106,12 @@ function getSiigoConsecutive(paymentId: string): number {
 async function createSiigoVoucher(
   paymentData: any,
   siigoToken: string,
-  rawData?: any
+  rawData: any,
+  matchedRule: NonNullable<Awaited<ReturnType<typeof matchProductRule>>>
 ): Promise<{ success: boolean; response: SiigoVoucherResponse; error?: string }> {
   const gatewayRaw = paymentData.payment_gateway_name || '';
   const gateway = gatewayRaw.toLowerCase();
-  const isWompi = gateway.includes('wompi');
-  const account = isWompi ? '11200501' : '11100501';
+  const debitAccount = matchedRule.account_code;
   const totalFormatted = Number(paymentData.totals.total).toFixed(2);
   const paymentId = paymentData.payment_id;
   const consecutive = getSiigoConsecutive(paymentId);
@@ -122,10 +126,10 @@ async function createSiigoVoucher(
     items: [
       {
         account: {
-          code: account,
+          code: debitAccount,
           movement: 'Debit',
         },
-        description: isWompi ? 'Wompi' : 'Mercado Pago',
+        description: matchedRule.description || matchedRule.gateway_matcher || gatewayRaw || 'Gateway',
         value: totalFormatted,
       },
       {
@@ -260,9 +264,11 @@ export async function processTreliWebhook(payload: { content: any; logId?: numbe
     return { ok: true, status: 'error', logId, error: 'Payload inválido: sin items' };
   }
 
-  const productName = normalized.items[0].name;
+  const primaryItem = normalized.items[0];
+  const productName = primaryItem?.name || 'unknown';
+  const matchedRule = await matchProductRule(productName, normalized.payment_gateway_name);
 
-  if (!shouldProcessProduct(productName)) {
+  if (!matchedRule) {
     await saveLog(payload.logId, {
       payment_id: normalized.payment_id || 'unknown',
       customer_document: normalized.billing?.document || 'unknown',
@@ -270,6 +276,7 @@ export async function processTreliWebhook(payload: { content: any; logId?: numbe
       gateway: normalized.payment_gateway_name || 'unknown',
       total: Number(normalized.totals?.total) || 0,
       payload_raw: payloadRaw,
+      siigo_response: JSON.stringify({ status: 'filtered', reason: 'Sin regla de producto' }),
       status: 'filtered',
     });
     return { ok: true, status: 'filtered' };
@@ -292,7 +299,7 @@ export async function processTreliWebhook(payload: { content: any; logId?: numbe
     return { ok: true, status: 'error', logId, error: authResult.error || 'Error al obtener token de Siigo' };
   }
 
-  const siigoResult = await createSiigoVoucher(normalized, authResult.token, data);
+  const siigoResult = await createSiigoVoucher(normalized, authResult.token, data, matchedRule);
 
   const logId = await saveLog(payload.logId, {
     payment_id: normalized.payment_id || 'unknown',
@@ -554,5 +561,3 @@ async function saveLog(
 
   return createDbLog(data);
 }
-
-export { shouldProcessProduct };

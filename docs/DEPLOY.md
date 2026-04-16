@@ -70,7 +70,6 @@ STRIPE_SECRET_KEY=tu_stripe_secret_key_aqui
 - Los datos de WhatsApp Business API están protegidos por múltiples capas de seguridad
 - El sistema NO actualizará campos de WhatsApp si no se envían explícitamente en el request
 - Si los campos existen en la BD pero NO se envían en el request, se preservan automáticamente
-- Siempre ejecutar `bash scripts/verify-whatsapp-data.sh` antes de cada deploy
 
 ### 6. Construir la aplicación
 ```bash
@@ -192,12 +191,14 @@ bash scripts/verify-whatsapp-data.sh
 ```bash
 git pull origin master
 npm install
+# Siempre ejecutar build antes de reiniciar
 npm run build
 ```
 
 **PASO 3: Reiniciar aplicación**
 
 ```bash
+# Reinicio obligatorio con PM2 inmediatamente después del build
 pm2 restart admin-meilisearch --update-env
 ```
 
@@ -263,4 +264,3 @@ bash scripts/check-encryption-key.sh
 2. Generar una clave segura: `openssl rand -hex 32`
 3. Si ya tienes tokens encriptados, usar la clave original (NO generar una nueva)
 4. Reiniciar la aplicación: `pm2 restart admin-meilisearch --update-env`
-

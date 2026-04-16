@@ -35,6 +35,19 @@ interface SalesforceStatus {
   verified_at?: string | null;
 }
 
+type ModalVariant = 'success' | 'error' | 'info' | 'warning';
+
+interface ModalState {
+  open: boolean;
+  title?: string;
+  message: string;
+  variant?: ModalVariant;
+  confirmText?: string;
+  cancelText?: string;
+  showCancel?: boolean;
+  onConfirm?: () => void | Promise<void>;
+}
+
 const BASE = '/api/custom-module6/suvi-opportunity';
 const WEBHOOK_BASE = typeof window !== 'undefined' ? `${window.location.origin}/api/module-webhooks/6` : 'https://workers.zeroazul.com/api/module-webhooks/6';
 
@@ -61,6 +74,22 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
   const [activeTab, setActiveTab] = useState<'oportunidades' | 'documentacion'>('oportunidades');
   const [salesforceStatus, setSalesforceStatus] = useState<SalesforceStatus | null>(null);
   const [batchProcessing, setBatchProcessing] = useState(false);
+  const [modalState, setModalState] = useState<ModalState>({ open: false, message: '', variant: 'info' });
+
+  const showModal = (payload: Omit<ModalState, 'open'> & { open?: boolean }) => {
+    setModalState({
+      open: true,
+      variant: payload.variant || 'info',
+      title: payload.title,
+      message: payload.message,
+      confirmText: payload.confirmText,
+      cancelText: payload.cancelText,
+      showCancel: payload.showCancel,
+      onConfirm: payload.onConfirm,
+    });
+  };
+
+  const closeModal = () => setModalState((prev) => ({ ...prev, open: false, onConfirm: undefined }));
 
   const load = async () => {
     setLoading(true);
@@ -106,14 +135,28 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
       setSalesforceStatus(data);
       if (verify) {
         if (data.connection_ok) {
-          alert('Salesforce verificado correctamente');
+          showModal({
+            variant: 'success',
+            title: 'Salesforce verificado',
+            message: 'La conexión con Salesforce está activa y respondió correctamente.',
+          });
         } else if (data.connection_ok === false) {
-          alert(`Error verificando Salesforce: ${data.connection_error || 'desconocido'}`);
+          showModal({
+            variant: 'error',
+            title: 'Salesforce no respondió',
+            message: data.connection_error || 'No se pudo validar la sesión. Intenta reconectar.',
+          });
         }
       }
     } catch (e) {
       console.error('Error cargando estado Salesforce:', e);
-      if (verify) alert('No se pudo verificar Salesforce');
+      if (verify) {
+        showModal({
+          variant: 'error',
+          title: 'Error verificando Salesforce',
+          message: 'No se pudo verificar Salesforce. Reintenta en unos segundos.',
+        });
+      }
     }
   };
 
@@ -127,7 +170,11 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
       const res = await fetch(`${BASE}?status=error&limit=200`);
       const json = await res.json();
       if (!json.ok || !json.data?.length) {
-        alert('No hay registros con error para reprocesar');
+        showModal({
+          variant: 'info',
+          title: 'Sin registros pendientes',
+          message: 'No hay registros con error para reprocesar.',
+        });
         return;
       }
       const rows: Row[] = json.data;
@@ -143,7 +190,11 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
         } catch (_) { /* continuar */ }
         await new Promise(r => setTimeout(r, 1000));
       }
-      alert(`Procesados: ${processed}/${rows.length}`);
+      showModal({
+        variant: 'success',
+        title: 'Reprocesamiento finalizado',
+        message: `Procesados: ${processed}/${rows.length}`,
+      });
       await load();
     } catch (e) {
       console.error(e);
@@ -192,43 +243,76 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
         body: JSON.stringify({ id }),
       });
       const json = await res.json();
-      if (!json.ok) {
-        alert(json.error || 'No se pudo reinsertar el lead');
-        return;
-      }
-      alert(`Lead reinsertado como #${json.id}`);
+        if (!json.ok) {
+          showModal({
+            variant: 'error',
+            title: 'No se pudo reinsertar',
+            message: json.error || 'Intenta nuevamente en unos momentos.',
+          });
+          return;
+        }
+        showModal({
+          variant: 'success',
+          title: 'Lead reinsertado',
+          message: `Lead reinsertado como #${json.id}`,
+        });
       await load();
     } catch (e) {
       console.error(e);
-      alert('Error reinsertando lead');
+      showModal({
+        variant: 'error',
+        title: 'Error al reinsertar',
+        message: 'Ocurrió un error reinsertando el lead.',
+      });
     } finally {
       setReinsercionId(null);
     }
   };
 
   const eliminarLead = async (id: number) => {
-    if (!confirm(`¿Eliminar el registro #${id}?`)) return;
-    try {
-      setEliminando(true);
-      const res = await fetch(`${BASE}/delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: [id] }),
-      });
-      const json = await res.json();
-      if (!json.ok) {
-        alert(json.error || 'No se pudo eliminar');
-        return;
-      }
-      alert('Lead eliminado');
-      setDetailId(null);
-      await load();
-    } catch (e) {
-      console.error(e);
-      alert('Error eliminando lead');
-    } finally {
-      setEliminando(false);
-    }
+    showModal({
+      variant: 'warning',
+      title: `Eliminar registro #${id}`,
+      message: 'Esta acción eliminará el registro de forma permanente. ¿Deseas continuar?',
+      showCancel: true,
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      onConfirm: async () => {
+        try {
+          setEliminando(true);
+          const res = await fetch(`${BASE}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: [id] }),
+          });
+          const json = await res.json();
+          if (!json.ok) {
+            showModal({
+              variant: 'error',
+              title: 'No se pudo eliminar',
+              message: json.error || 'Intenta nuevamente.',
+            });
+            return;
+          }
+          showModal({
+            variant: 'success',
+            title: 'Lead eliminado',
+            message: 'El registro se eliminó correctamente.',
+          });
+          setDetailId(null);
+          await load();
+        } catch (e) {
+          console.error(e);
+          showModal({
+            variant: 'error',
+            title: 'Error eliminando lead',
+            message: 'Ocurrió un problema durante la eliminación.',
+          });
+        } finally {
+          setEliminando(false);
+        }
+      },
+    });
   };
 
   const closeDetail = () => {
@@ -248,11 +332,24 @@ export default function SuviOpportunityModule({ moduleData }: { moduleData?: { t
       if (json.ok) {
         await load();
         if (detailId === id) await openDetail(id);
+        showModal({
+          variant: 'success',
+          title: 'Reenvío en curso',
+          message: 'El registro se envió nuevamente a Salesforce.',
+        });
       } else {
-        alert(json.error || 'Error al reenviar');
+        showModal({
+          variant: 'error',
+          title: 'Error al reenviar',
+          message: json.error || 'Intenta nuevamente.',
+        });
       }
     } catch (e) {
-      alert('Error al reenviar');
+      showModal({
+        variant: 'error',
+        title: 'Error al reenviar',
+        message: 'No se pudo reenviar el registro.',
+      });
     } finally {
       setReenviandoId(null);
     }
@@ -744,6 +841,44 @@ modulos_suvi_6_config           Config (webhook_secret, salesforce_group_id_vent
                   <p className="text-gray-500">No se pudo cargar el detalle.</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalState.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md">
+            <div className="p-6 border-b border-gray-100">
+              {modalState.title && <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>}
+              <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{modalState.message}</p>
+            </div>
+            <div className="p-4 flex justify-end gap-3">
+              {modalState.showCancel && (
+                <button
+                  onClick={closeModal}
+                  className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  {modalState.cancelText || 'Cancelar'}
+                </button>
+              )}
+              <button
+                onClick={async () => {
+                  if (modalState.onConfirm) await modalState.onConfirm();
+                  closeModal();
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                  modalState.variant === 'success'
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : modalState.variant === 'error'
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : modalState.variant === 'warning'
+                        ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                        : 'bg-[#5DE1E5] text-gray-900 hover:bg-[#4BC5C9]'
+                }`}
+              >
+                {modalState.confirmText || 'Aceptar'}
+              </button>
             </div>
           </div>
         </div>

@@ -4,7 +4,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getConfig } from '@/utils/modulos/backup-dropbox/config';
-import { listDropboxBackupPaths, deleteDropboxPaths, validateDropboxToken } from '@/utils/modulos/backup-dropbox/dropbox';
+import { deleteDropboxPaths, listDropboxBackupPaths } from '@/utils/modulos/backup-dropbox/dropbox';
+import { getDropboxAccessToken } from '@/utils/modulos/backup-dropbox/token';
 import { query } from '@/utils/db';
 
 export const dynamic = 'force-dynamic';
@@ -14,24 +15,20 @@ export async function POST(req: NextRequest) {
   try {
     const secret = req.nextUrl.searchParams.get('cron_secret') || req.nextUrl.searchParams.get('token');
     const stored = await getConfig('cron_secret');
-    if (!stored || !secret || secret !== stored) {
+    if (stored && secret !== stored) {
       return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 401 });
     }
 
     const deleteLogsResult = await query('DELETE FROM modulos_backup_7_sync_log');
     const deletedLogs = (deleteLogsResult as any)?.affectedRows ?? 0;
 
-    const token = await getConfig('dropbox_access_token');
     const folderPath = (await getConfig('dropbox_folder_path')) || '/Aplicaciones/Zero Azul WORKERS';
 
-    if (!token) {
-      return NextResponse.json({ ok: true, deletedLogs, deletedDropbox: 0, dropboxError: 'dropbox_access_token no configurado' });
+    const tokenResult = await getDropboxAccessToken();
+    if (!tokenResult.ok || !tokenResult.token) {
+      return NextResponse.json({ ok: true, deletedLogs, deletedDropbox: 0, dropboxError: tokenResult.error || 'dropbox_access_token invalido' });
     }
-
-    const tokenCheck = await validateDropboxToken(token);
-    if (!tokenCheck.ok) {
-      return NextResponse.json({ ok: true, deletedLogs, deletedDropbox: 0, dropboxError: tokenCheck.error || 'dropbox_access_token invalido' });
-    }
+    const token = tokenResult.token;
 
     const listResult = await listDropboxBackupPaths(token, folderPath);
     if (!listResult.ok) {

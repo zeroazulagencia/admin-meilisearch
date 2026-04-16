@@ -84,8 +84,7 @@ El módulo detecta la variante según `form[id]` y aplica reglas específicas pa
    - Campos: `fields[name]`, `fields[email]`, `fields[tel]`, `fields[message]` (comentarios). También incluye metadatos como `meta[page_url]`, `meta[user_agent]`, etc.
    - Reglas especiales:
      - Se divide el campo `name` en nombre y apellido (todo lo que esté después del primer espacio se convierte en apellido).
-     - Si no se recibe `indicativo`, se intenta derivar del país (`country`) o del teléfono (si trae prefijo como `+57`).
-     - Si no se detecta ningún prefijo, se asigna `1` por defecto para cumplir con Salesforce.
+      - Si no se recibe país o indicativo, se fuerza `Estados Unidos (+1)` con prefijo `1` para cumplir con Salesforce.
 
 ## Tablas
 

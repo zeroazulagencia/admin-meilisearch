@@ -143,7 +143,6 @@ El proyecto utiliza variables de entorno para todas las credenciales y API keys.
 - Los datos de WhatsApp Business API están protegidos por múltiples capas de seguridad
 - El sistema NO actualizará campos de WhatsApp si no se envían explícitamente en el request
 - Si los campos existen en la BD pero NO se envían en el request, se preservan automáticamente
-- Siempre ejecutar `bash scripts/verify-whatsapp-data.sh` antes de cada deploy
 - Ver documentación completa en `docs/DEPLOY.md`
 
 **IMPORTANTE**: 
@@ -159,13 +158,17 @@ npm run start        # Servidor de producción
 npm run lint         # Linter
 ```
 
-### Scripts de Verificación (Servidor)
+### Flujo de Deploy Seguro
 ```bash
-# Verificar datos de WhatsApp antes de deploy (OBLIGATORIO)
-bash scripts/verify-whatsapp-data.sh
+# 1. Confirma que no haya cambios pendientes y crea un commit (no push obligatorio)
+git status
+git commit -am "mensaje"   # solo si hay cambios
 
-# Verificar ENCRYPTION_KEY
-bash scripts/check-encryption-key.sh
+# 2. Ejecuta build con timeout amplio (siempre obligatorio antes de reiniciar)
+npm run build
+
+# 3. Reinicia siempre con PM2 inmediatamente después del build exitoso
+pm2 restart admin-meilisearch --update-env
 ```
 
 ## 🎨 Características de Diseño

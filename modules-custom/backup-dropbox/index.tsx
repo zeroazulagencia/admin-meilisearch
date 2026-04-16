@@ -20,9 +20,16 @@ export default function BackupDropboxModule() {
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<Record<string, string | null>>({});
-  const [activeTab, setActiveTab] = useState<'logs' | 'config'>('logs');
+  const [activeTab, setActiveTab] = useState<'logs' | 'config' | 'docs'>('logs');
   const [savingConfig, setSavingConfig] = useState(false);
-  const [configForm, setConfigForm] = useState({ dropbox_access_token: '', dropbox_folder_path: '', cron_secret: '' });
+  const [configForm, setConfigForm] = useState({
+    dropbox_access_token: '',
+    dropbox_refresh_token: '',
+    dropbox_app_key: '',
+    dropbox_app_secret: '',
+    dropbox_folder_path: '',
+    cron_secret: '',
+  });
   const [runSecret, setRunSecret] = useState('');
   const [runningBackup, setRunningBackup] = useState(false);
   const [cleaningHistory, setCleaningHistory] = useState(false);
@@ -58,6 +65,9 @@ export default function BackupDropboxModule() {
     try {
       const payload: Record<string, string> = {};
       if (configForm.dropbox_access_token.trim()) payload.dropbox_access_token = configForm.dropbox_access_token.trim();
+      if (configForm.dropbox_refresh_token.trim()) payload.dropbox_refresh_token = configForm.dropbox_refresh_token.trim();
+      if (configForm.dropbox_app_key.trim()) payload.dropbox_app_key = configForm.dropbox_app_key.trim();
+      if (configForm.dropbox_app_secret.trim()) payload.dropbox_app_secret = configForm.dropbox_app_secret.trim();
       if (configForm.dropbox_folder_path.trim()) payload.dropbox_folder_path = configForm.dropbox_folder_path.trim();
       if (configForm.cron_secret.trim()) payload.cron_secret = configForm.cron_secret.trim();
       const res = await fetch(`${BASE}/config`, {
@@ -68,7 +78,14 @@ export default function BackupDropboxModule() {
       const json = await res.json();
       if (json.ok) {
         await loadConfig();
-        setConfigForm({ dropbox_access_token: '', dropbox_folder_path: '', cron_secret: '' });
+        setConfigForm({
+          dropbox_access_token: '',
+          dropbox_refresh_token: '',
+          dropbox_app_key: '',
+          dropbox_app_secret: '',
+          dropbox_folder_path: '',
+          cron_secret: '',
+        });
         setActiveTab('logs');
       }
       else alert(json.error || 'Error al guardar');
@@ -80,13 +97,10 @@ export default function BackupDropboxModule() {
   };
 
   const runBackupNow = async () => {
-    if (!runSecret) {
-      alert('Ingresa el cron secret para ejecutar el backup.');
-      return;
-    }
     setRunningBackup(true);
     try {
-      const res = await fetch(`${BASE}/run?cron_secret=${encodeURIComponent(runSecret)}`, { method: 'POST' });
+      const query = runSecret ? `?cron_secret=${encodeURIComponent(runSecret)}` : '';
+      const res = await fetch(`${BASE}/run${query}`, { method: 'POST' });
       const json = await res.json();
       if (!json.ok) {
         alert(json.error || 'Error al ejecutar backup');
@@ -101,16 +115,13 @@ export default function BackupDropboxModule() {
   };
 
   const cleanupHistory = async () => {
-    if (!runSecret) {
-      alert('Ingresa el cron secret para limpiar el historial.');
-      return;
-    }
     if (!confirm('Se eliminaran todos los registros y backups anteriores en Dropbox. Deseas continuar?')) {
       return;
     }
     setCleaningHistory(true);
     try {
-      const res = await fetch(`${BASE}/cleanup?cron_secret=${encodeURIComponent(runSecret)}`, { method: 'POST' });
+      const query = runSecret ? `?cron_secret=${encodeURIComponent(runSecret)}` : '';
+      const res = await fetch(`${BASE}/cleanup${query}`, { method: 'POST' });
       const json = await res.json();
       if (!json.ok) {
         alert(json.error || 'Error al limpiar historial');
@@ -152,6 +163,7 @@ export default function BackupDropboxModule() {
             {([
               { id: 'logs' as const, label: 'Logs' },
               { id: 'config' as const, label: 'Configuracion' },
+              { id: 'docs' as const, label: 'Documentacion' },
             ]).map((t) => (
               <button
                 key={t.id}
@@ -171,7 +183,7 @@ export default function BackupDropboxModule() {
 
       {activeTab === 'config' && (
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <p className="text-sm text-gray-600">Token de Dropbox y secreto para cron (opcional). Guardar para que el backup a medianoche funcione.</p>
+          <p className="text-sm text-gray-600">Credenciales de Dropbox y secreto para cron (opcional). Guardar para que el backup a medianoche funcione.</p>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Dropbox Access Token</label>
             <input
@@ -180,6 +192,36 @@ export default function BackupDropboxModule() {
               className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm"
               value={configForm.dropbox_access_token}
               onChange={(e) => setConfigForm((f) => ({ ...f, dropbox_access_token: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Dropbox Refresh Token</label>
+            <input
+              type="password"
+              placeholder={config.dropbox_refresh_token ? '••••••••' : 'Pegar refresh token'}
+              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              value={configForm.dropbox_refresh_token}
+              onChange={(e) => setConfigForm((f) => ({ ...f, dropbox_refresh_token: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Dropbox App Key</label>
+            <input
+              type="text"
+              placeholder={config.dropbox_app_key || 'App Key'}
+              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              value={configForm.dropbox_app_key}
+              onChange={(e) => setConfigForm((f) => ({ ...f, dropbox_app_key: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Dropbox App Secret</label>
+            <input
+              type="password"
+              placeholder={config.dropbox_app_secret ? '••••••••' : 'App Secret'}
+              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              value={configForm.dropbox_app_secret}
+              onChange={(e) => setConfigForm((f) => ({ ...f, dropbox_app_secret: e.target.value }))}
             />
           </div>
           <div>
@@ -210,6 +252,20 @@ export default function BackupDropboxModule() {
           >
             {savingConfig ? 'Guardando...' : 'Guardar'}
           </button>
+        </div>
+      )}
+
+      {activeTab === 'docs' && (
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 text-sm text-gray-700">
+          <p>Este modulo ejecuta el backup diario de la base de datos y lo sube a Dropbox.</p>
+          <div>
+            <div className="font-medium text-gray-900">Cron diario</div>
+            <p>Programa un cron a las 00:00 (America/Bogota) apuntando al endpoint:</p>
+            <pre className="mt-2 rounded-lg bg-gray-50 border border-gray-200 p-3 text-xs overflow-x-auto">
+0 0 * * * curl -s -X POST "https://workers.zeroazul.com/api/custom-module7/backup-dropbox/run"
+            </pre>
+            <p className="mt-2">Si defines <span className="font-medium">cron_secret</span>, agrega <span className="font-medium">?cron_secret=TU_SECRETO</span> al endpoint.</p>
+          </div>
         </div>
       )}
 

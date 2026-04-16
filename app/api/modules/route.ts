@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 
+const ERROR_COUNT_MODULES: Record<number, { table: string; label: string }> = {
+  1: { table: 'modulos_suvi_12_leads', label: 'suvi_leads' },
+  6: { table: 'modulos_suvi_6_opportunities', label: 'suvi_opportunity' },
+};
+
 // GET - Listar todos los módulos con información del agente y cliente
 export async function GET() {
   try {
@@ -26,10 +31,34 @@ export async function GET() {
     `);
     
     console.log('[API MODULES] [GET] Módulos cargados:', rows?.length || 0);
+
+    const moduleIdsToCount = rows
+      ?.filter((module: any) => ERROR_COUNT_MODULES[module.id])
+      .map((module: any) => module.id) || [];
+
+    const errorCounts: Record<number, number> = {};
+
+    if (moduleIdsToCount.length > 0) {
+      for (const moduleId of moduleIdsToCount) {
+        const meta = ERROR_COUNT_MODULES[moduleId];
+        if (!meta) continue;
+        try {
+          const [countRows] = await query<any>(
+            `SELECT COUNT(*) as total FROM ${meta.table} WHERE processing_status = 'error'`
+          );
+          errorCounts[moduleId] = countRows?.[0]?.total || 0;
+        } catch (countError) {
+          console.error(`[API MODULES] [GET] Error contando errores para módulo ${moduleId}:`, countError);
+        }
+      }
+    }
     
     return NextResponse.json({
       ok: true,
-      modules: rows || []
+      modules: (rows || []).map((module: any) => ({
+        ...module,
+        error_count: errorCounts[module.id] || 0,
+      }))
     });
   } catch (error: any) {
     console.error('[API MODULES] [GET] Error cargando módulos:', error);

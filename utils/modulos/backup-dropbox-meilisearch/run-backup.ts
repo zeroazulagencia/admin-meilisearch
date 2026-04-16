@@ -7,7 +7,7 @@ import { gzip as gzipCallback } from 'zlib';
 import { promisify } from 'util';
 import { query } from '@/utils/db';
 import { getConfig } from './config';
-import { validateDropboxToken } from './dropbox';
+import { getDropboxAccessToken } from './token';
 
 const gzip = promisify(gzipCallback);
 
@@ -188,7 +188,7 @@ export async function runBackup(): Promise<{ logId: number; status: string; erro
   };
 
   try {
-    const token = await getConfig('dropbox_access_token');
+    const tokenResult = await getDropboxAccessToken();
     const folderPath = (await getConfig('dropbox_folder_path')) || '/Aplicaciones/Zero Azul WORKERS/MEILISEARCH';
     const dropboxPath = `${folderPath.replace(/\/$/, '')}/${fileName}`;
 
@@ -198,14 +198,14 @@ export async function runBackup(): Promise<{ logId: number; status: string; erro
     const sshPort = (await getConfig('ssh_port')) || '22';
     const meiliKey = await getConfig('meilisearch_api_key');
 
-    if (!token) {
+    if (!tokenResult.ok || !tokenResult.token) {
       await updateLog({
         finished_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
         status: 'error',
         file_name: fileName,
-        error_message: 'dropbox_access_token no configurado',
+        error_message: tokenResult.error || 'dropbox_access_token no configurado',
       });
-      return { logId, status: 'error', error: 'dropbox_access_token no configurado' };
+      return { logId, status: 'error', error: tokenResult.error || 'dropbox_access_token no configurado' };
     }
 
     if (!sshHost || !sshUser || !sshPassword || !meiliKey) {
@@ -218,16 +218,7 @@ export async function runBackup(): Promise<{ logId: number; status: string; erro
       return { logId, status: 'error', error: 'Credenciales SSH o API key de Meilisearch no configuradas' };
     }
 
-    const tokenCheck = await validateDropboxToken(token);
-    if (!tokenCheck.ok) {
-      await updateLog({
-        finished_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        status: 'error',
-        file_name: fileName,
-        error_message: tokenCheck.error || 'dropbox_access_token invalido',
-      });
-      return { logId, status: 'error', error: tokenCheck.error || 'dropbox_access_token invalido' };
-    }
+    const token = tokenResult.token;
 
     const baseUrl = (await getConfig('meilisearch_url')) || 'http://localhost:7700';
     const createDump = await createRemoteDump(sshHost, sshUser, sshPort, sshPassword, meiliKey, baseUrl);

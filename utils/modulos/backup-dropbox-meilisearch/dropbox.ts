@@ -44,6 +44,40 @@ export async function validateDropboxToken(token: string): Promise<{ ok: boolean
   return { ok: true };
 }
 
+export async function refreshDropboxAccessToken(
+  appKey: string,
+  appSecret: string,
+  refreshToken: string
+): Promise<{ ok: boolean; accessToken?: string; error?: string }> {
+  const params = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    client_id: appKey,
+    client_secret: appSecret,
+  });
+
+  const res = await fetch('https://api.dropbox.com/oauth2/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    return { ok: false, error: `Dropbox refresh failed: ${res.status} ${text}` };
+  }
+
+  const json = await res.json().catch(() => ({} as any));
+  const accessToken = json?.access_token || null;
+  if (!accessToken) {
+    return { ok: false, error: 'Dropbox refresh failed: access_token missing' };
+  }
+
+  return { ok: true, accessToken };
+}
+
 type ListFolderResponse = { entries: DropboxEntry[]; cursor: string; has_more: boolean };
 
 export async function listDropboxBackupPaths(token: string, folderPath: string, prefix: string): Promise<{ ok: boolean; paths: string[]; error?: string }> {

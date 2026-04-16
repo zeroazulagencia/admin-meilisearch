@@ -73,6 +73,14 @@ modulos_sara_11_asesores (id, asesor_id, estado [offline|online|ocupado], room_a
    - API Key Secret
    - TwiML App SID
 
+## Redireccion del dominio publico
+
+- **Dominio publico:** `https://contacto.promtadx.com/`
+- **Destino:** `https://workers.zeroazul.com/custom-module5/llamada-sara/llamar`
+- **Tipo:** 301 permanente (HTTP y HTTPS)
+- **Archivo base del sistema:** `/etc/nginx/sites-available/admin-meilisearch`
+- **Notas:** Esta redireccion es exclusiva del Modulo 5 (Llamada SARA).
+
 ## Proteccion contra estado stale
 
 - **Auto-limpieza**: Cada consulta al estado del asesor verifica si lleva >10 min en "ocupado". Si es asi, resetea automaticamente a "online" y finaliza llamadas huerfanas.

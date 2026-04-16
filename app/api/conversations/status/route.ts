@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     // Verificar y crear la tabla human_conversations si no existe
@@ -84,4 +86,3 @@ export async function GET(req: NextRequest) {
     }, { status: 500 });
   }
 }
-

@@ -7,6 +7,8 @@ import { listConversations as listBirdConversations } from '@/utils/bird-api';
 import { decrypt, isEncrypted } from '@/utils/encryption';
 import { Conversation } from '@/app/omnicanalidad/utils/types';
 
+export const dynamic = 'force-dynamic';
+
 const INDEX_UID = 'bd_conversations_dworkers';
 
 // GET - Cargar lista de conversaciones agrupadas con contador de no leídos
@@ -197,4 +199,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: e?.message || 'Error cargando conversaciones' }, { status: 500 });
   }
 }
-

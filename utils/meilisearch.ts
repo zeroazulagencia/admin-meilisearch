@@ -126,6 +126,7 @@ export const meilisearchAPI = {
       if (params.rankingScoreThreshold !== undefined) searchParams.rankingScoreThreshold = params.rankingScoreThreshold;
       if (params.hybridEmbedder) searchParams.hybridEmbedder = params.hybridEmbedder;
       if (params.hybridSemanticRatio !== undefined) searchParams.hybridSemanticRatio = params.hybridSemanticRatio;
+      if (params.primaryKey) searchParams.attributesToRetrieve = ['*', params.primaryKey];
     }
     
     console.log('Meilisearch search params:', searchParams);

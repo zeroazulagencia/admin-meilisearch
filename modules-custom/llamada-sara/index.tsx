@@ -49,6 +49,10 @@ function formatDuracion(segundos: number | null): string {
 export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
   const [tab, setTab] = useState<'asesor' | 'historial' | 'uso' | 'config' | 'docs'>('asesor');
 
+  // Notificaciones
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const notifiedRoomRef = useRef<string | null>(null);
+
   // Asesor
   const [asesorEstado, setAsesorEstado] = useState<'offline' | 'online' | 'ocupado'>('offline');
   const [asesorRoom, setAsesorRoom] = useState<string | null>(null);
@@ -81,17 +85,96 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
   const [guardandoConfig, setGuardandoConfig] = useState(false);
   const [msgConfig, setMsgConfig] = useState('');
 
+  // ---- Notificaciones ----
+  const initNotifications = useCallback(() => {
+    if ('Notification' in window) {
+      setNotifPermission(Notification.permission);
+    } else {
+      setNotifPermission('unsupported');
+    }
+  }, []);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      setNotifPermission('unsupported');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setNotifPermission(permission);
+  };
+
+  const playNotificationSound = useCallback(() => {
+    try {
+      const playBeep = (startTime: number) => {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        gainNode.gain.value = 0.3;
+        
+        oscillator.start(audioContext.currentTime + startTime);
+        oscillator.stop(audioContext.currentTime + startTime + 0.2);
+        
+        setTimeout(() => audioContext.close(), (startTime + 0.5) * 1000);
+      };
+
+      playBeep(0);
+      playBeep(0.4);
+      playBeep(0.8);
+    } catch (e) {
+      console.error('Error playing sound:', e);
+    }
+  }, []);
+
+  const stopNotificationSound = useCallback(() => {
+    // No need to stop anything with Web Audio API
+  }, []);
+
+  const showNotification = useCallback(async (room: string) => {
+    if (notifiedRoomRef.current === room) return;
+    notifiedRoomRef.current = room;
+
+    playNotificationSound();
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        const notification = new Notification('Llamada entrante', {
+          body: `Room: ${room}`,
+          icon: '/favicon.ico',
+          tag: 'llamada-sara',
+          requireInteraction: true,
+        });
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      } catch (e) {
+        console.error('Error showing notification:', e);
+      }
+    }
+  }, [playNotificationSound]);
+
   // ---- Asesor ----
   const cargarEstadoAsesor = useCallback(async () => {
     try {
       const res = await fetch(`${BASE}/asesor/estado`);
       const data = await res.json();
       if (data.ok) {
+        const estadoAnterior = asesorEstado;
         setAsesorEstado(data.estado);
         setAsesorRoom(data.room_activo || null);
+
+        if (data.estado === 'ocupado' && data.room_activo && estadoAnterior !== 'ocupado') {
+          showNotification(data.room_activo);
+        }
       }
     } catch {}
-  }, []);
+  }, [asesorEstado, showNotification]);
 
   const toggleAsesor = async () => {
     setToggleando(true);
@@ -106,6 +189,9 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
       if (data.ok) {
         setAsesorEstado(data.estado);
         setAsesorRoom(null);
+        if (nuevoEstado === 'offline') {
+          notifiedRoomRef.current = null;
+        }
       }
     } catch {}
     setToggleando(false);
@@ -129,10 +215,12 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
   };
 
   useEffect(() => {
+    initNotifications();
     cargarEstadoAsesor();
-  }, [cargarEstadoAsesor]);
+  }, [initNotifications, cargarEstadoAsesor]);
 
   const abrirModalLlamada = useCallback(async (room: string) => {
+    stopNotificationSound();
     setModalOpen(true);
     setModalStatus('conectando');
     setModalMuted(false);
@@ -176,7 +264,7 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
       setModalError(e.message || 'Error al conectar');
       setModalStatus('error');
     }
-  }, [cargarEstadoAsesor]);
+  }, [cargarEstadoAsesor, stopNotificationSound]);
 
   const colgarModal = useCallback(() => {
     if (modalCallRef.current) {
@@ -207,6 +295,7 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
     setModalStatus('conectando');
     setModalMuted(false);
     setModalError('');
+    notifiedRoomRef.current = null;
     cargarEstadoAsesor();
   }, [cargarEstadoAsesor]);
 
@@ -412,6 +501,35 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
             <p className="text-sm text-gray-400">
               Conectate para recibir llamadas de clientes.
             </p>
+          )}
+
+          {notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <p className="text-sm text-yellow-800 mb-2">Activa las notificaciones para recibir alertas de llamadas entrantes</p>
+              <button
+                onClick={requestNotificationPermission}
+                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Activar notificaciones
+              </button>
+            </div>
+          )}
+
+          {notifPermission === 'denied' && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <p className="text-sm text-red-800">
+                Notificaciones bloqueadas. Para activarlas, ve a la configuracion de tu navegador y permite las notificaciones para este sitio.
+              </p>
+            </div>
+          )}
+
+          {notifPermission === 'granted' && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-green-600">Notificaciones activas</span>
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
           )}
 
           <div className="border-t border-gray-100 pt-4">

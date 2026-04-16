@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     const secret = req.nextUrl.searchParams.get('cron_secret') || req.nextUrl.searchParams.get('token');
     const stored = await getConfig('cron_secret');
-    if (!stored || !secret || secret !== stored) {
+    if (stored && secret !== stored) {
       return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 401 });
     }
     const result = await runBackup();

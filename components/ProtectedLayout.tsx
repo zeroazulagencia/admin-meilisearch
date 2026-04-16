@@ -3,7 +3,7 @@
 import { useAuth } from './AuthProvider';
 import AdminLayout from './AdminLayout';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { hasAccessToRoute, getPermissions, findFirstAccessibleRoute } from '@/utils/permissions';
 
 interface ProtectedLayoutProps {
@@ -11,38 +11,53 @@ interface ProtectedLayoutProps {
 }
 
 export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading, refreshSession } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
+  const permissions = useMemo(() => getPermissions(), [isAuthenticated, pathname]);
+
   useEffect(() => {
-    if (isAuthenticated && pathname) {
-      const permissions = getPermissions();
-      if (permissions && !hasAccessToRoute(pathname, permissions)) {
-        // Sin acceso a esta ruta, buscar la primera ruta a la que tiene acceso
-        const firstRoute = findFirstAccessibleRoute(permissions);
-        if (firstRoute) {
-          router.push(firstRoute);
-        } else {
-          // No tiene acceso a ninguna ruta, pero tiene canLogin, dejarlo en dashboard con mensaje
-          if (permissions.canLogin === true) {
-            router.push('/dashboard');
-          } else {
-            // No tiene acceso ni canLogin, cerrar sesión
-            localStorage.removeItem('admin-authenticated');
-            localStorage.removeItem('admin-user');
-            localStorage.removeItem('admin-login-time');
-            localStorage.removeItem('admin-user-id');
-            localStorage.removeItem('admin-permissions');
-            router.push('/');
-          }
-        }
+    if (!isAuthenticated || !pathname) {
+      return;
+    }
+
+    if (!permissions) {
+      refreshSession();
+      return;
+    }
+
+    if (!hasAccessToRoute(pathname, permissions)) {
+      const firstRoute = findFirstAccessibleRoute(permissions);
+      if (firstRoute) {
+        router.replace(firstRoute);
+      } else if (permissions.canLogin === true) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/');
       }
     }
-  }, [isAuthenticated, pathname, router]);
+  }, [isAuthenticated, pathname, permissions, refreshSession, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin h-8 w-8 border-2 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+          <p className="mt-2 text-gray-600">Verificando permisos...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-700">Necesitas iniciar sesión.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -51,4 +66,3 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
     </AdminLayout>
   );
 }
-

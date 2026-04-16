@@ -51,6 +51,77 @@ interface SalesforceStatus {
   verified_at?: string | null;
 }
 
+type ModalVariant = 'success' | 'error' | 'info' | 'warning';
+
+interface ModalState {
+  open: boolean;
+  title?: string;
+  message: string;
+  variant?: ModalVariant;
+  confirmText?: string;
+  cancelText?: string;
+  showCancel?: boolean;
+  onConfirm?: () => void | Promise<void>;
+}
+
+const MODAL_VARIANT_STYLES: Record<ModalVariant, { iconBg: string; iconColor: string; titleColor: string; border: string; button: string; ring: string }> = {
+  success: {
+    iconBg: 'bg-green-50',
+    iconColor: 'text-green-600',
+    titleColor: 'text-green-900',
+    border: 'border-green-100',
+    ring: 'ring-green-100',
+    button: 'bg-green-600 text-white hover:bg-green-700'
+  },
+  error: {
+    iconBg: 'bg-red-50',
+    iconColor: 'text-red-600',
+    titleColor: 'text-red-900',
+    border: 'border-red-100',
+    ring: 'ring-red-100',
+    button: 'bg-red-600 text-white hover:bg-red-700'
+  },
+  warning: {
+    iconBg: 'bg-yellow-50',
+    iconColor: 'text-yellow-700',
+    titleColor: 'text-yellow-900',
+    border: 'border-yellow-100',
+    ring: 'ring-yellow-100',
+    button: 'bg-yellow-500 text-white hover:bg-yellow-600'
+  },
+  info: {
+    iconBg: 'bg-blue-50',
+    iconColor: 'text-blue-600',
+    titleColor: 'text-blue-900',
+    border: 'border-blue-100',
+    ring: 'ring-blue-100',
+    button: 'bg-[#5DE1E5] text-gray-900 hover:bg-[#4BC5C9]'
+  }
+};
+
+const MODAL_VARIANT_ICONS: Record<ModalVariant, JSX.Element> = {
+  success: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+  ),
+  error: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ),
+  warning: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a1 1 0 00.9 1.5h18.56a1 1 0 00.9-1.5L13.71 3.86a1 1 0 00-1.72 0z" />
+    </svg>
+  ),
+  info: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 110-16 8 8 0 010 16z" />
+    </svg>
+  )
+};
+
 const STATUS_COLORS: Record<string, string> = {
   'recibido': 'bg-blue-100 text-blue-800',
   'consultando_facebook': 'bg-purple-50 text-purple-700',
@@ -194,6 +265,22 @@ export default function LogLeadsSUVI() {
   
   const oauthSuccess = searchParams.get('oauth_success');
   const oauthError = searchParams.get('oauth_error');
+  const [modalState, setModalState] = useState<ModalState>({ open: false, message: '', variant: 'info' });
+
+  const openModal = (payload: Omit<ModalState, 'open'>) => {
+    setModalState({
+      open: true,
+      variant: payload.variant || 'info',
+      title: payload.title,
+      message: payload.message,
+      confirmText: payload.confirmText,
+      cancelText: payload.cancelText,
+      showCancel: payload.showCancel,
+      onConfirm: payload.onConfirm,
+    });
+  };
+
+  const closeModal = () => setModalState((prev) => ({ ...prev, open: false, onConfirm: undefined }));
 
   useEffect(() => {
     loadLeads();
@@ -202,14 +289,26 @@ export default function LogLeadsSUVI() {
     loadModuleConfigs();
   }, [page, filters]);
 
-  // Recargar estado de Salesforce cuando se conecta exitosamente
+  // Recargar estado y mostrar feedback de Salesforce tras OAuth
   useEffect(() => {
     if (oauthSuccess) {
       setTimeout(() => {
         loadSalesforceStatus();
       }, 1000);
+      openModal({
+        variant: 'success',
+        title: 'Salesforce conectado',
+        message: 'La sesión se vinculó correctamente. Puedes continuar con el procesamiento de leads.'
+      });
+    } else if (oauthError) {
+      openModal({
+        variant: 'error',
+        title: 'Error conectando Salesforce',
+        message: decodeURIComponent(oauthError)
+      });
     }
-  }, [oauthSuccess]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oauthSuccess, oauthError]);
 
   const loadModuleConfigs = async () => {
     try {
@@ -223,7 +322,15 @@ export default function LogLeadsSUVI() {
   };
 
   const saveConfig = async () => {
-    if (!editingConfig || !editingConfig.value.trim()) return;
+    if (!editingConfig || !editingConfig.value.trim()) {
+      openModal({
+        variant: 'warning',
+        title: 'Valor requerido',
+        message: 'Ingresa un valor antes de guardar la configuración.'
+      });
+      return;
+    }
+    const configKey = editingConfig.key;
     setConfigsLoading(true);
     setConfigMsg('');
     try {
@@ -237,11 +344,26 @@ export default function LogLeadsSUVI() {
         setConfigMsg('Configuracion guardada correctamente');
         setEditingConfig(null);
         loadModuleConfigs();
+        openModal({
+          variant: 'success',
+          title: 'Configuración actualizada',
+          message: `La clave ${configKey} se guardó correctamente.`
+        });
       } else {
         setConfigMsg('Error: ' + (data.error || 'No se pudo guardar'));
+        openModal({
+          variant: 'error',
+          title: 'Error guardando configuración',
+          message: data.error || 'No se pudo guardar la configuración.'
+        });
       }
     } catch (e: any) {
       setConfigMsg('Error: ' + e.message);
+      openModal({
+        variant: 'error',
+        title: 'Error guardando configuración',
+        message: e.message || 'Revisa la consola para más detalles.'
+      });
     }
     setConfigsLoading(false);
   };
@@ -258,11 +380,26 @@ export default function LogLeadsSUVI() {
       const data = await res.json();
       if (data.valid) {
         setConfigMsg(data.message || 'Configuracion valida');
+        openModal({
+          variant: 'success',
+          title: 'Configuración válida',
+          message: data.message || 'La key respondió correctamente.'
+        });
       } else {
         setConfigMsg('Error: ' + (data.message || 'Configuracion invalida'));
+        openModal({
+          variant: 'error',
+          title: 'Configuración inválida',
+          message: data.message || 'Verifica el valor e intenta nuevamente.'
+        });
       }
     } catch (e: any) {
       setConfigMsg('Error: ' + e.message);
+      openModal({
+        variant: 'error',
+        title: 'Error probando configuración',
+        message: e.message || 'No se pudo probar la key seleccionada.'
+      });
     }
     setTestingKey(null);
   };
@@ -288,18 +425,48 @@ export default function LogLeadsSUVI() {
       if (data.ok) {
         setBlockedForms(data.blocked_form_ids);
         setBlockedMsg('Guardado correctamente');
+        openModal({
+          variant: 'success',
+          title: 'Lista actualizada',
+          message: 'Los formularios bloqueados se guardaron correctamente.'
+        });
       } else {
         setBlockedMsg('Error: ' + (data.error || 'No se pudo guardar'));
+        openModal({
+          variant: 'error',
+          title: 'Error guardando formularios',
+          message: data.error || 'No se pudo guardar la lista de formularios bloqueados.'
+        });
       }
     } catch (e: any) {
       setBlockedMsg('Error: ' + e.message);
+      openModal({
+        variant: 'error',
+        title: 'Error guardando formularios',
+        message: e.message || 'No se pudo actualizar la lista.'
+      });
     }
     setBlockedLoading(false);
   };
 
   const addBlockedForm = () => {
     const id = newFormId.trim();
-    if (!id || blockedForms.includes(id)) return;
+    if (!id) {
+      openModal({
+        variant: 'warning',
+        title: 'ID requerido',
+        message: 'Ingresa un form_id antes de agregarlo.'
+      });
+      return;
+    }
+    if (blockedForms.includes(id)) {
+      openModal({
+        variant: 'info',
+        title: 'Formulario duplicado',
+        message: 'Este form_id ya se encuentra bloqueado.'
+      });
+      return;
+    }
     const updated = [...blockedForms, id];
     setNewFormId('');
     saveBlockedForms(updated);
@@ -355,14 +522,28 @@ export default function LogLeadsSUVI() {
       setSalesforceStatus(data);
       if (verify) {
         if (data.connection_ok) {
-          alert('Salesforce verificado correctamente');
+          openModal({
+            variant: 'success',
+            title: 'Salesforce verificado',
+            message: 'La conexión respondió correctamente.'
+          });
         } else if (data.connection_ok === false) {
-          alert(`Error verificando Salesforce: ${data.connection_error || 'desconocido'}`);
+          openModal({
+            variant: 'error',
+            title: 'Salesforce no respondió',
+            message: data.connection_error || 'No se pudo validar la sesión.'
+          });
         }
       }
     } catch (e) {
       console.error('Error cargando estado Salesforce:', e);
-      if (verify) alert('No se pudo verificar Salesforce');
+      if (verify) {
+        openModal({
+          variant: 'error',
+          title: 'Error verificando Salesforce',
+          message: 'No se pudo verificar Salesforce. Intenta nuevamente.'
+        });
+      }
     }
   };
 
@@ -426,6 +607,11 @@ export default function LogLeadsSUVI() {
     } catch (e: any) {
       console.error('Error consultando META:', e);
       setMetaError(e.message || 'Error desconocido');
+      openModal({
+        variant: 'error',
+        title: 'Error consultando META',
+        message: e.message || 'No se pudo consultar la información en META.'
+      });
     } finally {
       setConsultingMeta(false);
     }
@@ -493,6 +679,11 @@ export default function LogLeadsSUVI() {
     } catch (e: any) {
       console.error('Error procesando con IA:', e);
       setAiError(e.message || 'Error desconocido');
+      openModal({
+        variant: 'error',
+        title: 'Error procesando con IA',
+        message: e.message || 'No se pudo completar el procesamiento con IA.'
+      });
     } finally {
       setProcessingAI(false);
     }
@@ -570,6 +761,11 @@ export default function LogLeadsSUVI() {
     } catch (e: any) {
       console.error('Error procesando Salesforce:', e);
       setSalesforceError(e.message || 'Error desconocido');
+      openModal({
+        variant: 'error',
+        title: 'Error procesando Salesforce',
+        message: e.message || 'Revisa el detalle en la tarjeta inferior.',
+      });
     } finally {
       setProcessingSalesforce(false);
     }
@@ -582,7 +778,6 @@ export default function LogLeadsSUVI() {
   const processAllIncomplete = async () => {
     try {
       setBatchProcessing(true);
-      setShowBatchModal(true);
       setBatchCancelled(false);
       
       // Obtener todos los leads incompletos
@@ -596,10 +791,17 @@ export default function LogLeadsSUVI() {
           ...prev,
           logs: [{ leadId: '-', status: 'error', message: 'No hay leads incompletos para procesar' }]
         }));
+        setShowBatchModal(false);
+        openModal({
+          variant: 'info',
+          title: 'Sin leads pendientes',
+          message: 'No existen leads incompletos para reprocesar.'
+        });
         setBatchProcessing(false);
         return;
       }
       
+      setShowBatchModal(true);
       const leads = data.leads;
       setBatchProgress({
         total: leads.length,
@@ -611,6 +813,9 @@ export default function LogLeadsSUVI() {
         consecutiveErrors: 0,
         logs: []
       });
+      let processedCount = 0;
+      let errorCount = 0;
+      let stoppedByConsecutiveErrors = false;
       
       // Contador local de errores consecutivos (fuera del estado de React)
       let consecutiveErrorCount = 0;
@@ -619,6 +824,7 @@ export default function LogLeadsSUVI() {
       for (let i = 0; i < leads.length; i++) {
         // Verificar si el usuario canceló
         if (batchCancelled) {
+          stoppedByConsecutiveErrors = false;
           setBatchProgress(prev => ({
             ...prev,
             currentStep: 'Procesamiento cancelado por el usuario',
@@ -754,6 +960,7 @@ export default function LogLeadsSUVI() {
           
           // Éxito - resetear contador de errores consecutivos
           consecutiveErrorCount = 0;
+          processedCount++;
           setBatchProgress(prev => ({
             ...prev,
             processed: prev.processed + 1,
@@ -768,6 +975,7 @@ export default function LogLeadsSUVI() {
         } catch (error: any) {
           // Error en este lead, registrar y continuar
           consecutiveErrorCount++;
+          errorCount++;
           setBatchProgress(prev => ({
             ...prev,
             errors: prev.errors + 1,
@@ -781,6 +989,7 @@ export default function LogLeadsSUVI() {
           
           // Detener si hay 5 errores consecutivos
           if (consecutiveErrorCount >= 5) {
+            stoppedByConsecutiveErrors = true;
             setBatchProgress(prev => ({
               ...prev,
               currentStep: 'Procesamiento detenido: 5 errores consecutivos',
@@ -810,6 +1019,31 @@ export default function LogLeadsSUVI() {
       // Recargar leads
       loadLeads();
       
+      const summaryVariant = (() => {
+        if (batchCancelled) return 'warning';
+        if (stoppedByConsecutiveErrors) return 'error';
+        return errorCount > 0 ? 'warning' : 'success';
+      })() as ModalVariant;
+      const summaryTitle = batchCancelled
+        ? 'Procesamiento cancelado'
+        : stoppedByConsecutiveErrors
+          ? 'Procesamiento detenido'
+          : 'Procesamiento finalizado';
+      const summaryMessage = [
+        `Exitosos: ${processedCount}`,
+        `Errores: ${errorCount}`,
+        batchCancelled
+          ? 'El lote se detuvo manualmente.'
+          : stoppedByConsecutiveErrors
+            ? 'Se alcanzó el límite de 5 errores consecutivos.'
+            : ''
+      ].filter(Boolean).join('\n');
+      openModal({
+        variant: summaryVariant,
+        title: summaryTitle,
+        message: summaryMessage
+      });
+      
     } catch (error: any) {
       console.error('Error en procesamiento en lote:', error);
       setBatchProgress(prev => ({
@@ -820,6 +1054,11 @@ export default function LogLeadsSUVI() {
           message: `Error general: ${error.message}` 
         }]
       }));
+      openModal({
+        variant: 'error',
+        title: 'Error en procesamiento en lote',
+        message: error?.message || 'Revisa el registro del modal para más detalles.'
+      });
     } finally {
       setBatchProcessing(false);
     }
@@ -973,19 +1212,24 @@ export default function LogLeadsSUVI() {
                           ({salesforceStatus.time_until_expiry_minutes}m)
                         </span>
                       )}
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => loadSalesforceStatus(true)}
-                          className="text-xs text-gray-500 hover:text-gray-700 underline"
-                        >
-                          verificar
-                        </button>
-                        <span className="text-[10px] text-gray-400">{salesforceStatus.verified_at ? new Date(salesforceStatus.verified_at).toLocaleTimeString() : ''}</span>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => loadSalesforceStatus(true)}
+                            className="text-xs text-gray-500 hover:text-gray-700 underline"
+                          >
+                            verificar
+                          </button>
+                          <span className="text-[10px] text-gray-400">{salesforceStatus.verified_at ? new Date(salesforceStatus.verified_at).toLocaleTimeString() : ''}</span>
+                        </div>
+                        <span className="text-[10px] text-gray-400">{salesforceStatus.connection_ok ? 'Salesforce responde' : 'Sin verificación activa'}</span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        salesforceStatus.connection_ok === false ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                      }`}>
                         {salesforceStatus.connection_ok === false ? 'Sesión inválida' : salesforceStatus.is_expired ? 'Expirado' : 'No conectado'}
                       </span>
                       <button
@@ -1068,20 +1312,20 @@ export default function LogLeadsSUVI() {
             <option value="omitido_interno">Omitido (Interno)</option>
             <option value="error">Error</option>
           </select>
-          <button
-            onClick={loadLeads}
-            className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#5DE1E5]-dark transition-colors font-semibold"
-          >
-            Actualizar
-          </button>
-          <button
-            onClick={processAllIncomplete}
-            disabled={batchProcessing || !salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired || salesforceStatus?.connection_ok === false}
-            className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            title={!salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired ? 'Reconecta Salesforce primero' : salesforceStatus?.connection_ok === false ? 'Verifica Salesforce primero' : 'Procesar todos los leads incompletos'}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <button
+                onClick={loadLeads}
+                className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#5DE1E5]-dark transition-colors font-semibold"
+              >
+                Actualizar
+              </button>
+              <button
+                onClick={processAllIncomplete}
+                disabled={batchProcessing || !salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired || salesforceStatus?.connection_ok === false}
+                className="px-4 py-2 text-sm bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                title={!salesforceStatus?.has_active_tokens || salesforceStatus?.is_expired ? 'Reconecta Salesforce primero' : salesforceStatus?.connection_ok === false ? 'Verifica Salesforce primero' : 'Procesar todos los leads incompletos'}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             {batchProcessing ? 'Procesando...' : 'Procesar Todos'}
           </button>
@@ -1655,115 +1899,146 @@ export default function LogLeadsSUVI() {
         </div>
       )}
 
-      {/* Modal de Procesamiento en Lote */}
       {showBatchModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="bg-[#5DE1E5] p-6 text-gray-900">
-              <div className="flex items-center justify-between">
+        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-[2px] flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-4xl max-h-[95vh] flex flex-col">
+            <div className="px-6 sm:px-8 py-6 border-b border-gray-100">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold">Procesamiento en Lote</h2>
-                  <p className="text-white text-sm mt-1">
-                    {batchProcessing ? 'Procesando leads incompletos...' : 'Procesamiento finalizado'}
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Batch Runner</p>
+                  <h2 className="text-2xl font-semibold text-gray-900 mt-1">Procesamiento en lote</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {batchProcessing ? 'Avanzando sobre leads pendientes…' : 'Último lote finalizado'}
                   </p>
                 </div>
-                {!batchProcessing && (
-                  <button
-                    onClick={() => setShowBatchModal(false)}
-                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Progress */}
-            <div className="p-6 border-b">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  Progreso: {batchProgress.current} / {batchProgress.total}
-                </span>
-                <span className="text-sm text-gray-600">
-                  OK: {batchProgress.processed} | ERR: {batchProgress.errors}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                <div 
-                  className="bg-[#5DE1E5] h-full transition-all duration-300 rounded-full"
-                  style={{ width: `${batchProgress.total > 0 ? (batchProgress.current / batchProgress.total) * 100 : 0}%` }}
-                ></div>
-              </div>
-              
-              {batchProcessing && batchProgress.currentStep && (
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-sm">
-                    <div className="animate-spin h-5 w-5 border-2 border-secondary border-t-transparent rounded-full"></div>
-                    <span className="text-gray-700">{batchProgress.currentStep}</span>
-                  </div>
-                  <button
-                    onClick={() => setBatchCancelled(true)}
-                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Detener
-                  </button>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Total detectados</p>
+                  <p className="text-xl font-semibold text-gray-900">{batchProgress.total}</p>
                 </div>
-              )}
+              </div>
             </div>
-
-            {/* Logs */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Registro de Procesamiento:</h3>
-              {batchProgress.logs.length === 0 ? (
-                <p className="text-sm text-gray-500 italic">Esperando procesamiento...</p>
-              ) : (
-                <div className="space-y-2">
-                  {batchProgress.logs.map((log, idx) => (
-                    <div 
-                      key={idx}
-                      className={`flex items-start gap-3 p-3 rounded-lg text-sm ${
-                        log.status === 'success' 
-                          ? 'bg-green-50 border border-green-200' 
-                          : 'bg-red-50 border border-red-200'
-                      }`}
-                    >
-                      <span className="flex-shrink-0 mt-0.5">
-                        {log.status === 'success' ? (
-                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+            <div className="px-6 sm:px-8 py-6 space-y-6 overflow-y-auto">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase">Progreso</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {batchProgress.current} / {batchProgress.total}{' '}
+                      <span className="text-sm text-gray-400 font-normal">leads</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500">OK</p>
+                      <p className="font-semibold text-gray-900">{batchProgress.processed}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Errores</p>
+                      <p className="font-semibold text-red-600">{batchProgress.errors}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Consecutivos</p>
+                      <p className={batchProgress.consecutiveErrors >= 5 ? 'font-semibold text-red-600' : 'font-semibold text-gray-900'}>
+                        {batchProgress.consecutiveErrors}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#5DE1E5] to-[#4BC5C9] rounded-full transition-all duration-500"
+                    style={{ width: `${batchProgress.total > 0 ? (batchProgress.current / batchProgress.total) * 100 : 0}%` }}
+                  ></div>
+                </div>
+                {batchProcessing && batchProgress.currentStep && (
+                  <div className="mt-3 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-gray-900/5 flex items-center justify-center">
+                        <div className="animate-spin h-4 w-4 border-2 border-[#5DE1E5] border-t-transparent rounded-full"></div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 uppercase">Paso actual</p>
+                        <p className="text-sm font-medium text-gray-800">{batchProgress.currentStep}</p>
+                        {batchProgress.currentLeadId && (
+                          <p className="text-[11px] text-gray-400 font-mono">
+                            Lead {batchProgress.currentLeadId}
+                          </p>
                         )}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className={`font-medium ${log.status === 'success' ? 'text-green-900' : 'text-red-900'}`}>
-                          Lead: {log.leadId}
-                        </p>
-                        <p className={`text-xs mt-0.5 ${log.status === 'success' ? 'text-green-700' : 'text-red-700'}`}>
-                          {log.message}
-                        </p>
                       </div>
                     </div>
-                  ))}
+                    <button
+                      onClick={() => setBatchCancelled(true)}
+                      className="px-5 py-2 rounded-full bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Detener lote
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase">Registro de eventos</p>
+                    <p className="text-sm text-gray-400">Tiempo real · Últimos {batchProgress.logs.length}</p>
+                  </div>
+                  {!batchProcessing && (
+                    <button
+                      onClick={() => setShowBatchModal(false)}
+                      className="text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors"
+                    >
+                      Cerrar
+                    </button>
+                  )}
                 </div>
-              )}
+                <div className="border border-gray-100 rounded-2xl divide-y divide-gray-100 max-h-[45vh] overflow-y-auto">
+                  {batchProgress.logs.length === 0 ? (
+                    <div className="p-6 text-sm text-gray-400 text-center">Esperando procesamiento...</div>
+                  ) : (
+                    batchProgress.logs.map((log, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 flex items-start gap-3 text-sm bg-white"
+                      >
+                        <span
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                            log.status === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                          }`}
+                        >
+                          {log.status === 'success' ? (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className={`font-semibold ${log.status === 'success' ? 'text-gray-900' : 'text-red-700'}`}>
+                              Lead {log.leadId}
+                            </p>
+                            <span className="text-[11px] font-mono text-gray-400">#{idx + 1}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {log.message}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
-
-            {/* Footer */}
             {!batchProcessing && (
-              <div className="p-6 border-t bg-gray-50">
+              <div className="px-6 sm:px-8 py-5 border-t border-gray-100 bg-gray-50 flex justify-end">
                 <button
                   onClick={() => setShowBatchModal(false)}
-                  className="w-full px-4 py-3 bg-[#5DE1E5] text-gray-900 rounded-lg hover:bg-[#4BC5C9] transition-colors font-semibold"
+                  className="px-6 py-3 rounded-2xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
                 >
                   Cerrar
                 </button>
@@ -2095,6 +2370,47 @@ modulos_suvi_12_config
                   <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">{auth}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalState.open && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-md overflow-hidden">
+            <div className={`px-6 py-5 flex items-start gap-4 ${MODAL_VARIANT_STYLES[modalState.variant || 'info'].ring}`}>
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${MODAL_VARIANT_STYLES[modalState.variant || 'info'].iconBg} ${MODAL_VARIANT_STYLES[modalState.variant || 'info'].iconColor}`}>
+                {MODAL_VARIANT_ICONS[modalState.variant || 'info']}
+              </div>
+              <div className="flex-1">
+                {modalState.title && (
+                  <h3 className={`text-lg font-semibold ${MODAL_VARIANT_STYLES[modalState.variant || 'info'].titleColor}`}>
+                    {modalState.title}
+                  </h3>
+                )}
+                <p className="text-sm text-gray-600 whitespace-pre-line mt-2">
+                  {modalState.message}
+                </p>
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+              {modalState.showCancel && (
+                <button
+                  onClick={closeModal}
+                  className="px-4 py-2 rounded-2xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-white"
+                >
+                  {modalState.cancelText || 'Cancelar'}
+                </button>
+              )}
+              <button
+                onClick={async () => {
+                  if (modalState.onConfirm) await modalState.onConfirm();
+                  closeModal();
+                }}
+                className={`px-4 py-2 rounded-2xl text-sm font-semibold ${MODAL_VARIANT_STYLES[modalState.variant || 'info'].button}`}
+              >
+                {modalState.confirmText || 'Aceptar'}
+              </button>
             </div>
           </div>
         </div>

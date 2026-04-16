@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Document } from '@/utils/meilisearch';
-import { getPermissions } from '@/utils/permissions';
 import NoticeModal from './ui/NoticeModal';
 
 interface DocumentEditorProps {
@@ -39,54 +38,42 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
   });
 
   useEffect(() => {
-    const permissions = getPermissions();
-    const isClient = permissions?.type !== 'admin';
-    
-    // Verificar si es un nuevo documento (document es null, undefined, o un objeto vacío)
-    // O si tiene campos pero el primary key está vacío (template nuevo)
-    const isNewDocument = !document || (Object.keys(document).length === 0) || (primaryKey && (!document[primaryKey] || document[primaryKey] === ''));
-    
-    console.log('[DOCUMENT-EDITOR] Permisos:', permissions);
-    console.log('[DOCUMENT-EDITOR] ¿Es cliente?', isClient);
-    console.log('[DOCUMENT-EDITOR] Primary key:', primaryKey);
-    console.log('[DOCUMENT-EDITOR] Documento original:', document);
-    console.log('[DOCUMENT-EDITOR] ¿Es nuevo documento?', isNewDocument);
-    
-    if (isNewDocument) {
-      // Si es un nuevo documento, usar el template completo (todos los campos)
-      // y asegurar que el primary key esté presente si es necesario
-      if (document && Object.keys(document).length > 0) {
-        // Hay un template con campos, usarlo completo
-        const template = { ...document };
-        // Si falta el primary key y tiene permisos de crear, agregarlo
-        if (canAddFields && primaryKey && !template[primaryKey]) {
-          template[primaryKey] = '';
-        }
-        console.log('[DOCUMENT-EDITOR] Nuevo documento - usando template completo:', template);
-        setFormData(template);
+    if (!document || Object.keys(document).length === 0) {
+      if (canAddFields && primaryKey) {
+        setFormData({ [primaryKey]: '' });
       } else {
-        // No hay template, crear uno básico
-        if (canAddFields && primaryKey) {
-          console.log('[DOCUMENT-EDITOR] Nuevo documento - solo primary key:', primaryKey);
-          setFormData({ [primaryKey]: '' });
-        } else {
-          console.log('[DOCUMENT-EDITOR] Nuevo documento - sin campos');
-          setFormData({});
-        }
+        setFormData(document || {});
       }
-    } else {
-      // Si es un documento existente y es cliente, filtrar el primary key
-      if (isClient && primaryKey && document[primaryKey] !== undefined) {
-        const filtered = { ...document };
-        delete filtered[primaryKey];
-        console.log('[DOCUMENT-EDITOR] Filtrando primary key, documento filtrado:', filtered);
-        setFormData(filtered);
-      } else {
-        console.log('[DOCUMENT-EDITOR] No filtrando, usando documento completo');
-        setFormData(document);
+      return;
+    }
+
+    const nextData = { ...document };
+    if (primaryKey && nextData[primaryKey] === undefined) {
+      if (document && primaryKey in document) {
+        nextData[primaryKey] = document[primaryKey];
+      } else if (canAddFields) {
+        nextData[primaryKey] = '';
       }
     }
+    setFormData(nextData);
   }, [document, primaryKey, canAddFields]);
+
+  const isNewDocument = useMemo(() => {
+    if (!document) return true;
+    if (Object.keys(document).length === 0) return true;
+    if (primaryKey && (!document[primaryKey] || document[primaryKey] === '')) return true;
+    return false;
+  }, [document, primaryKey]);
+
+  const [idField, nonIdFields] = useMemo(() => {
+    const entries = Object.entries(formData);
+    if (!primaryKey) {
+      return [null, entries];
+    }
+    const idEntry = entries.find(([key]) => key === primaryKey) || null;
+    const rest = entries.filter(([key]) => key !== primaryKey);
+    return [idEntry, rest];
+  }, [formData, primaryKey]);
 
   const updateField = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -314,7 +301,7 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
   };
 
   // Cerrar menú al hacer clic fuera
-  useEffect(() => {
+useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (openQuickFillMenu && !(event.target as Element).closest('.quick-fill-menu-container')) {
         setOpenQuickFillMenu(null);
@@ -335,7 +322,35 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
       </div>
       
       <div className="p-6 space-y-4 max-h-[600px] overflow-y-auto">
-        {Object.entries(formData).map(([key, value]) => {
+        {idField && (
+          <div className="space-y-2 border rounded-lg p-4 border-blue-200 bg-blue-50">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-blue-900">
+                {idField[0]}
+                <span className="ml-1 text-red-500 font-bold">*</span>
+                {!readOnly && (
+                  <span className="ml-2 text-xs text-blue-700">
+                    (ID del documento)
+                  </span>
+                )}
+              </label>
+              {!readOnly && (
+                <button
+                  onClick={() => insertQuickValue(idField[0], 'uuid')}
+                  className="px-2 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 text-xs"
+                >
+                  Generar UUID
+                </button>
+              )}
+            </div>
+            {renderFieldEditor(idField[0], idField[1])}
+            <p className="text-xs text-blue-700">
+              El ID se utiliza como clave primaria en Meilisearch. Mantén este valor cuando edites un documento existente para evitar duplicados.
+            </p>
+          </div>
+        )}
+
+        {nonIdFields.map(([key, value]) => {
           const isPrimaryKey = key === primaryKey;
           const isRequired = requiredFields.has(key);
           const isEmpty = !value || (typeof value === 'string' && !value.trim());
@@ -570,4 +585,3 @@ export default function DocumentEditor({ document, indexUid, onSave, onCancel, r
     </div>
   );
 }
-

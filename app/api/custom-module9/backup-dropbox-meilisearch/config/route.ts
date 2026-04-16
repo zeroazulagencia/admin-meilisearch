@@ -1,5 +1,5 @@
 /**
- * Módulo 9 - Config (dropbox_access_token, dropbox_folder_path, cron_secret, ssh, meilisearch)
+ * Módulo 9 - Config (dropbox_access_token, dropbox_refresh_token, dropbox_app_key, dropbox_app_secret, dropbox_folder_path, cron_secret, ssh, meilisearch)
  * GET: devuelve config con secretos enmascarados. PUT: actualiza.
  */
 import { NextRequest, NextResponse } from 'next/server';
@@ -17,6 +17,8 @@ function maskValue(v: string | null): string | null {
 
 const SENSITIVE = new Set([
   'dropbox_access_token',
+  'dropbox_refresh_token',
+  'dropbox_app_secret',
   'cron_secret',
   'ssh_password',
   'meilisearch_api_key',
@@ -45,6 +47,12 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     if (body.dropbox_access_token != null)
       await setConfig('dropbox_access_token', body.dropbox_access_token === '' ? null : String(body.dropbox_access_token));
+    if (body.dropbox_refresh_token != null)
+      await setConfig('dropbox_refresh_token', body.dropbox_refresh_token === '' ? null : String(body.dropbox_refresh_token));
+    if (body.dropbox_app_key != null)
+      await setConfig('dropbox_app_key', body.dropbox_app_key === '' ? null : String(body.dropbox_app_key));
+    if (body.dropbox_app_secret != null)
+      await setConfig('dropbox_app_secret', body.dropbox_app_secret === '' ? null : String(body.dropbox_app_secret));
     if (body.dropbox_folder_path != null)
       await setConfig('dropbox_folder_path', body.dropbox_folder_path === '' ? null : String(body.dropbox_folder_path));
     if (body.cron_secret != null)

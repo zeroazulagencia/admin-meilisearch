@@ -2909,5 +2909,3 @@ export default function AdminConocimiento() {
     </ProtectedLayout>
   );
 }
-
-

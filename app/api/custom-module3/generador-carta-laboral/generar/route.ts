@@ -36,7 +36,12 @@ async function getEmpleado(config: Record<string, string>, token: string, nit: s
   });
   const text = await res.text();
   const clean = text.replace(/[^\x20-\x7F\xC0-\xFF]/g, '');
-  const data = JSON.parse(clean);
+  // Sanitizar JSON invalido de SIGHA: campos con valor vacio (ej: "fijos": ,)
+  const fixed = clean
+    .replace(/"([^"]+)":\s*,/g, '"$1": null,')
+    .replace(/"([^"]+)":\s*}/g, '"$1": null}')
+    .replace(/"([^"]+)":\s*]/g, '"$1": null]');
+  const data = JSON.parse(fixed);
   if (!data.empleados || data.empleados.length === 0) throw new Error('Empleado no encontrado para el NIT indicado');
   return data.empleados[0][nit];
 }

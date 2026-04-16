@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { upsertLogByPaymentId } from '@/utils/modulos/biury-pagos/module8-config';
+import { upsertLogByPaymentId, matchProductRule } from '@/utils/modulos/biury-pagos/module8-config';
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
@@ -22,22 +22,31 @@ async function importLines(lines: string[]) {
     }
 
     const items = Array.isArray(payload?.items) ? payload.items : [];
-    const match = items.find((item: any) => item?.name === 'TRUE BIURY - BiuryBox Trimestre');
-    if (!match) {
+    let matchedItem: any = null;
+    for (const item of items) {
+      if (!item?.name) continue;
+      const rule = await matchProductRule(item.name, payload?.payment_gateway_name || payload?.payment_gateway || null);
+      if (rule) {
+        matchedItem = item;
+        break;
+      }
+    }
+
+    if (!matchedItem) {
       skipped += 1;
-      results.push({ payment_id: String(payload?.payment_id || 'unknown'), status: 'skipped', message: 'No es BiuryBox Trimestre' });
+      results.push({ payment_id: String(payload?.payment_id || 'unknown'), status: 'skipped', message: 'Sin regla de producto' });
       continue;
     }
 
     const paymentId = String(payload?.payment_id || 'unknown');
     const customerDocument = payload?.billing?.document || 'unknown';
-    const total = Number(payload?.totals?.total || match?.total || 0);
+    const total = Number(payload?.totals?.total || matchedItem?.total || 0);
     const gateway = payload?.payment_gateway_name || payload?.payment_gateway || 'unknown';
 
     const action = await upsertLogByPaymentId({
       payment_id: paymentId,
       customer_document: customerDocument,
-      product_name: match?.name || 'unknown',
+      product_name: matchedItem?.name || 'unknown',
       gateway,
       total,
       payload_raw: line,

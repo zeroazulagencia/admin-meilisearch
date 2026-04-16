@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getErrorLogs, getErrorLogsBySku, getLogById, getLogsByPaymentIds, getErrorLogsSince, getSuccessLogByPaymentId, updateLogById } from '@/utils/modulos/biury-pagos/module8-config';
+import {
+  getErrorLogs,
+  getFilteredLogs,
+  getErrorLogsBySku,
+  getLogById,
+  getLogsByPaymentIds,
+  getErrorLogsSince,
+  getSuccessLogByPaymentId,
+  updateLogById,
+} from '@/utils/modulos/biury-pagos/module8-config';
 import { processTreliWebhook } from '@/utils/modulos/biury-pagos/module8-orchestrator';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const limit = Math.max(1, Math.min(200, Number(body.limit) || 50));
+    const status = typeof body.status === 'string' ? body.status.trim().toLowerCase() : null;
     const sku = typeof body.sku === 'string' && body.sku.trim() ? body.sku.trim() : null;
     const logId = Number(body.id) || null;
     const paymentIdsRaw = body.payment_ids ?? body.paymentIds ?? null;
@@ -26,7 +36,9 @@ export async function POST(request: NextRequest) {
           ? await getErrorLogsSince(`${year}-01-01`, limit)
         : sku
           ? await getErrorLogsBySku(sku, limit)
-          : await getErrorLogs(limit);
+          : status === 'filtered'
+            ? await getFilteredLogs(limit)
+            : await getErrorLogs(limit);
     let processed = 0;
     let success = 0;
     let failed = 0;

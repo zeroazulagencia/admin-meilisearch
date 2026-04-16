@@ -5,7 +5,12 @@
 import { query } from '@/utils/db';
 import { decrypt, encrypt, isEncrypted } from '@/utils/encryption';
 
-const SENSITIVE_KEYS = new Set(['dropbox_access_token', 'cron_secret']);
+const SENSITIVE_KEYS = new Set([
+  'dropbox_access_token',
+  'dropbox_refresh_token',
+  'dropbox_app_secret',
+  'cron_secret',
+]);
 
 export async function getConfig(key: string): Promise<string | null> {
   const [rows] = await query<{ config_value: string | null }>(

@@ -167,13 +167,13 @@ export function deriveFromPayload(payload: AnyPayload): DerivedPayload {
     const fallbackTel = getStr(payload, 'telefono', 'Telefono', 'Teléfono', 'fields[tel][value]');
     telefono = telField || fallbackTel || '-';
     const paisRaw = getFieldsValue(payload, 'country') || asString(embeddedCountry) || getStr(payload, 'pais', 'Pais', 'País');
-    pais = normalizePais(paisRaw) || null;
+    pais = 'Estados Unidos (+1)';
     ciudad = getFieldsValue(payload, 'city') || asString(embeddedCity) || null;
     nombre_proyecto = null;
     const indicativoField = cleanIndicativo(getFieldsValue(payload, 'indicativo') || asString(embeddedIndicativo) || null);
     const indicativoPais = indicativoFromPais(pais);
     const indicativoPhone = indicativoFromPhone(telefono);
-    indicativo = indicativoField || indicativoPais || indicativoPhone || '1';
+    indicativo = '1';
   } else if (isFieldsVariant(payload)) {
     nombre = getFieldsValue(payload, 'FirstName') || '-';
     apellido = getFieldsValue(payload, 'LastName') || '-';

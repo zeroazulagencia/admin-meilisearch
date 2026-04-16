@@ -3,6 +3,8 @@ import { query } from '@/utils/db';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { groupDocumentsIntoConversations } from '@/app/omnicanalidad/utils/conversation-helpers';
 
+export const dynamic = 'force-dynamic';
+
 const INDEX_UID = 'bd_conversations_dworkers';
 
 // GET - Verificar nuevas conversaciones/mensajes
@@ -165,4 +167,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: e?.message || 'Error verificando actualizaciones' }, { status: 500 });
   }
 }
-

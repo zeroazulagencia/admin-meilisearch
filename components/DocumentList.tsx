@@ -6,6 +6,54 @@ import DocumentEditor from './DocumentEditor';
 import NoticeModal from './ui/NoticeModal';
 import { getPermissions } from '@/utils/permissions';
 
+const COMMON_PRIMARY_KEY_CANDIDATES = ['id', '_id', 'uid', 'uuid', 'documentId', 'docId', 'slug', 'key'];
+
+const sanitizeIdValue = (value: any): string | null => {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return null;
+};
+
+const buildCandidateList = (preferred?: string | null, doc?: Document): string[] => {
+  const dynamicKeys = doc ? Object.keys(doc) : [];
+  return Array.from(new Set([preferred, ...COMMON_PRIMARY_KEY_CANDIDATES, ...dynamicKeys].filter(Boolean))) as string[];
+};
+
+const inferPrimaryKeyFromDocs = (docs: Document[], preferred?: string | null): string | null => {
+  if (!docs || docs.length === 0) return preferred || null;
+  const sample = docs.find(doc => doc && Object.keys(doc).length > 0) || docs[0];
+  const candidates = buildCandidateList(preferred, sample);
+  let fallback: string | null = null;
+  for (const key of candidates) {
+    const docsWithValue = docs.filter(doc => sanitizeIdValue(doc?.[key]) !== null);
+    if (docsWithValue.length === docs.length) {
+      return key;
+    }
+    if (!fallback && docsWithValue.length >= Math.max(1, Math.floor(docs.length * 0.6))) {
+      fallback = key;
+    }
+  }
+  return fallback || candidates[0] || null;
+};
+
+const getDocumentIdValue = (doc: Document, preferred?: string | null): string | null => {
+  if (!doc) return null;
+  const candidates = buildCandidateList(preferred, doc);
+  for (const key of candidates) {
+    const value = sanitizeIdValue(doc[key]);
+    if (value !== null) {
+      return value;
+    }
+  }
+  return null;
+};
+
 interface DocumentListProps {
   indexUid: string;
   onLoadPdf?: () => void;
@@ -94,13 +142,22 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     }
   };
 
-  const loadPrimaryKey = async () => {
+  const loadPrimaryKey = async (documentsSnapshot?: Document[]) => {
     try {
       const index = await meilisearchAPI.getIndex(indexUid);
-      setPrimaryKey(index.primaryKey || null);
+      const detectedKey = index.primaryKey || null;
+      let finalKey = detectedKey;
+      if (!finalKey) {
+        const docsForInference = documentsSnapshot && documentsSnapshot.length ? documentsSnapshot : documents;
+        finalKey = inferPrimaryKeyFromDocs(docsForInference, detectedKey);
+      }
+      finalKey = finalKey || 'id';
+      setPrimaryKey(finalKey);
+      console.log('[DOCUMENT-LIST] PrimaryKey detectada/inferida:', finalKey);
     } catch (err) {
       console.error('Error cargando primary key:', err);
-      setPrimaryKey(null);
+      const fallback = inferPrimaryKeyFromDocs(documents, null) || 'id';
+      setPrimaryKey(fallback);
     }
   };
 
@@ -148,7 +205,11 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
       setIsSearching(false);
       const data = await meilisearchAPI.getDocuments(indexUid, limit, offset);
       console.log('Get documents API response:', data);
-      setDocuments(data.results || []);
+      const docs = data.results || [];
+      setDocuments(docs);
+      if (!primaryKey || !documents.length) {
+        loadPrimaryKey(docs);
+      }
       setTotal(data.total || 0);
     } catch (err: any) {
       console.error('Error loading documents:', err);
@@ -184,8 +245,9 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
         hybridEmbedder: detectedEmbedderName,
         hybridSemanticRatio: searchParams.semanticRatio,
         matchingStrategy: searchParams.matchingStrategy,
-        rankingScoreThreshold: searchParams.rankingScoreThreshold
-      } : undefined;
+        rankingScoreThreshold: searchParams.rankingScoreThreshold,
+        primaryKey: primaryKey
+      } : { primaryKey };
       
       const data = await meilisearchAPI.searchDocuments(indexUid, searchQuery, limit, offset, params);
       console.log('Search API response:', data);
@@ -219,29 +281,41 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
   };
 
   const refreshDocuments = async () => {
-    // Forzar recarga completa
     await loadDocuments();
   };
 
   const handleEdit = (doc: Document) => {
-    setEditingDoc(doc);
+    const docId = getDocumentIdValue(doc, primaryKey);
+    if (!docId) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Documento sin ID',
+        message: 'No se detectó un campo de ID válido en el documento seleccionado. Verifica la configuración del índice.',
+        type: 'error',
+      });
+      return;
+    }
+    setEditingDoc({ ...doc, [primaryKey || 'id']: docId });
     setShowEditor(true);
   };
 
   const handleView = (doc: Document) => {
-    setEditingDoc(doc);
+    const docId = getDocumentIdValue(doc, primaryKey);
+    setEditingDoc(docId ? { ...doc, [primaryKey || 'id']: docId } : doc);
     setShowEditor(true);
   };
 
   const handleCreate = () => {
-    // Crear plantilla basada en el último documento guardado
-    if (documents.length > 0) {
-      const lastDoc = documents[0];
-      const template: Document = {};
-      
-      // Copiar estructura de campos pero sin valores
-      Object.keys(lastDoc).forEach(key => {
-        const value = lastDoc[key];
+    const template: Document = {};
+    const sourceDoc = documents[0];
+
+    if (sourceDoc) {
+      Object.keys(sourceDoc).forEach(key => {
+        if (key === primaryKey) {
+          template[key] = '';
+          return;
+        }
+        const value = sourceDoc[key];
         if (Array.isArray(value)) {
           template[key] = [];
         } else if (typeof value === 'object' && value !== null) {
@@ -254,11 +328,13 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
           template[key] = '';
         }
       });
-      
-      setEditingDoc(template);
-    } else {
-      setEditingDoc(null);
     }
+
+    if (primaryKey && template[primaryKey] === undefined) {
+      template[primaryKey] = '';
+    }
+
+    setEditingDoc(Object.keys(template).length > 0 ? template : primaryKey ? { [primaryKey]: '' } : {});
     setShowEditor(true);
   };
 
@@ -538,6 +614,16 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
   };
 
   const handleDelete = async (doc: Document) => {
+    const docId = getDocumentIdValue(doc, primaryKey);
+    if (!docId) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'No se puede eliminar el documento porque no se detectó ningún campo ID válido.',
+        type: 'error',
+      });
+      return;
+    }
     setConfirmModal({
       isOpen: true,
       title: 'Confirmar eliminación',
@@ -546,8 +632,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
       onConfirm: async () => {
         try {
           setDeleting(true);
-          const primaryKey = Object.keys(doc)[0];
-          await meilisearchAPI.deleteDocument(indexUid, doc[primaryKey] as string);
+          await meilisearchAPI.deleteDocument(indexUid, docId);
           await new Promise(resolve => setTimeout(resolve, 300));
           await loadDocuments();
           
@@ -571,7 +656,26 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
   };
 
   const handleDeleteSelected = async () => {
+    if (!primaryKey) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'No se puede eliminar en lote porque no se detectó el campo ID.',
+        type: 'error',
+      });
+      return;
+    }
     if (selectedDocs.size === 0) return;
+    const ids = Array.from(selectedDocs).filter(id => id && id.trim().length);
+    if (ids.length === 0) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'No se detectaron IDs válidos para eliminar.',
+        type: 'error',
+      });
+      return;
+    }
     setConfirmModal({
       isOpen: true,
       title: 'Confirmar eliminación',
@@ -580,7 +684,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
       onConfirm: async () => {
         try {
           setDeleting(true);
-          await meilisearchAPI.deleteDocuments(indexUid, Array.from(selectedDocs));
+          await meilisearchAPI.deleteDocuments(indexUid, ids);
           setSelectedDocs(new Set());
           await new Promise(resolve => setTimeout(resolve, 300));
           await loadDocuments();
@@ -634,7 +738,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               Documentos ({total})
             </h2>
             <div className="space-x-2 flex gap-2">
-              {canDelete && selectedDocs.size > 0 && (
+              {canDelete && primaryKey && selectedDocs.size > 0 && (
                 <button
                   onClick={handleDeleteSelected}
                   disabled={deleting}
@@ -712,11 +816,10 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
             </div>
             
             {(() => {
-              const permissions = getPermissions();
-              const isClient = permissions?.type !== 'admin';
-              console.log('[DOCUMENT-LIST] Buscar con IA - searchQuery:', searchQuery, 'canEdit:', canEdit, 'isClient:', isClient);
-              // Solo mostrar "Buscar con IA" para admins, no para clientes
-              return searchQuery && canEdit && !isClient && (
+               const permissions = getPermissions();
+               const isClient = permissions?.type !== 'admin';
+               // Solo mostrar "Buscar con IA" para admins, no para clientes
+               return searchQuery && canEdit && !isClient && (
                 <div className="flex items-center gap-4 text-sm">
                   <label className="flex items-center gap-2">
                     <input
@@ -801,23 +904,26 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                {canDelete && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <input
-                      type="checkbox"
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedDocs(new Set(documents.map(d => String(Object.values(d)[0]))));
-                        } else {
-                          setSelectedDocs(new Set());
-                        }
-                      }}
-                      className="rounded"
-                    />
-                  </th>
-                )}
+             <thead className="bg-gray-50">
+               <tr>
+                      {canDelete && primaryKey && (
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     <input
+                       type="checkbox"
+                       onChange={(e) => {
+                         if (e.target.checked) {
+                            const ids = documents
+                             .map(d => getDocumentIdValue(d, primaryKey))
+                             .filter((id): id is string => Boolean(id));
+                           setSelectedDocs(new Set(ids));
+                         } else {
+                           setSelectedDocs(new Set());
+                         }
+                       }}
+                       className="rounded"
+                     />
+                   </th>
+                 )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Contenido
                 </th>
@@ -826,34 +932,31 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {documents.map((doc, idx) => {
-                const docId = String(Object.values(doc)[0]);
-                return (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    {canDelete && (
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="checkbox"
-                          checked={selectedDocs.has(docId)}
-                          onChange={() => toggleSelect(docId)}
-                          className="rounded"
-                        />
-                      </td>
-                    )}
+             <tbody className="bg-white divide-y divide-gray-200">
+                {documents.map((doc, idx) => {
+                 const docId = getDocumentIdValue(doc, primaryKey);
+                 const rowKey = docId || `row-${idx}`;
+                 return (
+                   <tr key={rowKey} className="hover:bg-gray-50">
+                     {canDelete && primaryKey && (
+                       <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={docId ? selectedDocs.has(docId) : false}
+                            onChange={() => docId && toggleSelect(docId)}
+                            className="rounded"
+                            disabled={!docId}
+                          />
+                       </td>
+                     )}
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 space-y-1">
                         {(() => {
                           const permissions = getPermissions();
                           const isClient = permissions?.type !== 'admin';
-                          console.log('[DOCUMENT-LIST] Permisos:', permissions);
-                          console.log('[DOCUMENT-LIST] ¿Es cliente?', isClient);
-                          console.log('[DOCUMENT-LIST] Primary key:', primaryKey);
-                          // Filtrar primary key si es cliente
                           const filteredEntries = isClient && primaryKey 
                             ? Object.entries(doc).filter(([key]) => key !== primaryKey)
                             : Object.entries(doc);
-                          console.log('[DOCUMENT-LIST] Entradas filtradas:', filteredEntries.length, 'de', Object.entries(doc).length);
                           const displayedEntries = filteredEntries.slice(0, 3);
                           const totalFilteredFields = filteredEntries.length;
                           
@@ -897,7 +1000,7 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                           Ver
                         </button>
                       )}
-                      {canDelete && (
+                     {canDelete && docId && (
                         <button
                           onClick={() => handleDelete(doc)}
                           disabled={deleting}
@@ -1011,11 +1114,11 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
                 setShowEditor(false);
                 setEditingDoc(null);
               }}
-              readOnly={!canEdit}
-              canAddFields={canCreate}
-              canRemoveFields={canDelete}
-              primaryKey={primaryKey}
-              requiredFields={requiredFields}
+               readOnly={!canEdit}
+               canAddFields={canCreate}
+               canRemoveFields={canDelete}
+               primaryKey={primaryKey}
+               requiredFields={requiredFields}
             />
           </div>
         </div>
@@ -1043,4 +1146,3 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
     </>
   );
 }
-

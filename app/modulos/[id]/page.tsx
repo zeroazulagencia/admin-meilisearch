@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
+import ModuleLoading from '@/components/ModuleLoading';
 
 interface Module {
   id: number;
@@ -71,12 +72,7 @@ export default function ModuleDetailPage() {
   if (loading) {
     return (
       <ProtectedLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full mx-auto mb-4" style={{ borderColor: '#5DE1E5' }}></div>
-            <p className="text-gray-600">Cargando módulo...</p>
-          </div>
-        </div>
+        <ModuleLoading />
       </ProtectedLayout>
     );
   }
@@ -140,17 +136,10 @@ export default function ModuleDetailPage() {
 
       <div className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${module.folder_name === 'sync-data-tableros-gain' ? 'p-4 md:p-6' : ''}`}>
         {loadingComponent ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full mx-auto mb-3" style={{ borderColor: '#5DE1E5' }}></div>
-              <p className="text-gray-600">Cargando componente...</p>
-            </div>
-          </div>
+          <ModuleLoading />
         ) : ModuleComponent ? (
           <Suspense fallback={
-            <div className="flex items-center justify-center min-h-[400px]">
-              <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
-            </div>
+            <ModuleLoading />
           }>
             {module.folder_name === 'sync-data-tableros-gain' ? (
               <div className="p-4 md:p-6">

@@ -27,6 +27,7 @@ interface ModuleItem {
   client_name?: string;
   client_id?: number;
   created_at: string;
+  error_count?: number;
 }
 
 export default function ModulosPage() {
@@ -300,8 +301,13 @@ export default function ModulosPage() {
               {module.description && (
                 <p className="text-xs text-gray-400 mt-2 line-clamp-2">{module.description}</p>
               )}
-              <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
                 <span className="text-xs text-gray-400 font-mono">{module.folder_name}</span>
+                {([1, 6].includes(module.id) && (module.error_count || 0) > 0) && (
+                  <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                    {module.error_count} errores
+                  </span>
+                )}
               </div>
             </div>
           ))}

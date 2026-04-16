@@ -159,8 +159,8 @@ if (permissions?.type !== 'admin') {
 ### 9. Server Management
 - Development port: **8989**
 - Production port: **8988** (PM2)
-- Before restart: always run `bash scripts/verify-whatsapp-data.sh`
-- After changes requiring rebuild: `npm run build && pm2 restart admin-meilisearch --update-env`
+- Antes de reiniciar: confirma que los cambios estén comprometidos, ejecuta `npm run build` (con timeout amplio) y luego reinicia con `npm run start` o `pm2 restart admin-meilisearch --update-env`
+- Evita reinicios sin build previa; `scripts/verify-whatsapp-data.sh` ya no es obligatorio en cada ciclo
 
 ### 10. Module Development
 - Create in UI at `/modulos` → generates `folder_name` slug
@@ -197,15 +197,15 @@ JAMAS usar `app/api/modulos/` para routes de modulos custom. Esa carpeta queda e
 - `docs/CAMBIOS_REALIZADOS.md` - Change history
 - `settings.json` - Project metadata and version
 - `.env.example` - Required environment variables
-- `scripts/verify-whatsapp-data.sh` - Pre-deploy verification
+- `scripts/verify-whatsapp-data.sh` - Referencia histórica (no obligatorio en cada deploy)
 
 ## Pre-Deployment Checklist
 
 Before any production deploy:
-1. ✅ Run `bash scripts/verify-whatsapp-data.sh`
-2. ✅ Verify `ENCRYPTION_KEY` is configured and unchanged
-3. ✅ Test build: `npm run build`
-4. ✅ Check no schema.sql is being run on production DB
+1. ✅ Ensure latest code is committed (no push required)
+2. ✅ Run `npm run build` with a generous timeout to catch slow builds
+3. ✅ Run `npm run start` (or `pm2 restart admin-meilisearch --update-env`) only after build succeeds
+4. ✅ Confirm no `schema.sql` execution on production databases
 
 ## Example: Log Leads SUVI Module (Module ID: 1)
 

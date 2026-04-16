@@ -24,6 +24,9 @@ export default function BackupDropboxMeilisearchModule() {
   const [savingConfig, setSavingConfig] = useState(false);
   const [configForm, setConfigForm] = useState({
     dropbox_access_token: '',
+    dropbox_refresh_token: '',
+    dropbox_app_key: '',
+    dropbox_app_secret: '',
     dropbox_folder_path: '',
     cron_secret: '',
     ssh_host: '',
@@ -67,6 +70,9 @@ export default function BackupDropboxMeilisearchModule() {
     try {
       const payload: Record<string, string> = {};
       if (configForm.dropbox_access_token.trim()) payload.dropbox_access_token = configForm.dropbox_access_token.trim();
+      if (configForm.dropbox_refresh_token.trim()) payload.dropbox_refresh_token = configForm.dropbox_refresh_token.trim();
+      if (configForm.dropbox_app_key.trim()) payload.dropbox_app_key = configForm.dropbox_app_key.trim();
+      if (configForm.dropbox_app_secret.trim()) payload.dropbox_app_secret = configForm.dropbox_app_secret.trim();
       if (configForm.dropbox_folder_path.trim()) payload.dropbox_folder_path = configForm.dropbox_folder_path.trim();
       if (configForm.cron_secret.trim()) payload.cron_secret = configForm.cron_secret.trim();
       if (configForm.ssh_host.trim()) payload.ssh_host = configForm.ssh_host.trim();
@@ -84,6 +90,9 @@ export default function BackupDropboxMeilisearchModule() {
         await loadConfig();
         setConfigForm({
           dropbox_access_token: '',
+          dropbox_refresh_token: '',
+          dropbox_app_key: '',
+          dropbox_app_secret: '',
           dropbox_folder_path: '',
           cron_secret: '',
           ssh_host: '',
@@ -103,13 +112,10 @@ export default function BackupDropboxMeilisearchModule() {
   };
 
   const runBackupNow = async () => {
-    if (!runSecret) {
-      alert('Ingresa el cron secret para ejecutar el backup.');
-      return;
-    }
     setRunningBackup(true);
     try {
-      const res = await fetch(`${BASE}/run?cron_secret=${encodeURIComponent(runSecret)}`, { method: 'POST' });
+      const query = runSecret ? `?cron_secret=${encodeURIComponent(runSecret)}` : '';
+      const res = await fetch(`${BASE}/run${query}`, { method: 'POST' });
       const json = await res.json();
       if (!json.ok) {
         alert(json.error || 'Error al ejecutar backup');
@@ -124,16 +130,13 @@ export default function BackupDropboxMeilisearchModule() {
   };
 
   const cleanupHistory = async () => {
-    if (!runSecret) {
-      alert('Ingresa el cron secret para limpiar el historial.');
-      return;
-    }
     if (!confirm('Se eliminaran todos los registros y backups anteriores en Dropbox. Deseas continuar?')) {
       return;
     }
     setCleaningHistory(true);
     try {
-      const res = await fetch(`${BASE}/cleanup?cron_secret=${encodeURIComponent(runSecret)}`, { method: 'POST' });
+      const query = runSecret ? `?cron_secret=${encodeURIComponent(runSecret)}` : '';
+      const res = await fetch(`${BASE}/cleanup${query}`, { method: 'POST' });
       const json = await res.json();
       if (!json.ok) {
         alert(json.error || 'Error al limpiar historial');
@@ -197,6 +200,46 @@ export default function BackupDropboxMeilisearchModule() {
             <p className="text-sm text-gray-600">Configura la conexion SSH, la API key de Meilisearch y Dropbox.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Dropbox Access Token</label>
+                <input
+                  type="password"
+                  placeholder={config.dropbox_access_token ? '••••••••' : 'Pegar token'}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  value={configForm.dropbox_access_token}
+                  onChange={(e) => setConfigForm((f) => ({ ...f, dropbox_access_token: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Dropbox Refresh Token</label>
+                <input
+                  type="password"
+                  placeholder={config.dropbox_refresh_token ? '••••••••' : 'Pegar refresh token'}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  value={configForm.dropbox_refresh_token}
+                  onChange={(e) => setConfigForm((f) => ({ ...f, dropbox_refresh_token: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Dropbox App Key</label>
+                <input
+                  type="text"
+                  placeholder={config.dropbox_app_key || 'App Key'}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  value={configForm.dropbox_app_key}
+                  onChange={(e) => setConfigForm((f) => ({ ...f, dropbox_app_key: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Dropbox App Secret</label>
+                <input
+                  type="password"
+                  placeholder={config.dropbox_app_secret ? '••••••••' : 'App Secret'}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  value={configForm.dropbox_app_secret}
+                  onChange={(e) => setConfigForm((f) => ({ ...f, dropbox_app_secret: e.target.value }))}
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">SSH Host</label>
                 <input
                   type="text"
@@ -248,16 +291,6 @@ export default function BackupDropboxMeilisearchModule() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Dropbox Access Token</label>
-              <input
-                type="password"
-                placeholder={config.dropbox_access_token ? '••••••••' : 'Pegar token'}
-                className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                value={configForm.dropbox_access_token}
-                onChange={(e) => setConfigForm((f) => ({ ...f, dropbox_access_token: e.target.value }))}
-              />
-            </div>
-            <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Carpeta Dropbox (ruta)</label>
               <input
                 type="text"
@@ -291,16 +324,6 @@ export default function BackupDropboxMeilisearchModule() {
         {activeTab === 'logs' && (
           <div className="space-y-3">
             <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Cron secret (el mismo guardado en Configuracion)</label>
-                <input
-                  type="password"
-                  placeholder="Ingresa el secret"
-                  className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  value={runSecret}
-                  onChange={(e) => setRunSecret(e.target.value)}
-                />
-              </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
