@@ -57,11 +57,25 @@ function formatearSalario(valor: number): string {
 async function generarPDF(empleado: any, nit: string, cartaId: number, config: Record<string, string>): Promise<string> {
   const personal = empleado.datos_personales;
   const contrato = empleado.contratos[0][Object.keys(empleado.contratos[0])[0]].datos_contrato;
+  const adicional = empleado.contratos[0][Object.keys(empleado.contratos[0])[0]].informacion_adicional;
 
   const hoy = new Date();
   const fecha = `Medellin, ${hoy.getDate()} de ${numeroAMes(hoy.getMonth() + 1)} de ${hoy.getFullYear()}`;
   const fechaIngreso = new Date(contrato.fecha_ingreso).toLocaleDateString('es-CO');
-  const salario = formatearSalario(contrato.salario_mes);
+  
+  const salarioMes = parseInt(contrato.salario_mes) || 0;
+  const promedioStr = adicional?.promedio_ultimos_3_meses?.replace('$', '').replace(',', '') || '';
+  const promedio = parseInt(promedioStr) || 0;
+  
+  let salarioFinal = salarioMes;
+  let tipoSalario = 'el salario mensual';
+  
+  if (promedio > 0 && promedio >= salarioMes * 0.9 && promedio <= salarioMes * 1.1) {
+    salarioFinal = promedio;
+    tipoSalario = 'el salario promedio';
+  }
+  
+  const salario = formatearSalario(salarioFinal);
 
   const doc = new jsPDF({ unit: 'mm', format: 'letter' });
   const margin = 25;
@@ -99,7 +113,7 @@ async function generarPDF(empleado: any, nit: string, cartaId: number, config: R
   y += p1Lines.length * 7 + 6;
 
   // Parrafo empleado
-  const textoEmpleado = `${personal.nombre_completo}, identificado(a) con ${personal.tipo_documento} No. ${personal.numero_documento}, hace parte de nuestra empresa desde el ${fechaIngreso} hasta la fecha, ocupando el cargo de ${contrato.desc_cargo} con contrato de tipo ${String(contrato.tipo_contrato).toLowerCase()} y un salario mensual de $${salario} pesos colombianos.`;
+  const textoEmpleado = `${personal.nombre_completo}, identificado(a) con ${personal.tipo_documento} No. ${personal.numero_documento}, hace parte de nuestra empresa desde el ${fechaIngreso} hasta la fecha, ocupando el cargo de ${contrato.desc_cargo} con contrato de tipo ${String(contrato.tipo_contrato).toLowerCase()} y ${tipoSalario} de $${salario} pesos colombianos.`;
   const empLines = doc.splitTextToSize(textoEmpleado, width);
   doc.text(empLines, margin, y);
   y += empLines.length * 7 + 10;
@@ -163,13 +177,22 @@ export async function POST(req: NextRequest) {
     const nombreCompleto = personal.nombre_completo;
     const email = personal.mail || '';
     const contrato = empleado.contratos[0][Object.keys(empleado.contratos[0])[0]].datos_contrato;
+    const adicional = empleado.contratos[0][Object.keys(empleado.contratos[0])[0]].informacion_adicional;
+
+    const salarioMes = parseInt(contrato.salario_mes) || 0;
+    const promedioStr = adicional?.promedio_ultimos_3_meses?.replace('$', '').replace(',', '') || '';
+    const promedio = parseInt(promedioStr) || 0;
+    let salarioFinal = salarioMes;
+    if (promedio > 0 && promedio >= salarioMes * 0.9 && promedio <= salarioMes * 1.1) {
+      salarioFinal = promedio;
+    }
 
     // Insertar registro primero para obtener ID
     const [insertResult] = await query<any>(
       `INSERT INTO modulos_lucas_9_cartas 
         (empleado_nombre, empleado_cedula, empleado_cargo, empleado_salario, empleado_tipo_contrato, empleado_fecha_ingreso, carta_generada_por, estado, solicitado_via)
        VALUES (?, ?, ?, ?, ?, ?, 'IA', 'pendiente', 'api')`,
-      [nombreCompleto, nit, contrato.desc_cargo, contrato.salario_mes, contrato.tipo_contrato, contrato.fecha_ingreso]
+      [nombreCompleto, nit, contrato.desc_cargo, salarioFinal, contrato.tipo_contrato, contrato.fecha_ingreso]
     );
     const cartaId = (insertResult as any).insertId;
 
