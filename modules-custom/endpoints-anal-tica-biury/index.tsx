@@ -32,7 +32,8 @@ const DEFAULT_CONFIG: WPConfig = {
 
 const ENDPOINTS = [
   { name: 'Clientes', method: 'GET', path: '/api/custom-module13/biury/clientes', status: 'active', description: 'Usuarios WP no admin + metadatos' },
-  { name: 'Zoho Contacts', method: 'GET', path: '/api/custom-module13/zoho/contacts', status: 'active', description: 'Contacts de Zoho CRM + dirección envío' },
+  { name: 'Zoho Contacts', method: 'GET', path: '/api/custom-module13/zoho/contacts', status: 'active', description: 'Contacts de Zoho CRM' },
+  { name: 'Zoho Contact ID', method: 'GET', path: '/api/custom-module13/zoho/contact', status: 'active', description: 'Get contact por ID' },
 ];
 
 export default function EndpointsAnaliticaBiury() {
@@ -44,9 +45,17 @@ export default function EndpointsAnaliticaBiury() {
   const [clientesLoading, setClientesLoading] = useState(false);
   const [clientesData, setClientesData] = useState<any>(null);
   const [clientesError, setClientesError] = useState<string | null>(null);
+  const [clientesFilters, setClientesFilters] = useState({ limit: '100', offset: '0' });
+
   const [zohoLoading, setZohoLoading] = useState(false);
   const [zohoData, setZohoData] = useState<any>(null);
   const [zohoError, setZohoError] = useState<string | null>(null);
+  const [zohoFilters, setZohoFilters] = useState({ limit: '100', offset: '0' });
+
+  const [zohoIdLoading, setZohoIdLoading] = useState(false);
+  const [zohoIdData, setZohoIdData] = useState<any>(null);
+  const [zohoIdError, setZohoIdError] = useState<string | null>(null);
+  const [zohoId, setZohoId] = useState('');
 
   const loadConfig = async () => {
     try {
@@ -91,7 +100,7 @@ export default function EndpointsAnaliticaBiury() {
     setClientesError(null);
     setClientesData(null);
     try {
-      const res = await fetch('/api/custom-module13/biury/clientes');
+      const res = await fetch(`/api/custom-module13/biury/clientes?limit=${clientesFilters.limit}&offset=${clientesFilters.offset}`);
       const data = await res.json();
       if (data.ok) {
         setClientesData(data);
@@ -102,6 +111,48 @@ export default function EndpointsAnaliticaBiury() {
       setClientesError(e.message);
     } finally {
       setClientesLoading(false);
+    }
+  };
+
+  const getZohoContacts = async () => {
+    setZohoLoading(true);
+    setZohoError(null);
+    setZohoData(null);
+    try {
+      const res = await fetch(`/api/custom-module13/zoho/contacts?limit=${zohoFilters.limit}&offset=${zohoFilters.offset}`);
+      const data = await res.json();
+      if (data.ok) {
+        setZohoData(data);
+      } else {
+        setZohoError(data.error || 'Error desconocido');
+      }
+    } catch (e: any) {
+      setZohoError(e.message);
+    } finally {
+      setZohoLoading(false);
+    }
+  };
+
+  const getZohoContactById = async () => {
+    if (!zohoId.trim()) {
+      setZohoIdError('Ingresa un ID de contacto');
+      return;
+    }
+    setZohoIdLoading(true);
+    setZohoIdError(null);
+    setZohoIdData(null);
+    try {
+      const res = await fetch(`/api/custom-module13/zoho/contact?id=${zohoId.trim()}`);
+      const data = await res.json();
+      if (data.ok) {
+        setZohoIdData(data);
+      } else {
+        setZohoIdError(data.error || 'Error desconocido');
+      }
+    } catch (e: any) {
+      setZohoIdError(e.message);
+    } finally {
+      setZohoIdLoading(false);
     }
   };
 
@@ -149,64 +200,78 @@ export default function EndpointsAnaliticaBiury() {
                 <h3 className="font-semibold text-gray-900 mb-2">{ep.name}</h3>
                 <p className="text-sm text-gray-600 mb-3">{ep.description}</p>
                 <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">{ep.path}</code>
-                {ep.status === 'active' && ep.name === 'Clientes' && (
-                  <button
-                    onClick={getClientes}
-                    disabled={clientesLoading}
-                    className="w-full px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 text-sm"
-                  >
-                    {clientesLoading ? 'Cargando...' : 'Ejecutar'}
-                  </button>
-                )}
-                {ep.status === 'active' && ep.name === 'Zoho Contacts' && (
+                
+                {ep.name === 'Clientes' && ep.status === 'active' && (
                   <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Limit"
+                        value={clientesFilters.limit}
+                        onChange={(e) => setClientesFilters({ ...clientesFilters, limit: e.target.value })}
+                        className="w-20 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Offset"
+                        value={clientesFilters.offset}
+                        onChange={(e) => setClientesFilters({ ...clientesFilters, offset: e.target.value })}
+                        className="w-20 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                    </div>
                     <button
-                      onClick={async () => {
-                        setZohoLoading(true);
-                        setZohoError(null);
-                        setZohoData(null);
-                        try {
-                          const res = await fetch('/api/custom-module13/zoho/contacts');
-                          const data = await res.json();
-                          if (data.ok) {
-                            setZohoData(data);
-                          } else {
-                            setZohoError(data.error || 'Error desconocido');
-                          }
-                        } catch (e: any) {
-                          setZohoError(e.message);
-                        } finally {
-                          setZohoLoading(false);
-                        }
-                      }}
+                      onClick={getClientes}
+                      disabled={clientesLoading}
+                      className="w-full px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {clientesLoading ? 'Cargando...' : 'Ejecutar'}
+                    </button>
+                  </div>
+                )}
+                
+                {ep.name === 'Zoho Contacts' && ep.status === 'active' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Limit"
+                        value={zohoFilters.limit}
+                        onChange={(e) => setZohoFilters({ ...zohoFilters, limit: e.target.value })}
+                        className="w-20 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Offset"
+                        value={zohoFilters.offset}
+                        onChange={(e) => setZohoFilters({ ...zohoFilters, offset: e.target.value })}
+                        className="w-20 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                    </div>
+                    <button
+                      onClick={getZohoContacts}
                       disabled={zohoLoading}
                       className="w-full px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 text-sm"
                     >
                       {zohoLoading ? 'Cargando...' : 'Obtener Contacts'}
                     </button>
+                  </div>
+                )}
+                
+                {ep.name === 'Zoho Contact ID' && ep.status === 'active' && (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Contact ID"
+                      value={zohoId}
+                      onChange={(e) => setZohoId(e.target.value)}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                    />
                     <button
-                      onClick={async () => {
-                        setZohoLoading(true);
-                        setZohoError(null);
-                        setZohoData(null);
-                        try {
-                          const res = await fetch('/api/custom-module13/zoho/contacts?analyze=true');
-                          const data = await res.json();
-                          if (data.ok) {
-                            setZohoData(data);
-                          } else {
-                            setZohoError(data.error || 'Error desconocido');
-                          }
-                        } catch (e: any) {
-                          setZohoError(e.message);
-                        } finally {
-                          setZohoLoading(false);
-                        }
-                      }}
-                      disabled={zohoLoading}
+                      onClick={getZohoContactById}
+                      disabled={zohoIdLoading}
                       className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 text-sm"
                     >
-                      {zohoLoading ? 'Analizando...' : 'Analizar Shipping'}
+                      {zohoIdLoading ? 'Cargando...' : 'Buscar Contacto'}
                     </button>
                   </div>
                 )}
@@ -226,16 +291,24 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           )}
 
-          {(clientesData || zohoData) && (
+          {zohoIdError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              {zohoIdError}
+            </div>
+          )}
+
+          {(clientesData || zohoData || zohoIdData) && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Resultado</h3>
                 <span className="text-sm text-gray-500">
-                  {clientesData ? `${clientesData.data?.length || 0} clientes` : zohoData?.analysis ? 'Análisis' : `${zohoData?.data?.length || 0} contacts`}
+                  {clientesData ? `${clientesData.data?.length || 0} clientes` : 
+                   zohoIdData ? 'Contacto por ID' : 
+                   `${zohoData?.data?.length || 0} contacts`}
                 </span>
               </div>
               <pre className="text-xs bg-gray-50 p-4 rounded overflow-auto max-h-96">
-                {JSON.stringify(clientesData || zohoData, null, 2)}
+                {JSON.stringify(clientesData || zohoData || zohoIdData, null, 2)}
               </pre>
             </div>
           )}
@@ -312,7 +385,6 @@ export default function EndpointsAnaliticaBiury() {
                 value={config.api_token || ''}
                 onChange={(e) => setConfig({ ...config, api_token: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                placeholder="Token requerido para llamadas externas"
               />
             </div>
           </div>
@@ -326,7 +398,6 @@ export default function EndpointsAnaliticaBiury() {
                 value={config.zoho_client_id || ''}
                 onChange={(e) => setConfig({ ...config, zoho_client_id: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                placeholder="1000.VIZSD6KOBZ1DF3BV32YPAZEBD0AKBL"
               />
             </div>
             <div className="mt-4">
@@ -336,7 +407,6 @@ export default function EndpointsAnaliticaBiury() {
                 value={config.zoho_client_secret || ''}
                 onChange={(e) => setConfig({ ...config, zoho_client_secret: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                placeholder="abb036ee87418516817a6c3397327a2876e7bcea66"
               />
             </div>
             <div className="mt-4">
@@ -346,7 +416,6 @@ export default function EndpointsAnaliticaBiury() {
                 value={config.zoho_refresh_token || ''}
                 onChange={(e) => setConfig({ ...config, zoho_refresh_token: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                placeholder="1000.832191142a3f9abbf25e43131c2a9863.8c473f179940b8ca4398bf2273137946"
               />
             </div>
           </div>
@@ -373,29 +442,21 @@ export default function EndpointsAnaliticaBiury() {
           <h2 className="text-xl font-semibold mb-4 text-gray-900">Documentación</h2>
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Zoho Contacts</h3>
-              <p className="text-sm text-gray-600 mb-4">Obtiene los Contacts de Zoho CRM y analiza el campo Shipping Address.</p>
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <h4 className="font-medium mb-2">Endpoint</h4>
-                <code className="text-sm">GET /api/custom-module13/zoho/contacts</code>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <h4 className="font-medium mb-2">Parámetros</h4>
-                <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                  <li><code>limit</code> - Límite de resultados (default: 100)</li>
-                  <li><code>offset</code> - Offset para paginación (default: 0)</li>
-                  <li><code>analyze=true</code> - Analizar campos de shipping</li>
-                </ul>
-              </div>
+              <h3 className="text-lg font-semibold mb-2">Clientes</h3>
               <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium mb-2">Campos analizados (Shipping)</h4>
-                <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                  <li>Shipping_Street</li>
-                  <li>Shipping_City</li>
-                  <li>Shipping_State</li>
-                  <li>Shipping_Country</li>
-                  <li>Shipping_Code</li>
-                </ul>
+                <code className="text-sm">GET /api/custom-module13/biury/clientes?limit=100&offset=0</code>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Zoho Contacts</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <code className="text-sm">GET /api/custom-module13/zoho/contacts?limit=100&offset=0</code>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Zoho Contact por ID</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <code className="text-sm">GET /api/custom-module13/zoho/contact?id=123456789</code>
               </div>
             </div>
           </div>
