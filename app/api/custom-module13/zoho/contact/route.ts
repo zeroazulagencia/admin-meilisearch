@@ -45,9 +45,9 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
   return data.access_token || null;
 }
 
-async function getZohoContactById(accessToken: string, contactId: string) {
+async function getContactHistory(accessToken: string, contactId: string) {
   const res = await fetch(
-    `https://www.zohoapis.com/crm/v2/Contacts/${contactId}?fields=id,First_Name,Last_Name,Email,Phone,Mobile,Shipping_Street,Shipping_City,Shipping_State,Shipping_Country,Shipping_Code,Billing_Street,Billing_City,Billing_State,Billing_Country,Billing_Code`,
+    `https://www.zohoapis.com/crm/v2/Contacts/${contactId}/history?type=field_change`,
     {
       headers: {
         'Authorization': 'Zoho-oauthtoken ' + accessToken,
@@ -58,11 +58,41 @@ async function getZohoContactById(accessToken: string, contactId: string) {
 
   if (!res.ok) {
     const err = await res.text();
-    console.error('[ZOHO] Contact error:', err);
-    return { data: null };
+    console.error('[ZOHO] History error:', err);
+    return { data: [] };
   }
 
-  return await res.json();
+  const data = await res.json();
+  return data;
+}
+
+async function getContactFieldHistory(accessToken: string, contactId: string) {
+  const res = await fetch(
+    `https://www.zohoapis.com/crm/v2/Contacts/${contactId}/history`,
+    {
+      headers: {
+        'Authorization': 'Zoho-oauthtoken ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!res.ok) {
+    return { data: [] };
+  }
+
+  const allData = await res.json();
+  
+  const shippingFields = ['Shipping_Street', 'Shipping_City', 'Shipping_State', 'Shipping_Country', 'Shipping_Code'];
+  
+  const historyData = allData.data || [];
+  
+  const fieldHistory = historyData.filter((entry: any) => {
+    const field = entry.Field || entry.field || '';
+    return shippingFields.some(f => field.toLowerCase().includes(f.toLowerCase()));
+  });
+
+  return { data: fieldHistory };
 }
 
 export async function GET(req: NextRequest) {
@@ -99,11 +129,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Failed to get Zoho access token' }, { status: 500 });
     }
 
-    const zohoData = await getZohoContactById(accessToken, contactId);
+    const historyData = await getContactFieldHistory(accessToken, contactId);
 
     return NextResponse.json({
       ok: true,
-      data: zohoData.data,
+      contact_id: contactId,
+      history: historyData.data,
+      total_changes: historyData.data?.length || 0,
     });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 });

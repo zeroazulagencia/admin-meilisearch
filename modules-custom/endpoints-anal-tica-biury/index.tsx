@@ -33,7 +33,7 @@ const DEFAULT_CONFIG: WPConfig = {
 const ENDPOINTS = [
   { name: 'Clientes', method: 'GET', path: '/api/custom-module13/biury/clientes', status: 'active', description: 'Usuarios WP no admin + metadatos' },
   { name: 'Zoho Contacts', method: 'GET', path: '/api/custom-module13/zoho/contacts', status: 'active', description: 'Contacts de Zoho CRM' },
-  { name: 'Zoho Contact ID', method: 'GET', path: '/api/custom-module13/zoho/contact', status: 'active', description: 'Get contact por ID' },
+  { name: 'Historial Shipping', method: 'GET', path: '/api/custom-module13/zoho/contact', status: 'active', description: 'Historial de cambio de dirección' },
 ];
 
 export default function EndpointsAnaliticaBiury() {
@@ -52,10 +52,10 @@ export default function EndpointsAnaliticaBiury() {
   const [zohoError, setZohoError] = useState<string | null>(null);
   const [zohoFilters, setZohoFilters] = useState({ limit: '100', offset: '0' });
 
-  const [zohoIdLoading, setZohoIdLoading] = useState(false);
-  const [zohoIdData, setZohoIdData] = useState<any>(null);
-  const [zohoIdError, setZohoIdError] = useState<string | null>(null);
-  const [zohoId, setZohoId] = useState('');
+  const [zohoHistoryLoading, setZohoHistoryLoading] = useState(false);
+  const [zohoHistoryData, setZohoHistoryData] = useState<any>(null);
+  const [zohoHistoryError, setZohoHistoryError] = useState<string | null>(null);
+  const [zohoHistoryId, setZohoHistoryId] = useState('');
 
   const [resultKey, setResultKey] = useState<string>('');
 
@@ -137,27 +137,27 @@ export default function EndpointsAnaliticaBiury() {
     }
   };
 
-  const getZohoContactById = async () => {
-    if (!zohoId.trim()) {
-      setZohoIdError('Ingresa un ID de contacto');
+  const getZohoHistory = async () => {
+    if (!zohoHistoryId.trim()) {
+      setZohoHistoryError('Ingresa un ID de contacto');
       return;
     }
-    setZohoIdLoading(true);
-    setZohoIdError(null);
-    setZohoIdData(null);
-    setResultKey('zohoId');
+    setZohoHistoryLoading(true);
+    setZohoHistoryError(null);
+    setZohoHistoryData(null);
+    setResultKey('zohoHistory');
     try {
-      const res = await fetch(`/api/custom-module13/zoho/contact?id=${zohoId.trim()}`);
+      const res = await fetch(`/api/custom-module13/zoho/contact?id=${zohoHistoryId.trim()}`);
       const data = await res.json();
       if (data.ok) {
-        setZohoIdData(data);
+        setZohoHistoryData(data);
       } else {
-        setZohoIdError(data.error || 'Error desconocido');
+        setZohoHistoryError(data.error || 'Error desconocido');
       }
     } catch (e: any) {
-      setZohoIdError(e.message);
+      setZohoHistoryError(e.message);
     } finally {
-      setZohoIdLoading(false);
+      setZohoHistoryLoading(false);
     }
   };
 
@@ -262,21 +262,21 @@ export default function EndpointsAnaliticaBiury() {
                   </div>
                 )}
                 
-                {ep.name === 'Zoho Contact ID' && ep.status === 'active' && (
+                {ep.name === 'Historial Shipping' && ep.status === 'active' && (
                   <div className="space-y-2">
                     <input
                       type="text"
                       placeholder="Contact ID"
-                      value={zohoId}
-                      onChange={(e) => setZohoId(e.target.value)}
+                      value={zohoHistoryId}
+                      onChange={(e) => setZohoHistoryId(e.target.value)}
                       className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
                     />
                     <button
-                      onClick={getZohoContactById}
-                      disabled={zohoIdLoading}
+                      onClick={getZohoHistory}
+                      disabled={zohoHistoryLoading}
                       className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 text-sm"
                     >
-                      {zohoIdLoading ? 'Cargando...' : 'Buscar Contacto'}
+                      {zohoHistoryLoading ? 'Cargando...' : 'Ver Historial'}
                     </button>
                   </div>
                 )}
@@ -296,26 +296,26 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           )}
 
-          {zohoIdError && (
+          {zohoHistoryError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
-              {zohoIdError}
+              {zohoHistoryError}
             </div>
           )}
 
-          {(clientesData || zohoData || zohoIdData) && resultKey && (
+          {(clientesData || zohoData || zohoHistoryData) && resultKey && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Resultado</h3>
                 <span className="text-sm text-gray-500">
                   {resultKey === 'clientes' ? `${clientesData?.data?.length || 0} clientes` : 
-                   resultKey === 'zohoId' ? 'Contacto por ID' : 
+                   resultKey === 'zohoHistory' ? `Historial: ${zohoHistoryData?.total_changes || 0} cambios` : 
                    `${zohoData?.data?.length || 0} contacts`}
                 </span>
               </div>
               <pre className="text-xs bg-gray-50 p-4 rounded overflow-auto max-h-96">
                 {JSON.stringify(
                   resultKey === 'clientes' ? clientesData : 
-                  resultKey === 'zohoId' ? zohoIdData : 
+                  resultKey === 'zohoHistory' ? zohoHistoryData : 
                   zohoData, 
                   null, 2
                 )}
