@@ -39,7 +39,12 @@ async function getZohoFields(accessToken: string) {
     },
   });
 
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('[ZOHO] Fields error:', err);
+    return { fields: [] };
+  }
+
   return await res.json();
 }
 
@@ -70,15 +75,22 @@ export async function GET() {
 
     const fieldsData = await getZohoFields(accessToken);
 
-    const customFields = (fieldsData?.fields || []).filter((f: any) => f.custom_field);
+    const allFields = fieldsData?.fields || [];
+    const customFields = allFields.filter((f: any) => f.custom_field);
 
     return NextResponse.json({
       ok: true,
-      total_fields: fieldsData?.fields?.length || 0,
+      total_fields: allFields.length,
       custom_fields: customFields.map((f: any) => ({
         api_name: f.api_name,
         field_label: f.field_label,
         data_type: f.data_type,
+      })),
+      all_fields: allFields.map((f: any) => ({
+        api_name: f.api_name,
+        field_label: f.field_label,
+        data_type: f.data_type,
+        custom: f.custom_field,
       })),
     });
   } catch (e: any) {
