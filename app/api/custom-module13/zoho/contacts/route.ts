@@ -47,7 +47,7 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
 
 async function getZohoContacts(accessToken: string, limit: number = 100, offset: number = 0) {
   const res = await fetch(
-    `https://www.zohoapis.com/crm/v2/Contacts?fields=id,First_Name,Last_Name,Email,Phone,Mobile,Shipping_Street,Shipping_City,Shipping_State,Shipping_Country,Shipping_Code,Billing_Street,Billing_City,Billing_State,Billing_Country,Billing_Code&per_page=${limit}&page=${Math.floor(offset / limit) + 1}`,
+    `https://www.zohoapis.com/crm/v2/Contacts?fields=id,First_Name,Last_Name,Email,Phone,Mobile,Shipping_Street,Shipping_City,Shipping_State,Shipping_Country,Shipping_Code,Billing_Street,Billing_City,Billing_State,Billing_Country,Billing_Code,Created_Time,Modified_Time&per_page=${limit}&page=${Math.floor(offset / limit) + 1}`,
     {
       headers: {
         'Authorization': 'Zoho-oauthtoken ' + accessToken,
@@ -60,6 +60,24 @@ async function getZohoContacts(accessToken: string, limit: number = 100, offset:
     const err = await res.text();
     console.error('[ZOHO] Contacts error:', err);
     return { data: [], info: { total: 0 } };
+  }
+
+  return await res.json();
+}
+
+async function getZohoContactFields(accessToken: string) {
+  const res = await fetch(
+    `https://www.zohoapis.com/crm/v2/Contacts/meta`,
+    {
+      headers: {
+        'Authorization': 'Zoho-oauthtoken ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!res.ok) {
+    return null;
   }
 
   return await res.json();
