@@ -15,7 +15,7 @@ const pool = mysql.createPool({
 export async function GET() {
   try {
     const [rows]: any = await pool.query(
-      'SELECT `key`, value FROM modules_13_config LIMIT 100'
+      'SELECT `key`, value FROM modules_13_config'
     );
     const config: Record<string, string> = {};
     for (const row of rows) {
