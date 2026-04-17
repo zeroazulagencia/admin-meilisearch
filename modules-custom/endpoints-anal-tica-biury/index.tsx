@@ -12,6 +12,9 @@ interface WPConfig {
   wp_db_password: string;
   wp_table_prefix: string;
   api_token: string;
+  zoho_client_id: string;
+  zoho_client_secret: string;
+  zoho_refresh_token: string;
 }
 
 const DEFAULT_CONFIG: WPConfig = {
@@ -22,12 +25,14 @@ const DEFAULT_CONFIG: WPConfig = {
   wp_db_password: 'xxam486bq0wg',
   wp_table_prefix: 'anu_',
   api_token: '',
+  zoho_client_id: '1000.VIZSD6KOBZ1DF3BV32YPAZEBD0AKBL',
+  zoho_client_secret: 'abb036ee87418516817a6c3397327a2876e7bcea66',
+  zoho_refresh_token: '1000.832191142a3f9abbf25e43131c2a9863.8c473f179940b8ca4398bf2273137946',
 };
 
 const ENDPOINTS = [
-  { name: 'Clientes', method: 'GET', path: '/api/custom-module13/biury/clientes', status: 'active', description: 'Usuarios de WordPress que no sean administradores + metadatos' },
-  { name: 'Pagos', method: 'GET', path: '/api/custom-module13/biury/pagos', status: 'inactive', description: 'Pagos registrados' },
-  { name: 'Ventas', method: 'GET', path: '/api/custom-module13/biury/ventas', status: 'inactive', description: 'Ventas realizadas' },
+  { name: 'Clientes', method: 'GET', path: '/api/custom-module13/biury/clientes', status: 'active', description: 'Usuarios WP no admin + metadatos' },
+  { name: 'Zoho Contacts', method: 'GET', path: '/api/custom-module13/zoho/contacts', status: 'active', description: 'Contacts de Zoho CRM + dirección envío' },
 ];
 
 export default function EndpointsAnaliticaBiury() {
@@ -39,10 +44,9 @@ export default function EndpointsAnaliticaBiury() {
   const [clientesLoading, setClientesLoading] = useState(false);
   const [clientesData, setClientesData] = useState<any>(null);
   const [clientesError, setClientesError] = useState<string | null>(null);
-
-  useEffect(() => {
-    console.log('📊 Módulo Endpoints Analítica Biury cargado');
-  }, []);
+  const [zohoLoading, setZohoLoading] = useState(false);
+  const [zohoData, setZohoData] = useState<any>(null);
+  const [zohoError, setZohoError] = useState<string | null>(null);
 
   const loadConfig = async () => {
     try {
@@ -154,6 +158,58 @@ export default function EndpointsAnaliticaBiury() {
                     {clientesLoading ? 'Cargando...' : 'Ejecutar'}
                   </button>
                 )}
+                {ep.status === 'active' && ep.name === 'Zoho Contacts' && (
+                  <div className="space-y-2">
+                    <button
+                      onClick={async () => {
+                        setZohoLoading(true);
+                        setZohoError(null);
+                        setZohoData(null);
+                        try {
+                          const res = await fetch('/api/custom-module13/zoho/contacts');
+                          const data = await res.json();
+                          if (data.ok) {
+                            setZohoData(data);
+                          } else {
+                            setZohoError(data.error || 'Error desconocido');
+                          }
+                        } catch (e: any) {
+                          setZohoError(e.message);
+                        } finally {
+                          setZohoLoading(false);
+                        }
+                      }}
+                      disabled={zohoLoading}
+                      className="w-full px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {zohoLoading ? 'Cargando...' : 'Obtener Contacts'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setZohoLoading(true);
+                        setZohoError(null);
+                        setZohoData(null);
+                        try {
+                          const res = await fetch('/api/custom-module13/zoho/contacts?analyze=true');
+                          const data = await res.json();
+                          if (data.ok) {
+                            setZohoData(data);
+                          } else {
+                            setZohoError(data.error || 'Error desconocido');
+                          }
+                        } catch (e: any) {
+                          setZohoError(e.message);
+                        } finally {
+                          setZohoLoading(false);
+                        }
+                      }}
+                      disabled={zohoLoading}
+                      className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {zohoLoading ? 'Analizando...' : 'Analizar Shipping'}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -164,14 +220,22 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           )}
 
-          {clientesData && (
+          {zohoError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              {zohoError}
+            </div>
+          )}
+
+          {(clientesData || zohoData) && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Resultado</h3>
-                <span className="text-sm text-gray-500">{clientesData.data?.length || 0} clientes</span>
+                <span className="text-sm text-gray-500">
+                  {clientesData ? `${clientesData.data?.length || 0} clientes` : zohoData?.analysis ? 'Análisis' : `${zohoData?.data?.length || 0} contacts`}
+                </span>
               </div>
               <pre className="text-xs bg-gray-50 p-4 rounded overflow-auto max-h-96">
-                {JSON.stringify(clientesData, null, 2)}
+                {JSON.stringify(clientesData || zohoData, null, 2)}
               </pre>
             </div>
           )}
@@ -192,7 +256,6 @@ export default function EndpointsAnaliticaBiury() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Puerto</label>
               <input
@@ -202,7 +265,6 @@ export default function EndpointsAnaliticaBiury() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Nombre de Base de Datos</label>
               <input
@@ -212,7 +274,6 @@ export default function EndpointsAnaliticaBiury() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Usuario de Base de Datos</label>
               <input
@@ -222,7 +283,6 @@ export default function EndpointsAnaliticaBiury() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Contraseña de Base de Datos</label>
               <input
@@ -232,7 +292,6 @@ export default function EndpointsAnaliticaBiury() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Prefijo de Tablas</label>
               <input
@@ -258,6 +317,40 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           </div>
 
+          <div className="border-t border-gray-200 pt-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Zoho CRM OAuth</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Client ID</label>
+              <input
+                type="text"
+                value={config.zoho_client_id || ''}
+                onChange={(e) => setConfig({ ...config, zoho_client_id: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                placeholder="1000.VIZSD6KOBZ1DF3BV32YPAZEBD0AKBL"
+              />
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Client Secret</label>
+              <input
+                type="password"
+                value={config.zoho_client_secret || ''}
+                onChange={(e) => setConfig({ ...config, zoho_client_secret: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                placeholder="abb036ee87418516817a6c3397327a2876e7bcea66"
+              />
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Refresh Token</label>
+              <input
+                type="text"
+                value={config.zoho_refresh_token || ''}
+                onChange={(e) => setConfig({ ...config, zoho_refresh_token: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                placeholder="1000.832191142a3f9abbf25e43131c2a9863.8c473f179940b8ca4398bf2273137946"
+              />
+            </div>
+          </div>
+
           <div className="flex items-center gap-4">
             <button
               onClick={saveConfig}
@@ -278,40 +371,31 @@ export default function EndpointsAnaliticaBiury() {
       {activeTab === 'docs' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-900">Documentación</h2>
-          
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Clientes</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Obtiene los usuarios de WordPress que no sean administradores y sus metadatos.
-              </p>
-
+              <h3 className="text-lg font-semibold mb-2">Zoho Contacts</h3>
+              <p className="text-sm text-gray-600 mb-4">Obtiene los Contacts de Zoho CRM y analiza el campo Shipping Address.</p>
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <h4 className="font-medium mb-2">Endpoint</h4>
-                <code className="text-sm">GET /api/custom-module13/biury/clientes</code>
+                <code className="text-sm">GET /api/custom-module13/zoho/contacts</code>
               </div>
-
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <h4 className="font-medium mb-2">Parámetros</h4>
                 <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
                   <li><code>limit</code> - Límite de resultados (default: 100)</li>
                   <li><code>offset</code> - Offset para paginación (default: 0)</li>
+                  <li><code>analyze=true</code> - Analizar campos de shipping</li>
                 </ul>
               </div>
-
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <h4 className="font-medium mb-2">Headers (para externo)</h4>
-                <code className="text-sm">Authorization: Bearer {'<token>'}</code>
-              </div>
-
               <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium mb-2">Ejemplo</h4>
-                <div className="bg-gray-900 rounded-lg p-4 text-gray-100">
-                  <pre className="text-xs overflow-auto">
-{`curl -X GET "https://workers.zeroazul.com/api/custom-module13/biury/clientes?limit=10" \\
-  -H "Authorization: Bearer TU_API_TOKEN"`}
-                  </pre>
-                </div>
+                <h4 className="font-medium mb-2">Campos analizados (Shipping)</h4>
+                <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                  <li>Shipping_Street</li>
+                  <li>Shipping_City</li>
+                  <li>Shipping_State</li>
+                  <li>Shipping_Country</li>
+                  <li>Shipping_Code</li>
+                </ul>
               </div>
             </div>
           </div>

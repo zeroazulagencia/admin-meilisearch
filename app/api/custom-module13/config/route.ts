@@ -38,6 +38,9 @@ export async function POST(req: NextRequest) {
       'wp_db_password',
       'wp_table_prefix',
       'api_token',
+      'zoho_client_id',
+      'zoho_client_secret',
+      'zoho_refresh_token',
     ];
 
     for (const key of configKeys) {
