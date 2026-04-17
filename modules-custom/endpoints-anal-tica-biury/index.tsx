@@ -57,6 +57,8 @@ export default function EndpointsAnaliticaBiury() {
   const [zohoIdError, setZohoIdError] = useState<string | null>(null);
   const [zohoId, setZohoId] = useState('');
 
+  const [resultKey, setResultKey] = useState<string>('');
+
   const loadConfig = async () => {
     try {
       const res = await fetch('/api/custom-module13/config');
@@ -99,6 +101,7 @@ export default function EndpointsAnaliticaBiury() {
     setClientesLoading(true);
     setClientesError(null);
     setClientesData(null);
+    setResultKey('clientes');
     try {
       const res = await fetch(`/api/custom-module13/biury/clientes?limit=${clientesFilters.limit}&offset=${clientesFilters.offset}`);
       const data = await res.json();
@@ -118,6 +121,7 @@ export default function EndpointsAnaliticaBiury() {
     setZohoLoading(true);
     setZohoError(null);
     setZohoData(null);
+    setResultKey('zoho');
     try {
       const res = await fetch(`/api/custom-module13/zoho/contacts?limit=${zohoFilters.limit}&offset=${zohoFilters.offset}`);
       const data = await res.json();
@@ -141,6 +145,7 @@ export default function EndpointsAnaliticaBiury() {
     setZohoIdLoading(true);
     setZohoIdError(null);
     setZohoIdData(null);
+    setResultKey('zohoId');
     try {
       const res = await fetch(`/api/custom-module13/zoho/contact?id=${zohoId.trim()}`);
       const data = await res.json();
@@ -297,18 +302,23 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           )}
 
-          {(clientesData || zohoData || zohoIdData) && (
+          {(clientesData || zohoData || zohoIdData) && resultKey && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Resultado</h3>
                 <span className="text-sm text-gray-500">
-                  {clientesData ? `${clientesData.data?.length || 0} clientes` : 
-                   zohoIdData ? 'Contacto por ID' : 
+                  {resultKey === 'clientes' ? `${clientesData?.data?.length || 0} clientes` : 
+                   resultKey === 'zohoId' ? 'Contacto por ID' : 
                    `${zohoData?.data?.length || 0} contacts`}
                 </span>
               </div>
               <pre className="text-xs bg-gray-50 p-4 rounded overflow-auto max-h-96">
-                {JSON.stringify(clientesData || zohoData || zohoIdData, null, 2)}
+                {JSON.stringify(
+                  resultKey === 'clientes' ? clientesData : 
+                  resultKey === 'zohoId' ? zohoIdData : 
+                  zohoData, 
+                  null, 2
+                )}
               </pre>
             </div>
           )}
