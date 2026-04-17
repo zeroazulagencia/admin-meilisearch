@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       'wp_db_user',
       'wp_db_password',
       'wp_table_prefix',
+      'api_token',
     ];
 
     for (const key of configKeys) {

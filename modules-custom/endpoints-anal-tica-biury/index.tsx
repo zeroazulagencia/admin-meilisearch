@@ -11,6 +11,7 @@ interface WPConfig {
   wp_db_user: string;
   wp_db_password: string;
   wp_table_prefix: string;
+  api_token: string;
 }
 
 const DEFAULT_CONFIG: WPConfig = {
@@ -20,6 +21,7 @@ const DEFAULT_CONFIG: WPConfig = {
   wp_db_user: 'uvrx5d6hs4yle',
   wp_db_password: 'xxam486bq0wg',
   wp_table_prefix: 'anu_',
+  api_token: '',
 };
 
 export default function EndpointsAnaliticaBiury() {
@@ -28,8 +30,28 @@ export default function EndpointsAnaliticaBiury() {
   const [configMsg, setConfigMsg] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [clientesLoading, setClientesLoading] = useState(false);
+  const [clientesData, setClientesData] = useState<any>(null);
+  const [clientesError, setClientesError] = useState<string | null>(null);
+
   useEffect(() => {
     console.log('📊 Módulo Endpoints Analítica Biury cargado');
+  }, []);
+
+  const loadConfig = async () => {
+    try {
+      const res = await fetch('/api/custom-module13/config');
+      const data = await res.json();
+      if (data.ok && data.config) {
+        setConfig((prev) => ({ ...prev, ...data.config }));
+      }
+    } catch (e) {
+      console.error('Error loading config:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadConfig();
   }, []);
 
   const saveConfig = async () => {
@@ -54,13 +76,27 @@ export default function EndpointsAnaliticaBiury() {
     }
   };
 
+  const getClientes = async () => {
+    setClientesLoading(true);
+    setClientesError(null);
+    setClientesData(null);
+    try {
+      const res = await fetch('/api/custom-module13/biury/clientes');
+      const data = await res.json();
+      if (data.ok) {
+        setClientesData(data);
+      } else {
+        setClientesError(data.error || 'Error desconocido');
+      }
+    } catch (e: any) {
+      setClientesError(e.message);
+    } finally {
+      setClientesLoading(false);
+    }
+  };
+
   return (
     <div className="p-6">
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white mb-6">
-        <h1 className="text-3xl font-bold mb-2">📊 Endpoints Analítica Biury</h1>
-        <p className="text-indigo-100">Generador de endpoints para obtener datos de Biury de forma estructurada</p>
-      </div>
-
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
         <div className="flex border-b border-gray-200">
           {(['modulos', 'config', 'docs'] as Tab[]).map((tab) => (
@@ -83,45 +119,54 @@ export default function EndpointsAnaliticaBiury() {
 
       {activeTab === 'modulos' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">Endpoints de Biury</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { name: 'Pagos', method: 'GET', path: '/api/custom-module13/biury/pagos', status: 'active' },
-              { name: 'Ventas', method: 'GET', path: '/api/custom-module13/biury/ventas', status: 'active' },
-              { name: 'Clientes', method: 'GET', path: '/api/custom-module13/biury/clientes', status: 'active' },
-              { name: 'Productos', method: 'GET', path: '/api/custom-module13/biury/productos', status: 'inactive' },
-              { name: 'Pedidos', method: 'GET', path: '/api/custom-module13/biury/pedidos', status: 'inactive' },
-              { name: 'Suscripciones', method: 'GET', path: '/api/custom-module13/biury/suscripciones', status: 'inactive' },
-            ].map((ep, idx) => (
-              <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`px-2 py-0.5 rounded text-xs font-mono ${
-                    ep.method === 'GET' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {ep.method}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs ${
-                    ep.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                  }`}>
-                    {ep.status}
-                  </span>
-                </div>
-                <p className="font-medium text-gray-900 mb-1">{ep.name}</p>
-                <code className="text-xs bg-gray-100 px-2 py-1 rounded block">{ep.path}</code>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">Clientes</h2>
+            <button
+              onClick={getClientes}
+              disabled={clientesLoading}
+              className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50"
+            >
+              {clientesLoading ? 'Cargando...' : 'Obtener Clientes'}
+            </button>
           </div>
+
+          <p className="text-sm text-gray-600 mb-4">
+            Obtiene los usuarios de WordPress que no sean administradores y sus metadatos.
+          </p>
+
+          {clientesError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              {clientesError}
+            </div>
+          )}
+
+          {clientesData && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-sm text-green-700 mb-2">
+                Total clientes: {clientesData.data?.length || 0}
+              </p>
+              <pre className="text-xs bg-white p-4 rounded overflow-auto max-h-96">
+                {JSON.stringify(clientesData, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {!clientesLoading && !clientesData && !clientesError && (
+            <div className="text-center py-12 text-gray-500">
+              Haz clic en "Obtener Clientes" para ver los datos
+            </div>
+          )}
         </div>
       )}
 
       {activeTab === 'config' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">Configuración de WordPress</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">Configuración</h2>
           <p className="text-sm text-gray-600 mb-6">
-            Configura las credenciales de la base de datos de WordPress para conectar a Biury.
+            Configura las credenciales de la base de datos y el API token.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Host de Base de Datos</label>
               <input
@@ -129,7 +174,6 @@ export default function EndpointsAnaliticaBiury() {
                 value={config.wp_db_host}
                 onChange={(e) => setConfig({ ...config, wp_db_host: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                placeholder="34.174.19.215"
               />
             </div>
 
@@ -140,7 +184,6 @@ export default function EndpointsAnaliticaBiury() {
                 value={config.wp_db_port}
                 onChange={(e) => setConfig({ ...config, wp_db_port: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                placeholder="3306"
               />
             </div>
 
@@ -151,7 +194,6 @@ export default function EndpointsAnaliticaBiury() {
                 value={config.wp_db_name}
                 onChange={(e) => setConfig({ ...config, wp_db_name: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                placeholder="dbsgpylt1rjqoi"
               />
             </div>
 
@@ -162,7 +204,6 @@ export default function EndpointsAnaliticaBiury() {
                 value={config.wp_db_user}
                 onChange={(e) => setConfig({ ...config, wp_db_user: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                placeholder="uvrx5d6hs4yle"
               />
             </div>
 
@@ -173,7 +214,6 @@ export default function EndpointsAnaliticaBiury() {
                 value={config.wp_db_password}
                 onChange={(e) => setConfig({ ...config, wp_db_password: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                placeholder="xxam486bq0wg"
               />
             </div>
 
@@ -184,8 +224,24 @@ export default function EndpointsAnaliticaBiury() {
                 value={config.wp_table_prefix}
                 onChange={(e) => setConfig({ ...config, wp_table_prefix: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                placeholder="anu_"
               />
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">API Token</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Token para llamadas externas</label>
+              <input
+                type="text"
+                value={config.api_token || ''}
+                onChange={(e) => setConfig({ ...config, api_token: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                placeholder="Token requerido para llamadas externas"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Este token se debe enviar en el header Authorization: Bearer {`<token>`}
+              </p>
             </div>
           </div>
 
@@ -210,49 +266,69 @@ export default function EndpointsAnaliticaBiury() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-900">Documentación</h2>
           
-          <div className="prose prose-sm max-w-none">
-            <h3 className="text-lg font-semibold mb-2">Endpoints Disponibles</h3>
-            <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 rounded text-xs font-mono bg-green-100 text-green-700">GET</span>
-                  <code className="text-sm">/api/custom-module13/biury/pagos</code>
-                </div>
-                <p className="text-sm text-gray-600">Obtiene todos los pagos registrados en WordPress</p>
-              </div>
+          <div className="prose prose-sm max-w-none space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Clientes</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Obtiene los usuarios de WordPress que no sean administradores (role != 'administrator') y sus metadatos.
+              </p>
 
               <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 rounded text-xs font-mono bg-green-100 text-green-700">GET</span>
-                  <code className="text-sm">/api/custom-module13/biury/ventas</code>
-                </div>
-                <p className="text-sm text-gray-600">Obtiene las ventas realizadas</p>
+                <h4 className="font-medium mb-2">Endpoint</h4>
+                <code className="text-sm">GET /api/custom-module13/biury/clientes</code>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 rounded text-xs font-mono bg-green-100 text-green-700">GET</span>
-                  <code className="text-sm">/api/custom-module13/biury/clientes</code>
-                </div>
-                <p className="text-sm text-gray-600">Obtiene los clientes registrados</p>
+              <div className="bg-gray-50 rounded-lg p-4 mt-4">
+                <h4 className="font-medium mb-2">Parámetros</h4>
+                <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                  <li><code>limit</code> - Límite de resultados (default: 100)</li>
+                  <li><code>offset</code> - Offset para paginación (default: 0)</li>
+                </ul>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 mt-4">
+                <h4 className="font-medium mb-2">Headers requeridos (para llamadas externas)</h4>
+                <code className="text-sm">Authorization: Bearer {'<api_token>'}</code>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 mt-4">
+                <h4 className="font-medium mb-2">Respuesta</h4>
+                <pre className="text-xs bg-white p-4 rounded overflow-auto max-h-64">
+{`{
+  "ok": true,
+  "data": [
+    {
+      "ID": "123",
+      "user_login": "cliente1",
+      "user_email": "cliente1@email.com",
+      "display_name": "Juan Perez",
+      "user_registered": "2024-01-15 10:30:00",
+      "meta": {
+        "billing_first_name": "Juan",
+        "billing_last_name": "Perez",
+        "billing_phone": "+573001234567"
+      }
+    }
+  ],
+  "total": 50
+}`}
+                </pre>
               </div>
             </div>
 
-            <h3 className="text-lg font-semibold mt-6 mb-2">Conexión a WordPress</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Este módulo se conecta a la base de datos de WordPress de Biury para obtener datos estructurados.
-              Las credenciales se configuran en la pestaña "Configuración".
-            </p>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Llamadas desde externo</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Para hacer llamadas desde sistemas externos, necesitas configurar el API Token en la pestaña Configuración y enviarlo en el header Authorization.
+              </p>
 
-            <h3 className="text-lg font-semibold mt-6 mb-2">Tablas Utilizadas</h3>
-            <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-              <li><code>anu_posts</code> - Pedidos/Productos</li>
-              <li><code>anu_postmeta</code> - Metadatos de pedidos</li>
-              <li><code>anu_users</code> - Usuarios/Clientes</li>
-              <li><code>anu_usermeta</code> - Metadatos de usuarios</li>
-              <li><code>anu_wc_orders</code> - Órdenes de WooCommerce</li>
-              <li><code>anu_wc_order_stats</code> - Estadísticas de órdenes</li>
-            </ul>
+              <div className="bg-gray-900 rounded-lg p-4 text-gray-100">
+                <pre className="text-xs overflow-auto">
+{`curl -X GET "https://workers.zeroazul.com/api/custom-module13/biury/clientes?limit=10" \\
+  -H "Authorization: Bearer TU_API_TOKEN"`}
+                </pre>
+              </div>
+            </div>
           </div>
         </div>
       )}
