@@ -15,11 +15,11 @@ const pool = mysql.createPool({
 export async function GET() {
   try {
     const [rows]: any = await pool.query(
-      `SELECT key, value FROM modules_13_config LIMIT 100`
+      'SELECT `key`, value FROM modules_13_config LIMIT 100'
     );
     const config: Record<string, string> = {};
     for (const row of rows) {
-      config[row.key] = row.value;
+      config[row['key']] = row.value;
     }
     return NextResponse.json({ ok: true, config });
   } catch (e: any) {
@@ -43,8 +43,7 @@ export async function POST(req: NextRequest) {
     for (const key of configKeys) {
       const value = body[key] || '';
       await pool.query(
-        `INSERT INTO modules_13_config (key, value) VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE value = ?`,
+        'INSERT INTO modules_13_config (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?',
         [key, value, value]
       );
     }

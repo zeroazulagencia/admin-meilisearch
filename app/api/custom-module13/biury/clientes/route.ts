@@ -3,13 +3,12 @@ import mysql from 'mysql2/promise';
 
 async function getDbConfig(poolMain: mysql.Pool) {
   const [rows]: any = await poolMain.query(
-    `SELECT key, value FROM modules_13_config WHERE \`key\` IN (
-      'wp_db_host', 'wp_db_port', 'wp_db_name', 'wp_db_user', 'wp_db_password', 'wp_table_prefix', 'api_token'
-    )`
+    'SELECT `key`, value FROM modules_13_config WHERE `key` IN (?, ?, ?, ?, ?, ?, ?)',
+    ['wp_db_host', 'wp_db_port', 'wp_db_name', 'wp_db_user', 'wp_db_password', 'wp_table_prefix', 'api_token']
   );
   const config: Record<string, string> = {};
   for (const row of rows) {
-    config[row.key] = row.value;
+    config[row['key']] = row.value;
   }
   return config;
 }

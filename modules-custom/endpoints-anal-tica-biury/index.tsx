@@ -24,6 +24,12 @@ const DEFAULT_CONFIG: WPConfig = {
   api_token: '',
 };
 
+const ENDPOINTS = [
+  { name: 'Clientes', method: 'GET', path: '/api/custom-module13/biury/clientes', status: 'active', description: 'Usuarios de WordPress que no sean administradores + metadatos' },
+  { name: 'Pagos', method: 'GET', path: '/api/custom-module13/biury/pagos', status: 'inactive', description: 'Pagos registrados' },
+  { name: 'Ventas', method: 'GET', path: '/api/custom-module13/biury/ventas', status: 'inactive', description: 'Ventas realizadas' },
+];
+
 export default function EndpointsAnaliticaBiury() {
   const [activeTab, setActiveTab] = useState<Tab>('modulos');
   const [config, setConfig] = useState<WPConfig>(DEFAULT_CONFIG);
@@ -118,21 +124,39 @@ export default function EndpointsAnaliticaBiury() {
       </div>
 
       {activeTab === 'modulos' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Clientes</h2>
-            <button
-              onClick={getClientes}
-              disabled={clientesLoading}
-              className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50"
-            >
-              {clientesLoading ? 'Cargando...' : 'Obtener Clientes'}
-            </button>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {ENDPOINTS.map((ep, idx) => (
+              <div key={idx} className={`bg-white rounded-xl shadow-sm border p-6 ${
+                ep.status === 'active' ? 'border-green-200 hover:border-green-400' : 'border-gray-200 opacity-50'
+              }`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`px-2 py-0.5 rounded text-xs font-mono ${
+                    ep.method === 'GET' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {ep.method}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs ${
+                    ep.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {ep.status}
+                  </span>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">{ep.name}</h3>
+                <p className="text-sm text-gray-600 mb-3">{ep.description}</p>
+                <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">{ep.path}</code>
+                {ep.status === 'active' && ep.name === 'Clientes' && (
+                  <button
+                    onClick={getClientes}
+                    disabled={clientesLoading}
+                    className="w-full px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 text-sm"
+                  >
+                    {clientesLoading ? 'Cargando...' : 'Ejecutar'}
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
-
-          <p className="text-sm text-gray-600 mb-4">
-            Obtiene los usuarios de WordPress que no sean administradores y sus metadatos.
-          </p>
 
           {clientesError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
@@ -141,19 +165,14 @@ export default function EndpointsAnaliticaBiury() {
           )}
 
           {clientesData && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-green-700 mb-2">
-                Total clientes: {clientesData.data?.length || 0}
-              </p>
-              <pre className="text-xs bg-white p-4 rounded overflow-auto max-h-96">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900">Resultado</h3>
+                <span className="text-sm text-gray-500">{clientesData.data?.length || 0} clientes</span>
+              </div>
+              <pre className="text-xs bg-gray-50 p-4 rounded overflow-auto max-h-96">
                 {JSON.stringify(clientesData, null, 2)}
               </pre>
-            </div>
-          )}
-
-          {!clientesLoading && !clientesData && !clientesError && (
-            <div className="text-center py-12 text-gray-500">
-              Haz clic en "Obtener Clientes" para ver los datos
             </div>
           )}
         </div>
@@ -162,9 +181,6 @@ export default function EndpointsAnaliticaBiury() {
       {activeTab === 'config' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-900">Configuración</h2>
-          <p className="text-sm text-gray-600 mb-6">
-            Configura las credenciales de la base de datos y el API token.
-          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
@@ -228,7 +244,7 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           </div>
 
-          <div className="border-t border-gray-200 pt-6">
+          <div className="border-t border-gray-200 pt-6 mb-6">
             <h3 className="text-lg font-semibold mb-4 text-gray-900">API Token</h3>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Token para llamadas externas</label>
@@ -239,13 +255,10 @@ export default function EndpointsAnaliticaBiury() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
                 placeholder="Token requerido para llamadas externas"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Este token se debe enviar en el header Authorization: Bearer {`<token>`}
-              </p>
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-4">
+          <div className="flex items-center gap-4">
             <button
               onClick={saveConfig}
               disabled={saving}
@@ -266,19 +279,19 @@ export default function EndpointsAnaliticaBiury() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-900">Documentación</h2>
           
-          <div className="prose prose-sm max-w-none space-y-6">
+          <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Clientes</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Obtiene los usuarios de WordPress que no sean administradores (role != 'administrator') y sus metadatos.
+                Obtiene los usuarios de WordPress que no sean administradores y sus metadatos.
               </p>
 
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <h4 className="font-medium mb-2">Endpoint</h4>
                 <code className="text-sm">GET /api/custom-module13/biury/clientes</code>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 mt-4">
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <h4 className="font-medium mb-2">Parámetros</h4>
                 <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
                   <li><code>limit</code> - Límite de resultados (default: 100)</li>
@@ -286,47 +299,19 @@ export default function EndpointsAnaliticaBiury() {
                 </ul>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 mt-4">
-                <h4 className="font-medium mb-2">Headers requeridos (para llamadas externas)</h4>
-                <code className="text-sm">Authorization: Bearer {'<api_token>'}</code>
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <h4 className="font-medium mb-2">Headers (para externo)</h4>
+                <code className="text-sm">Authorization: Bearer {'<token>'}</code>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 mt-4">
-                <h4 className="font-medium mb-2">Respuesta</h4>
-                <pre className="text-xs bg-white p-4 rounded overflow-auto max-h-64">
-{`{
-  "ok": true,
-  "data": [
-    {
-      "ID": "123",
-      "user_login": "cliente1",
-      "user_email": "cliente1@email.com",
-      "display_name": "Juan Perez",
-      "user_registered": "2024-01-15 10:30:00",
-      "meta": {
-        "billing_first_name": "Juan",
-        "billing_last_name": "Perez",
-        "billing_phone": "+573001234567"
-      }
-    }
-  ],
-  "total": 50
-}`}
-                </pre>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Llamadas desde externo</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Para hacer llamadas desde sistemas externos, necesitas configurar el API Token en la pestaña Configuración y enviarlo en el header Authorization.
-              </p>
-
-              <div className="bg-gray-900 rounded-lg p-4 text-gray-100">
-                <pre className="text-xs overflow-auto">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium mb-2">Ejemplo</h4>
+                <div className="bg-gray-900 rounded-lg p-4 text-gray-100">
+                  <pre className="text-xs overflow-auto">
 {`curl -X GET "https://workers.zeroazul.com/api/custom-module13/biury/clientes?limit=10" \\
   -H "Authorization: Bearer TU_API_TOKEN"`}
-                </pre>
+                  </pre>
+                </div>
               </div>
             </div>
           </div>
