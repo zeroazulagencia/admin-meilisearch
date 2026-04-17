@@ -150,6 +150,10 @@ function normalizePrefijo(raw?: string): string | null {
     'brasil': 'Brasil(+55)',
     'canada': 'Canadá(+1)',
     'canadá': 'Canadá(+1)',
+    'australia(+61)': 'Australia(+61)',
+    'australia': 'Australia(+61)',
+    'reino-unido(+44)': 'Reino Unido(+44)',
+    'reino unido(+44)': 'Reino Unido(+44)',
   };
   return map[compact] || map[key] || trimmed;
 }
