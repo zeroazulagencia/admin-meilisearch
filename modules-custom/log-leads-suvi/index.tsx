@@ -226,6 +226,8 @@ export default function LogLeadsSUVI() {
   const [processingSalesforce, setProcessingSalesforce] = useState(false);
   const [salesforceError, setSalesforceError] = useState<string | null>(null);
   const [salesforceResult, setSalesforceResult] = useState<any>(null);
+  const [reprocessLoading, setReprocessLoading] = useState(false);
+  const [reprocessError, setReprocessError] = useState<string | null>(null);
   
   // Estados para procesamiento en lote
   const [batchProcessing, setBatchProcessing] = useState(false);
@@ -1674,6 +1676,37 @@ export default function LogLeadsSUVI() {
                           className="mt-3 px-4 py-2 bg-[#5DE1E5] hover:bg-[#5DE1E5]-dark text-gray-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {processingSalesforce ? 'Procesando...' : (selectedLead.salesforce_opportunity_id ? 'Reprocesar en Salesforce' : 'Procesar en Salesforce')}
+                        </button>
+                      )}
+
+                      {/* Botón Reenviar para errores recuperables */}
+                      {selectedLead.processing_status === 'error' && (
+                        <button
+                          onClick={async () => {
+                            setReprocessLoading(true);
+                            try {
+                              const res = await fetch('/api/custom-module1/log-leads-suvi/reprocess', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ leadId: selectedLead.id }),
+                              });
+                              const data = await res.json();
+                              if (data.ok) {
+                                setReprocessLoading(false);
+                                setShowDetail(false);
+                              } else {
+                                setReprocessError(data.error || 'Error al reenviar');
+                              }
+                            } catch (err: any) {
+                              setReprocessError(err.message);
+                            } finally {
+                              setReprocessLoading(false);
+                            }
+                          }}
+                          disabled={reprocessLoading}
+                          className="mt-2 ml-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {reprocessLoading ? 'Reenviando...' : 'Reenviar'}
                         </button>
                       )}
                       

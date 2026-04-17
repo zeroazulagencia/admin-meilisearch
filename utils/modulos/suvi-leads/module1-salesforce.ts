@@ -138,6 +138,77 @@ async function resolveByPhone(
   return null;
 }
 
+// Normalizar prefijo de teléfono para Salesforce
+function normalizePrefijoColombia(pais: string, prefijo: string): { paisCorregido: string; prefijoCorregido: string } {
+  const p = (pais || '').toLowerCase().trim();
+  const c = (prefijo || '').replace(/\s+/g, '').toLowerCase().trim();
+
+  const mapa: Record<string, string> = {
+    'colombia(+1)': 'Colombia(+57)',
+    'colombia +1': 'Colombia(+57)',
+    'colombia(+57)': 'Colombia(+57)',
+    'colombia': 'Colombia(+57)',
+    'colombia +57': 'Colombia(+57)',
+    'méxico(+1)': 'Mexico(+52)',
+    'mexico(+1)': 'Mexico(+52)',
+    'méxico': 'Mexico(+52)',
+    'mexico': 'Mexico(+52)',
+    'méxico +52': 'Mexico(+52)',
+    'mexico +52': 'Mexico(+52)',
+    'españa(+1)': 'España(+34)',
+    'espana(+1)': 'España(+34)',
+    'españa': 'España(+34)',
+    'espana': 'España(+34)',
+    'españa +34': 'España(+34)',
+    'espana +34': 'España(+34)',
+    'argentina(+1)': 'Argentina(+54)',
+    'argentina': 'Argentina(+54)',
+    'chile(+1)': 'Chile(+56)',
+    'chile': 'Chile(+56)',
+    'perú(+1)': 'Peru(+51)',
+    'peru(+1)': 'Peru(+51)',
+    'perú': 'Peru(+51)',
+    'peru': 'Peru(+51)',
+    'ecuador(+1)': 'Ecuador(+593)',
+    'ecuador': 'Ecuador(+593)',
+    'venezuela(+1)': 'Venezuela(+58)',
+    'venezuela': 'Venezuela(+58)',
+    'brasil(+1)': 'Brasil(+55)',
+    'brasil': 'Brasil(+55)',
+    'canadá(+1)': 'Canadá(+1)',
+    'canada(+1)': 'Canadá(+1)',
+    'usa(+1)': 'Estados Unidos(+1)',
+    'estados unidos(+1)': 'Estados Unidos(+1)',
+    'usa': 'Estados Unidos(+1)',
+    'estados unidos': 'Estados Unidos(+1)',
+    'australia(+61)': 'Australia(+61)',
+    'australia': 'Australia(+61)',
+    'reino-unido(+44)': 'Reino Unido(+44)',
+    'reino Unido(+44)': 'Reino Unido(+44)',
+    'reino unido': 'Reino Unido(+44)',
+    'alemania(+49)': 'Alemania(+49)',
+    'alemania (+49)': 'Alemania(+49)',
+    'alemania': 'Alemania(+49)',
+    'germany': 'Alemania(+49)',
+    'germany (+49)': 'Alemania(+49)',
+    'israel(+972)': 'Israel(+972)',
+    'israel (+972)': 'Israel(+972)',
+    'israel': 'Israel(+972)',
+  };
+
+  const key = `${p}(${c.replace(/^\+/, '')})`;
+  if (mapa[key]) {
+    const [paisCorregido, prefijoCorregido] = mapa[key].replace('(+', '|').replace(')', '').split('|');
+    return { paisCorregido, prefijoCorregido };
+  }
+
+  if (c === '+1' || c === '+57') {
+    return { paisCorregido: p === 'colombia' ? 'Colombia' : pais, prefijoCorregido: c.replace('+', '') };
+  }
+
+  return { paisCorregido: pais, prefijoCorregido: prefijo.replace(/^\+/, '') };
+}
+
 // PASO 6: Crear o actualizar cuenta en Salesforce
 export async function upsertSalesforceAccount(enrichedData: any, origen: string, leadId: number) {
   try {
@@ -148,15 +219,16 @@ export async function upsertSalesforceAccount(enrichedData: any, origen: string,
 
     const { accessToken, instanceUrl } = await getSalesforceTokens();
 
+    const { paisCorregido, prefijoCorregido } = normalizePrefijoColombia(enrichedData.pais_salesforce, enrichedData.prefijo);
+
     const accountData = {
       Name: enrichedData.fullname,
       AccountSource: origen,
       Phone: enrichedData.phone,
-      Prefijo_M_vil__c: `${enrichedData.pais_salesforce}(${enrichedData.prefijo})`,
-      Prefijo_Telefono__c: `${enrichedData.pais_salesforce}(${enrichedData.prefijo})`,
+      Prefijo_M_vil__c: `${paisCorregido}(${prefijoCorregido})`,
+      Prefijo_Telefono__c: `${paisCorregido}(${prefijoCorregido})`,
       Telefono_Casa__c: enrichedData.phone,
       Telefono_Oficina__c: enrichedData.phone,
-      // Correo_Electr_nico__c NO se incluye aquí porque se usa como External ID en la URL
     };
 
     const response = await fetch(
