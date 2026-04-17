@@ -22,18 +22,18 @@ function verifyAuth(req: NextRequest, config: Record<string, string>) {
 }
 
 async function getZohoAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string | null> {
-  const encoded = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  
   const params = new URLSearchParams();
   params.append('refresh_token', refreshToken);
+  params.append('client_id', clientId);
+  params.append('client_secret', clientSecret);
   params.append('grant_type', 'refresh_token');
 
-  const res = await fetch('https://accounts.zoho.com/oauth/v2/token?' + params.toString(), {
+  const res = await fetch('https://accounts.zoho.com/oauth/v2/token', {
     method: 'POST',
     headers: {
-      'Authorization': 'Basic ' + encoded,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
+    body: params.toString(),
   });
 
   if (!res.ok) {
