@@ -19,8 +19,10 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
     body: params.toString(),
+    cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -58,7 +60,12 @@ export async function GET(req: NextRequest) {
     }
 
     const res = await fetch(url, {
-      headers: { 'Authorization': 'Zoho-oauthtoken ' + accessToken },
+      headers: { 
+        'Authorization': 'Zoho-oauthtoken ' + accessToken,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      cache: 'no-store',
     });
 
     if (!res.ok) {

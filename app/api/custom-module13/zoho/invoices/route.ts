@@ -9,11 +9,8 @@ async function getDbConfig(poolMain: mysql.Pool) {
 }
 
 async function getZohoAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<{accessToken: string, apiDomain: string} | null> {
-  // Hardcoded for testing - remove after
-  const testRefresh = '1000.832191142a3f9abbf25e43131c2a9863.8c473f179940b8ca4398bf2273137946';
-  
   const params = new URLSearchParams();
-  params.append('refresh_token', testRefresh);
+  params.append('refresh_token', refreshToken);
   params.append('client_id', clientId);
   params.append('client_secret', clientSecret);
   params.append('grant_type', 'refresh_token');
@@ -22,8 +19,10 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
     body: params.toString(),
+    cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -49,22 +48,15 @@ export async function GET(req: NextRequest) {
   });
 
   try {
-    console.log('[INVOICES] Getting config...');
     const [rows]: any = await pool.query('SELECT `key`, value FROM modules_13_config');
     const config: Record<string, string> = {};
     for (const row of rows) config[row['key']] = row.value;
-    
-    console.log('[INVOICES] Config keys:', Object.keys(config));
-    console.log('[INVOICES] Getting token...');
-    
+
     const tokenData = await getZohoAccessToken(
       config.zoho_client_id,
       config.zoho_client_secret,
       config.zoho_refresh_token
     );
-
-    console.log('[INVOICES] Token result:', tokenData ? 'OK' : 'NULL');
-    console.log('[INVOICES] API Domain:', tokenData?.apiDomain);
 
     if (!tokenData) return NextResponse.json({ ok: false, error: 'No token' }, { status: 500 });
 
@@ -80,13 +72,13 @@ export async function GET(req: NextRequest) {
       url += `&contact_id=${contactId}`;
     }
 
-    console.log('[INVOICES] Calling:', url);
-
     const res = await fetch(url, {
       headers: { 
         'Authorization': 'Zoho-oauthtoken ' + accessToken,
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
+      cache: 'no-store',
     });
 
     if (!res.ok) {

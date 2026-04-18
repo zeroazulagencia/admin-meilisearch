@@ -31,8 +31,10 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
     body: params.toString(),
+    cache: 'no-store',
   });
 
   if (!res.ok) {
