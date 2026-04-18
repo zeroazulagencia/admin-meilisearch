@@ -36,6 +36,9 @@ const ENDPOINTS = [
   { name: 'Historial Shipping', method: 'GET', path: '/api/custom-module13/zoho/contact', status: 'active', description: 'Historial de cambio de dirección' },
   { name: 'Zoho Invoices', method: 'GET', path: '/api/custom-module13/zoho/invoices', status: 'active', description: 'Facturación e historial de pedidos' },
   { name: 'Zoho Products', method: 'GET', path: '/api/custom-module13/zoho/products', status: 'active', description: 'Catálogo de productos' },
+  { name: 'Cancelaciones', method: 'GET', path: '/api/custom-module13/zoho/cancelaciones', status: 'active', description: 'Cancelaciones de suscripciones' },
+  { name: 'Obs. Segmentación', method: 'GET', path: '/api/custom-module13/zoho/obs-segmentacion-desp', status: 'active', description: 'Observaciones de segmentación y despacho' },
+  { name: 'Cajas Adicionales', method: 'GET', path: '/api/custom-module13/zoho/cajas-adicionales', status: 'active', description: 'Cajas adicionales de clientes' },
 ];
 
 export default function EndpointsAnaliticaBiury() {
@@ -68,6 +71,21 @@ export default function EndpointsAnaliticaBiury() {
   const [productsData, setProductsData] = useState<any>(null);
   const [productsError, setProductsError] = useState<string | null>(null);
   const [productsFilters, setProductsFilters] = useState({ limit: '50', offset: '0' });
+
+  const [cancelacionesLoading, setCancelacionesLoading] = useState(false);
+  const [cancelacionesData, setCancelacionesData] = useState<any>(null);
+  const [cancelacionesError, setCancelacionesError] = useState<string | null>(null);
+  const [cancelacionesFilters, setCancelacionesFilters] = useState({ limit: '50', offset: '0' });
+
+  const [segmentacionLoading, setSegmentacionLoading] = useState(false);
+  const [segmentacionData, setSegmentacionData] = useState<any>(null);
+  const [segmentacionError, setSegmentacionError] = useState<string | null>(null);
+  const [segmentacionFilters, setSegmentacionFilters] = useState({ limit: '50', offset: '0' });
+
+  const [cajasLoading, setCajasLoading] = useState(false);
+  const [cajasData, setCajasData] = useState<any>(null);
+  const [cajasError, setCajasError] = useState<string | null>(null);
+  const [cajasFilters, setCajasFilters] = useState({ limit: '50', offset: '0' });
 
   const [resultKey, setResultKey] = useState<string>('');
 
@@ -212,6 +230,66 @@ export default function EndpointsAnaliticaBiury() {
       setProductsError(e.message);
     } finally {
       setProductsLoading(false);
+    }
+  };
+
+  const getCancelaciones = async () => {
+    setCancelacionesLoading(true);
+    setCancelacionesError(null);
+    setCancelacionesData(null);
+    setResultKey('cancelaciones');
+    try {
+      const res = await fetch(`/api/custom-module13/zoho/cancelaciones?limit=${cancelacionesFilters.limit}&offset=${cancelacionesFilters.offset}`);
+      const data = await res.json();
+      if (data.ok) {
+        setCancelacionesData(data);
+      } else {
+        setCancelacionesError(data.error || 'Error desconocido');
+      }
+    } catch (e: any) {
+      setCancelacionesError(e.message);
+    } finally {
+      setCancelacionesLoading(false);
+    }
+  };
+
+  const getSegmentacion = async () => {
+    setSegmentacionLoading(true);
+    setSegmentacionError(null);
+    setSegmentacionData(null);
+    setResultKey('segmentacion');
+    try {
+      const res = await fetch(`/api/custom-module13/zoho/obs-segmentacion-desp?limit=${segmentacionFilters.limit}&offset=${segmentacionFilters.offset}`);
+      const data = await res.json();
+      if (data.ok) {
+        setSegmentacionData(data);
+      } else {
+        setSegmentacionError(data.error || 'Error desconocido');
+      }
+    } catch (e: any) {
+      setSegmentacionError(e.message);
+    } finally {
+      setSegmentacionLoading(false);
+    }
+  };
+
+  const getCajas = async () => {
+    setCajasLoading(true);
+    setCajasError(null);
+    setCajasData(null);
+    setResultKey('cajas');
+    try {
+      const res = await fetch(`/api/custom-module13/zoho/cajas-adicionales?limit=${cajasFilters.limit}&offset=${cajasFilters.offset}`);
+      const data = await res.json();
+      if (data.ok) {
+        setCajasData(data);
+      } else {
+        setCajasError(data.error || 'Error desconocido');
+      }
+    } catch (e: any) {
+      setCajasError(e.message);
+    } finally {
+      setCajasLoading(false);
     }
   };
 
@@ -397,6 +475,90 @@ export default function EndpointsAnaliticaBiury() {
                     </button>
                   </div>
                 )}
+
+                {ep.name === 'Cancelaciones' && ep.status === 'active' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Limit"
+                        value={cancelacionesFilters.limit}
+                        onChange={(e) => setCancelacionesFilters({ ...cancelacionesFilters, limit: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Offset"
+                        value={cancelacionesFilters.offset}
+                        onChange={(e) => setCancelacionesFilters({ ...cancelacionesFilters, offset: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                    </div>
+                    <button
+                      onClick={getCancelaciones}
+                      disabled={cancelacionesLoading}
+                      className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {cancelacionesLoading ? 'Cargando...' : 'Obtener Cancelaciones'}
+                    </button>
+                  </div>
+                )}
+
+                {ep.name === 'Obs. Segmentación' && ep.status === 'active' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Limit"
+                        value={segmentacionFilters.limit}
+                        onChange={(e) => setSegmentacionFilters({ ...segmentacionFilters, limit: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Offset"
+                        value={segmentacionFilters.offset}
+                        onChange={(e) => setSegmentacionFilters({ ...segmentacionFilters, offset: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                    </div>
+                    <button
+                      onClick={getSegmentacion}
+                      disabled={segmentacionLoading}
+                      className="w-full px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {segmentacionLoading ? 'Cargando...' : 'Obtener Segmentación'}
+                    </button>
+                  </div>
+                )}
+
+                {ep.name === 'Cajas Adicionales' && ep.status === 'active' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Limit"
+                        value={cajasFilters.limit}
+                        onChange={(e) => setCajasFilters({ ...cajasFilters, limit: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Offset"
+                        value={cajasFilters.offset}
+                        onChange={(e) => setCajasFilters({ ...cajasFilters, offset: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                    </div>
+                    <button
+                      onClick={getCajas}
+                      disabled={cajasLoading}
+                      className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {cajasLoading ? 'Cargando...' : 'Obtener Cajas'}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -431,7 +593,25 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           )}
 
-          {(clientesData || zohoData || zohoHistoryData || invoicesData || productsData) && resultKey && (
+          {cancelacionesError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              {cancelacionesError}
+            </div>
+          )}
+
+          {segmentacionError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              {segmentacionError}
+            </div>
+          )}
+
+          {cajasError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              {cajasError}
+            </div>
+          )}
+
+          {(clientesData || zohoData || zohoHistoryData || invoicesData || productsData || cancelacionesData || segmentacionData || cajasData) && resultKey && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Resultado</h3>
@@ -440,6 +620,9 @@ export default function EndpointsAnaliticaBiury() {
                    resultKey === 'zohoHistory' ? `Historial: ${zohoHistoryData?.total_changes || 0} cambios` : 
                    resultKey === 'invoices' ? `${invoicesData?.data?.length || 0} facturas` :
                    resultKey === 'products' ? `${productsData?.data?.length || 0} productos` :
+                   resultKey === 'cancelaciones' ? `${cancelacionesData?.data?.length || 0} cancelaciones` :
+                   resultKey === 'segmentacion' ? `${segmentacionData?.data?.length || 0} registros` :
+                   resultKey === 'cajas' ? `${cajasData?.data?.length || 0} cajas` :
                    `${zohoData?.data?.length || 0} contacts`}
                 </span>
               </div>
@@ -449,6 +632,9 @@ export default function EndpointsAnaliticaBiury() {
                   resultKey === 'zohoHistory' ? zohoHistoryData : 
                   resultKey === 'invoices' ? invoicesData :
                   resultKey === 'products' ? productsData :
+                  resultKey === 'cancelaciones' ? cancelacionesData :
+                  resultKey === 'segmentacion' ? segmentacionData :
+                  resultKey === 'cajas' ? cajasData :
                   zohoData, 
                   null, 2
                 )}
@@ -585,7 +771,7 @@ export default function EndpointsAnaliticaBiury() {
           <h2 className="text-xl font-semibold mb-4 text-gray-900">Documentación</h2>
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Clientes</h3>
+              <h3 className="text-lg font-semibold mb-2">Clientes WordPress</h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 <code className="text-sm">GET /api/custom-module13/biury/clientes?limit=100&offset=0</code>
               </div>
@@ -600,6 +786,36 @@ export default function EndpointsAnaliticaBiury() {
               <h3 className="text-lg font-semibold mb-2">Zoho Contact por ID</h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 <code className="text-sm">GET /api/custom-module13/zoho/contact?id=123456789</code>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Zoho Invoices</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <code className="text-sm">GET /api/custom-module13/zoho/invoices?limit=50&offset=0&contact_id=...</code>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Zoho Products</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <code className="text-sm">GET /api/custom-module13/zoho/products?limit=50&offset=0</code>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Cancelaciones</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <code className="text-sm">GET /api/custom-module13/zoho/cancelaciones?limit=50&offset=0</code>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Obs. Segmentación y Despacho</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <code className="text-sm">GET /api/custom-module13/zoho/obs-segmentacion-desp?limit=50&offset=0</code>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Cajas Adicionales</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <code className="text-sm">GET /api/custom-module13/zoho/cajas-adicionales?limit=50&offset=0</code>
               </div>
             </div>
           </div>
