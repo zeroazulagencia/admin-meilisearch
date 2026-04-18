@@ -23,8 +23,10 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
     body: params.toString(),
+    cache: 'no-store',
   });
 
   if (!res.ok) return null;
@@ -36,7 +38,9 @@ async function getZohoFields(accessToken: string) {
   const res = await fetch('https://www.zohoapis.com/crm/v2/Contacts/meta/fields', {
     headers: {
       'Authorization': 'Zoho-oauthtoken ' + accessToken,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
+    cache: 'no-store',
   });
 
   if (!res.ok) {

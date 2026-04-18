@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
 
 async function getDbConfig(poolMain: mysql.Pool) {
@@ -17,7 +17,7 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
 
   const res = await fetch('https://accounts.zoho.com/oauth/v2/token', {
     method: 'POST',
-    headers: { 
+    headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
@@ -30,43 +30,57 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
   return data.access_token || null;
 }
 
-async function getZohoModules(accessToken: string) {
-  const res = await fetch('https://www.zohoapis.com/crm/v2/settings/modules', {
-    headers: { 
-      'Authorization': 'Zoho-oauthtoken ' + accessToken,
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-    },
-    cache: 'no-store',
-  });
-
-  if (!res.ok) return { modules: [] };
-  return await res.json();
-}
-
-export async function GET() {
+export async function GET(req: NextRequest) {
   const pool = mysql.createPool({
     host: process.env.MYSQL_HOST || 'localhost',
     port: parseInt(process.env.MYSQL_PORT || '3306'),
     user: process.env.MYSQL_USER || 'bitnami',
     password: process.env.MYSQL_PASSWORD || '',
     database: process.env.MYSQL_DATABASE || 'admin_dworkers',
+    waitForConnections: true,
+    connectionLimit: 5,
   });
 
   try {
-    const config = await getDbConfig(pool);
-    const accessToken = await getZohoAccessToken(config.zoho_client_id, config.zoho_client_secret, config.zoho_refresh_token);
+    const [rows]: any = await pool.query('SELECT `key`, value FROM modules_13_config');
+    const config: Record<string, string> = {};
+    for (const row of rows) config[row['key']] = row.value;
+
+    const accessToken = await getZohoAccessToken(
+      config.zoho_client_id,
+      config.zoho_client_secret,
+      config.zoho_refresh_token
+    );
 
     if (!accessToken) return NextResponse.json({ ok: false, error: 'No token' }, { status: 500 });
 
-    const modulesData = await getZohoModules(accessToken);
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '50');
+    const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0');
+
+    const url = `https://www.zohoapis.com/crm/v2/Obs_Segmentaci_n_y_Desp?per_page=${limit}&page=${Math.floor(offset / limit) + 1}`;
+
+    const res = await fetch(url, {
+      headers: { 
+        'Authorization': 'Zoho-oauthtoken ' + accessToken,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      cache: 'no-store',
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      return NextResponse.json({ ok: false, error: err }, { status: 500 });
+    }
+
+    const data = await res.json();
+    const records = data.data || [];
 
     return NextResponse.json({
       ok: true,
-      modules: (modulesData.modules || []).map((m: any) => ({
-        api_name: m.api_name,
-        singular_label: m.singular_label,
-        plural_label: m.plural_label,
-      })),
+      data: records,
+      total: data.info?.count || 0,
+      has_more: data.info?.more_records || false,
     });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
