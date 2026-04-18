@@ -8,7 +8,7 @@ async function getDbConfig(poolMain: mysql.Pool) {
   return config;
 }
 
-async function getZohoAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string | null> {
+async function getZohoAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<{accessToken: string, apiDomain: string} | null> {
   const params = new URLSearchParams();
   params.append('refresh_token', refreshToken);
   params.append('client_id', clientId);
@@ -30,7 +30,8 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
   }
 
   const data = await res.json();
-  return data.access_token || null;
+  if (!data.access_token) return null;
+  return { accessToken: data.access_token, apiDomain: data.api_domain || 'https://www.zohoapis.com' };
 }
 
 export async function GET(req: NextRequest) {
@@ -53,24 +54,30 @@ export async function GET(req: NextRequest) {
     console.log('[INVOICES] Config keys:', Object.keys(config));
     console.log('[INVOICES] Getting token...');
     
-    const accessToken = await getZohoAccessToken(
+    const tokenData = await getZohoAccessToken(
       config.zoho_client_id,
       config.zoho_client_secret,
       config.zoho_refresh_token
     );
 
-    console.log('[INVOICES] Token result:', accessToken ? 'OK' : 'NULL');
+    console.log('[INVOICES] Token result:', tokenData ? 'OK' : 'NULL');
+    console.log('[INVOICES] API Domain:', tokenData?.apiDomain);
 
-    if (!accessToken) return NextResponse.json({ ok: false, error: 'No token' }, { status: 500 });
+    if (!tokenData) return NextResponse.json({ ok: false, error: 'No token' }, { status: 500 });
+
+    const apiDomain = tokenData.apiDomain;
+    const accessToken = tokenData.accessToken;
 
     const contactId = req.nextUrl.searchParams.get('contact_id');
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '50');
     const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0');
 
-    let url = `https://www.zohoapis.com/crm/v2/Invoices?per_page=${limit}&page=${Math.floor(offset / limit) + 1}`;
+    let url = `${apiDomain}/crm/v2/Invoices?per_page=${limit}&page=${Math.floor(offset / limit) + 1}`;
     if (contactId) {
       url += `&contact_id=${contactId}`;
     }
+
+    console.log('[INVOICES] Calling:', url);
 
     const res = await fetch(url, {
       headers: { 
