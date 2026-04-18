@@ -17,11 +17,18 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
 
   const res = await fetch('https://accounts.zoho.com/oauth/v2/token', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
     body: params.toString(),
   });
 
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('[ZOHO] Token error:', err);
+    return null;
+  }
+
   const data = await res.json();
   return data.access_token || null;
 }
