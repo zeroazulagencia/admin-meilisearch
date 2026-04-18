@@ -53,17 +53,30 @@ export async function GET(req: NextRequest) {
 
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '100');
     const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0');
+    const email = req.nextUrl.searchParams.get('email');
+    const search = req.nextUrl.searchParams.get('search');
     const prefix = config.wp_table_prefix || 'anu_';
+
+    let whereClause = 'ID NOT IN (SELECT user_id FROM ' + prefix + 'usermeta WHERE meta_key = \'' + prefix + 'capabilities\' AND meta_value LIKE \'%administrator%\')';
+    const params: any[] = [];
+
+    if (email) {
+      whereClause += ' AND user_email LIKE ?';
+      params.push('%' + email + '%');
+    }
+    if (search) {
+      whereClause += ' AND (user_login LIKE ? OR user_email LIKE ? OR display_name LIKE ?)';
+      const searchPattern = '%' + search + '%';
+      params.push(searchPattern, searchPattern, searchPattern);
+    }
 
     const [users]: any = await wpPool.query(
       `SELECT ID, user_login, user_email, display_name, user_registered, user_status
        FROM ${prefix}users 
-       WHERE ID NOT IN (
-         SELECT user_id FROM ${prefix}usermeta WHERE meta_key = '${prefix}capabilities' AND meta_value LIKE '%administrator%'
-       )
+       WHERE ${whereClause}
        ORDER BY user_registered DESC
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [...params, limit, offset]
     );
 
     const userIds = users.map((u: any) => u.ID);

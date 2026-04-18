@@ -8,6 +8,14 @@ async function getDbConfig(poolMain: mysql.Pool) {
   return config;
 }
 
+function verifyAuth(req: NextRequest, config: Record<string, string>) {
+  if (!config.api_token) return true;
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return false;
+  const token = authHeader.replace('Bearer ', '');
+  return token === config.api_token;
+}
+
 async function getZohoAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<{accessToken: string, apiDomain: string} | null> {
   const params = new URLSearchParams();
   params.append('refresh_token', refreshToken);
@@ -52,6 +60,10 @@ export async function GET(req: NextRequest) {
     const config: Record<string, string> = {};
     for (const row of rows) config[row['key']] = row.value;
 
+    if (config.api_token && !verifyAuth(req, config)) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const tokenData = await getZohoAccessToken(
       config.zoho_client_id,
       config.zoho_client_secret,
@@ -64,12 +76,16 @@ export async function GET(req: NextRequest) {
     const accessToken = tokenData.accessToken;
 
     const contactId = req.nextUrl.searchParams.get('contact_id');
+    const invoiceNumber = req.nextUrl.searchParams.get('invoice_number');
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '50');
     const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0');
 
     let url = `${apiDomain}/crm/v2/Invoices?per_page=${limit}&page=${Math.floor(offset / limit) + 1}`;
     if (contactId) {
       url += `&contact_id=${contactId}`;
+    }
+    if (invoiceNumber) {
+      url += `&invoice_number=${invoiceNumber}`;
     }
 
     const res = await fetch(url, {

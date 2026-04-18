@@ -47,9 +47,18 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
   return data.access_token || null;
 }
 
-async function getZohoContacts(accessToken: string, limit: number = 100, offset: number = 0) {
+async function getZohoContacts(accessToken: string, limit: number = 100, offset: number = 0, email?: string, phone?: string) {
+  let url = `https://www.zohoapis.com/crm/v2/Contacts?fields=id,First_Name,Last_Name,Email,Phone,Mobile,Shipping_Street,Shipping_City,Shipping_State,Shipping_Country,Shipping_Code,Billing_Street,Billing_City,Billing_State,Billing_Country,Billing_Code,Created_Time,Modified_Time&per_page=${limit}&page=${Math.floor(offset / limit) + 1}`;
+  
+  if (email) {
+    url += `&email=${encodeURIComponent(email)}`;
+  }
+  if (phone) {
+    url += `&phone=${encodeURIComponent(phone)}`;
+  }
+
   const res = await fetch(
-    `https://www.zohoapis.com/crm/v2/Contacts?fields=id,First_Name,Last_Name,Email,Phone,Mobile,Shipping_Street,Shipping_City,Shipping_State,Shipping_Country,Shipping_Code,Billing_Street,Billing_City,Billing_State,Billing_Country,Billing_Code,Created_Time,Modified_Time&per_page=${limit}&page=${Math.floor(offset / limit) + 1}`,
+    url,
     {
       headers: {
         'Authorization': 'Zoho-oauthtoken ' + accessToken,
@@ -106,6 +115,8 @@ export async function GET(req: NextRequest) {
 
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '100');
     const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0');
+    const email = req.nextUrl.searchParams.get('email') || undefined;
+    const phone = req.nextUrl.searchParams.get('phone') || undefined;
     const analyzeShipping = req.nextUrl.searchParams.get('analyze') === 'true';
 
     const accessToken = await getZohoAccessToken(
@@ -118,7 +129,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Failed to get Zoho access token' }, { status: 500 });
     }
 
-    const zohoData = await getZohoContacts(accessToken, limit, offset);
+    const zohoData = await getZohoContacts(accessToken, limit, offset, email, phone);
 
     if (analyzeShipping) {
       const contacts = zohoData.data || [];

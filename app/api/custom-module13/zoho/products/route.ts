@@ -8,6 +8,14 @@ async function getDbConfig(poolMain: mysql.Pool) {
   return config;
 }
 
+function verifyAuth(req: NextRequest, config: Record<string, string>) {
+  if (!config.api_token) return true;
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return false;
+  const token = authHeader.replace('Bearer ', '');
+  return token === config.api_token;
+}
+
 async function getZohoAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string | null> {
   const params = new URLSearchParams();
   params.append('refresh_token', refreshToken);
@@ -46,6 +54,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const config = await getDbConfig(pool);
+    
+    if (config.api_token && !verifyAuth(req, config)) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    
     const accessToken = await getZohoAccessToken(config.zoho_client_id, config.zoho_client_secret, config.zoho_refresh_token);
 
     if (!accessToken) return NextResponse.json({ ok: false, error: 'No token' }, { status: 500 });

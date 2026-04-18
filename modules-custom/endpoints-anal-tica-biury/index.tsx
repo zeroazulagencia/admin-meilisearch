@@ -35,16 +35,16 @@ const DEFAULT_CONFIG: WPConfig = {
 };
 
 const ENDPOINTS = [
-  { name: 'Clientes', method: 'GET', path: '/api/custom-module13/biury/clientes', status: 'active', description: 'Usuarios WP no admin + metadatos' },
-  { name: 'Zoho Contacts', method: 'GET', path: '/api/custom-module13/zoho/contacts', status: 'active', description: 'Contacts de Zoho CRM' },
-  { name: 'Historial Shipping', method: 'GET', path: '/api/custom-module13/zoho/contact', status: 'active', description: 'Historial de cambio de dirección' },
-  { name: 'Zoho Invoices', method: 'GET', path: '/api/custom-module13/zoho/invoices', status: 'active', description: 'Facturación e historial de pedidos' },
-  { name: 'Zoho Products', method: 'GET', path: '/api/custom-module13/zoho/products', status: 'active', description: 'Catálogo de productos' },
-  { name: 'Cancelaciones', method: 'GET', path: '/api/custom-module13/zoho/cancelaciones', status: 'active', description: 'Cancelaciones de suscripciones' },
-  { name: 'Obs. Segmentación', method: 'GET', path: '/api/custom-module13/zoho/obs-segmentacion-desp', status: 'active', description: 'Observaciones de segmentación y despacho' },
-  { name: 'Cajas Adicionales', method: 'GET', path: '/api/custom-module13/zoho/cajas-adicionales', status: 'active', description: 'Cajas adicionales de clientes' },
-  { name: 'Treli Payment', method: 'GET', path: '/api/custom-module13/treli/payment', status: 'active', description: 'Datos de pago en Treli' },
-  { name: 'Treli Cobros', method: 'GET', path: '/api/custom-module13/treli/cobros', status: 'active', description: 'Cobros aprobados por fecha' },
+  { name: 'Clientes', method: 'GET', path: 'https://workers.zeroazul.com/api/custom-module13/biury/clientes', status: 'active', description: 'Usuarios WP no admin + metadatos' },
+  { name: 'Zoho Contacts', method: 'GET', path: 'https://workers.zeroazul.com/api/custom-module13/zoho/contacts', status: 'active', description: 'Contacts de Zoho CRM' },
+  { name: 'Historial Shipping', method: 'GET', path: 'https://workers.zeroazul.com/api/custom-module13/zoho/contact', status: 'active', description: 'Historial de cambio de dirección' },
+  { name: 'Zoho Invoices', method: 'GET', path: 'https://workers.zeroazul.com/api/custom-module13/zoho/invoices', status: 'active', description: 'Facturación e historial de pedidos' },
+  { name: 'Zoho Products', method: 'GET', path: 'https://workers.zeroazul.com/api/custom-module13/zoho/products', status: 'active', description: 'Catálogo de productos' },
+  { name: 'Cancelaciones', method: 'GET', path: 'https://workers.zeroazul.com/api/custom-module13/zoho/cancelaciones', status: 'active', description: 'Cancelaciones de suscripciones' },
+  { name: 'Obs. Segmentación', method: 'GET', path: 'https://workers.zeroazul.com/api/custom-module13/zoho/obs-segmentacion-desp', status: 'active', description: 'Observaciones de segmentación y despacho' },
+  { name: 'Cajas Adicionales', method: 'GET', path: 'https://workers.zeroazul.com/api/custom-module13/zoho/cajas-adicionales', status: 'active', description: 'Cajas adicionales de clientes' },
+  { name: 'Treli Payment', method: 'GET', path: 'https://workers.zeroazul.com/api/custom-module13/treli/payment', status: 'active', description: 'Datos de pago en Treli' },
+  { name: 'Treli Cobros', method: 'GET', path: 'https://workers.zeroazul.com/api/custom-module13/treli/cobros', status: 'active', description: 'Cobros aprobados por fecha' },
 ];
 
 export default function EndpointsAnaliticaBiury() {
@@ -56,12 +56,12 @@ export default function EndpointsAnaliticaBiury() {
   const [clientesLoading, setClientesLoading] = useState(false);
   const [clientesData, setClientesData] = useState<any>(null);
   const [clientesError, setClientesError] = useState<string | null>(null);
-  const [clientesFilters, setClientesFilters] = useState({ limit: '100', offset: '0' });
+  const [clientesFilters, setClientesFilters] = useState({ limit: '100', offset: '0', email: '', search: '' });
 
   const [zohoLoading, setZohoLoading] = useState(false);
   const [zohoData, setZohoData] = useState<any>(null);
   const [zohoError, setZohoError] = useState<string | null>(null);
-  const [zohoFilters, setZohoFilters] = useState({ limit: '100', offset: '0' });
+  const [zohoFilters, setZohoFilters] = useState({ limit: '100', offset: '0', email: '', phone: '' });
 
   const [zohoHistoryLoading, setZohoHistoryLoading] = useState(false);
   const [zohoHistoryData, setZohoHistoryData] = useState<any>(null);
@@ -149,7 +149,10 @@ export default function EndpointsAnaliticaBiury() {
     setClientesData(null);
     setResultKey('clientes');
     try {
-      const res = await fetch(`/api/custom-module13/biury/clientes?limit=${clientesFilters.limit}&offset=${clientesFilters.offset}`);
+      let url = `/api/custom-module13/biury/clientes?limit=${clientesFilters.limit}&offset=${clientesFilters.offset}`;
+      if (clientesFilters.email) url += `&email=${encodeURIComponent(clientesFilters.email)}`;
+      if (clientesFilters.search) url += `&search=${encodeURIComponent(clientesFilters.search)}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (data.ok) {
         setClientesData(data);
@@ -169,7 +172,10 @@ export default function EndpointsAnaliticaBiury() {
     setZohoData(null);
     setResultKey('zoho');
     try {
-      const res = await fetch(`/api/custom-module13/zoho/contacts?limit=${zohoFilters.limit}&offset=${zohoFilters.offset}`);
+      let url = `/api/custom-module13/zoho/contacts?limit=${zohoFilters.limit}&offset=${zohoFilters.offset}`;
+      if (zohoFilters.email) url += `&email=${encodeURIComponent(zohoFilters.email)}`;
+      if (zohoFilters.phone) url += `&phone=${encodeURIComponent(zohoFilters.phone)}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (data.ok) {
         setZohoData(data);
@@ -410,16 +416,30 @@ export default function EndpointsAnaliticaBiury() {
                         placeholder="Limit"
                         value={clientesFilters.limit}
                         onChange={(e) => setClientesFilters({ ...clientesFilters, limit: e.target.value })}
-                        className="w-20 border border-gray-300 rounded px-2 py-1 text-xs"
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
                       />
                       <input
                         type="number"
                         placeholder="Offset"
                         value={clientesFilters.offset}
                         onChange={(e) => setClientesFilters({ ...clientesFilters, offset: e.target.value })}
-                        className="w-20 border border-gray-300 rounded px-2 py-1 text-xs"
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
                       />
                     </div>
+                    <input
+                      type="text"
+                      placeholder="Email (filtro)"
+                      value={clientesFilters.email}
+                      onChange={(e) => setClientesFilters({ ...clientesFilters, email: e.target.value })}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Buscar (login, email, nombre)"
+                      value={clientesFilters.search}
+                      onChange={(e) => setClientesFilters({ ...clientesFilters, search: e.target.value })}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                    />
                     <button
                       onClick={getClientes}
                       disabled={clientesLoading}
@@ -438,16 +458,30 @@ export default function EndpointsAnaliticaBiury() {
                         placeholder="Limit"
                         value={zohoFilters.limit}
                         onChange={(e) => setZohoFilters({ ...zohoFilters, limit: e.target.value })}
-                        className="w-20 border border-gray-300 rounded px-2 py-1 text-xs"
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
                       />
                       <input
                         type="number"
                         placeholder="Offset"
                         value={zohoFilters.offset}
                         onChange={(e) => setZohoFilters({ ...zohoFilters, offset: e.target.value })}
-                        className="w-20 border border-gray-300 rounded px-2 py-1 text-xs"
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
                       />
                     </div>
+                    <input
+                      type="text"
+                      placeholder="Email (filtro)"
+                      value={zohoFilters.email || ''}
+                      onChange={(e) => setZohoFilters({ ...zohoFilters, email: e.target.value })}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Teléfono (filtro)"
+                      value={zohoFilters.phone || ''}
+                      onChange={(e) => setZohoFilters({ ...zohoFilters, phone: e.target.value })}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                    />
                     <button
                       onClick={getZohoContacts}
                       disabled={zohoLoading}
@@ -933,66 +967,239 @@ export default function EndpointsAnaliticaBiury() {
 
       {activeTab === 'docs' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">Documentación</h2>
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Clientes WordPress</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <code className="text-sm">GET /api/custom-module13/biury/clientes?limit=100&offset=0</code>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">Documentación API - Módulo 13 Biury</h2>
+          
+          {/* Autenticación */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <h3 className="text-lg font-semibold mb-3 text-red-800">Autenticación - IMPORTANTE</h3>
+            <p className="text-sm text-red-700 mb-4">
+              <strong>Todos los endpoints requieren autenticación</strong> mediante el token configurado en la pestaña "Configuración".
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium text-sm text-red-800 mb-2">Cómo enviar el token:</p>
+                <code className="text-xs bg-red-100 px-2 py-1 rounded block">
+                  Authorization: Bearer TU_API_TOKEN
+                </code>
+              </div>
+              
+              <div>
+                <p className="font-medium text-sm text-red-800 mb-2">Ejemplo completo con curl:</p>
+                <pre className="text-xs bg-red-100 p-3 rounded overflow-x-auto">
+{`# Reemplaza TU_API_TOKEN con el token configurado en "Configuración"
+curl -X GET "https://workers.zeroazul.com/api/custom-module13/biury/clientes?limit=10" \\
+  -H "Authorization: Bearer TU_API_TOKEN" \\
+  -H "Accept: application/json"`}
+                </pre>
+              </div>
+              
+              <div className="bg-red-100 p-3 rounded">
+                <p className="text-sm text-red-800">
+                  <strong>Si no se envía el token correcto:</strong> Retornará error 401 Unauthorized
+                </p>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Zoho Contacts</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <code className="text-sm">GET /api/custom-module13/zoho/contacts?limit=100&offset=0</code>
+          </div>
+          
+          <div className="space-y-8">
+            {/* WordPress Clientes */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-indigo-600">Clientes WordPress</h3>
+              <p className="text-sm text-gray-600 mb-3">Usuarios de WordPress (excluye administradores) con metadatos</p>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">GET /api/custom-module13/biury/clientes</code>
+              <div className="text-sm">
+                <p className="font-medium mb-2">Parámetros:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <li><code>limit</code> - Límite de resultados (default: 100)</li>
+                  <li><code>offset</code> - Offset para paginación (default: 0)</li>
+                  <li><code>email</code> - Filtrar por email (contiene)</li>
+                  <li><code>search</code> - Buscar en user_login, email o display_name</li>
+                </ul>
+              </div>
+              <div className="mt-3 bg-gray-50 p-2 rounded text-xs">
+                <p className="font-medium">Ejemplos:</p>
+                <code className="block text-gray-600">/api/custom-module13/biury/clientes?limit=50&offset=0</code>
+                <code className="block text-gray-600">/api/custom-module13/biury/clientes?email=jessica</code>
+                <code className="block text-gray-600">/api/custom-module13/biury/clientes?search=torres</code>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Zoho Contact por ID</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <code className="text-sm">GET /api/custom-module13/zoho/contact?id=123456789</code>
+
+            {/* Zoho Contacts */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-indigo-600">Zoho Contacts</h3>
+              <p className="text-sm text-gray-600 mb-3">Contactos de Zoho CRM</p>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">GET /api/custom-module13/zoho/contacts</code>
+              <div className="text-sm">
+                <p className="font-medium mb-2">Parámetros:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <li><code>limit</code> - Límite de resultados (default: 100)</li>
+                  <li><code>offset</code> - Offset para paginación (default: 0)</li>
+                  <li><code>email</code> - Filtrar por email exacto</li>
+                  <li><code>phone</code> - Filtrar por teléfono</li>
+                  <li><code>analyze</code> - Analizar campos de shipping (true/false)</li>
+                </ul>
+              </div>
+              <div className="mt-3 bg-gray-50 p-2 rounded text-xs">
+                <p className="font-medium">Ejemplos:</p>
+                <code className="block text-gray-600">/api/custom-module13/zoho/contacts?limit=50&offset=0</code>
+                <code className="block text-gray-600">/api/custom-module13/zoho/contacts?email=test@biury.co</code>
+                <code className="block text-gray-600">/api/custom-module13/zoho/contacts?phone=312</code>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Zoho Invoices</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <code className="text-sm">GET /api/custom-module13/zoho/invoices?limit=50&offset=0&contact_id=...</code>
+
+            {/* Zoho Contact History */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-indigo-600">Zoho Historial Shipping</h3>
+              <p className="text-sm text-gray-600 mb-3">Historial de cambios de dirección de envío</p>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">GET /api/custom-module13/zoho/contact</code>
+              <div className="text-sm">
+                <p className="font-medium mb-2">Parámetros:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <li><code>id</code> - ID del contacto en Zoho (requerido)</li>
+                </ul>
+              </div>
+              <div className="mt-3 bg-gray-50 p-2 rounded text-xs">
+                <p className="font-medium">Ejemplo:</p>
+                <code className="block text-gray-600">/api/custom-module13/zoho/contact?id=5406198000006575005</code>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Zoho Products</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <code className="text-sm">GET /api/custom-module13/zoho/products?limit=50&offset=0</code>
+
+            {/* Zoho Invoices */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-indigo-600">Zoho Invoices</h3>
+              <p className="text-sm text-gray-600 mb-3">Facturación e historial de pedidos</p>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">GET /api/custom-module13/zoho/invoices</code>
+              <div className="text-sm">
+                <p className="font-medium mb-2">Parámetros:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <li><code>limit</code> - Límite de resultados (default: 50)</li>
+                  <li><code>offset</code> - Offset para paginación (default: 0)</li>
+                  <li><code>contact_id</code> - Filtrar por ID de contacto</li>
+                  <li><code>invoice_number</code> - Filtrar por número de factura</li>
+                </ul>
+              </div>
+              <div className="mt-3 bg-gray-50 p-2 rounded text-xs">
+                <p className="font-medium">Ejemplos:</p>
+                <code className="block text-gray-600">/api/custom-module13/zoho/invoices?limit=50&offset=0</code>
+                <code className="block text-gray-600">/api/custom-module13/zoho/invoices?contact_id=5406198000006575005</code>
+                <code className="block text-gray-600">/api/custom-module13/zoho/invoices?invoice_number=5406198000031370196</code>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Cancelaciones</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <code className="text-sm">GET /api/custom-module13/zoho/cancelaciones?limit=50&offset=0</code>
+
+            {/* Zoho Products */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-indigo-600">Zoho Products</h3>
+              <p className="text-sm text-gray-600 mb-3">Catálogo de productos</p>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">GET /api/custom-module13/zoho/products</code>
+              <div className="text-sm">
+                <p className="font-medium mb-2">Parámetros:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <li><code>limit</code> - Límite de resultados (default: 50)</li>
+                  <li><code>offset</code> - Offset para paginación (default: 0)</li>
+                  <li><code>category</code> - Filtrar por categoría</li>
+                </ul>
+              </div>
+              <div className="mt-3 bg-gray-50 p-2 rounded text-xs">
+                <p className="font-medium">Ejemplos:</p>
+                <code className="block text-gray-600">/api/custom-module13/zoho/products?limit=50&offset=0</code>
+                <code className="block text-gray-600">/api/custom-module13/zoho/products?category=Limpieza</code>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Obs. Segmentación y Despacho</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <code className="text-sm">GET /api/custom-module13/zoho/obs-segmentacion-desp?limit=50&offset=0</code>
+
+            {/* Zoho Cancelaciones */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-indigo-600">Zoho Cancelaciones</h3>
+              <p className="text-sm text-gray-600 mb-3">Cancelaciones de suscripciones</p>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">GET /api/custom-module13/zoho/cancelaciones</code>
+              <div className="text-sm">
+                <p className="font-medium mb-2">Parámetros:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <li><code>limit</code> - Límite de resultados (default: 50)</li>
+                  <li><code>offset</code> - Offset para paginación (default: 0)</li>
+                  <li><code>contact_id</code> - Filtrar por ID de contacto</li>
+                  <li><code>status</code> - Filtrar por estado (Accion: Pausada, Cancelada, Activa)</li>
+                </ul>
+              </div>
+              <div className="mt-3 bg-gray-50 p-2 rounded text-xs">
+                <p className="font-medium">Ejemplos:</p>
+                <code className="block text-gray-600">/api/custom-module13/zoho/cancelaciones?limit=50&offset=0</code>
+                <code className="block text-gray-600">/api/custom-module13/zoho/cancelaciones?status=Pausada</code>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Cajas Adicionales</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <code className="text-sm">GET /api/custom-module13/zoho/cajas-adicionales?limit=50&offset=0</code>
+
+            {/* Zoho Obs Segmentacion */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-indigo-600">Zoho Obs. Segmentación</h3>
+              <p className="text-sm text-gray-600 mb-3">Observaciones de segmentación y despacho</p>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">GET /api/custom-module13/zoho/obs-segmentacion-desp</code>
+              <div className="text-sm">
+                <p className="font-medium mb-2">Parámetros:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <li><code>limit</code> - Límite de resultados (default: 50)</li>
+                  <li><code>offset</code> - Offset para paginación (default: 0)</li>
+                </ul>
+              </div>
+              <div className="mt-3 bg-gray-50 p-2 rounded text-xs">
+                <p className="font-medium">Ejemplo:</p>
+                <code className="block text-gray-600">/api/custom-module13/zoho/obs-segmentacion-desp?limit=50&offset=0</code>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Treli Payment</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <code className="text-sm">GET /api/custom-module13/treli/payment?payment_id=12345</code>
+
+            {/* Zoho Cajas Adicionales */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-indigo-600">Zoho Cajas Adicionales</h3>
+              <p className="text-sm text-gray-600 mb-3">Cajas adicionales de clientes</p>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">GET /api/custom-module13/zoho/cajas-adicionales</code>
+              <div className="text-sm">
+                <p className="font-medium mb-2">Parámetros:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <li><code>limit</code> - Límite de resultados (default: 50)</li>
+                  <li><code>offset</code> - Offset para paginación (default: 0)</li>
+                </ul>
+              </div>
+              <div className="mt-3 bg-gray-50 p-2 rounded text-xs">
+                <p className="font-medium">Ejemplo:</p>
+                <code className="block text-gray-600">/api/custom-module13/zoho/cajas-adicionales?limit=50&offset=0</code>
               </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Treli Cobros</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <code className="text-sm">GET /api/custom-module13/treli/cobros?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&limit=50</code>
+
+            {/* Treli Payment */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-cyan-600">Treli Payment</h3>
+              <p className="text-sm text-gray-600 mb-3">Datos de pago en Treli (old API)</p>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">GET /api/custom-module13/treli/payment</code>
+              <div className="text-sm">
+                <p className="font-medium mb-2">Parámetros:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <li><code>payment_id</code> - ID del pago (requerido)</li>
+                </ul>
+              </div>
+              <div className="mt-3 bg-gray-50 p-2 rounded text-xs">
+                <p className="font-medium">Ejemplo:</p>
+                <code className="block text-gray-600">/api/custom-module13/treli/payment?payment_id=12345</code>
+              </div>
+            </div>
+
+            {/* Treli Cobros */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-cyan-600">Treli Cobros</h3>
+              <p className="text-sm text-gray-600 mb-3">Cobros aprobados (solo status=paid)</p>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-3">GET /api/custom-module13/treli/cobros</code>
+              <div className="text-sm">
+                <p className="font-medium mb-2">Parámetros:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-1">
+                  <li><code>limit</code> - Límite de resultados (default: 100)</li>
+                  <li><code>start_date</code> - Fecha inicio (YYYY-MM-DD)</li>
+                  <li><code>end_date</code> - Fecha fin (YYYY-MM-DD)</li>
+                  <li><code>cursor</code> - Cursor para paginación (next_cursor)</li>
+                </ul>
+              </div>
+              <div className="mt-3 bg-gray-50 p-2 rounded text-xs">
+                <p className="font-medium">Ejemplos:</p>
+                <code className="block text-gray-600">/api/custom-module13/treli/cobros?limit=50</code>
+                <code className="block text-gray-600">/api/custom-module13/treli/cobros?start_date=2026-04-01&end_date=2026-04-18</code>
+                <code className="block text-gray-600">/api/custom-module13/treli/cobros?cursor=col_xxx&limit=50</code>
               </div>
             </div>
           </div>
