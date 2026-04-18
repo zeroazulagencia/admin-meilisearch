@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       'zoho_client_secret',
       'zoho_refresh_token',
       'treli_token',
+      'treli_api_key',
     ];
 
     for (const key of configKeys) {

@@ -16,6 +16,7 @@ interface WPConfig {
   zoho_client_secret: string;
   zoho_refresh_token: string;
   treli_token: string;
+  treli_api_key: string;
 }
 
 const DEFAULT_CONFIG: WPConfig = {
@@ -30,6 +31,7 @@ const DEFAULT_CONFIG: WPConfig = {
   zoho_client_secret: 'abb036ee87418516817a6c3397327a2876e7bcea66',
   zoho_refresh_token: '1000.832191142a3f9abbf25e43131c2a9863.8c473f179940b8ca4398bf2273137946',
   treli_token: 'Yml1cnk6NGMwMWY4LTU2ZDU4OS00NzViMGEtOGY4ODlhLWIxMjM4Mw==',
+  treli_api_key: '',
 };
 
 const ENDPOINTS = [
@@ -42,6 +44,7 @@ const ENDPOINTS = [
   { name: 'Obs. Segmentación', method: 'GET', path: '/api/custom-module13/zoho/obs-segmentacion-desp', status: 'active', description: 'Observaciones de segmentación y despacho' },
   { name: 'Cajas Adicionales', method: 'GET', path: '/api/custom-module13/zoho/cajas-adicionales', status: 'active', description: 'Cajas adicionales de clientes' },
   { name: 'Treli Payment', method: 'GET', path: '/api/custom-module13/treli/payment', status: 'active', description: 'Datos de pago en Treli' },
+  { name: 'Treli Cobros', method: 'GET', path: '/api/custom-module13/treli/cobros', status: 'active', description: 'Cobros aprobados por fecha' },
 ];
 
 export default function EndpointsAnaliticaBiury() {
@@ -94,6 +97,11 @@ export default function EndpointsAnaliticaBiury() {
   const [treliData, setTreliData] = useState<any>(null);
   const [treliError, setTreliError] = useState<string | null>(null);
   const [treliPaymentId, setTreliPaymentId] = useState('');
+
+  const [cobrosLoading, setCobrosLoading] = useState(false);
+  const [cobrosData, setCobrosData] = useState<any>(null);
+  const [cobrosError, setCobrosError] = useState<string | null>(null);
+  const [cobrosFilters, setCobrosFilters] = useState({ start_date: '', end_date: '', limit: '50', cursor: '' });
 
   const [resultKey, setResultKey] = useState<string>('');
 
@@ -322,6 +330,30 @@ export default function EndpointsAnaliticaBiury() {
       setTreliError(e.message);
     } finally {
       setTreliLoading(false);
+    }
+  };
+
+  const getCobros = async () => {
+    setCobrosLoading(true);
+    setCobrosError(null);
+    setCobrosData(null);
+    setResultKey('cobros');
+    try {
+      let url = `/api/custom-module13/treli/cobros?limit=${cobrosFilters.limit}`;
+      if (cobrosFilters.start_date) url += `&start_date=${cobrosFilters.start_date}`;
+      if (cobrosFilters.end_date) url += `&end_date=${cobrosFilters.end_date}`;
+      if (cobrosFilters.cursor) url += `&cursor=${cobrosFilters.cursor}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.ok) {
+        setCobrosData(data);
+      } else {
+        setCobrosError(data.error || 'Error desconocido');
+      }
+    } catch (e: any) {
+      setCobrosError(e.message);
+    } finally {
+      setCobrosLoading(false);
     }
   };
 
@@ -610,6 +642,50 @@ export default function EndpointsAnaliticaBiury() {
                     </button>
                   </div>
                 )}
+
+                {ep.name === 'Treli Cobros' && ep.status === 'active' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        placeholder="Fecha inicio"
+                        value={cobrosFilters.start_date}
+                        onChange={(e) => setCobrosFilters({ ...cobrosFilters, start_date: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                      <input
+                        type="date"
+                        placeholder="Fecha fin"
+                        value={cobrosFilters.end_date}
+                        onChange={(e) => setCobrosFilters({ ...cobrosFilters, end_date: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Limit"
+                        value={cobrosFilters.limit}
+                        onChange={(e) => setCobrosFilters({ ...cobrosFilters, limit: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Cursor (next)"
+                        value={cobrosFilters.cursor}
+                        onChange={(e) => setCobrosFilters({ ...cobrosFilters, cursor: e.target.value })}
+                        className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                    </div>
+                    <button
+                      onClick={getCobros}
+                      disabled={cobrosLoading}
+                      className="w-full px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {cobrosLoading ? 'Cargando...' : 'Obtener Cobros'}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -668,7 +744,13 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           )}
 
-          {(clientesData || zohoData || zohoHistoryData || invoicesData || productsData || cancelacionesData || segmentacionData || cajasData || treliData) && resultKey && (
+          {cobrosError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              {cobrosError}
+            </div>
+          )}
+
+          {(clientesData || zohoData || zohoHistoryData || invoicesData || productsData || cancelacionesData || segmentacionData || cajasData || treliData || cobrosData) && resultKey && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Resultado</h3>
@@ -681,6 +763,7 @@ export default function EndpointsAnaliticaBiury() {
                    resultKey === 'segmentacion' ? `${segmentacionData?.data?.length || 0} registros` :
                    resultKey === 'cajas' ? `${cajasData?.data?.length || 0} cajas` :
                    resultKey === 'treli' ? 'Pago Treli' :
+                   resultKey === 'cobros' ? `${cobrosData?.data?.length || 0} cobros` :
                    `${zohoData?.data?.length || 0} contacts`}
                 </span>
               </div>
@@ -694,6 +777,7 @@ export default function EndpointsAnaliticaBiury() {
                   resultKey === 'segmentacion' ? segmentacionData :
                   resultKey === 'cajas' ? cajasData :
                   resultKey === 'treli' ? treliData :
+                  resultKey === 'cobros' ? cobrosData :
                   zohoData, 
                   null, 2
                 )}
@@ -819,6 +903,15 @@ export default function EndpointsAnaliticaBiury() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
               />
             </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">API Key (sk_live_...)</label>
+              <input
+                type="text"
+                value={config.treli_api_key || ''}
+                onChange={(e) => setConfig({ ...config, treli_api_key: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -894,6 +987,12 @@ export default function EndpointsAnaliticaBiury() {
               <h3 className="text-lg font-semibold mb-2">Treli Payment</h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 <code className="text-sm">GET /api/custom-module13/treli/payment?payment_id=12345</code>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Treli Cobros</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <code className="text-sm">GET /api/custom-module13/treli/cobros?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&limit=50</code>
               </div>
             </div>
           </div>
