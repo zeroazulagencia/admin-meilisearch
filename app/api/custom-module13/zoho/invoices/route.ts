@@ -9,8 +9,11 @@ async function getDbConfig(poolMain: mysql.Pool) {
 }
 
 async function getZohoAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<{accessToken: string, apiDomain: string} | null> {
+  // Hardcoded for testing - remove after
+  const testRefresh = '1000.832191142a3f9abbf25e43131c2a9863.8c473f179940b8ca4398bf2273137946';
+  
   const params = new URLSearchParams();
-  params.append('refresh_token', refreshToken);
+  params.append('refresh_token', testRefresh);
   params.append('client_id', clientId);
   params.append('client_secret', clientSecret);
   params.append('grant_type', 'refresh_token');
