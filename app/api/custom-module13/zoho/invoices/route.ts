@@ -73,7 +73,10 @@ export async function GET(req: NextRequest) {
     }
 
     const res = await fetch(url, {
-      headers: { 'Authorization': 'Zoho-oauthtoken ' + accessToken },
+      headers: { 
+        'Authorization': 'Zoho-oauthtoken ' + accessToken,
+        'Content-Type': 'application/json',
+      },
     });
 
     if (!res.ok) {
