@@ -78,7 +78,8 @@ export async function GET(req: NextRequest) {
 
     if (!res.ok) {
       const err = await res.text();
-      return NextResponse.json({ ok: false, error: err }, { status: 500 });
+      console.error('[INVOICES] API error:', err);
+      return NextResponse.json({ ok: false, error: 'Zoho API error: ' + err }, { status: 500 });
     }
 
     const data = await res.json();
