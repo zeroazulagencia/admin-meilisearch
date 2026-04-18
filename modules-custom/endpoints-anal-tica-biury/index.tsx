@@ -34,6 +34,8 @@ const ENDPOINTS = [
   { name: 'Clientes', method: 'GET', path: '/api/custom-module13/biury/clientes', status: 'active', description: 'Usuarios WP no admin + metadatos' },
   { name: 'Zoho Contacts', method: 'GET', path: '/api/custom-module13/zoho/contacts', status: 'active', description: 'Contacts de Zoho CRM' },
   { name: 'Historial Shipping', method: 'GET', path: '/api/custom-module13/zoho/contact', status: 'active', description: 'Historial de cambio de dirección' },
+  { name: 'Zoho Invoices', method: 'GET', path: '/api/custom-module13/zoho/invoices', status: 'active', description: 'Facturación e historial de pedidos' },
+  { name: 'Zoho Products', method: 'GET', path: '/api/custom-module13/zoho/products', status: 'active', description: 'Catálogo de productos' },
 ];
 
 export default function EndpointsAnaliticaBiury() {
@@ -56,6 +58,16 @@ export default function EndpointsAnaliticaBiury() {
   const [zohoHistoryData, setZohoHistoryData] = useState<any>(null);
   const [zohoHistoryError, setZohoHistoryError] = useState<string | null>(null);
   const [zohoHistoryId, setZohoHistoryId] = useState('');
+
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+  const [invoicesData, setInvoicesData] = useState<any>(null);
+  const [invoicesError, setInvoicesError] = useState<string | null>(null);
+  const [invoicesFilters, setInvoicesFilters] = useState({ limit: '50', offset: '0', contact_id: '' });
+
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsData, setProductsData] = useState<any>(null);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const [productsFilters, setProductsFilters] = useState({ limit: '50', offset: '0' });
 
   const [resultKey, setResultKey] = useState<string>('');
 
@@ -158,6 +170,48 @@ export default function EndpointsAnaliticaBiury() {
       setZohoHistoryError(e.message);
     } finally {
       setZohoHistoryLoading(false);
+    }
+  };
+
+  const getInvoices = async () => {
+    setInvoicesLoading(true);
+    setInvoicesError(null);
+    setInvoicesData(null);
+    setResultKey('invoices');
+    try {
+      let url = `/api/custom-module13/zoho/invoices?limit=${invoicesFilters.limit}&offset=${invoicesFilters.offset}`;
+      if (invoicesFilters.contact_id) url += `&contact_id=${invoicesFilters.contact_id}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.ok) {
+        setInvoicesData(data);
+      } else {
+        setInvoicesError(data.error || 'Error desconocido');
+      }
+    } catch (e: any) {
+      setInvoicesError(e.message);
+    } finally {
+      setInvoicesLoading(false);
+    }
+  };
+
+  const getProducts = async () => {
+    setProductsLoading(true);
+    setProductsError(null);
+    setProductsData(null);
+    setResultKey('products');
+    try {
+      const res = await fetch(`/api/custom-module13/zoho/products?limit=${productsFilters.limit}&offset=${productsFilters.offset}`);
+      const data = await res.json();
+      if (data.ok) {
+        setProductsData(data);
+      } else {
+        setProductsError(data.error || 'Error desconocido');
+      }
+    } catch (e: any) {
+      setProductsError(e.message);
+    } finally {
+      setProductsLoading(false);
     }
   };
 
@@ -280,6 +334,69 @@ export default function EndpointsAnaliticaBiury() {
                     </button>
                   </div>
                 )}
+
+                {ep.name === 'Zoho Invoices' && ep.status === 'active' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Limit"
+                        value={invoicesFilters.limit}
+                        onChange={(e) => setInvoicesFilters({ ...invoicesFilters, limit: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Offset"
+                        value={invoicesFilters.offset}
+                        onChange={(e) => setInvoicesFilters({ ...invoicesFilters, offset: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Contact ID (opcional)"
+                      value={invoicesFilters.contact_id}
+                      onChange={(e) => setInvoicesFilters({ ...invoicesFilters, contact_id: e.target.value })}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                    />
+                    <button
+                      onClick={getInvoices}
+                      disabled={invoicesLoading}
+                      className="w-full px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {invoicesLoading ? 'Cargando...' : 'Obtener Facturas'}
+                    </button>
+                  </div>
+                )}
+
+                {ep.name === 'Zoho Products' && ep.status === 'active' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Limit"
+                        value={productsFilters.limit}
+                        onChange={(e) => setProductsFilters({ ...productsFilters, limit: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Offset"
+                        value={productsFilters.offset}
+                        onChange={(e) => setProductsFilters({ ...productsFilters, offset: e.target.value })}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                      />
+                    </div>
+                    <button
+                      onClick={getProducts}
+                      disabled={productsLoading}
+                      className="w-full px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {productsLoading ? 'Cargando...' : 'Obtener Productos'}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -302,13 +419,27 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           )}
 
-          {(clientesData || zohoData || zohoHistoryData) && resultKey && (
+          {invoicesError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              {invoicesError}
+            </div>
+          )}
+
+          {productsError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              {productsError}
+            </div>
+          )}
+
+          {(clientesData || zohoData || zohoHistoryData || invoicesData || productsData) && resultKey && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Resultado</h3>
                 <span className="text-sm text-gray-500">
                   {resultKey === 'clientes' ? `${clientesData?.data?.length || 0} clientes` : 
                    resultKey === 'zohoHistory' ? `Historial: ${zohoHistoryData?.total_changes || 0} cambios` : 
+                   resultKey === 'invoices' ? `${invoicesData?.data?.length || 0} facturas` :
+                   resultKey === 'products' ? `${productsData?.data?.length || 0} productos` :
                    `${zohoData?.data?.length || 0} contacts`}
                 </span>
               </div>
@@ -316,6 +447,8 @@ export default function EndpointsAnaliticaBiury() {
                 {JSON.stringify(
                   resultKey === 'clientes' ? clientesData : 
                   resultKey === 'zohoHistory' ? zohoHistoryData : 
+                  resultKey === 'invoices' ? invoicesData :
+                  resultKey === 'products' ? productsData :
                   zohoData, 
                   null, 2
                 )}
