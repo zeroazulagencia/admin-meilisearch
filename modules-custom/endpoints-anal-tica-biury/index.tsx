@@ -15,6 +15,7 @@ interface WPConfig {
   zoho_client_id: string;
   zoho_client_secret: string;
   zoho_refresh_token: string;
+  treli_token: string;
 }
 
 const DEFAULT_CONFIG: WPConfig = {
@@ -28,6 +29,7 @@ const DEFAULT_CONFIG: WPConfig = {
   zoho_client_id: '1000.VIZSD6KOBZ1DF3BV32YPAZEBD0AKBL',
   zoho_client_secret: 'abb036ee87418516817a6c3397327a2876e7bcea66',
   zoho_refresh_token: '1000.832191142a3f9abbf25e43131c2a9863.8c473f179940b8ca4398bf2273137946',
+  treli_token: 'Yml1cnk6NGMwMWY4LTU2ZDU4OS00NzViMGEtOGY4ODlhLWIxMjM4Mw==',
 };
 
 const ENDPOINTS = [
@@ -39,6 +41,7 @@ const ENDPOINTS = [
   { name: 'Cancelaciones', method: 'GET', path: '/api/custom-module13/zoho/cancelaciones', status: 'active', description: 'Cancelaciones de suscripciones' },
   { name: 'Obs. Segmentación', method: 'GET', path: '/api/custom-module13/zoho/obs-segmentacion-desp', status: 'active', description: 'Observaciones de segmentación y despacho' },
   { name: 'Cajas Adicionales', method: 'GET', path: '/api/custom-module13/zoho/cajas-adicionales', status: 'active', description: 'Cajas adicionales de clientes' },
+  { name: 'Treli Payment', method: 'GET', path: '/api/custom-module13/treli/payment', status: 'active', description: 'Datos de pago en Treli' },
 ];
 
 export default function EndpointsAnaliticaBiury() {
@@ -86,6 +89,11 @@ export default function EndpointsAnaliticaBiury() {
   const [cajasData, setCajasData] = useState<any>(null);
   const [cajasError, setCajasError] = useState<string | null>(null);
   const [cajasFilters, setCajasFilters] = useState({ limit: '50', offset: '0' });
+
+  const [treliLoading, setTreliLoading] = useState(false);
+  const [treliData, setTreliData] = useState<any>(null);
+  const [treliError, setTreliError] = useState<string | null>(null);
+  const [treliPaymentId, setTreliPaymentId] = useState('');
 
   const [resultKey, setResultKey] = useState<string>('');
 
@@ -290,6 +298,30 @@ export default function EndpointsAnaliticaBiury() {
       setCajasError(e.message);
     } finally {
       setCajasLoading(false);
+    }
+  };
+
+  const getTreliPayment = async () => {
+    if (!treliPaymentId.trim()) {
+      setTreliError('Ingresa un ID de pago');
+      return;
+    }
+    setTreliLoading(true);
+    setTreliError(null);
+    setTreliData(null);
+    setResultKey('treli');
+    try {
+      const res = await fetch(`/api/custom-module13/treli/payment?payment_id=${treliPaymentId.trim()}`);
+      const data = await res.json();
+      if (data.ok) {
+        setTreliData(data);
+      } else {
+        setTreliError(data.error || 'Error desconocido');
+      }
+    } catch (e: any) {
+      setTreliError(e.message);
+    } finally {
+      setTreliLoading(false);
     }
   };
 
@@ -559,6 +591,25 @@ export default function EndpointsAnaliticaBiury() {
                     </button>
                   </div>
                 )}
+
+                {ep.name === 'Treli Payment' && ep.status === 'active' && (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Payment ID"
+                      value={treliPaymentId}
+                      onChange={(e) => setTreliPaymentId(e.target.value)}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                    />
+                    <button
+                      onClick={getTreliPayment}
+                      disabled={treliLoading}
+                      className="w-full px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {treliLoading ? 'Cargando...' : 'Obtener Pago'}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -611,7 +662,13 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           )}
 
-          {(clientesData || zohoData || zohoHistoryData || invoicesData || productsData || cancelacionesData || segmentacionData || cajasData) && resultKey && (
+          {treliError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              {treliError}
+            </div>
+          )}
+
+          {(clientesData || zohoData || zohoHistoryData || invoicesData || productsData || cancelacionesData || segmentacionData || cajasData || treliData) && resultKey && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Resultado</h3>
@@ -623,6 +680,7 @@ export default function EndpointsAnaliticaBiury() {
                    resultKey === 'cancelaciones' ? `${cancelacionesData?.data?.length || 0} cancelaciones` :
                    resultKey === 'segmentacion' ? `${segmentacionData?.data?.length || 0} registros` :
                    resultKey === 'cajas' ? `${cajasData?.data?.length || 0} cajas` :
+                   resultKey === 'treli' ? 'Pago Treli' :
                    `${zohoData?.data?.length || 0} contacts`}
                 </span>
               </div>
@@ -635,6 +693,7 @@ export default function EndpointsAnaliticaBiury() {
                   resultKey === 'cancelaciones' ? cancelacionesData :
                   resultKey === 'segmentacion' ? segmentacionData :
                   resultKey === 'cajas' ? cajasData :
+                  resultKey === 'treli' ? treliData :
                   zohoData, 
                   null, 2
                 )}
@@ -749,6 +808,19 @@ export default function EndpointsAnaliticaBiury() {
             </div>
           </div>
 
+          <div className="border-t border-gray-200 pt-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Treli API</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Authorization Token (Basic Auth)</label>
+              <input
+                type="text"
+                value={config.treli_token || ''}
+                onChange={(e) => setConfig({ ...config, treli_token: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+              />
+            </div>
+          </div>
+
           <div className="flex items-center gap-4">
             <button
               onClick={saveConfig}
@@ -816,6 +888,12 @@ export default function EndpointsAnaliticaBiury() {
               <h3 className="text-lg font-semibold mb-2">Cajas Adicionales</h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 <code className="text-sm">GET /api/custom-module13/zoho/cajas-adicionales?limit=50&offset=0</code>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Treli Payment</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <code className="text-sm">GET /api/custom-module13/treli/payment?payment_id=12345</code>
               </div>
             </div>
           </div>
