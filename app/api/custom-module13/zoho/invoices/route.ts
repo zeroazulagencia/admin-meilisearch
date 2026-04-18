@@ -40,11 +40,26 @@ export async function GET(req: NextRequest) {
     user: process.env.MYSQL_USER || 'bitnami',
     password: process.env.MYSQL_PASSWORD || '',
     database: process.env.MYSQL_DATABASE || 'admin_dworkers',
+    waitForConnections: true,
+    connectionLimit: 5,
   });
 
   try {
-    const config = await getDbConfig(pool);
-    const accessToken = await getZohoAccessToken(config.zoho_client_id, config.zoho_client_secret, config.zoho_refresh_token);
+    console.log('[INVOICES] Getting config...');
+    const [rows]: any = await pool.query('SELECT `key`, value FROM modules_13_config');
+    const config: Record<string, string> = {};
+    for (const row of rows) config[row['key']] = row.value;
+    
+    console.log('[INVOICES] Config keys:', Object.keys(config));
+    console.log('[INVOICES] Getting token...');
+    
+    const accessToken = await getZohoAccessToken(
+      config.zoho_client_id,
+      config.zoho_client_secret,
+      config.zoho_refresh_token
+    );
+
+    console.log('[INVOICES] Token result:', accessToken ? 'OK' : 'NULL');
 
     if (!accessToken) return NextResponse.json({ ok: false, error: 'No token' }, { status: 500 });
 
