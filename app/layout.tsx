@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import Navbar from '@/components/Navbar'
 import AuthProvider from '@/components/AuthProvider'
@@ -27,7 +28,9 @@ export default function RootLayout({
     <html lang="es">
       <head>
         {/* Google Tag Manager */}
-        <script
+        <Script
+          id="gtm"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -38,8 +41,8 @@ export default function RootLayout({
             `,
           }}
         />
-        {/* WebMCP */}
-        <script src="/webmcp.js" async />
+        {/* WebMCP - load with strategy */}
+        <Script src="/webmcp.js" strategy="afterInteractive" />
       </head>
       <body>
         {/* Google Tag Manager (noscript) */}

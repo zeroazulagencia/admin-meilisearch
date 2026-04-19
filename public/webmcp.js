@@ -1,9 +1,17 @@
 // WebMCP Tools for admin-meilisearch
 // Exposes site tools to AI agents via navigator.modelContext
+// https://webmachinelearning.github.io/webmcp/
 
-const WEBMCPSUPPORT = typeof navigator !== 'undefined' && navigator.modelContext;
-
-if (WEBMCPSUPPORT) {
+(function() {
+  console.log('[WebMCP] Checking for navigator.modelContext...');
+  
+  // Check if WebMCP is supported
+  if (typeof navigator === 'undefined' || !navigator.modelContext) {
+    console.log('[WebMCP] navigator.modelContext not available');
+    return;
+  }
+  
+  console.log('[WebMCP] navigator.modelContext available, registering tools...');
   const tools = [
     {
       name: 'get_wp_clients',
@@ -198,4 +206,58 @@ if (WEBMCPSUPPORT) {
   });
   
   console.log('[WebMCP] Tools registered:', tools.map(t => t.name).join(', '));
-}
+  
+  // Provide the tools using the WebMCP API
+  if (navigator.modelContext.provide) {
+    navigator.modelContext.provide(tools.reduce((acc, tool) => {
+      acc[tool.name] = {
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+        execute: async (params) => {
+          const baseUrl = 'https://workers.zeroazul.com';
+          let url = `${baseUrl}/api/custom-module13`;
+          
+          const pathMap = {
+            get_wp_clients: '/biury/clientes',
+            get_zoho_contacts: '/zoho/contacts',
+            get_zoho_invoices: '/zoho/invoices',
+            get_zoho_products: '/zoho/products',
+            get_zoho_shipping_history: '/zoho/contact',
+            get_zoho_cancelaciones: '/zoho/cancelaciones',
+            get_zoho_cajas_adicionales: '/zoho/cajas-adicionales',
+            get_treli_payment: '/treli/payment',
+            get_treli_collections: '/treli/cobros',
+            get_module13_config: '/config',
+            set_module13_config: '/config'
+          };
+          
+          const path = pathMap[tool.name];
+          if (!path) return { error: 'Unknown tool' };
+          
+          const searchParams = new URLSearchParams();
+          for (const [key, value] of Object.entries(params || {})) {
+            if (value !== undefined && value !== '') {
+              searchParams.append(key, String(value));
+            }
+          }
+          
+          const fullUrl = `${url}${path}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+          
+          try {
+            const response = await fetch(fullUrl, {
+              method: path.includes('config') && Object.keys(params || {}).length > 0 ? 'POST' : 'GET',
+              headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+            });
+            return await response.json();
+          } catch (error) {
+            return { error: error.message };
+          }
+        }
+      };
+      return acc;
+    }, {}));
+    console.log('[WebMCP] Tools provided via navigator.modelContext.provide()');
+  } else {
+    console.log('[WebMCP] provide() method not available');
+  }
+})();
