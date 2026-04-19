@@ -1,0 +1,35 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://workers.zeroazul.com",
+      "links": [
+        {
+          "rel": "service-desc",
+          "href": "https://workers.zeroazul.com/api-docs"
+        },
+        {
+          "rel": "service-doc",
+          "href": "https://workers.zeroazul.com/modulos/13"
+        },
+        {
+          "rel": "status",
+          "href": "https://workers.zeroazul.com/api/custom-module13/config"
+        }
+      ]
+    },
+    {
+      "anchor": "https://workers.zeroazul.com/api/custom-module13",
+      "links": [
+        {
+          "rel": "service-desc",
+          "href": "https://workers.zeroazul.com/api-docs"
+        },
+        {
+          "rel": "alternate",
+          "href": "https://workers.zeroazul.com/.well-known/agent-skills/index.json",
+          "type": "application/json"
+        }
+      ]
+    }
+  ]
+}

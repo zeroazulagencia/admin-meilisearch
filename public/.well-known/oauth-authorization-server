@@ -1,0 +1,23 @@
+{
+  "issuer": "https://workers.zeroazul.com",
+  "authorization_endpoint": "https://workers.zeroazul.com/auth",
+  "token_endpoint": "https://workers.zeroazul.com/api/auth/token",
+  "jwks_uri": "https://workers.zeroazul.com/.well-known/jwks.json",
+  "grant_types_supported": [
+    "authorization_code",
+    "client_credentials"
+  ],
+  "response_types_supported": [
+    "code"
+  ],
+  "subject_types_supported": [
+    "public"
+  ],
+  "id_token_signing_alg_values_supported": [
+    "HS256",
+    "RS256"
+  ],
+  "scopes_supported": [
+    "read"
+  ]
+}
