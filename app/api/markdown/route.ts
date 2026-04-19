@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 function htmlToMarkdown(html: string): string {
   let md = html;
@@ -28,10 +28,11 @@ function htmlToMarkdown(html: string): string {
   return md.trim();
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
+  const PUBLIC_URL = 'https://workers.zeroazul.com';
+  
   try {
-    const baseUrl = req.nextUrl.origin;
-    const res = await fetch(baseUrl + '/');
+    const res = await fetch(PUBLIC_URL + '/');
     const html = await res.text();
     const markdown = htmlToMarkdown(html);
     
@@ -43,6 +44,6 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e) {
-    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch homepage', details: String(e) }, { status: 500 });
   }
 }
