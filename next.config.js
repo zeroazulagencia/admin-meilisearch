@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  trailingSlash: true,
+  
   // Desactivar completamente el cache de Next.js
   experimental: {
     staleTimes: {
