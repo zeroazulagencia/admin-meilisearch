@@ -19,10 +19,10 @@
       inputSchema: {
         type: 'object',
         properties: {
-          limit: { type: 'number', default: 100 },
-          offset: { type: 'number', default: 0 },
-          email: { type: 'string', description: 'Filter by email (contains)' },
-          search: { type: 'string', description: 'Search in login, email, or display name' }
+          limit: { type: 'number' },
+          offset: { type: 'number' },
+          email: { type: 'string' },
+          search: { type: 'string' }
         }
       }
     },
@@ -32,10 +32,10 @@
       inputSchema: {
         type: 'object',
         properties: {
-          limit: { type: 'number', default: 100 },
-          offset: { type: 'number', default: 0 },
-          email: { type: 'string', description: 'Filter by email' },
-          phone: { type: 'string', description: 'Filter by phone' }
+          limit: { type: 'number' },
+          offset: { type: 'number' },
+          email: { type: 'string' },
+          phone: { type: 'string' }
         }
       }
     },
@@ -45,10 +45,10 @@
       inputSchema: {
         type: 'object',
         properties: {
-          limit: { type: 'number', default: 50 },
-          offset: { type: 'number', default: 0 },
-          contact_id: { type: 'string', description: 'Filter by contact ID' },
-          invoice_number: { type: 'string', description: 'Filter by invoice number' }
+          limit: { type: 'number' },
+          offset: { type: 'number' },
+          contact_id: { type: 'string' },
+          invoice_number: { type: 'string' }
         }
       }
     },
@@ -58,9 +58,9 @@
       inputSchema: {
         type: 'object',
         properties: {
-          limit: { type: 'number', default: 50 },
-          offset: { type: 'number', default: 0 },
-          category: { type: 'string', description: 'Filter by category' }
+          limit: { type: 'number' },
+          offset: { type: 'number' },
+          category: { type: 'string' }
         }
       }
     },
@@ -70,7 +70,7 @@
       inputSchema: {
         type: 'object',
         properties: {
-          contact_id: { type: 'string', description: 'Zoho contact ID (required)' }
+          contact_id: { type: 'string' }
         },
         required: ['contact_id']
       }
@@ -81,10 +81,10 @@
       inputSchema: {
         type: 'object',
         properties: {
-          limit: { type: 'number', default: 50 },
-          offset: { type: 'number', default: 0 },
-          contact_id: { type: 'string', description: 'Filter by contact ID' },
-          status: { type: 'string', description: 'Filter by status (Pausada, Cancelada, Activa)' }
+          limit: { type: 'number' },
+          offset: { type: 'number' },
+          contact_id: { type: 'string' },
+          status: { type: 'string' }
         }
       }
     },
@@ -94,8 +94,8 @@
       inputSchema: {
         type: 'object',
         properties: {
-          limit: { type: 'number', default: 50 },
-          offset: { type: 'number', default: 0 }
+          limit: { type: 'number' },
+          offset: { type: 'number' }
         }
       }
     },
@@ -105,7 +105,7 @@
       inputSchema: {
         type: 'object',
         properties: {
-          payment_id: { type: 'string', description: 'Payment ID (required)' }
+          payment_id: { type: 'string' }
         },
         required: ['payment_id']
       }
@@ -116,10 +116,10 @@
       inputSchema: {
         type: 'object',
         properties: {
-          limit: { type: 'number', default: 100 },
-          start_date: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
-          end_date: { type: 'string', description: 'End date (YYYY-MM-DD)' },
-          cursor: { type: 'string', description: 'Pagination cursor' }
+          limit: { type: 'number' },
+          start_date: { type: 'string' },
+          end_date: { type: 'string' },
+          cursor: { type: 'string' }
         }
       }
     },
@@ -137,127 +137,68 @@
       inputSchema: {
         type: 'object',
         properties: {
-          api_token: { type: 'string', description: 'API token for authentication' },
-          zoho_client_id: { type: 'string', description: 'Zoho OAuth client ID' },
-          zoho_client_secret: { type: 'string', description: 'Zoho OAuth client secret' },
-          zoho_refresh_token: { type: 'string', description: 'Zoho OAuth refresh token' },
-          treli_token: { type: 'string', description: 'Treli Basic auth token' },
-          treli_api_key: { type: 'string', description: 'Treli API key (sk_live_...)' }
+          api_token: { type: 'string' },
+          zoho_client_id: { type: 'string' },
+          zoho_client_secret: { type: 'string' },
+          zoho_refresh_token: { type: 'string' },
+          treli_token: { type: 'string' },
+          treli_api_key: { type: 'string' }
         }
       }
     }
   ];
 
+  // Map tool names to API paths
+  const pathMap = {
+    get_wp_clients: '/biury/clientes',
+    get_zoho_contacts: '/zoho/contacts',
+    get_zoho_invoices: '/zoho/invoices',
+    get_zoho_products: '/zoho/products',
+    get_zoho_shipping_history: '/zoho/contact',
+    get_zoho_cancelaciones: '/zoho/cancelaciones',
+    get_zoho_cajas_adicionales: '/zoho/cajas-adicionales',
+    get_treli_payment: '/treli/payment',
+    get_treli_collections: '/treli/cobros',
+    get_module13_config: '/config',
+    set_module13_config: '/config'
+  };
+
+  // Build tools with execute functions
+  const toolsWithExecute = tools.map(tool => ({
+    ...tool,
+    execute: async (params) => {
+      const baseUrl = 'https://workers.zeroazul.com';
+      const url = `${baseUrl}/api/custom-module13`;
+      const path = pathMap[tool.name];
+      if (!path) return { error: 'Unknown tool' };
+
+      const searchParams = new URLSearchParams();
+      for (const [key, value] of Object.entries(params || {})) {
+        if (value !== undefined && value !== '') {
+          searchParams.append(key, String(value));
+        }
+      }
+
+      const fullUrl = `${url}${path}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+
+      try {
+        const response = await fetch(fullUrl, {
+          method: path.includes('config') && Object.keys(params || {}).length > 0 ? 'POST' : 'GET',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+        });
+        return await response.json();
+      } catch (error) {
+        return { error: error.message };
+      }
+    }
+  }));
+
+  // Register tools using WebMCP API (tools as array, not object)
   navigator.modelContext.provideContext({
     name: 'admin-meilisearch',
     version: '1.0.0',
-    tools: tools.reduce((acc, tool) => {
-      acc[tool.name] = {
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        execute: async (params) => {
-          const baseUrl = 'https://workers.zeroazul.com';
-          let url = `${baseUrl}/api/custom-module13`;
-          
-          // Map tool names to API paths
-          const pathMap = {
-            get_wp_clients: '/biury/clientes',
-            get_zoho_contacts: '/zoho/contacts',
-            get_zoho_invoices: '/zoho/invoices',
-            get_zoho_products: '/zoho/products',
-            get_zoho_shipping_history: '/zoho/contact',
-            get_zoho_cancelaciones: '/zoho/cancelaciones',
-            get_zoho_cajas_adicionales: '/zoho/cajas-adicionales',
-            get_treli_payment: '/treli/payment',
-            get_treli_collections: '/treli/cobros',
-            get_module13_config: '/config',
-            set_module13_config: '/config'
-          };
-          
-          const path = pathMap[tool.name];
-          if (!path) return { error: 'Unknown tool' };
-          
-          // Build URL with params
-          const searchParams = new URLSearchParams();
-          for (const [key, value] of Object.entries(params || {})) {
-            if (value !== undefined && value !== '') {
-              searchParams.append(key, String(value));
-            }
-          }
-          
-          const fullUrl = `${url}${path}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
-          
-          try {
-            const response = await fetch(fullUrl, {
-              method: path.includes('config') && Object.keys(params || {}).length > 0 ? 'POST' : 'GET',
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              }
-            });
-            return await response.json();
-          } catch (error) {
-            return { error: error.message };
-          }
-        }
-      };
-      return acc;
-    }, {})
+    tools: toolsWithExecute
   });
   
   console.log('[WebMCP] Tools registered:', tools.map(t => t.name).join(', '));
-  
-  // Provide the tools using the WebMCP API
-  if (navigator.modelContext.provide) {
-    navigator.modelContext.provide(tools.reduce((acc, tool) => {
-      acc[tool.name] = {
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        execute: async (params) => {
-          const baseUrl = 'https://workers.zeroazul.com';
-          let url = `${baseUrl}/api/custom-module13`;
-          
-          const pathMap = {
-            get_wp_clients: '/biury/clientes',
-            get_zoho_contacts: '/zoho/contacts',
-            get_zoho_invoices: '/zoho/invoices',
-            get_zoho_products: '/zoho/products',
-            get_zoho_shipping_history: '/zoho/contact',
-            get_zoho_cancelaciones: '/zoho/cancelaciones',
-            get_zoho_cajas_adicionales: '/zoho/cajas-adicionales',
-            get_treli_payment: '/treli/payment',
-            get_treli_collections: '/treli/cobros',
-            get_module13_config: '/config',
-            set_module13_config: '/config'
-          };
-          
-          const path = pathMap[tool.name];
-          if (!path) return { error: 'Unknown tool' };
-          
-          const searchParams = new URLSearchParams();
-          for (const [key, value] of Object.entries(params || {})) {
-            if (value !== undefined && value !== '') {
-              searchParams.append(key, String(value));
-            }
-          }
-          
-          const fullUrl = `${url}${path}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
-          
-          try {
-            const response = await fetch(fullUrl, {
-              method: path.includes('config') && Object.keys(params || {}).length > 0 ? 'POST' : 'GET',
-              headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
-            });
-            return await response.json();
-          } catch (error) {
-            return { error: error.message };
-          }
-        }
-      };
-      return acc;
-    }, {}));
-    console.log('[WebMCP] Tools provided via navigator.modelContext.provide()');
-  } else {
-    console.log('[WebMCP] provide() method not available');
-  }
 })();
