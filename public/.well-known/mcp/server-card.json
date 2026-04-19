@@ -1,0 +1,13 @@
+{
+  "serverInfo": {
+    "name": "admin-meilisearch",
+    "version": "1.0.0"
+  },
+  "transport": {
+    "type": "http",
+    "endpoint": "https://workers.zeroazul.com/api/custom-module13"
+  },
+  "capabilities": {
+    "resources": ["wp-users", "zoho-contacts", "zoho-invoices", "zoho-products", "treli-payments", "treli-collections"]
+  }
+}

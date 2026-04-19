@@ -1,0 +1,13 @@
+{
+  "resource": "https://workers.zeroazul.com",
+  "authorization_servers": [
+    "https://workers.zeroazul.com"
+  ],
+  "scopes_supported": [
+    "read"
+  ],
+  "resource_signing_alg_values_supported": [
+    "HS256",
+    "RS256"
+  ]
+}

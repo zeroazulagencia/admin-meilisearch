@@ -32,7 +32,7 @@ const nextConfig = {
           },
           {
             key: 'Link',
-            value: '</sitemap.xml>; rel="sitemap"; title="Sitemap", </modulos/13>; rel="https://workers.zeroazul.com/rel/modulos"; title="Module 13 Biury", </robots.txt>; rel="robots"; title="Robots.txt"',
+            value: '</sitemap.xml>; rel="sitemap"; title="Sitemap", </modulos/13>; rel="https://workers.zeroazul.com/rel/modulos"; title="Module 13 Biury", </robots.txt>; rel="robots"; title="Robots.txt", </.well-known/agent-skills/index.json>; rel="https://workers.zeroazul.com/rel/agent-skills"; title="Agent Skills", </.well-known/mcp/server-card.json>; rel="https://workers.zeroazul.com/rel/mcp-server"; title="MCP Server Card", </webmcp.js>; rel="https://workers.zeroazul.com/rel/webmcp"; title="WebMCP Tools"',
           },
         ],
       },

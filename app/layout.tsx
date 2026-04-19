@@ -38,6 +38,8 @@ export default function RootLayout({
             `,
           }}
         />
+        {/* WebMCP */}
+        <script src="/webmcp.js" async />
       </head>
       <body>
         {/* Google Tag Manager (noscript) */}

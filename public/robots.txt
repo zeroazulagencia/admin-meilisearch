@@ -8,5 +8,31 @@ Disallow: /_next/
 Disallow: /auth/
 Disallow: /private/
 
+# AI Crawlers - permit search, block training
+User-agent: GPTBot
+Allow: /sitemap.xml
+Allow: /modulos
+Disallow: /
+
+User-agent: ChatGPT-User
+Allow: /sitemap.xml
+Allow: /modulos
+Disallow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# Content Signals (RFC pending)
+Content-Signal: ai-train=no, search=yes, ai-input=no
+
 # Sitemaps
 Sitemap: https://workers.zeroazul.com/sitemap.xml

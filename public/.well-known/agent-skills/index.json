@@ -1,0 +1,53 @@
+{
+  "$schema": "https://agentskills.io/schemas/v0.2.0/skills.json",
+  "skills": [
+    {
+      "name": "biury-clients",
+      "type": "data",
+      "description": "WordPress users (non-admin) with metadata from Biury",
+      "url": "https://workers.zeroazul.com/api/custom-module13/biury/clientes",
+      "authentication": "Bearer token",
+      "method": "GET"
+    },
+    {
+      "name": "zoho-contacts",
+      "type": "data",
+      "description": "Contacts from Zoho CRM",
+      "url": "https://workers.zeroazul.com/api/custom-module13/zoho/contacts",
+      "authentication": "Bearer token",
+      "method": "GET"
+    },
+    {
+      "name": "zoho-invoices",
+      "type": "data",
+      "description": "Invoices from Zoho CRM",
+      "url": "https://workers.zeroazul.com/api/custom-module13/zoho/invoices",
+      "authentication": "Bearer token",
+      "method": "GET"
+    },
+    {
+      "name": "zoho-products",
+      "type": "data",
+      "description": "Products catalog from Zoho CRM",
+      "url": "https://workers.zeroazul.com/api/custom-module13/zoho/products",
+      "authentication": "Bearer token",
+      "method": "GET"
+    },
+    {
+      "name": "treli-payments",
+      "type": "data",
+      "description": "Payment data from Treli",
+      "url": "https://workers.zeroazul.com/api/custom-module13/treli/payment",
+      "authentication": "Bearer token",
+      "method": "GET"
+    },
+    {
+      "name": "treli-collections",
+      "type": "data",
+      "description": "Approved collections/payments from Treli",
+      "url": "https://workers.zeroazul.com/api/custom-module13/treli/cobros",
+      "authentication": "Bearer token",
+      "method": "GET"
+    }
+  ]
+}
