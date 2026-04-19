@@ -28,16 +28,21 @@ function htmlToMarkdown(html: string): string {
   return md.trim();
 }
 
-export async function GET() {
-  const res = await fetch('https://workers.zeroazul.com/');
-  const html = await res.text();
-  const markdown = htmlToMarkdown(html);
-  
-  return new NextResponse(markdown, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/markdown; charset=utf-8',
-      'x-markdown-tokens': '1',
-    },
-  });
+export async function GET(req: NextRequest) {
+  try {
+    const baseUrl = req.nextUrl.origin;
+    const res = await fetch(baseUrl + '/');
+    const html = await res.text();
+    const markdown = htmlToMarkdown(html);
+    
+    return new NextResponse(markdown, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+        'x-markdown-tokens': '1',
+      },
+    });
+  } catch (e) {
+    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
+  }
 }

@@ -4,8 +4,7 @@ export function middleware(request: NextRequest) {
   const accept = request.headers.get('Accept') || '';
   
   if (accept.includes('text/markdown')) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/api/markdown';
+    const url = new URL('/api/markdown/', 'https://workers.zeroazul.com');
     return NextResponse.redirect(url);
   }
   
