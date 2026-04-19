@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function middleware(req: NextRequest) {
-  const accept = req.headers.get('Accept') || '';
+export function middleware(request: NextRequest) {
+  const accept = request.headers.get('Accept') || '';
   
   if (accept.includes('text/markdown')) {
-    const response = NextResponse.next();
-    response.headers.set('x-markdown-tokens', '1');
-    return response;
+    const url = request.nextUrl.clone();
+    url.pathname = '/api/markdown';
+    return NextResponse.redirect(url);
   }
   
   return NextResponse.next();
@@ -14,6 +14,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/:path((?!api/|_next/|static/|favicon.ico|robots.txt|sitemap.xml).*)',
+    '/((?!api/|_next/|static/|favicon.ico|robots.txt|sitemap.xml|\\.well-known/).*)',
   ],
 };
