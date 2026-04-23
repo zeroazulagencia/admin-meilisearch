@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 
-const BASE = '/api/custom-module13/mobilia';
 const BASE_CONFIG = '/api/custom-module13/mobilia-config';
 const BASE_TOKEN = '/api/custom-module13/mobilia-token';
 const BASE_CERT = '/api/custom-module13/mobilia-certificate';
@@ -27,7 +26,7 @@ export default function VerificadorMobiliaModule({
   const [checkingCert, setCheckingCert] = useState(false);
   const [certForm, setCertForm] = useState({
     documentCode: '',
-    year: '2024',
+    year: '2025',
   });
   
   const [configForm, setConfigForm] = useState({
@@ -81,18 +80,15 @@ export default function VerificadorMobiliaModule({
       const json = await res.json();
       if (json.ok && json.token) {
         setToken(json.token);
-        alert('Token generado: ' + json.token);
-      } else {
-        alert(json.error || 'Error al generar token');
       }
     } catch (e) {
-      alert('Error al generar token');
+      console.error(e);
     } finally {
       setGeneratingToken(false);
     }
   };
 
-  const testCertificate = async () => {
+  const downloadCertificate = async () => {
     if (!certForm.documentCode) {
       alert('Ingresa el código del documento');
       return;
@@ -100,13 +96,20 @@ export default function VerificadorMobiliaModule({
     setCheckingCert(true);
     setCertResult(null);
     try {
-      const res = await fetch(`${BASE_CERT}?operation=getIncomeCertificate&year=${certForm.year}&documentCode=${certForm.documentCode}`);
+      const url = `${BASE_CERT}?operation=getIncomeCertificate&year=${certForm.year}&documentCode=${certForm.documentCode}`;
+      const res = await fetch(url);
       const contentType = res.headers.get('content-type') || '';
       
       if (contentType.includes('pdf') || res.ok) {
         const blob = await res.blob();
         if (blob.size > 100) {
-          setCertResult({ ok: true, message: 'PDF DESCARGADO', fileSize: blob.size });
+          const downloadLink = document.createElement('a');
+          downloadLink.href = URL.createObjectURL(blob);
+          downloadLink.download = `certificado_${certForm.documentCode}_${certForm.year}.pdf`;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+          setCertResult({ ok: true, message: 'PDF descargado', fileSize: blob.size });
         } else {
           const json = await res.json();
           setCertResult(json);
@@ -123,10 +126,8 @@ export default function VerificadorMobiliaModule({
   };
 
   useEffect(() => {
-    if (activeTab === 'config') {
-      loadConfig();
-    }
-  }, [activeTab]);
+    loadConfig();
+  }, []);
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -157,9 +158,14 @@ export default function VerificadorMobiliaModule({
 
         {activeTab === 'inicio' && (
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-xl p-6 text-white">
-              <h3 className="text-2xl font-bold mb-2">Verificador Mobilia</h3>
-              <p className="text-green-100">Valida documentos de Mobilia</p>
+            <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-xl p-4 text-white">
+              <h3 className="text-xl font-bold mb-1">Verificador Mobilia</h3>
+              <p className="text-green-100 text-sm">Valida y descarga certificados de income</p>
+            </div>
+
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs font-medium text-gray-500 mb-1">Subject (ID de usuario Mobilia)</p>
+              <p className="text-sm font-mono break-all">{config.mobilia_subject || 'No configurado'}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -169,7 +175,7 @@ export default function VerificadorMobiliaModule({
                   type="text"
                   value={certForm.documentCode}
                   onChange={(e) => setCertForm(f => ({ ...f, documentCode: e.target.value }))}
-                  placeholder="437246622"
+                  placeholder="43724622"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
@@ -179,7 +185,7 @@ export default function VerificadorMobiliaModule({
                   type="text"
                   value={certForm.year}
                   onChange={(e) => setCertForm(f => ({ ...f, year: e.target.value }))}
-                  placeholder="2024"
+                  placeholder="2025"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
@@ -195,11 +201,11 @@ export default function VerificadorMobiliaModule({
               </button>
               
               <button
-                onClick={testCertificate}
+                onClick={downloadCertificate}
                 disabled={checkingCert || !config.mobilia_subject || !certForm.documentCode}
                 className="px-4 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50"
               >
-                {checkingCert ? 'Verificando...' : 'Verificar Certificate'}
+                {checkingCert ? 'Descargando...' : 'Descargar PDF'}
               </button>
             </div>
 
@@ -212,7 +218,7 @@ export default function VerificadorMobiliaModule({
 
             {certResult && (
               <div className="p-3 bg-gray-100 rounded-lg">
-                <p className="text-xs font-medium text-gray-500 mb-1">Resultado:</p>
+                <p className="text-xs font-medium text-gray-500 mb-1">Respuesta:</p>
                 <pre className="text-xs font-mono overflow-auto max-h-40">
                   {JSON.stringify(certResult, null, 2)}
                 </pre>
@@ -258,14 +264,14 @@ export default function VerificadorMobiliaModule({
               <ol className="list-decimal list-inside space-y-1 ml-2">
                 <li>Configura el Subject en la pestaña Configuración</li>
                 <li>Guarda la configuración</li>
-                <li>En Inicio, genera un token y prueba el certificate</li>
+                <li>En Inicio, genera un token y descarga el PDF</li>
               </ol>
               <p><strong>API:</strong></p>
               <ul className="list-disc list-inside space-y-1 ml-2">
                 <li><code>GET /api/custom-module13/mobilia-config</code> - Obtener config</li>
                 <li><code>PUT /api/custom-module13/mobilia-config</code> - Guardar config</li>
                 <li><code>GET /api/custom-module13/mobilia-token?operation=generateToken</code> - Generar token</li>
-                <li><code>GET /api/custom-module13/mobilia-certificate?operation=getIncomeCertificate&amp;year=2025&amp;documentCode=437246622</code> - Obtener certificate</li>
+                <li><code>GET /api/custom-module13/mobilia-certificate?operation=getIncomeCertificate&amp;year=2025&amp;documentCode=43724622</code> - Descargar PDF</li>
               </ul>
             </div>
           </div>
