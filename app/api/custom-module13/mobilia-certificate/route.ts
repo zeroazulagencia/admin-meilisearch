@@ -28,26 +28,15 @@ export async function GET(request: NextRequest) {
       
       const status = mobiliaRes.status;
       const contentType = mobiliaRes.headers.get('content-type') || '';
-      const contentLength = mobiliaRes.headers.get('content-length');
       
-      if (status === 204 || contentLength === '0' || !contentLength) {
+      const buffer = await mobiliaRes.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const startsWithPdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
+      
+      if (startsWithPdf) {
         await query(
           `INSERT INTO modulos_mobilia_14_logs (log_data) VALUES (?)`,
-          [JSON.stringify({ type: 'check', documentCode, year, status, contentType, result: 'no_certificate' })]
-        );
-        return NextResponse.json({ 
-          ok: true, 
-          result: 'no_certificate',
-          mobilia: { status, contentType, contentLength },
-          message: 'No existe certificado'
-        });
-      }
-      
-      if (contentType.includes('pdf') || status === 200) {
-        const buffer = await mobiliaRes.arrayBuffer();
-        await query(
-          `INSERT INTO modulos_mobilia_14_logs (log_data) VALUES (?)`,
-          [JSON.stringify({ type: 'download', documentCode, year, status, contentType, size: buffer.byteLength })]
+          [JSON.stringify({ type: 'pdf_download', documentCode, year, status, contentType, size: buffer.byteLength })]
         );
         return new NextResponse(buffer, {
           headers: {
@@ -57,14 +46,28 @@ export async function GET(request: NextRequest) {
         });
       }
       
-      const text = await mobiliaRes.text();
+      if (status === 204 || buffer.byteLength === 0) {
+        await query(
+          `INSERT INTO modulos_mobilia_14_logs (log_data) VALUES (?)`,
+          [JSON.stringify({ type: 'no_certificate', documentCode, year, status, contentType })]
+        );
+        return NextResponse.json({ 
+          ok: true, 
+          result: 'no_certificate',
+          mobilia: { status, contentType, size: buffer.byteLength },
+          message: 'No existe certificado'
+        });
+      }
+      
       await query(
         `INSERT INTO modulos_mobilia_14_logs (log_data) VALUES (?)`,
-        [JSON.stringify({ type: 'check', documentCode, year, status, contentType, body: text.substring(0, 500) })]
+        [JSON.stringify({ type: 'response', documentCode, year, status, contentType, size: buffer.byteLength })]
       );
       return NextResponse.json({ 
         ok: true, 
-        mobilia: { status, contentType, contentLength, body: text } 
+        result: 'response_received',
+        mobilia: { status, contentType, size: buffer.byteLength },
+        message: 'Respuesta recibida'
       });
     } catch (e: any) {
       return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
