@@ -297,7 +297,7 @@ export default function VerificadorMobiliaModule({
                 {logs.map((log: any, i: number) => (
                   <div key={i} className="p-2 bg-gray-50 rounded text-xs font-mono">
                     <p className="font-bold">{log.type}</p>
-                    <p>{new Date(log.timestamp).toLocaleString()}</p>
+                    <p>{log.created_at ? new Date(log.created_at).toLocaleString() : 'Sin fecha'}</p>
                     <pre>{JSON.stringify(log, null, 2)}</pre>
                   </div>
                 ))}
