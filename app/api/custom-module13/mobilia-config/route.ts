@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const [rows] = await query<any>(
-      'SELECT config_key, config_value, is_encrypted FROM modulos_mobilia_14_config WHERE config_key LIKE "mobilia_%"',
+      'SELECT config_key, config_value FROM modulos_mobilia_14_config WHERE config_key LIKE "mobilia_%"',
       []
     );
     
@@ -22,18 +24,13 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { mobilia_subject, mobilia_api_url } = body;
+    const { mobilia_subject } = body;
     
-    const keys = ['mobilia_subject', 'mobilia_api_url'];
-    const values = [mobilia_subject, mobilia_api_url];
-    
-    for (let i = 0; i < keys.length; i++) {
-      await query(
-        `INSERT INTO modulos_mobilia_14_config (config_key, config_value) VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)`,
-        [keys[i], values[i] ?? '']
-      );
-    }
+    await query(
+      `INSERT INTO modulos_mobilia_14_config (config_key, config_value) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)`,
+      ['mobilia_subject', mobilia_subject ?? '']
+    );
     
     return NextResponse.json({ ok: true });
   } catch (error: any) {

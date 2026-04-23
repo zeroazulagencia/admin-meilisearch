@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 
+export const dynamic = 'force-dynamic';
+
 const BASE_URL = 'http://bienraiz.mbp.com.co/bienraiz-mobilia/ws/Auth';
 
 export async function GET(request: NextRequest) {

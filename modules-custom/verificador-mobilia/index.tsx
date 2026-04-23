@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 
-const BASE = '/api/custom-module14/verificador-mobilia';
+const BASE = '/api/custom-module13/mobilia';
+const BASE_CONFIG = '/api/custom-module13/mobilia-config';
+const BASE_TOKEN = '/api/custom-module13/mobilia-token';
+const BASE_CERT = '/api/custom-module13/mobilia-certificate';
 
 export default function VerificadorMobiliaModule({
   moduleData,
@@ -30,7 +33,7 @@ export default function VerificadorMobiliaModule({
   const loadConfig = async () => {
     setLoadingConfig(true);
     try {
-      const res = await fetch(`${BASE}/config`);
+      const res = await fetch(`${BASE_CONFIG}`);
       const json = await res.json();
       if (json.ok) {
         setConfig(json.config || {});
@@ -48,7 +51,7 @@ export default function VerificadorMobiliaModule({
   const saveConfig = async () => {
     setSavingConfig(true);
     try {
-      const res = await fetch(`${BASE}/config`, {
+      const res = await fetch(`${BASE_CONFIG}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(configForm),
@@ -70,7 +73,7 @@ export default function VerificadorMobiliaModule({
   const generateToken = async () => {
     setGeneratingToken(true);
     try {
-      const res = await fetch(`${BASE}/token?operation=generateToken`);
+      const res = await fetch(`${BASE_TOKEN}?operation=generateToken`);
       const json = await res.json();
       if (json.ok && json.token) {
         setToken(json.token);
@@ -89,7 +92,7 @@ export default function VerificadorMobiliaModule({
     setCheckingCert(true);
     setCertResult(null);
     try {
-      const res = await fetch(`${BASE}/certificate?operation=getIncomeCertificate&year=2025&documentCode=437246622`);
+      const res = await fetch(`${BASE_CERT}?operation=getIncomeCertificate&year=2025&documentCode=437246622`);
       const json = await res.json();
       setCertResult(json);
     } catch (e: any) {
@@ -216,10 +219,10 @@ export default function VerificadorMobiliaModule({
               </ol>
               <p><strong>API:</strong></p>
               <ul className="list-disc list-inside space-y-1 ml-2">
-                <li><code>GET /api/custom-module14/verificador-mobilia/config</code> - Obtener config</li>
-                <li><code>PUT /api/custom-module14/verificador-mobilia/config</code> - Guardar config</li>
-                <li><code>GET /api/custom-module14/verificador-mobilia/token?operation=generateToken</code> - Generar token</li>
-                <li><code>GET /api/custom-module14/verificador-mobilia/certificate?operation=getIncomeCertificate&amp;year=2025&amp;documentCode=437246622</code> - Obtener certificate</li>
+                <li><code>GET /api/custom-module13/mobilia-config</code> - Obtener config</li>
+                <li><code>PUT /api/custom-module13/mobilia-config</code> - Guardar config</li>
+                <li><code>GET /api/custom-module13/mobilia-token?operation=generateToken</code> - Generar token</li>
+                <li><code>GET /api/custom-module13/mobilia-certificate?operation=getIncomeCertificate&amp;year=2025&amp;documentCode=437246622</code> - Obtener certificate</li>
               </ul>
             </div>
           </div>

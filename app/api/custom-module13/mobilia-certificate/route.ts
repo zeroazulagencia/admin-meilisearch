@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -20,19 +22,17 @@ export async function GET(request: NextRequest) {
     }
     
     const token = config.mobilia_token;
-    const apiUrl = config.mobilia_api_url;
+    const apiUrl = config.mobilia_api_url || 'http://bienraiz.mbp.com.co/bienraiz-mobilia/ws';
     
-    if (!token || !apiUrl) {
-      return NextResponse.json({ ok: false, error: 'Token o URL no configurados' }, { status: 400 });
+    if (!token) {
+      return NextResponse.json({ ok: false, error: 'Token no configurado. Genera uno primero.' }, { status: 400 });
     }
     
     if (operation === 'getIncomeCertificate') {
       const url = `${apiUrl}/MiAcrecer?operation=getIncomeCertificate&year=${year}&documentCode=${documentCode}&enableSendingIncomeCertificate=${enableSendingIncomeCertificate}`;
       
       const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
       
       const data = await response.json();
