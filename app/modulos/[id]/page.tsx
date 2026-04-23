@@ -5,6 +5,39 @@ import { useParams, useRouter } from 'next/navigation';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import ModuleLoading from '@/components/ModuleLoading';
 
+// Static imports for known modules
+import ModVerificadorMobilia from '@/modules-custom/verificador-mobilia';
+import ModHolaMundo from '@/modules-custom/hola-mundo';
+import ModLogLeadsSuvi from '@/modules-custom/log-leads-suvi';
+import ModGeneradorCartaLaboral from '@/modules-custom/generador-carta-laboral';
+import ModConsultaCumpleanos from '@/modules-custom/consulta-de-cumplea-os';
+import ModLlamadaSara from '@/modules-custom/llamada-sara';
+import ModSuviOpportunity from '@/modules-custom/suvi-opportunity';
+import ModBackupDropbox from '@/modules-custom/backup-dropbox';
+import ModBiuryPagos from '@/modules-custom/biury-pagos';
+import ModGeneradorBackupsMeilisearch from '@/modules-custom/generador-de-backups-meilisearch';
+import ModSyncDataTablerosGain from '@/modules-custom/sync-data-tableros-gain';
+import ModSistemaCambioFondosPlacas from '@/modules-custom/sistema-de-cambio-de-fondos-y-placas';
+import ModUptimeDashboard from '@/modules-custom/uptime-dashboard-ecosistema-autolarte';
+import ModEndpointsAnaliticaBiury from '@/modules-custom/endpoints-anal-tica-biury';
+
+const MODULES_MAP: Record<string, any> = {
+  'verificador-mobilia': ModVerificadorMobilia,
+  'hola-mundo': ModHolaMundo,
+  'log-leads-suvi': ModLogLeadsSuvi,
+  'generador-carta-laboral': ModGeneradorCartaLaboral,
+  'consulta-de-cumplea-os': ModConsultaCumpleanos,
+  'llamada-sara': ModLlamadaSara,
+  'suvi-opportunity': ModSuviOpportunity,
+  'backup-dropbox': ModBackupDropbox,
+  'biury-pagos': ModBiuryPagos,
+  'generador-de-backups-meilisearch': ModGeneradorBackupsMeilisearch,
+  'sync-data-tableros-gain': ModSyncDataTablerosGain,
+  'sistema-de-cambio-de-fondos-y-placas': ModSistemaCambioFondosPlacas,
+  'uptime-dashboard-ecosistema-autolarte': ModUptimeDashboard,
+  'endpoints-anal-tica-biury': ModEndpointsAnaliticaBiury,
+};
+
 interface Module {
   id: number;
   title: string;
@@ -57,15 +90,12 @@ export default function ModuleDetailPage() {
         
         setLoadingComponent(true);
         try {
-          const importPath = `../../modules-custom/${moduleFolderName}/index.tsx`;
-          console.log('[MODULE DETAIL] Dynamic import from:', importPath);
-          const mod = await import(importPath);
-          console.log('[MODULE DETAIL] Import result:', mod);
-          if (mod && mod.default) {
-            setModuleComponent(() => mod.default);
-            console.log('[MODULE DETAIL] Component loaded successfully');
+          const Component = MODULES_MAP[moduleFolderName];
+          if (Component) {
+            setModuleComponent(() => Component);
+            console.log('[MODULE DETAIL] Component loaded from map');
           } else {
-            throw new Error('No se encontró default export');
+            throw new Error(`Módulo "${moduleFolderName}" no está registrado en el mapa de módulos`);
           }
         } catch (e: any) {
           console.error('[MODULE DETAIL] Import error:', e);
