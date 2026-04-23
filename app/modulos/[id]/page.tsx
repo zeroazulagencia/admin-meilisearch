@@ -46,14 +46,18 @@ export default function ModuleDetailPage() {
 
         setModule(data.module);
 
+        console.log('[MODULE DETAIL] folder_name:', data.module?.folder_name);
+        
         if (data.module?.folder_name) {
           setLoadingComponent(true);
           try {
-            const component = await import(`@/modules-custom/${data.module.folder_name}/index.tsx`);
+            console.log('[MODULE DETAIL] Attempting import from: ../../modules-custom/' + data.module.folder_name + '/index.tsx');
+            const component = await import(`../../modules-custom/${data.module.folder_name}/index.tsx`);
+            console.log('[MODULE DETAIL] Import successful, component:', component);
             setModuleComponent(() => component.default);
-          } catch (e) {
-            console.error('[MODULE DETAIL] Error cargando componente:', e);
-            setError(`El módulo "${data.module.folder_name}" no tiene implementación o hay un error en el código.`);
+          } catch (e: any) {
+            console.error('[MODULE DETAIL] Full error:', e);
+            setError(`El módulo "${data.module?.folder_name}" no tiene implementación o hay un error en el código. Error: ${e?.message || e}`);
           } finally {
             setLoadingComponent(false);
           }
