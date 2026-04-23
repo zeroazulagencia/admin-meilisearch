@@ -6,10 +6,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const operation = searchParams.get('operation');
-    const year = searchParams.get('year') || '2024';
+    const year = searchParams.get('year') || '2025';
     const documentCode = searchParams.get('documentCode');
-    const enableSendingIncomeCertificate = searchParams.get('enableSendingIncomeCertificate') === 'true';
     
     const [rows] = await query<any>(
       'SELECT config_value FROM modulos_mobilia_14_config WHERE config_key = "mobilia_token"',
@@ -19,38 +17,31 @@ export async function GET(request: NextRequest) {
     const token = rows?.[0]?.config_value;
     const apiUrl = 'http://bienraiz.mbp.com.co/bienraiz-mobilia/ws';
     
-    console.log('[CERTIFICATE] Token from query:', token ? 'exists' : 'missing', token?.substring(0, 20));
-    
     if (!token) {
-      return NextResponse.json({ ok: false, error: 'Token no configurado. Genera uno primero.' }, { status: 400 });
+      return NextResponse.json({ ok: false, error: 'Token no generado' }, { status: 400 });
     }
     
-    const url = `${apiUrl}/MiAcrecer?operation=getIncomeCertificate&year=${year}&documentCode=${documentCode}&enableSendingIncomeCertificate=${enableSendingIncomeCertificate}`;
-    
-    console.log('[CERTIFICATE] Calling:', url);
+    const url = `${apiUrl}/MiAcrecer?operation=getIncomeCertificate&year=${year}&documentCode=${documentCode}&enableSendingIncomeCertificate=false`;
     
     try {
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const mobiliaRes = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
       
-      console.log('[CERTIFICATE] Response status:', response.status);
-      console.log('[CERTIFICATE] Content-Type:', response.headers.get('content-type'));
-      console.log('[CERTIFICATE] Content-Length:', response.headers.get('content-length'));
+      const status = mobiliaRes.status;
+      const contentType = mobiliaRes.headers.get('content-type') || '';
+      const contentLength = mobiliaRes.headers.get('content-length');
       
-      if (response.status === 204 || response.headers.get('content-length') === '0' || !response.headers.get('content-length')) {
+      if (status === 204 || contentLength === '0' || !contentLength) {
         return NextResponse.json({ 
           ok: true, 
-          message: 'No existe certificado',
-          note: 'Mobilia devuelve 204 - no hay certificado para este documento/año'
+          result: 'no_certificate',
+          mobilia: { status, contentType, contentLength },
+          message: 'No existe certificado'
         });
       }
       
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('pdf') || response.status === 200) {
-        const buffer = await response.arrayBuffer();
+      if (contentType.includes('pdf') || status === 200) {
+        const buffer = await mobiliaRes.arrayBuffer();
         return new NextResponse(buffer, {
-          status: 200,
           headers: {
             'Content-Type': 'application/pdf',
             'Content-Disposition': `attachment; filename="certificado_${documentCode}_${year}.pdf"`,
@@ -58,11 +49,13 @@ export async function GET(request: NextRequest) {
         });
       }
       
-      const text = await response.text();
-      console.log('[CERTIFICATE] Response text:', text.substring(0, 200));
+      const text = await mobiliaRes.text();
+      return NextResponse.json({ 
+        ok: true, 
+        mobilia: { status, contentType, contentLength, body: text } 
+      });
     } catch (e: any) {
-      console.error('[CERTIFICATE] Fetch error:', e.message);
-      return NextResponse.json({ ok: false, error: 'Error al llamar API: ' + e.message }, { status: 500 });
+      return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
     }
   } catch (error: any) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });

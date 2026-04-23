@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 const BASE_CONFIG = '/api/custom-module13/mobilia-config';
 const BASE_TOKEN = '/api/custom-module13/mobilia-token';
 const BASE_CERT = '/api/custom-module13/mobilia-certificate';
+const BASE_LOGS = '/api/custom-module13/mobilia-logs';
 
 export default function VerificadorMobiliaModule({
   moduleData,
@@ -16,7 +17,7 @@ export default function VerificadorMobiliaModule({
     agent_name: string;
   };
 }) {
-  const [activeTab, setActiveTab] = useState<'inicio' | 'config' | 'docs'>('inicio');
+  const [activeTab, setActiveTab] = useState<'inicio' | 'config' | 'logs' | 'docs'>('inicio');
   const [config, setConfig] = useState<Record<string, string>>({});
   const [token, setToken] = useState<string | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(true);
@@ -24,6 +25,9 @@ export default function VerificadorMobiliaModule({
   const [savingConfig, setSavingConfig] = useState(false);
   const [certResult, setCertResult] = useState<any>(null);
   const [checkingCert, setCheckingCert] = useState(false);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  
   const [certForm, setCertForm] = useState({
     documentCode: '',
     year: '2025',
@@ -48,6 +52,21 @@ export default function VerificadorMobiliaModule({
       console.error(e);
     } finally {
       setLoadingConfig(false);
+    }
+  };
+
+  const loadLogs = async () => {
+    setLoadingLogs(true);
+    try {
+      const res = await fetch(`${BASE_LOGS}`);
+      const json = await res.json();
+      if (json.ok && json.logs) {
+        setLogs(json.logs);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingLogs(false);
     }
   };
 
@@ -129,17 +148,26 @@ export default function VerificadorMobiliaModule({
     loadConfig();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'logs') {
+      loadLogs();
+    }
+  }, [activeTab]);
+
+  const tabs = [
+    { id: 'inicio' as const, label: 'Inicio' },
+    { id: 'config' as const, label: 'Configuración' },
+    { id: 'logs' as const, label: 'Logs' },
+    { id: 'docs' as const, label: 'Docs' },
+  ];
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
       <div className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Módulo Verificador Mobilia</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Módulo Verificador Mobilia Certificados</h2>
           <div className="flex gap-1 border-b border-gray-200 mt-2">
-            {([
-              { id: 'inicio' as const, label: 'Inicio' },
-              { id: 'config' as const, label: 'Configuración' },
-              { id: 'docs' as const, label: 'Documentación' },
-            ]).map((t) => (
+            {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -159,7 +187,7 @@ export default function VerificadorMobiliaModule({
         {activeTab === 'inicio' && (
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-xl p-4 text-white">
-              <h3 className="text-xl font-bold mb-1">Verificador Mobilia</h3>
+              <h3 className="text-xl font-bold mb-1">Verificador Mobilia Certificados</h3>
               <p className="text-green-100 text-sm">Valida y descarga certificados de income</p>
             </div>
 
@@ -181,13 +209,15 @@ export default function VerificadorMobiliaModule({
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Año</label>
-                <input
-                  type="text"
+                <select
                   value={certForm.year}
                   onChange={(e) => setCertForm(f => ({ ...f, year: e.target.value }))}
-                  placeholder="2025"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                />
+                >
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                </select>
               </div>
             </div>
 
@@ -218,8 +248,8 @@ export default function VerificadorMobiliaModule({
 
             {certResult && (
               <div className="p-3 bg-gray-100 rounded-lg">
-                <p className="text-xs font-medium text-gray-500 mb-1">Respuesta:</p>
-                <pre className="text-xs font-mono overflow-auto max-h-40">
+                <p className="text-xs font-medium text-gray-500 mb-1">Respuesta Completa:</p>
+                <pre className="text-xs font-mono overflow-auto max-h-60">
                   {JSON.stringify(certResult, null, 2)}
                 </pre>
               </div>
@@ -254,10 +284,32 @@ export default function VerificadorMobiliaModule({
           </div>
         )}
 
+        {activeTab === 'logs' && (
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Logs de Pruebas</h3>
+            
+            {loadingLogs ? (
+              <p>Cargando...</p>
+            ) : logs.length === 0 ? (
+              <p className="text-gray-500">No hay logs</p>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-auto">
+                {logs.map((log: any, i: number) => (
+                  <div key={i} className="p-2 bg-gray-50 rounded text-xs font-mono">
+                    <p className="font-bold">{log.type}</p>
+                    <p>{new Date(log.timestamp).toLocaleString()}</p>
+                    <pre>{JSON.stringify(log, null, 2)}</pre>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'docs' && (
           <div className="bg-white border border-gray-200 rounded-xl p-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
-              Documentación - Verificador Mobilia
+              Documentación - Verificador Mobilia Certificados
             </h3>
             <div className="prose prose-sm max-w-none text-gray-700 space-y-2">
               <p><strong>Uso:</strong></p>
@@ -265,6 +317,7 @@ export default function VerificadorMobiliaModule({
                 <li>Configura el Subject en la pestaña Configuración</li>
                 <li>Guarda la configuración</li>
                 <li>En Inicio, genera un token y descarga el PDF</li>
+                <li>Revisa los logs en la pestaña Logs</li>
               </ol>
               <p><strong>API:</strong></p>
               <ul className="list-disc list-inside space-y-1 ml-2">
@@ -272,6 +325,7 @@ export default function VerificadorMobiliaModule({
                 <li><code>PUT /api/custom-module13/mobilia-config</code> - Guardar config</li>
                 <li><code>GET /api/custom-module13/mobilia-token?operation=generateToken</code> - Generar token</li>
                 <li><code>GET /api/custom-module13/mobilia-certificate?operation=getIncomeCertificate&amp;year=2025&amp;documentCode=43724622</code> - Descargar PDF</li>
+                <li><code>GET /api/custom-module13/mobilia-logs</code> - Obtener logs</li>
               </ul>
             </div>
           </div>
