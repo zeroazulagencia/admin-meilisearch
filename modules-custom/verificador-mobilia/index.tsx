@@ -119,7 +119,7 @@ export default function VerificadorMobiliaModule({
       const res = await fetch(url);
       const contentType = res.headers.get('content-type') || '';
       
-      if (contentType.includes('pdf') || res.ok) {
+      if (contentType.includes('pdf')) {
         const blob = await res.blob();
         if (blob.size > 100) {
           const downloadLink = document.createElement('a');

@@ -31,6 +31,10 @@ export async function GET(request: NextRequest) {
       const contentLength = mobiliaRes.headers.get('content-length');
       
       if (status === 204 || contentLength === '0' || !contentLength) {
+        await query(
+          `INSERT INTO modulos_mobilia_14_logs (log_data) VALUES (?)`,
+          [JSON.stringify({ type: 'check', documentCode, year, status, contentType, result: 'no_certificate' })]
+        );
         return NextResponse.json({ 
           ok: true, 
           result: 'no_certificate',
@@ -41,6 +45,10 @@ export async function GET(request: NextRequest) {
       
       if (contentType.includes('pdf') || status === 200) {
         const buffer = await mobiliaRes.arrayBuffer();
+        await query(
+          `INSERT INTO modulos_mobilia_14_logs (log_data) VALUES (?)`,
+          [JSON.stringify({ type: 'download', documentCode, year, status, contentType, size: buffer.byteLength })]
+        );
         return new NextResponse(buffer, {
           headers: {
             'Content-Type': 'application/pdf',
@@ -50,6 +58,10 @@ export async function GET(request: NextRequest) {
       }
       
       const text = await mobiliaRes.text();
+      await query(
+        `INSERT INTO modulos_mobilia_14_logs (log_data) VALUES (?)`,
+        [JSON.stringify({ type: 'check', documentCode, year, status, contentType, body: text.substring(0, 500) })]
+      );
       return NextResponse.json({ 
         ok: true, 
         mobilia: { status, contentType, contentLength, body: text } 
