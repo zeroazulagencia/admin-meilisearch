@@ -92,7 +92,7 @@ export default function VerificadorMobiliaModule({
     setCheckingCert(true);
     setCertResult(null);
     try {
-      const res = await fetch(`${BASE_CERT}?operation=getIncomeCertificate&year=2025&documentCode=437246622`);
+      const res = await fetch(`${BASE_CERT}?operation=getIncomeCertificate&year=2024&documentCode=437246622`);
       const json = await res.json();
       setCertResult(json);
     } catch (e: any) {

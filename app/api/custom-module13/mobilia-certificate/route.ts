@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const operation = searchParams.get('operation');
-    const year = searchParams.get('year') || '2025';
+    const year = searchParams.get('year') || '2024';
     const documentCode = searchParams.get('documentCode');
     const enableSendingIncomeCertificate = searchParams.get('enableSendingIncomeCertificate') === 'true';
     
