@@ -25,6 +25,10 @@ export default function VerificadorMobiliaModule({
   const [savingConfig, setSavingConfig] = useState(false);
   const [certResult, setCertResult] = useState<any>(null);
   const [checkingCert, setCheckingCert] = useState(false);
+  const [certForm, setCertForm] = useState({
+    documentCode: '',
+    year: '2024',
+  });
   
   const [configForm, setConfigForm] = useState({
     mobilia_subject: '',
@@ -89,10 +93,14 @@ export default function VerificadorMobiliaModule({
   };
 
   const testCertificate = async () => {
+    if (!certForm.documentCode) {
+      alert('Ingresa el código del documento');
+      return;
+    }
     setCheckingCert(true);
     setCertResult(null);
     try {
-      const res = await fetch(`${BASE_CERT}?operation=getIncomeCertificate&year=2024&documentCode=437246622`);
+      const res = await fetch(`${BASE_CERT}?operation=getIncomeCertificate&year=${certForm.year}&documentCode=${certForm.documentCode}`);
       const json = await res.json();
       setCertResult(json);
     } catch (e: any) {
@@ -142,6 +150,29 @@ export default function VerificadorMobiliaModule({
               <p className="text-green-100">Valida documentos de Mobilia</p>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Documento</label>
+                <input
+                  type="text"
+                  value={certForm.documentCode}
+                  onChange={(e) => setCertForm(f => ({ ...f, documentCode: e.target.value }))}
+                  placeholder="437246622"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Año</label>
+                <input
+                  type="text"
+                  value={certForm.year}
+                  onChange={(e) => setCertForm(f => ({ ...f, year: e.target.value }))}
+                  placeholder="2024"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={generateToken}
@@ -153,10 +184,10 @@ export default function VerificadorMobiliaModule({
               
               <button
                 onClick={testCertificate}
-                disabled={checkingCert || !config.mobilia_subject}
+                disabled={checkingCert || !config.mobilia_subject || !certForm.documentCode}
                 className="px-4 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50"
               >
-                {checkingCert ? 'Verificando...' : 'Probar Certificate'}
+                {checkingCert ? 'Verificando...' : 'Verificar Certificate'}
               </button>
             </div>
 
