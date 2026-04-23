@@ -31,6 +31,7 @@ export default function ModuleDetailPage() {
     const loadModule = async () => {
       try {
         setLoading(true);
+        console.log('[MODULE DETAIL] Loading module ID:', moduleId);
         const res = await fetch(`/api/modules/${moduleId}`, {
           cache: 'no-store',
           headers: {
@@ -39,28 +40,38 @@ export default function ModuleDetailPage() {
           }
         });
         const data = await res.json();
+        console.log('[MODULE DETAIL] API response:', data);
 
         if (!res.ok || !data.ok) {
           throw new Error(data.error || 'No se pudo cargar el módulo');
         }
 
-        setModule(data.module);
+        if (!data.module?.folder_name) {
+          throw new Error('El módulo no tiene folder_name. Módulo: ' + JSON.stringify(data.module));
+        }
 
-        console.log('[MODULE DETAIL] folder_name:', data.module?.folder_name);
+        setModule(data.module);
         
-        if (data.module?.folder_name) {
-          setLoadingComponent(true);
-          try {
-            console.log('[MODULE DETAIL] Attempting import from: ../../modules-custom/' + data.module.folder_name + '/index.tsx');
-            const component = await import(`../../modules-custom/${data.module.folder_name}/index.tsx`);
-            console.log('[MODULE DETAIL] Import successful, component:', component);
-            setModuleComponent(() => component.default);
-          } catch (e: any) {
-            console.error('[MODULE DETAIL] Full error:', e);
-            setError(`El módulo "${data.module?.folder_name}" no tiene implementación o hay un error en el código. Error: ${e?.message || e}`);
-          } finally {
-            setLoadingComponent(false);
+        const moduleFolderName = data.module.folder_name;
+        console.log('[MODULE DETAIL] folder_name:', moduleFolderName);
+        
+        setLoadingComponent(true);
+        try {
+          const importPath = `../../modules-custom/${moduleFolderName}/index.tsx`;
+          console.log('[MODULE DETAIL] Dynamic import from:', importPath);
+          const module = await import(importPath);
+          console.log('[MODULE DETAIL] Import result:', module);
+          if (module && module.default) {
+            setModuleComponent(() => module.default);
+            console.log('[MODULE DETAIL] Component loaded successfully');
+          } else {
+            throw new Error('No se encontró default export');
           }
+        } catch (e: any) {
+          console.error('[MODULE DETAIL] Import error:', e);
+          setError(`El módulo "${moduleFolderName}" no tiene implementación o hay un error en el código. Error: ${e?.message || e}`);
+        } finally {
+          setLoadingComponent(false);
         }
       } catch (e: any) {
         console.error('[MODULE DETAIL] Error:', e);
