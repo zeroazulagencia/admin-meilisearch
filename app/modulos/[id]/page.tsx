@@ -59,10 +59,10 @@ export default function ModuleDetailPage() {
         try {
           const importPath = `../../modules-custom/${moduleFolderName}/index.tsx`;
           console.log('[MODULE DETAIL] Dynamic import from:', importPath);
-          const module = await import(importPath);
-          console.log('[MODULE DETAIL] Import result:', module);
-          if (module && module.default) {
-            setModuleComponent(() => module.default);
+          const mod = await import(importPath);
+          console.log('[MODULE DETAIL] Import result:', mod);
+          if (mod && mod.default) {
+            setModuleComponent(() => mod.default);
             console.log('[MODULE DETAIL] Component loaded successfully');
           } else {
             throw new Error('No se encontró default export');
