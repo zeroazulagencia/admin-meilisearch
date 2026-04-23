@@ -28,13 +28,11 @@ export async function PUT(request: NextRequest) {
     const values = [mobilia_subject, mobilia_api_url];
     
     for (let i = 0; i < keys.length; i++) {
-      if (values[i]) {
-        await query(
-          `INSERT INTO modulos_mobilia_14_config (config_key, config_value) VALUES (?, ?)
-           ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)`,
-          [keys[i], values[i]]
-        );
-      }
+      await query(
+        `INSERT INTO modulos_mobilia_14_config (config_key, config_value) VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)`,
+        [keys[i], values[i] ?? '']
+      );
     }
     
     return NextResponse.json({ ok: true });

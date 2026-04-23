@@ -20,10 +20,11 @@ export default function VerificadorMobiliaModule({
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [generatingToken, setGeneratingToken] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [certResult, setCertResult] = useState<any>(null);
+  const [checkingCert, setCheckingCert] = useState(false);
   
   const [configForm, setConfigForm] = useState({
     mobilia_subject: '',
-    mobilia_api_url: 'http://bienraiz.mbp.com.co/bienraiz-mobilia/ws',
   });
 
   const loadConfig = async () => {
@@ -35,7 +36,6 @@ export default function VerificadorMobiliaModule({
         setConfig(json.config || {});
         setConfigForm({
           mobilia_subject: json.config.mobilia_subject || '',
-          mobilia_api_url: json.config.mobilia_api_url || 'http://bienraiz.mbp.com.co/bienraiz-mobilia/ws',
         });
       }
     } catch (e) {
@@ -85,6 +85,20 @@ export default function VerificadorMobiliaModule({
     }
   };
 
+  const testCertificate = async () => {
+    setCheckingCert(true);
+    setCertResult(null);
+    try {
+      const res = await fetch(`${BASE}/certificate?operation=getIncomeCertificate&year=2025&documentCode=437246622`);
+      const json = await res.json();
+      setCertResult(json);
+    } catch (e: any) {
+      setCertResult({ ok: false, error: e.message });
+    } finally {
+      setCheckingCert(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'config') {
       loadConfig();
@@ -119,15 +133,45 @@ export default function VerificadorMobiliaModule({
         </div>
 
         {activeTab === 'inicio' && (
-          <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-xl p-6 text-white">
-            <h3 className="text-2xl font-bold mb-2">Verificador Mobilia</h3>
-            <p className="text-green-100">Genera certificados de income de Mobilia</p>
-            <button
-              onClick={() => setActiveTab('config')}
-              className="mt-4 px-4 py-2 bg-white text-green-600 rounded-lg font-medium hover:bg-green-50"
-            >
-              Ir a Configuración
-            </button>
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-xl p-6 text-white">
+              <h3 className="text-2xl font-bold mb-2">Verificador Mobilia</h3>
+              <p className="text-green-100">Valida documentos de Mobilia</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={generateToken}
+                disabled={generatingToken || !config.mobilia_subject}
+                className="px-4 py-3 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:opacity-50"
+              >
+                {generatingToken ? 'Generando...' : 'Generar Token'}
+              </button>
+              
+              <button
+                onClick={testCertificate}
+                disabled={checkingCert || !config.mobilia_subject}
+                className="px-4 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50"
+              >
+                {checkingCert ? 'Verificando...' : 'Probar Certificate'}
+              </button>
+            </div>
+
+            {token && (
+              <div className="p-3 bg-gray-100 rounded-lg">
+                <p className="text-xs font-medium text-gray-500 mb-1">Token:</p>
+                <p className="text-xs font-mono break-all">{token}</p>
+              </div>
+            )}
+
+            {certResult && (
+              <div className="p-3 bg-gray-100 rounded-lg">
+                <p className="text-xs font-medium text-gray-500 mb-1">Resultado:</p>
+                <pre className="text-xs font-mono overflow-auto max-h-40">
+                  {JSON.stringify(certResult, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         )}
 
@@ -148,45 +192,13 @@ export default function VerificadorMobiliaModule({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                URL del API Mobilia
-              </label>
-              <input
-                type="text"
-                value={configForm.mobilia_api_url}
-                onChange={(e) => setConfigForm(f => ({ ...f, mobilia_api_url: e.target.value }))}
-                placeholder="http://bienraiz.mbp.com.co/bienraiz-mobilia/ws"
-                className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              />
-            </div>
-
             <button
               onClick={saveConfig}
               disabled={savingConfig}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity50"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50"
             >
               {savingConfig ? 'Guardando...' : 'Guardar Configuración'}
             </button>
-
-            <hr className="my-4" />
-
-            <h3 className="font-semibold text-gray-900">Generar Token</h3>
-            <p className="text-sm text-gray-600">
-              Genera un nuevo token de acceso JWT de Mobilia
-            </p>
-            <button
-              onClick={generateToken}
-              disabled={generatingToken || !config.mobilia_subject}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 disabled:opacity-50"
-            >
-              {generatingToken ? 'Generando...' : 'Generar Token'}
-            </button>
-            {token && (
-              <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono break-all">
-                {token}
-              </div>
-            )}
           </div>
         )}
 
@@ -200,14 +212,14 @@ export default function VerificadorMobiliaModule({
               <ol className="list-decimal list-inside space-y-1 ml-2">
                 <li>Configura el Subject en la pestaña Configuración</li>
                 <li>Guarda la configuración</li>
-                <li>Genera un token JWT con el botón</li>
-                <li>Usa el token para llamadas a la API de Mobilia</li>
+                <li>En Inicio, genera un token y prueba el certificate</li>
               </ol>
               <p><strong>API:</strong></p>
               <ul className="list-disc list-inside space-y-1 ml-2">
                 <li><code>GET /api/custom-module14/verificador-mobilia/config</code> - Obtener config</li>
                 <li><code>PUT /api/custom-module14/verificador-mobilia/config</code> - Guardar config</li>
                 <li><code>GET /api/custom-module14/verificador-mobilia/token?operation=generateToken</code> - Generar token</li>
+                <li><code>GET /api/custom-module14/verificador-mobilia/certificate?operation=getIncomeCertificate&amp;year=2025&amp;documentCode=437246622</code> - Obtener certificate</li>
               </ul>
             </div>
           </div>
