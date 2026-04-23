@@ -101,8 +101,20 @@ export default function VerificadorMobiliaModule({
     setCertResult(null);
     try {
       const res = await fetch(`${BASE_CERT}?operation=getIncomeCertificate&year=${certForm.year}&documentCode=${certForm.documentCode}`);
-      const json = await res.json();
-      setCertResult(json);
+      const contentType = res.headers.get('content-type') || '';
+      
+      if (contentType.includes('pdf') || res.ok) {
+        const blob = await res.blob();
+        if (blob.size > 100) {
+          setCertResult({ ok: true, message: 'PDF DESCARGADO', fileSize: blob.size });
+        } else {
+          const json = await res.json();
+          setCertResult(json);
+        }
+      } else {
+        const json = await res.json();
+        setCertResult(json);
+      }
     } catch (e: any) {
       setCertResult({ ok: false, error: e.message });
     } finally {

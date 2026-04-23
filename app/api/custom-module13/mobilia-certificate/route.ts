@@ -38,22 +38,28 @@ export async function GET(request: NextRequest) {
       console.log('[CERTIFICATE] Content-Type:', response.headers.get('content-type'));
       console.log('[CERTIFICATE] Content-Length:', response.headers.get('content-length'));
       
-      if (response.status === 204 || response.headers.get('content-length') === '0') {
+      if (response.status === 204 || response.headers.get('content-length') === '0' || !response.headers.get('content-length')) {
         return NextResponse.json({ 
           ok: true, 
-          message: 'Certificado Procesado',
-          note: 'El certificado se ha procesado exitosamente. Returns 204 Empty desde Mobilia API.'
+          message: 'No existe certificado',
+          note: 'Mobilia devuelve 204 - no hay certificado para este documento/año'
         });
       }
       
-      const buffer = await response.arrayBuffer();
-      return new NextResponse(buffer, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="certificado_${documentCode}_${year}.pdf"`,
-        },
-      });
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('pdf') || response.status === 200) {
+        const buffer = await response.arrayBuffer();
+        return new NextResponse(buffer, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="certificado_${documentCode}_${year}.pdf"`,
+          },
+        });
+      }
+      
+      const text = await response.text();
+      console.log('[CERTIFICATE] Response text:', text.substring(0, 200));
     } catch (e: any) {
       console.error('[CERTIFICATE] Fetch error:', e.message);
       return NextResponse.json({ ok: false, error: 'Error al llamar API: ' + e.message }, { status: 500 });
