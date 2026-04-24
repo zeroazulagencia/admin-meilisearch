@@ -62,7 +62,7 @@ async function getLocationCode(city: string): Promise<string | null> {
     const res = await fetch(`${MIPAQUETE_API_URL}/v1/getLocations?locationCode=${encodeURIComponent(cityLower)}`, {
       headers: {
         'Authorization': MIPAQUETE_API_KEY,
-        'Session-Tracker': `lookup-${Date.now()}`,
+        'Session-Tracker': `mipq${Date.now()}-abc123`,
       },
     });
     
@@ -154,7 +154,7 @@ console.log('[MIPQUOTE RATES] Request:', {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': MIPAQUETE_API_KEY,
-            'Session-Tracker': `shopify-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
+            'Session-Tracker': `mipq-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
           },
           body: JSON.stringify({
             originLocationCode: originDane,
