@@ -82,6 +82,8 @@ export async function POST(request: NextRequest) {
           service_code: 'mipaquete',
           total_price: String(fallbackPrice * 100),
           currency: rate.currency || 'COP',
+          min_delivery_date: minDate,
+          max_delivery_date: maxDate,
         },
       ],
     });
