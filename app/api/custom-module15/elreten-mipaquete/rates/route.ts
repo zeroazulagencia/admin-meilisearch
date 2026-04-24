@@ -4,7 +4,7 @@ import { query } from '@/utils/db';
 export const dynamic = 'force-dynamic';
 
 const MIPAQUETE_API_KEY = process.env.MIPAQUETE_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2MTA5YTBjZWQ5NGZjYTc2MjUzZGUxZTgiLCJuYW1lIjoiSnVsaWFuIiwic3VybmFtZSI6IlNhbmNoZXoiLCJlbWFpbCI6InJldGVuZGVsY2FzY29AZ21haWwuY29tIiwiY2VsbFBob25lIjoiMzE1ODI1ODkzMCIsImNyZWF0ZWRBdCI6IjIwMjEtMDgtMDNUMjA6MDI6MjIuODMxWiIsImRhdGUiOiIyMDI2LTA0LTIwIDE3OjQ0OjEzIiwiaWF0IjoxNzc2NzI1MDUzfQ.xNdWgsL53E80WGZxCdBHWW2C9NrfuuKkP2LQI9kM_94';
-const MIPAQUETE_API_URL = 'https://api.mipaquete.com';
+const MIPAQUETE_API_URL = 'https://api-v2.mpr.mipaquete.com';
 
 const CITY_TO_DANE: Record<string, string> = {
   'bogota': '11001',
