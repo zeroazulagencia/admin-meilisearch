@@ -7,14 +7,16 @@ const MIPAQUETE_API_KEY = process.env.MIPAQUETE_API_KEY || 'eyJhbGciOiJIUzI1NiIs
 const MIPAQUETE_API_URL = 'https://api-v2.mpr.mipaquete.com';
 
 const CITY_TO_DANE: Record<string, string> = {
-  'bogota': '11001', 'medellin': '05001', 'cali': '76001', 'cucuta': '54001',
-  'barranquilla': '08001', 'cartagena': '13001', 'pereira': '66001',
-  'manizales': '17001', 'ibague': '73001', 'bucaramanga': '68001',
-  'neiva': '41001', 'envigado': '05266', 'itagui': '05360', 'sabaneta': '05615',
-  'la estrella': '05380', 'bello': '05088',
+  'bogota': '11001000', 'bogotá': '11001000',
+  'medellin': '05001000', 'medellín': '05001000',
+  'cali': '76001000', 'cucuta': '54001000', 'cúcuta': '54001000',
+  'barranquilla': '08001000', 'cartagena': '13001000',
+  'pereira': '66001000', 'manizales': '17001000',
+  'ibague': '73001000', 'bucaramanga': '68001000',
+  'envigado': '05266000', 'itagui': '05360000',
 };
 
-const DEFAULT_ORIGIN_DANE = '54001';
+const DEFAULT_ORIGIN_DANE = '54001000';
 
 async function getLocationCode(city: string): Promise<string> {
   const cityLower = city.toLowerCase().trim();
@@ -69,9 +71,10 @@ export async function POST(request: NextRequest) {
             originLocationCode: originDane,
             destinyLocationCode: destDane,
             weight: pesoKg,
-            height: 10, width: 10, length: 10,
+            height: 14, width: 25, length: 35,
             quantity: 1,
             declaredValue: declaredValue,
+            saleValue: declaredValue,
           }),
         });
 
