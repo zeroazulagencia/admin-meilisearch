@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': MIPAQUETE_API_KEY,
-          'Session-Tracker': `shopify-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          'Session-Tracker': `shopify-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
         },
         body: JSON.stringify({
           origen: originPostal,
