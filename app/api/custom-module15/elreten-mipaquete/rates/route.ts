@@ -154,7 +154,7 @@ console.log('[MIPQUOTE RATES] Request:', {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': MIPAQUETE_API_KEY,
-            'Session-Tracker': `mipq-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
+            'Session-Tracker': 'a0c96ea6-b22d-4fb7-a278-850678d54290',
           },
           body: JSON.stringify({
             originLocationCode: originDane,
