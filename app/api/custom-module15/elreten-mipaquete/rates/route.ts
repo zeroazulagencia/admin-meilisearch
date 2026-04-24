@@ -49,6 +49,7 @@ async function getMiPaqueteQuote(origen: string, destino: string, peso: number, 
     headers: {
       'Content-Type': 'application/json',
       'Authorization': MIPAQUETE_API_KEY,
+      'Session-Tracker': `shopify-${Date.now()}-${Math.random().toString(36).substring(7)}`,
     },
     body: JSON.stringify(body),
   });
