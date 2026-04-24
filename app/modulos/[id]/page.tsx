@@ -7,6 +7,7 @@ import ModuleLoading from '@/components/ModuleLoading';
 
 // Static imports for known modules
 import ModVerificadorMobilia from '@/modules-custom/verificador-mobilia';
+import ModModulo15 from '@/modules-custom/modulo-15';
 import ModHolaMundo from '@/modules-custom/hola-mundo';
 import ModLogLeadsSuvi from '@/modules-custom/log-leads-suvi';
 import ModGeneradorCartaLaboral from '@/modules-custom/generador-carta-laboral';
@@ -23,6 +24,7 @@ import ModEndpointsAnaliticaBiury from '@/modules-custom/endpoints-anal-tica-biu
 
 const MODULES_MAP: Record<string, any> = {
   'verificador-mobilia': ModVerificadorMobilia,
+  'modulo-15': ModModulo15,
   'hola-mundo': ModHolaMundo,
   'log-leads-suvi': ModLogLeadsSuvi,
   'generador-carta-laboral': ModGeneradorCartaLaboral,
