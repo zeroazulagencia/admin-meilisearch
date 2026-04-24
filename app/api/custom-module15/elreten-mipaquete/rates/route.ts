@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
           headers: {
             'Content-Type': 'application/json',
             'apikey': MIPAQUETE_API_KEY,
-            'Session-Tracker': 'session-1234567890',
+            'Session-Tracker': 'a0c96ea6-b22d-4fb7-a278-850678d5429c',
           },
           body: JSON.stringify({
             originLocationCode: originDane,
