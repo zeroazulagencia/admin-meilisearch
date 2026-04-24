@@ -42,6 +42,11 @@ export async function POST(request: NextRequest) {
     const totalPrice = rate.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
     const pesoKg = Math.ceil(totalGrams / 1000);
 
+    // Fallback based on weight (not percentage of product price)
+    const basePrice = 12000; // Base for 1kg
+    const extraPerKg = 4000; // Extra per additional kg
+    const fallbackPrice = basePrice + (Math.max(0, pesoKg - 1) * extraPerKg);
+
     console.log('[MIPQUOTE RATES] Request:', { origen: originPostal, destino: destPostal, peso: pesoKg, valor: totalPrice });
 
     let mpQuote: any = null;
@@ -80,7 +85,7 @@ export async function POST(request: NextRequest) {
       const tarifas = mpQuote.tarifas.map((t: any) => ({
         service_name: t.nombre_servicio || 'Envío MiPaquete',
         service_code: t.codigo_servicio || 'mipaquete',
-        total_price: String(Math.round(t.valor_total || t.tarifa || totalPrice * 0.1) * 100),
+        total_price: String(Math.round((t.valor_total || t.tarifa) * 100)),
         currency: rate.currency || 'COP',
         min_delivery_date: minDate,
         max_delivery_date: maxDate,
@@ -99,7 +104,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ rates: tarifas });
     }
 
-    const fallbackPrice = Math.max(15000, Math.round(totalPrice * 0.05));
     const response = {
       rates: [
         {
