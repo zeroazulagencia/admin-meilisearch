@@ -3,8 +3,8 @@ import { query } from '@/utils/db';
 
 export const dynamic = 'force-dynamic';
 
-const MIPAQUETE_API_KEY = process.env.MIPAQUETE_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI1ZDMwODhlMzRkYWJkMjVlZTRlM2U2NjQiLCJuYW1lIjoidGVzdC1taS1wYXF1ZXRlLXJlYWwiLCJzdXJuYW1lIjoiSnVuaW9yIiwiZW1haWwiOiJ0ZXN0QGdtYWlsLmNvbSIsImNlbGxQaG9uZSI6IjMxMDMzMjEwMjEiLCJjcmVhdGVkQXQiOiIyMDE5LTA3LTE4VDE0OjU3OjM5LjA0NFoiLCJkYXRlIjoiMjAyMS0wNy0yNyAxMTozMjo0NyIsInBhc3N3b3JkIjoiODc2NTQzMjEiLCJpYXQiOjE2Mjc0MDM1Njd9.ekOceWi4NPDSTblg7uoWCJcKPpFjlcPVEPvmtAWGjzc';
-const MIPAQUETE_API_URL = 'https://api-v2.dev.mpr.mipaquete.com';
+const MIPAQUETE_API_KEY = process.env.MIPAQUETE_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2MTA5YTBjZWQ5NGZjYTc2MjUzZGUxZTgiLCJuYW1lIjoiSnVsaWFuIiwic3VybmFtZSI6IlNhbmNoZXoiLCJlbWFpbCI6InJldGVuZGVsY2FzY29AZ21haWwuY29tIiwiY2VsbFBob25lIjoiMzE1ODI1ODkzMCIsImNyZWF0ZWRBdCI6IjIwMjEtMDgtMDNUMjA6MDI6MjIuODMxWiIsImRhdGUiOiIyMDI2LTA0LTA4IDE0OjU5OjE5IiwiaWF0IjoxNzc1Njc4MzU5fQ.q5-3aUUIJsOe3YROCEmFcvU9e9JE_GY9pCBOuEdNqkw';
+const MIPAQUETE_API_URL = 'https://api.mipaquete.com';
 
 const CITY_TO_DANE: Record<string, string> = {
   'bogota': '11001',
