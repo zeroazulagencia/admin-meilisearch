@@ -78,7 +78,7 @@ export default function PuenteShopifyMiPaqueteModule({
     setTestResult(null);
     try {
       const payload = JSON.parse(testPayload);
-      const res = await fetch('/api/custom-module15/elreten-mipaquete/rates', {
+      const res = await fetch('/api/custom-module15/elreten-mipaquete/rates2/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
