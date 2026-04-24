@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/utils/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +17,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const rate = body.rate;
 
+    console.log('[MIPQUOTE RATES] Received body:', JSON.stringify(body));
+
     if (!rate || !rate.origin || !rate.destination || !rate.items) {
+      console.log('[MIPQUOTE RATES] Invalid request - missing required fields');
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    // Log to database
+    try {
+      await query(
+        'INSERT INTO modulos_mipaquete_15_logs (type, payload, response) VALUES (?, ?, ?)',
+        ['rates_request', JSON.stringify(body), null]
+      );
+    } catch (e) {
+      console.error('[MIPQUOTE RATES] Log error:', e);
     }
 
     const originPostal = rate.origin.postal_code || '';
@@ -71,11 +85,22 @@ export async function POST(request: NextRequest) {
         min_delivery_date: minDate,
         max_delivery_date: maxDate,
       }));
+      
+      // Log response
+      try {
+        await query(
+          'INSERT INTO modulos_mipaquete_15_logs (type, payload, response) VALUES (?, ?, ?)',
+          ['rates_response', JSON.stringify(body), JSON.stringify({ rates: tarifas })]
+        );
+      } catch (e) {
+        console.error('[MIPQUOTE RATES] Log error:', e);
+      }
+      
       return NextResponse.json({ rates: tarifas });
     }
 
     const fallbackPrice = Math.max(15000, Math.round(totalPrice * 0.05));
-    return NextResponse.json({
+    const response = {
       rates: [
         {
           service_name: 'Envío MiPaquete',
@@ -86,7 +111,19 @@ export async function POST(request: NextRequest) {
           max_delivery_date: maxDate,
         },
       ],
-    });
+    };
+    
+    // Log response
+    try {
+      await query(
+        'INSERT INTO modulos_mipaquete_15_logs (type, payload, response) VALUES (?, ?, ?)',
+        ['rates_response', JSON.stringify(body), JSON.stringify(response)]
+      );
+    } catch (e) {
+      console.error('[MIPQUOTE RATES] Log error:', e);
+    }
+    
+    return NextResponse.json(response);
   } catch (error: any) {
     console.error('[MIPQUOTE RATES] Error:', error);
     return NextResponse.json({ error: error.message || 'Internal error' }, { status: 500 });
