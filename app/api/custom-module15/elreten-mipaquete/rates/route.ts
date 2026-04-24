@@ -61,7 +61,6 @@ async function getLocationCode(city: string): Promise<string | null> {
   try {
     const res = await fetch(`${MIPAQUETE_API_URL}/v1/getLocations?locationCode=${encodeURIComponent(cityLower)}`, {
       headers: {
-        'Authorization': MIPAQUETE_API_KEY,
         'apikey': MIPAQUETE_API_KEY,
         'Session-Tracker': 'a0c96ea6-b22d-4fb7-a278-850678d54290',
       },
@@ -154,7 +153,6 @@ console.log('[MIPQUOTE RATES] Request:', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': MIPAQUETE_API_KEY,
             'apikey': MIPAQUETE_API_KEY,
             'Session-Tracker': 'a0c96ea6-b22d-4fb7-a278-850678d54290',
           },
