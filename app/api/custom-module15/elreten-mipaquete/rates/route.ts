@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const totalGrams = rate.items.reduce((sum: number, item: any) => sum + (item.grams * item.quantity), 0);
     const totalPrice = rate.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
     const pesoKg = Math.ceil(totalGrams / 1000);
-    const declaredValue = Math.max(totalPrice, 10000);
+    const declaredValue = 100000;
 
     const basePrice = 14500, extraPerKg = 4500;
     const fallbackPrice = basePrice + Math.max(0, pesoKg - 1) * extraPerKg;
