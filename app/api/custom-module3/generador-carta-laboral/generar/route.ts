@@ -54,6 +54,12 @@ function formatearSalario(valor: number): string {
   return new Intl.NumberFormat('es-CO').format(valor);
 }
 
+function parseCurrency(value?: string): number {
+  if (!value) return 0;
+  const digits = value.replace(/[^0-9]/g, '');
+  return digits ? parseInt(digits, 10) : 0;
+}
+
 async function generarPDF(empleado: any, nit: string, cartaId: number, config: Record<string, string>): Promise<string> {
   const personal = empleado.datos_personales;
   const contrato = empleado.contratos[0][Object.keys(empleado.contratos[0])[0]].datos_contrato;
@@ -63,14 +69,13 @@ async function generarPDF(empleado: any, nit: string, cartaId: number, config: R
   const fecha = `Medellin, ${hoy.getDate()} de ${numeroAMes(hoy.getMonth() + 1)} de ${hoy.getFullYear()}`;
   const fechaIngreso = new Date(contrato.fecha_ingreso).toLocaleDateString('es-CO');
   
-  const salarioMes = parseInt(contrato.salario_mes) || 0;
-  const promedioStr = adicional?.promedio_ultimos_3_meses?.replace('$', '').replace(',', '') || '';
-  const promedio = parseInt(promedioStr) || 0;
-  
+  const salarioMes = parseCurrency(contrato.salario_mes);
+  const promedio = parseCurrency(adicional?.promedio_ultimos_3_meses);
+
   let salarioFinal = salarioMes;
   let tipoSalario = 'el salario mensual';
-  
-  if (promedio > 0 && promedio >= salarioMes * 0.9 && promedio <= salarioMes * 1.1) {
+
+  if (promedio > 0) {
     salarioFinal = promedio;
     tipoSalario = 'el salario promedio';
   }
@@ -179,11 +184,10 @@ export async function POST(req: NextRequest) {
     const contrato = empleado.contratos[0][Object.keys(empleado.contratos[0])[0]].datos_contrato;
     const adicional = empleado.contratos[0][Object.keys(empleado.contratos[0])[0]].informacion_adicional;
 
-    const salarioMes = parseInt(contrato.salario_mes) || 0;
-    const promedioStr = adicional?.promedio_ultimos_3_meses?.replace('$', '').replace(',', '') || '';
-    const promedio = parseInt(promedioStr) || 0;
+    const salarioMes = parseCurrency(contrato.salario_mes);
+    const promedio = parseCurrency(adicional?.promedio_ultimos_3_meses);
     let salarioFinal = salarioMes;
-    if (promedio > 0 && promedio >= salarioMes * 0.9 && promedio <= salarioMes * 1.1) {
+    if (promedio > 0) {
       salarioFinal = promedio;
     }
 

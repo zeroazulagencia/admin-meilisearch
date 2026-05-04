@@ -205,8 +205,8 @@ export default function ModulosPage() {
                 displayValue={(agent: Agent | null) => agent?.name || ''}
                 onChange={(e) => {
                   setAgentQuery(e.target.value);
-                  if (e.target.value && filteredAgentsForCombobox.length > 0 && !selectedAgentFilter) {
-                    setSelectedAgentFilter(filteredAgentsForCombobox[0]);
+                  if (selectedAgentFilter) {
+                    setSelectedAgentFilter(null);
                   }
                 }}
                 placeholder="Buscar agente..."
