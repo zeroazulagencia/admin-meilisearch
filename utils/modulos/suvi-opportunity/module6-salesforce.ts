@@ -74,6 +74,45 @@ export async function getGroupMembers(groupId: string): Promise<{ UserOrGroupId:
   return json.records || [];
 }
 
+async function fetchActiveUserIds(userIds: string[]): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+  const { accessToken, instanceUrl } = await getSalesforceTokens();
+  const activeIds = new Set<string>();
+
+  const chunkSize = 100;
+  for (let i = 0; i < userIds.length; i += chunkSize) {
+    const chunk = userIds.slice(i, i + chunkSize);
+    const inClause = chunk.map((id) => `'${id}'`).join(',');
+    const soql = `SELECT Id FROM User WHERE IsActive = true AND Id IN (${inClause})`;
+    const res = await fetch(
+      `${instanceUrl}/services/data/v60.0/query?q=${encodeURIComponent(soql)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!res.ok) continue;
+    const json = await res.json();
+    for (const record of json.records || []) {
+      if (record?.Id) activeIds.add(record.Id);
+    }
+  }
+
+  return activeIds;
+}
+
+export async function isActiveUserId(userId: string): Promise<boolean> {
+  if (!userId || !userId.startsWith('005')) return true;
+  const activeIds = await fetchActiveUserIds([userId]);
+  return activeIds.has(userId);
+}
+
+export async function getActiveGroupMembers(groupId: string): Promise<{ UserOrGroupId: string }[]> {
+  const members = await getGroupMembers(groupId);
+  const userIds = members
+    .map((member) => member.UserOrGroupId)
+    .filter((id) => id && id.startsWith('005'));
+  const activeIds = await fetchActiveUserIds(userIds);
+  return members.filter((member) => activeIds.has(member.UserOrGroupId));
+}
+
 export function selectRandomOwner(members: { UserOrGroupId: string }[]): string {
   if (members.length === 0) throw new Error('No hay usuarios en el grupo');
   return members[Math.floor(Math.random() * members.length)].UserOrGroupId;
@@ -392,6 +431,7 @@ export async function createOpportunity(params: {
   ownerId: string;
   projectId: string;
   recordTypeId: string;
+  stageName?: string;
   leadSource?: string;
 }): Promise<string> {
   const { accessToken, instanceUrl } = await getSalesforceTokens();
@@ -402,7 +442,7 @@ export async function createOpportunity(params: {
     Name: params.accountName,
     AccountId: params.accountId,
     CloseDate: closeDateStr,
-    StageName: 'Nuevo',
+    StageName: params.stageName || 'Nuevo',
     OwnerId: params.ownerId,
     Proyecto__c: params.projectId,
     RecordTypeId: params.recordTypeId,

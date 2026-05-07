@@ -57,9 +57,18 @@ export async function POST(request: NextRequest) {
       ? cappedPaymentIds.map((id) => logMap.get(id) || { payment_id: id, payload_raw: null, __notFound: true })
       : logs;
 
-    const batchDelayMs = 20000;
+    const batchDelayMs = 300;
+    const maxDurationMs = 25000;
+    const startAt = Date.now();
+    let timedOut = false;
+    let lastIndex = -1;
     for (let i = 0; i < iterableLogs.length; i += 1) {
+      if (Date.now() - startAt > maxDurationMs) {
+        timedOut = true;
+        break;
+      }
       const log = iterableLogs[i];
+      lastIndex = i;
       processed += 1;
       try {
         if (log.__notFound) {
@@ -76,6 +85,7 @@ export async function POST(request: NextRequest) {
                 product_name: successLog.product_name || log.product_name || 'unknown',
                 gateway: successLog.gateway || log.gateway || 'unknown',
                 total: Number(successLog.total ?? log.total ?? 0),
+                receipt_document_id: successLog.receipt_document_id || null,
                 payload_raw: log.payload_raw || successLog.payload_raw || null,
                 siigo_response: successLog.siigo_response || null,
                 status: 'success',
@@ -109,6 +119,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const remaining = timedOut
+      ? iterableLogs
+          .slice(lastIndex + 1)
+          .map((log) => log?.payment_id)
+          .filter(Boolean)
+      : [];
+
     return NextResponse.json({
       ok: true,
       id: logId,
@@ -119,6 +136,8 @@ export async function POST(request: NextRequest) {
       success,
       failed,
       results: results.length ? results : null,
+      partial: timedOut,
+      remaining,
     });
   } catch (error: any) {
     console.error('[Biury-Reprocess] Error:', error);

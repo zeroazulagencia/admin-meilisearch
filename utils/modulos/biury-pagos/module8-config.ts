@@ -248,6 +248,7 @@ export async function createLog(data: {
   product_name: string;
   gateway: string;
   total: number;
+  receipt_document_id?: string | null;
   payload_raw?: string;
   siigo_response?: string;
   status: 'success' | 'error' | 'filtered';
@@ -255,14 +256,15 @@ export async function createLog(data: {
   try {
     const [result] = await query(
       `INSERT INTO modulos_biury_8_logs 
-       (payment_id, customer_document, product_name, gateway, total, payload_raw, siigo_response, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (payment_id, customer_document, product_name, gateway, total, receipt_document_id, payload_raw, siigo_response, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.payment_id,
         data.customer_document,
         data.product_name,
         data.gateway,
         data.total,
+        data.receipt_document_id || null,
         data.payload_raw || null,
         data.siigo_response || null,
         data.status
@@ -282,6 +284,7 @@ export async function updateLogById(
     product_name: string;
     gateway: string;
     total: number;
+    receipt_document_id?: string | null;
     payload_raw?: string;
     siigo_response?: string;
     status: 'success' | 'error' | 'filtered';
@@ -290,7 +293,7 @@ export async function updateLogById(
   try {
     const [result] = await query(
       `UPDATE modulos_biury_8_logs
-       SET customer_document = ?, product_name = ?, gateway = ?, total = ?, payload_raw = ?, siigo_response = ?, status = ?
+       SET customer_document = ?, product_name = ?, gateway = ?, total = ?, receipt_document_id = ?, payload_raw = ?, siigo_response = ?, status = ?
        WHERE id = ?
        LIMIT 1`,
       [
@@ -298,6 +301,7 @@ export async function updateLogById(
         data.product_name,
         data.gateway,
         data.total,
+        data.receipt_document_id || null,
         data.payload_raw || null,
         data.siigo_response || null,
         data.status,
@@ -335,6 +339,7 @@ export async function upsertLogByPaymentId(data: {
   product_name: string;
   gateway: string;
   total: number;
+  receipt_document_id?: string | null;
   payload_raw?: string;
   siigo_response?: string;
   status: 'success' | 'error' | 'filtered';
@@ -342,7 +347,7 @@ export async function upsertLogByPaymentId(data: {
   try {
     const [result] = await query(
       `UPDATE modulos_biury_8_logs
-       SET customer_document = ?, product_name = ?, gateway = ?, total = ?, payload_raw = ?, siigo_response = ?, status = ?
+       SET customer_document = ?, product_name = ?, gateway = ?, total = ?, receipt_document_id = ?, payload_raw = ?, siigo_response = ?, status = ?
        WHERE payment_id = ?
        ORDER BY id DESC
        LIMIT 1`,
@@ -351,6 +356,7 @@ export async function upsertLogByPaymentId(data: {
         data.product_name,
         data.gateway,
         data.total,
+        data.receipt_document_id || null,
         data.payload_raw || null,
         data.siigo_response || null,
         data.status,

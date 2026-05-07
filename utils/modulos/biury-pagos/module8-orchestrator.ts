@@ -23,6 +23,14 @@ interface SiigoVoucherResponse {
   body?: string;
 }
 
+function extractReceiptDocumentId(response?: SiigoVoucherResponse | null): string | null {
+  const data = response?.data;
+  const fromData = data?.id ?? data?.number ?? data?.document?.id ?? data?.document_id ?? null;
+  const fromRoot = response?.id ?? response?.number ?? null;
+  const value = fromData ?? fromRoot;
+  return value ? String(value) : null;
+}
+
 async function getSiigoToken(): Promise<{ token: string | null; error?: string; response?: any }> {
   const siigoUsername = await getConfig('siigo_username');
   const siigoAccessKey = await getConfig('siigo_access_key');
@@ -257,6 +265,7 @@ export async function processTreliWebhook(payload: { content: any; logId?: numbe
       product_name: normalized?.items?.[0]?.name || 'unknown',
       gateway: normalized?.payment_gateway_name || 'unknown',
       total: Number(normalized?.totals?.total) || 0,
+      receipt_document_id: null,
       payload_raw: payloadRaw,
       siigo_response: JSON.stringify({ error: 'Payload inválido: sin items' }),
       status: 'error',
@@ -275,11 +284,12 @@ export async function processTreliWebhook(payload: { content: any; logId?: numbe
       product_name: productName,
       gateway: normalized.payment_gateway_name || 'unknown',
       total: Number(normalized.totals?.total) || 0,
+      receipt_document_id: null,
       payload_raw: payloadRaw,
-      siigo_response: JSON.stringify({ status: 'filtered', reason: 'Sin regla de producto' }),
-      status: 'filtered',
+      siigo_response: JSON.stringify({ status: 'error', reason: 'Sin regla de producto' }),
+      status: 'error',
     });
-    return { ok: true, status: 'filtered' };
+    return { ok: true, status: 'error', error: 'Sin regla de producto' };
   }
 
   const authResult = await getSiigoToken();
@@ -290,6 +300,7 @@ export async function processTreliWebhook(payload: { content: any; logId?: numbe
       product_name: productName,
       gateway: normalized.payment_gateway_name || 'unknown',
       total: Number(normalized.totals?.total) || 0,
+      receipt_document_id: null,
       payload_raw: payloadRaw,
       siigo_response: JSON.stringify(
         authResult.response || { error: authResult.error || 'Error al obtener token de Siigo' }
@@ -300,6 +311,7 @@ export async function processTreliWebhook(payload: { content: any; logId?: numbe
   }
 
   const siigoResult = await createSiigoVoucher(normalized, authResult.token, data, matchedRule);
+  const receiptDocumentId = extractReceiptDocumentId(siigoResult.response);
 
   const logId = await saveLog(payload.logId, {
     payment_id: normalized.payment_id || 'unknown',
@@ -307,6 +319,7 @@ export async function processTreliWebhook(payload: { content: any; logId?: numbe
     product_name: productName,
     gateway: normalized.payment_gateway_name || 'unknown',
     total: Number(normalized.totals?.total) || 0,
+    receipt_document_id: receiptDocumentId,
     payload_raw: payloadRaw,
     siigo_response: JSON.stringify(siigoResult.response),
     status: siigoResult.success ? 'success' : 'error',
@@ -542,6 +555,7 @@ async function saveLog(
   product_name: string;
   gateway: string;
   total: number;
+  receipt_document_id?: string | null;
   payload_raw?: string;
   siigo_response?: string;
   status: 'success' | 'error' | 'filtered';
@@ -552,6 +566,7 @@ async function saveLog(
       product_name: data.product_name,
       gateway: data.gateway,
       total: data.total,
+      receipt_document_id: data.receipt_document_id || null,
       payload_raw: data.payload_raw,
       siigo_response: data.siigo_response,
       status: data.status,

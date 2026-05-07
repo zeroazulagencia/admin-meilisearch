@@ -7,9 +7,10 @@ import { getConfig, updateOpportunityLog } from './module6-config';
 import {
   getProjectIdByName,
   selectValidProjectFallback,
-  getGroupMembers,
+  getActiveGroupMembers,
   selectRandomOwner,
   getExistingOwnerForAccount,
+  isActiveUserId,
   resolveAccount,
   getAccount,
   createOpportunity,
@@ -56,11 +57,16 @@ export async function processOpportunity(recordId: number): Promise<{ ok: boolea
     if (!recordTypeId) throw new Error(`Config ${recordTypeKey} no definido`);
 
     let ownerId = await getExistingOwnerForAccount(accountId, recordTypeId);
+    if (ownerId && ownerId.startsWith('005')) {
+      const isActive = await isActiveUserId(ownerId);
+      if (!isActive) ownerId = null;
+    }
     if (!ownerId) {
       const groupKey = row.tipo === 'credito' ? 'salesforce_group_id_credito' : 'salesforce_group_id_ventas';
       const groupId = await getConfig(groupKey);
       if (!groupId) throw new Error(`Config ${groupKey} no definido`);
-      const members = await getGroupMembers(groupId);
+      const members = await getActiveGroupMembers(groupId);
+      if (members.length === 0) throw new Error('No hay usuarios activos en el grupo de Salesforce');
       ownerId = selectRandomOwner(members);
     }
 
@@ -75,6 +81,7 @@ export async function processOpportunity(recordId: number): Promise<{ ok: boolea
       ownerId,
       projectId,
       recordTypeId,
+      stageName: row.tipo === 'credito' ? 'No contactado' : 'Nuevo',
       leadSource: 'Web Form',
     });
 

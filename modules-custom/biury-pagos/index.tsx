@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 interface LogRow {
   id: number;
   payment_id: string;
+  receipt_document_id?: string | null;
   customer_document: string;
   product_name: string;
   gateway: string;
@@ -494,7 +495,7 @@ export default function BiuryPagosModule({ moduleData }: Module8Props) {
   };
 
   const reprocessErrors = async (options?: { status?: 'error' | 'filtered' }) => {
-    const statusLabel = options?.status === 'filtered' ? 'filtrados' : 'errores';
+    const statusLabel = 'errores';
     setReprocessLoading(true);
     setReprocessModal({
       open: true,
@@ -562,6 +563,10 @@ export default function BiuryPagosModule({ moduleData }: Module8Props) {
     } finally {
       setAuthLoading(false);
     }
+  };
+
+  const exportCsv = () => {
+    window.open(`${BASE}/export`, '_blank', 'noopener,noreferrer');
   };
 
   const reprocessDetail = async () => {
@@ -898,10 +903,6 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
                   <p className="text-xs text-gray-500 uppercase">Errores</p>
                   <p className="text-2xl font-bold text-red-600">{stats.error}</p>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500 uppercase">Filtrados</p>
-                  <p className="text-2xl font-bold text-gray-400">{stats.filtered}</p>
-                </div>
               </div>
               <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap items-center gap-3 mt-4">
                 <div className="text-sm text-gray-600 font-medium">Acciones rápidas</div>
@@ -914,19 +915,18 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
                   {reprocessLoading ? 'Procesando...' : 'Reprocesar errores'}
                 </button>
                 <button
-                  onClick={() => reprocessErrors({ status: 'filtered' })}
-                  type="button"
-                  disabled={reprocessLoading}
-                  className="px-3 py-1.5 bg-gray-900 text-white text-sm rounded hover:bg-black disabled:opacity-50"
-                >
-                  {reprocessLoading ? 'Procesando...' : 'Reprocesar filtrados'}
-                </button>
-                <button
                   onClick={() => setShowBulkModal(true)}
                   type="button"
                   className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
                 >
                   Reproceso masivo
+                </button>
+                <button
+                  onClick={exportCsv}
+                  type="button"
+                  className="px-3 py-1.5 bg-white text-gray-700 border border-gray-200 text-sm rounded hover:bg-gray-50"
+                >
+                  Exportar CSV
                 </button>
                 <button
                   onClick={() => setShowImportModal(true)}
@@ -958,6 +958,7 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Recibo caja ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gateway</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
@@ -968,9 +969,15 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {logs.map((log) => (
+                      (() => {
+                        const statusLabel = log.status === 'filtered' ? 'error' : log.status;
+                        return (
                       <tr key={log.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{log.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">{log.payment_id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
+                          {log.receipt_document_id || '-'}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{log.product_name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {formatGateway(log.gateway)}
@@ -978,11 +985,11 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(log.total)}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            log.status === 'success' ? 'bg-green-100 text-green-800' :
-                            log.status === 'error' ? 'bg-red-100 text-red-800' :
+                            statusLabel === 'success' ? 'bg-green-100 text-green-800' :
+                            statusLabel === 'error' ? 'bg-red-100 text-red-800' :
                             'bg-gray-100 text-gray-600'
                           }`}>
-                            {log.status}
+                            {statusLabel}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(log.created_at)}</td>
@@ -995,6 +1002,8 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
                           </button>
                         </td>
                       </tr>
+                        );
+                      })()
                     ))}
                   </tbody>
                 </table>
@@ -1032,7 +1041,7 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
         <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Configuración</h2>
-            <p className="text-sm text-gray-500">Credenciales y reglas de filtrado + cuentas contables</p>
+            <p className="text-sm text-gray-500">Credenciales y reglas de productos + cuentas contables</p>
           </div>
 
       {!showConfig ? (
@@ -1367,7 +1376,7 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
                             placeholder="wompi, mercadopago, etc"
                           />
                           <p className="text-[11px] text-gray-500">
-                            Deja el campo vacío para aplicar esta regla sin filtrar por gateway.
+                            Deja el campo vacío para aplicar esta regla sin criterio de gateway.
                           </p>
                         </div>
                       )}
@@ -1405,7 +1414,7 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Biury Pagos → Siigo (Módulo 8)</h2>
             <p className="text-sm text-gray-500">
-              Recibe webhooks de Treli (pagos WooCommerce), filtra productos "BiuryBox Trimestre" 
+              Recibe webhooks de Treli (pagos WooCommerce) y procesa productos "BiuryBox Trimestre" 
               y crea comprobantes contables en Siigo.
             </p>
           </div>
@@ -1415,7 +1424,7 @@ curl -sS -X POST "https://api.siigo.com/v1/vouchers" \
             <div className="space-y-3">
               {[
                 { paso: '01', titulo: 'Webhook recibido', desc: 'POST al webhook /8/webhook con payload de Treli. Se extrae content del body.' },
-                { paso: '02', titulo: 'Filtrar producto', desc: 'Se verifica si el primer item del pedido contiene "BiuryBox Trimestre". Si no, se marca como filtrado (no error).' },
+                { paso: '02', titulo: 'Validar producto', desc: 'Se verifica si el primer item del pedido contiene "BiuryBox Trimestre". Si no, se marca como error.' },
                 { paso: '03', titulo: 'Validar acceso', desc: 'Se valida email (administrativa@biury.co) y access_key contra la config.' },
                 { paso: '04', titulo: 'Crear voucher Siigo', desc: 'Se arma el payload del comprobante:\n- Wompi → cuenta 11200501 (débito)\n- MercadoPago → cuenta 11100501 (débito)\n- Contra-partida: 28050501 (Anticipos Clientes) a 3 meses\n- Cliente: identificación del billing\n- Observaciones: Treli Payment ID' },
                 { paso: '05', titulo: 'Guardar log', desc: 'Se registra en modulos_biury_8_logs con status success/error/filtered y la respuesta de Siigo.' },
@@ -1596,6 +1605,10 @@ modulos_biury_8_logs          Registros de pagos`}
                       <p className="text-sm font-mono text-gray-900">{detailData.payment_id}</p>
                     </div>
                     <div>
+                      <p className="text-xs text-gray-500 uppercase">Recibo caja ID</p>
+                      <p className="text-sm font-mono text-gray-900">{detailData.receipt_document_id || '-'}</p>
+                    </div>
+                    <div>
                       <p className="text-xs text-gray-500 uppercase">Documento</p>
                       <p className="text-sm font-mono text-gray-900">{detailData.customer_document}</p>
                     </div>
@@ -1613,13 +1626,18 @@ modulos_biury_8_logs          Registros de pagos`}
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 uppercase">Estado</p>
+                      {(() => {
+                        const statusLabel = detailData.status === 'filtered' ? 'error' : detailData.status;
+                        return (
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        detailData.status === 'success' ? 'bg-green-100 text-green-800' :
-                        detailData.status === 'error' ? 'bg-red-100 text-red-800' :
+                        statusLabel === 'success' ? 'bg-green-100 text-green-800' :
+                        statusLabel === 'error' ? 'bg-red-100 text-red-800' :
                         'bg-gray-100 text-gray-600'
                       }`}>
-                        {detailData.status}
+                        {statusLabel}
                       </span>
+                        );
+                      })()}
                     </div>
                   </div>
                   {detailData.siigo_response && (

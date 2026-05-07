@@ -8,6 +8,15 @@ export function hydrateLogRow<T extends Record<string, any>>(log: T): T {
     return log;
   }
 
+  let siigoParsed: any = null;
+  if (log?.siigo_response) {
+    try {
+      siigoParsed = JSON.parse(log.siigo_response);
+    } catch {
+      siigoParsed = null;
+    }
+  }
+
   const source = parsed?.data ?? parsed;
   const item = Array.isArray(source?.items) && source.items.length ? source.items[0] : null;
 
@@ -41,6 +50,13 @@ export function hydrateLogRow<T extends Record<string, any>>(log: T): T {
       item?.total ||
       0;
 
+  const receiptDocumentId = log.receipt_document_id ||
+    siigoParsed?.data?.id ||
+    siigoParsed?.data?.number ||
+    siigoParsed?.id ||
+    siigoParsed?.number ||
+    null;
+
   return {
     ...log,
     payment_id: paymentId,
@@ -48,5 +64,6 @@ export function hydrateLogRow<T extends Record<string, any>>(log: T): T {
     product_name: productName,
     gateway,
     total: totalValue,
+    receipt_document_id: receiptDocumentId,
   } as T;
 }
