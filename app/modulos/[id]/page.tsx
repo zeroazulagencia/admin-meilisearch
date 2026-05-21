@@ -9,6 +9,7 @@ import ModuleLoading from '@/components/ModuleLoading';
 import ModVerificadorMobilia from '@/modules-custom/verificador-mobilia';
 import ModModulo15 from '@/modules-custom/modulo-15';
 import ModPuenteShopifyMiPaquete from '@/modules-custom/puente-shopify-mi-paquete';
+import ModPagosAutolarteWompi from '@/modules-custom/pagos-autolarte-wompi';
 import ModHolaMundo from '@/modules-custom/hola-mundo';
 import ModLogLeadsSuvi from '@/modules-custom/log-leads-suvi';
 import ModGeneradorCartaLaboral from '@/modules-custom/generador-carta-laboral';
@@ -22,10 +23,12 @@ import ModSyncDataTablerosGain from '@/modules-custom/sync-data-tableros-gain';
 import ModSistemaCambioFondosPlacas from '@/modules-custom/sistema-de-cambio-de-fondos-y-placas';
 import ModUptimeDashboard from '@/modules-custom/uptime-dashboard-ecosistema-autolarte';
 import ModEndpointsAnaliticaBiury from '@/modules-custom/endpoints-anal-tica-biury';
+import ModPreciosCondicionalesNDeSantander from '@/modules-custom/precios-condicionales-n-de-santander';
 
 const MODULES_MAP: Record<string, any> = {
   'verificador-mobilia': ModVerificadorMobilia,
   'modulo-15': ModModulo15,
+  'pagos-autolarte-wompi': ModPagosAutolarteWompi,
   'puente-shopify-mi-paquete': ModPuenteShopifyMiPaquete,
   'hola-mundo': ModHolaMundo,
   'log-leads-suvi': ModLogLeadsSuvi,
@@ -40,6 +43,7 @@ const MODULES_MAP: Record<string, any> = {
   'sistema-de-cambio-de-fondos-y-placas': ModSistemaCambioFondosPlacas,
   'uptime-dashboard-ecosistema-autolarte': ModUptimeDashboard,
   'endpoints-anal-tica-biury': ModEndpointsAnaliticaBiury,
+  'precios-condicionales-n-de-santander': ModPreciosCondicionalesNDeSantander,
 };
 
 interface Module {
