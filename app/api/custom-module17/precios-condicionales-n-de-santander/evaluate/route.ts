@@ -5,12 +5,23 @@ import { insertDecisionLog } from '@/utils/modulos/precios-condicionales-17/logs
 
 export const dynamic = 'force-dynamic';
 
+type EvaluateCartLine = {
+  product_id?: string;
+  variant_id?: string;
+  product_title?: string;
+  quantity?: number;
+};
+
 type EvaluateBody = {
   ip?: string;
   shipping_state?: string;
   shipping_country_code?: string;
   cart_id?: string;
   customer_id?: string;
+  product_id?: string;
+  variant_id?: string;
+  product_title?: string;
+  lines?: EvaluateCartLine[];
 };
 
 type IpWhoisResponse = {
@@ -80,6 +91,41 @@ function matchState(targetState: string, aliases: string[], inputState?: string 
   return allowed.includes(input);
 }
 
+function normalizeLine(input: EvaluateCartLine | null | undefined): EvaluateCartLine | null {
+  if (!input || typeof input !== 'object') return null;
+
+  const productId = typeof input.product_id === 'string' ? input.product_id.trim() : '';
+  const variantId = typeof input.variant_id === 'string' ? input.variant_id.trim() : '';
+  const productTitle = typeof input.product_title === 'string' ? input.product_title.trim() : '';
+  const quantity = Number(input.quantity || 1);
+
+  if (!productId && !variantId && !productTitle) return null;
+
+  return {
+    product_id: productId || undefined,
+    variant_id: variantId || undefined,
+    product_title: productTitle || undefined,
+    quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+  };
+}
+
+function resolveCartLines(body: EvaluateBody): EvaluateCartLine[] {
+  const explicitLines = Array.isArray(body.lines)
+    ? body.lines.map((line) => normalizeLine(line)).filter((line): line is EvaluateCartLine => Boolean(line))
+    : [];
+
+  if (explicitLines.length) return explicitLines;
+
+  const single = normalizeLine({
+    product_id: body.product_id,
+    variant_id: body.variant_id,
+    product_title: body.product_title,
+    quantity: 1,
+  });
+
+  return single ? [single] : [];
+}
+
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => ({}))) as EvaluateBody;
 
@@ -88,6 +134,7 @@ export async function POST(request: NextRequest) {
   const ipAddress = getClientIp(request, body.ip);
   const shippingState = body.shipping_state || null;
   const shippingCountryCode = (body.shipping_country_code || '').toUpperCase() || null;
+  const cartLines = resolveCartLines(body);
 
   if (!config.enabled) {
     const response = {
@@ -95,6 +142,7 @@ export async function POST(request: NextRequest) {
       applied: false,
       reason: 'module_disabled',
       discount: null,
+      discounts: [],
       geo: null,
     };
 
@@ -116,13 +164,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
   }
 
-
   if (!ipAddress) {
     const response = {
       ok: false,
       applied: false,
       reason: 'missing_ip',
       discount: null,
+      discounts: [],
       geo: null,
     };
 
@@ -157,6 +205,7 @@ export async function POST(request: NextRequest) {
         applied: false,
         reason: 'ip_lookup_failed',
         discount: null,
+        discounts: [],
         geo,
       };
 
@@ -186,6 +235,7 @@ export async function POST(request: NextRequest) {
       reason: 'ip_lookup_exception',
       error: error?.message || 'Error consultando ipwhois',
       discount: null,
+      discounts: [],
       geo: null,
     };
 
@@ -227,18 +277,74 @@ export async function POST(request: NextRequest) {
   else if (!shippingStateMatches) reason = 'shipping_state_mismatch';
   else applied = true;
 
+  const discounts = (() => {
+    if (!applied) return [] as Array<Record<string, unknown>>;
+
+    const overridesByProductId = new Map<string, (typeof config.productOverrides)[number]>(
+      config.productOverrides
+        .filter((item) => item.active)
+        .map((item) => [item.product_id, item])
+    );
+
+    const baseDiscount = {
+      type: config.discountType,
+      value: config.discountValue,
+      source: 'base' as const,
+    };
+
+    if (!cartLines.length) {
+      return config.productScopeMode === 'selected_only' ? [] : [baseDiscount];
+    }
+
+    const resolved: Array<Record<string, unknown>> = [];
+
+    for (const line of cartLines) {
+      const productId = String(line.product_id || line.variant_id || '').trim();
+      const matchedOverride = productId ? overridesByProductId.get(productId) : null;
+
+      if (matchedOverride) {
+        resolved.push({
+          product_id: matchedOverride.product_id,
+          product_title: matchedOverride.product_title || line.product_title || null,
+          quantity: line.quantity || 1,
+          type: matchedOverride.mode === 'final_price' ? 'final_price' : 'percentage',
+          value: matchedOverride.value,
+          source: 'product_override',
+        });
+        continue;
+      }
+
+      if (config.productScopeMode === 'selected_only') {
+        continue;
+      }
+
+      resolved.push({
+        product_id: productId || null,
+        product_title: line.product_title || null,
+        quantity: line.quantity || 1,
+        type: config.discountType,
+        value: config.discountValue,
+        source: 'base',
+      });
+    }
+
+    return resolved;
+  })();
+
   const response = {
     ok: true,
-    applied,
-    reason,
+    applied: applied && (config.productScopeMode !== 'selected_only' || discounts.length > 0),
+    reason: applied && config.productScopeMode === 'selected_only' && discounts.length === 0 ? 'no_selected_products_in_cart' : reason,
     discount: applied
       ? {
           type: config.discountType,
           value: config.discountValue,
           target_country_code: config.targetCountryCode,
           target_state: config.targetState,
+          product_scope_mode: config.productScopeMode,
         }
       : null,
+    discounts,
     geo: {
       ip: geo?.ip || ipAddress,
       country_code: geo?.country_code || null,
@@ -266,8 +372,8 @@ export async function POST(request: NextRequest) {
     requireShippingMatch: config.requireShippingMatch,
     discountType: config.discountType,
     discountValue: config.discountValue,
-    applied,
-    reason,
+    applied: response.applied,
+    reason: response.reason,
     requestPayload: body,
     responsePayload: response,
   });

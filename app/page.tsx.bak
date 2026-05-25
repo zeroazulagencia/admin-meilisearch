@@ -256,13 +256,12 @@ export default function Home() {
   ];
 
   const portfolioCards = [
-    { category: "FINANZAS", title: "Departamento de Finanzas", description: "Agentes que concilian pagos, generan reportes financieros, monitorean cuentas por cobrar y pagar, alertan sobre anomalias, gestionan facturacion automatizada y mantienen la salud financiera de la empresa en tiempo real." },
-    { category: "ATENCION", title: "Departamento de Atencion al Cliente", description: "Multiples agentes que atienden consultas por WhatsApp, web y redes, escalan casos complejos, hacen seguimiento post-venta y mantienen clientes informados sin esperas ni horarios." },
-    { category: "OPERACION", title: "Departamento de Operaciones", description: "Agentes que monitorean procesos, gestionan inventarios, coordinan ordenes de produccion, alertan desvios y mantienen la cadena operativa funcionando sin fricciones." },
-    { category: "VENTAS", title: "Departamento de Ventas y CRM", description: "Equipo de agentes que califican leads, programan seguimientos, actualizan el CRM, generan cotizaciones y acompanan al cliente desde el primer contacto hasta el cierre." },
-    { category: "INVENTARIOS", title: "Departamento de Inventarios y Logistica", description: "Agentes que monitorean stock en tiempo real, alertan sobre minimos y maximos, coordinan ordenes de compra, rastrean envios, gestionan proveedores y mantienen la cadena de suministro funcionando sin intervencion manual." },
-    { category: "DATOS", title: "Departamento de Analitica de Datos", description: "Analistas IA que consolidan datos de todas las areas, generan dashboards, detectan anomalias, emiten alertas predictivas y entregan reportes accionables semanales." },
-    { category: "RRHH", title: "Departamento de Recursos Humanos", description: "Agentes que filtran y preseleccionan candidatos, coordinan entrevistas, gestionan onboarding, monitorean clima laboral, administran ausentismo y mantienen los procesos de talento automatizados y en marcha." },
+    { category: 'OPERACION', title: 'Operador de Procesos Complejos', description: 'Contrata un agente que coordina tareas de varias etapas, valida condiciones, mueve procesos entre areas y reduce bloqueos operativos que frenan la ejecucion diaria.' },
+    { category: 'PRODUCCION', title: 'Gestor de Planta de Produccion', description: 'Un agente que ayuda a monitorear avances, registrar novedades, detectar desvios y mantener visibilidad constante sobre la operacion de planta.' },
+    { category: 'ABASTECIMIENTO', title: 'Previsor de Compras a Proveedores', description: 'Analiza consumos, inventario e historicos para anticipar compras, evitar quiebres y reducir fricciones entre demanda, stock y abastecimiento.' },
+    { category: 'ATENCION', title: 'Asistente de WhatsApp 24/7', description: 'Atiende clientes, responde preguntas, califica oportunidades, hace seguimiento y mantiene la conversacion activa sin pausas ni horarios limitados.' },
+    { category: 'AUTOMATIZACION', title: 'Ejecutor de Tareas Repetitivas', description: 'Se encarga de actividades operativas y administrativas que consumen tiempo, como actualizaciones, registros, validaciones y movimientos entre sistemas.' },
+    { category: 'DATOS', title: 'Analista de Datos Operativos', description: 'Convierte grandes volumenes de informacion en alertas, reportes y senales utiles para detectar problemas, seguir indicadores y tomar mejores decisiones.' }
   ];
 
   const textHighlights = ['AUTOMATIZACION', 'OPERACION 24/7', 'MENOS CUELLOS DE BOTELLA'];
@@ -294,10 +293,10 @@ export default function Home() {
           <div className="space-y-8">
             <div className="space-y-4">
               <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight">
-                <span className="border-b-4 border-[#5DE1E5]">Equipos Completos</span> de Agentes IA
+                Contrata Agentes <span className="border-b-4 border-[#5DE1E5]">IA y Libera</span> tu Operacion
               </h1>
-              <p className="text-xl sm:text-2xl font-semibold text-gray-800">Agentes autonomos que trabajan solos, interconectados con todos tus sistemas</p>
-              <p className="text-base sm:text-lg text-gray-600 leading-relaxed">Montar un sistema de agentes no es conectar un chat y ya. Disenamos equipos completos de agentes que trabajan solos: se interconectan con tus APIs, bases de datos, ERPs y CRMs. Toman decisiones, ejecutan tareas complejas y se coordinan entre si sin intervencion humana. Cada agente opera autonomamente dentro de su area, pero todos trabajan como un solo equipo 24/7.</p>
+              <p className="text-xl sm:text-2xl font-semibold text-gray-800">Contrata agentes y libera tu operacion de tareas repetitivas</p>
+              <p className="text-base sm:text-lg text-gray-600 leading-relaxed">Escala tu empresa con agentes de inteligencia artificial que ejecutan tareas, sostienen procesos, reducen cuellos de botellas y mantienen tu operacion activa mientras tu equipo se concentra en lo que realmente mueve el negocio.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {textHighlights.map((text, i) => (
@@ -370,9 +369,6 @@ export default function Home() {
                       {card.category === 'DATOS' && (
                         <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                       )}
-                      {card.category === "RRHH" && (
-                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0z" /></svg>
-                      )}
                     </div>
                     <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5DE1E5' }}>{card.category}</p>
                   </div>
@@ -401,35 +397,26 @@ export default function Home() {
           </div>
         </div>
       </section>
-<section className="py-20 bg-gray-50 border-t border-gray-200">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <p className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#5DE1E5' }}>METAS DE NEGOCIO</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Contrata por metas de negocio, no por tareas sueltas</h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">No compres agentes sueltos. Contrata un departamento completo que apunte a resultados concretos: aumentar ventas, reducir costos operativos o mejorar el servicio al cliente. Nuestros agentes estan disenados para cumplir metas, no solo tareas.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-900 text-white font-bold text-2xl flex items-center justify-center mx-auto mb-4">1</div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Aumentar Ventas</h3>
-            <p className="text-sm text-gray-600">Un equipo de agentes que califica leads, atiende consultas, genera cotizaciones, programa seguimientos y cierra mas oportunidades. Tu equipo comercial se enfoca en negociar, no en prospectar.</p>
+
+      <section className="py-20 bg-gray-50 border-t border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#5DE1E5' }}>IMPACTO REAL</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Libera a tu equipo para lo importante</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">Cuando contratas agentes de inteligencia artificial, tu empresa deja de gastar energia en tareas repetitivas y empieza a enfocarse mas en control, estrategia, servicio y crecimiento.</p>
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-900 text-white font-bold text-2xl flex items-center justify-center mx-auto mb-4">2</div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Reducir Costos Operativos</h3>
-            <p className="text-sm text-gray-600">Departamento de operaciones con agentes que automatizan tareas repetitivas, monitorean procesos, gestionan inventarios y eliminan cuellos de botella. Operacion mas eficiente por menos costo.</p>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-900 text-white font-bold text-2xl flex items-center justify-center mx-auto mb-4">3</div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Mejorar Servicio al Cliente</h3>
-            <p className="text-sm text-gray-600">Multiples agentes que atienden 24/7 por WhatsApp, web y redes, escalan casos complejos y hacen seguimiento post-venta. Clientes satisfechos, retencion garantizada.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 mb-3">Menos cuellos de botella</h3>
+              <p className="text-gray-600">Los agentes sostienen procesos, reducen esperas innecesarias y ayudan a que la operacion siga avanzando sin tantos puntos de friccion.</p>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 mb-3">Mas tiempo para el equipo</h3>
+              <p className="text-gray-600">Al sacar de encima tareas manuales y repetitivas, las personas pueden enfocarse en supervisar, resolver y aportar mas valor.</p>
+            </div>
           </div>
         </div>
-        <div className="text-center mt-10">
-          <button onClick={() => setShowContactModal(true)} className="text-gray-900 px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md" style={{ backgroundColor: '#5DE1E5' }}>Empieza con tu meta</button>
-        </div>
-      </div>
-    </section>
+      </section>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <section id="metodologia" className="py-20 bg-white border-t border-gray-200">

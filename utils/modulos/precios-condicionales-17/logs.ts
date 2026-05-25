@@ -65,6 +65,10 @@ export async function insertDecisionLog(input: PricingDecisionLogInput): Promise
   );
 }
 
+export async function clearDecisionLogs(): Promise<void> {
+  await query(`DELETE FROM ${TABLE}`);
+}
+
 export async function listDecisionLogs(limit: number = 100) {
   const safeLimit = Math.max(1, Math.min(300, Number(limit) || 100));
 

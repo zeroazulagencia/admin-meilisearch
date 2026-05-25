@@ -5,13 +5,26 @@ import { useEffect, useMemo, useState } from 'react';
 const BASE = '/api/custom-module17/precios-condicionales-n-de-santander';
 
 type TabId = 'inicio' | 'config' | 'logs' | 'docs';
+type DiscountType = 'percentage' | 'fixed_per_item';
+type ProductScopeMode = 'all_products' | 'selected_only' | 'selected_with_base_fallback';
+type ProductOverrideMode = 'percentage' | 'final_price';
+
+type ProductOverride = {
+  id: string;
+  product_id: string;
+  product_title: string;
+  mode: ProductOverrideMode;
+  value: string;
+  active: boolean;
+};
 
 type ConfigState = {
   enabled: boolean;
   target_country_code: string;
   target_state: string;
-  discount_type: 'percentage' | 'fixed_per_item';
+  discount_type: DiscountType;
   discount_value: string;
+  product_scope_mode: ProductScopeMode;
   require_shipping_match: boolean;
   state_aliases: string;
   ipwhois_base_url: string;
@@ -52,6 +65,7 @@ const DEFAULT_CONFIG: ConfigState = {
   target_state: 'Norte de Santander',
   discount_type: 'percentage',
   discount_value: '0',
+  product_scope_mode: 'all_products',
   require_shipping_match: true,
   state_aliases: '["Norte de Santander","N. de Santander","Norte Santander"]',
   ipwhois_base_url: 'https://ipwho.is',
@@ -73,6 +87,15 @@ const DEFAULT_SENSITIVE_PREVIEW: SensitivePreview = {
   shopify_storefront_access_token: '',
 };
 
+const EMPTY_OVERRIDE = (): ProductOverride => ({
+  id: `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  product_id: '',
+  product_title: '',
+  mode: 'percentage',
+  value: '0',
+  active: true,
+});
+
 export default function PreciosCondicionalesNDeSantanderModule({
   moduleData,
 }: {
@@ -83,6 +106,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
 }) {
   const [activeTab, setActiveTab] = useState<TabId>('inicio');
   const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG);
+  const [productOverrides, setProductOverrides] = useState<ProductOverride[]>([]);
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
@@ -91,6 +115,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
   const [shopifyTestResult, setShopifyTestResult] = useState<any>(null);
   const [sensitivePreview, setSensitivePreview] = useState<SensitivePreview>(DEFAULT_SENSITIVE_PREVIEW);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [clearingLogs, setClearingLogs] = useState(false);
   const [logs, setLogs] = useState<DecisionLog[]>([]);
   const [testing, setTesting] = useState(false);
   const [testPayload, setTestPayload] = useState(JSON.stringify({
@@ -98,6 +123,18 @@ export default function PreciosCondicionalesNDeSantanderModule({
     shipping_state: 'Norte de Santander',
     shipping_country_code: 'CO',
     cart_id: 'gid://shopify/Cart/example',
+    lines: [
+      {
+        product_id: 'gid://shopify/Product/111',
+        product_title: 'Producto A',
+        quantity: 1,
+      },
+      {
+        product_id: 'gid://shopify/Product/222',
+        product_title: 'Producto B',
+        quantity: 2,
+      },
+    ],
   }, null, 2));
   const [testResult, setTestResult] = useState<any>(null);
 
@@ -112,6 +149,12 @@ export default function PreciosCondicionalesNDeSantanderModule({
     () => (config.require_shipping_match ? 'Obligatorio' : 'Opcional'),
     [config.require_shipping_match]
   );
+
+  const scopeModeLabel = useMemo(() => {
+    if (config.product_scope_mode === 'selected_only') return 'Solo productos configurados';
+    if (config.product_scope_mode === 'selected_with_base_fallback') return 'Configurados + base para el resto';
+    return 'Todos los productos usan la base';
+  }, [config.product_scope_mode]);
 
   const loadConfig = async () => {
     setLoadingConfig(true);
@@ -135,6 +178,12 @@ export default function PreciosCondicionalesNDeSantanderModule({
           target_state: String(json.config.target_state || 'Norte de Santander'),
           discount_type: json.config.discount_type === 'fixed_per_item' ? 'fixed_per_item' : 'percentage',
           discount_value: String(json.config.discount_value ?? '0'),
+          product_scope_mode:
+            json.config.product_scope_mode === 'selected_only'
+              ? 'selected_only'
+              : json.config.product_scope_mode === 'selected_with_base_fallback'
+                ? 'selected_with_base_fallback'
+                : 'all_products',
           require_shipping_match: json.config.require_shipping_match !== '0' && json.config.require_shipping_match !== false,
           state_aliases: String(json.config.state_aliases || DEFAULT_CONFIG.state_aliases),
           ipwhois_base_url: String(json.config.ipwhois_base_url || 'https://ipwho.is'),
@@ -146,6 +195,19 @@ export default function PreciosCondicionalesNDeSantanderModule({
           shopify_bridge_secret: '',
           shopify_storefront_access_token: '',
         }));
+
+        setProductOverrides(
+          Array.isArray(json.product_overrides)
+            ? json.product_overrides.map((item: any) => ({
+                id: String(item.id || EMPTY_OVERRIDE().id),
+                product_id: String(item.product_id || ''),
+                product_title: String(item.product_title || ''),
+                mode: item.mode === 'final_price' ? 'final_price' : 'percentage',
+                value: String(item.value ?? '0'),
+                active: item.active !== false,
+              }))
+            : []
+        );
       }
     } finally {
       setLoadingConfig(false);
@@ -177,12 +239,25 @@ export default function PreciosCondicionalesNDeSantanderModule({
     setSaveError('');
     try {
       const parsedAliases = JSON.parse(config.state_aliases || '[]');
+      const normalizedOverrides = productOverrides
+        .map((item) => ({
+          id: item.id,
+          product_id: item.product_id.trim(),
+          product_title: item.product_title.trim(),
+          mode: item.mode,
+          value: Number(item.value || 0),
+          active: item.active,
+        }))
+        .filter((item) => item.product_id && Number.isFinite(item.value) && item.value >= 0);
+
       const payload: any = {
         enabled: config.enabled,
         target_country_code: config.target_country_code,
         target_state: config.target_state,
         discount_type: config.discount_type,
         discount_value: Number(config.discount_value || 0),
+        product_scope_mode: config.product_scope_mode,
+        product_overrides: normalizedOverrides,
         require_shipping_match: config.require_shipping_match,
         state_aliases: Array.isArray(parsedAliases) ? parsedAliases : [],
         ipwhois_base_url: config.ipwhois_base_url,
@@ -247,6 +322,31 @@ export default function PreciosCondicionalesNDeSantanderModule({
     }
   };
 
+  const updateOverride = (id: string, patch: Partial<ProductOverride>) => {
+    setProductOverrides((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  };
+
+  const removeOverride = (id: string) => {
+    setProductOverrides((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const addOverride = () => {
+    setProductOverrides((prev) => [...prev, EMPTY_OVERRIDE()]);
+  };
+
+  const clearLogs = async () => {
+    setClearingLogs(true);
+    try {
+      const res = await fetch(`${BASE}/logs`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.ok) {
+        setLogs([]);
+      }
+    } finally {
+      setClearingLogs(false);
+    }
+  };
+
   const Field = ({
     label,
     description,
@@ -292,13 +392,15 @@ export default function PreciosCondicionalesNDeSantanderModule({
               <div className="bg-gray-50 border rounded p-3">País objetivo: <b>{config.target_country_code}</b></div>
               <div className="bg-gray-50 border rounded p-3">Estado objetivo: <b>{config.target_state}</b></div>
               <div className="bg-gray-50 border rounded p-3">Regla envío: <b>{shippingRuleLabel}</b></div>
+              <div className="bg-gray-50 border rounded p-3">Alcance productos: <b>{scopeModeLabel}</b></div>
+              <div className="bg-gray-50 border rounded p-3">Overrides configurados: <b>{productOverrides.filter((item) => item.active).length}</b></div>
             </div>
           )}
 
           <div className="border rounded-lg p-4 space-y-2">
             <h3 className="font-medium text-gray-800">Prueba rápida del evaluate</h3>
             <textarea
-              className="w-full min-h-[180px] px-3 py-2 border border-gray-300 rounded text-xs font-mono"
+              className="w-full min-h-[220px] px-3 py-2 border border-gray-300 rounded text-xs font-mono"
               value={testPayload}
               onChange={(e) => setTestPayload(e.target.value)}
             />
@@ -339,20 +441,79 @@ export default function PreciosCondicionalesNDeSantanderModule({
                 <Field label="País objetivo"><input className="w-full px-3 py-2 border rounded" value={config.target_country_code} onChange={(e) => setConfig({ ...config, target_country_code: e.target.value })} /></Field>
                 <Field label="Estado objetivo"><input className="w-full px-3 py-2 border rounded" value={config.target_state} onChange={(e) => setConfig({ ...config, target_state: e.target.value })} /></Field>
                 <Field
-                  label="Tipo descuento"
+                  label="Tipo descuento base"
                   description="percentage: aplica un porcentaje sobre el precio. fixed_per_item: descuenta un valor fijo por ítem."
                 >
-                  <select className="w-full px-3 py-2 border rounded" value={config.discount_type} onChange={(e) => setConfig({ ...config, discount_type: e.target.value as ConfigState['discount_type'] })}>
+                  <select className="w-full px-3 py-2 border rounded" value={config.discount_type} onChange={(e) => setConfig({ ...config, discount_type: e.target.value as DiscountType })}>
                     <option value="percentage">percentage</option>
                     <option value="fixed_per_item">fixed_per_item</option>
                   </select>
                 </Field>
                 <Field
-                  label="Valor descuento"
+                  label="Valor descuento base"
                   description="Usa números positivos. Ejemplo: percentage + 10 = -10% sobre el precio. fixed_per_item + 5000 = -$5.000 por ítem."
                 >
                   <input className="w-full px-3 py-2 border rounded" value={config.discount_value} onChange={(e) => setConfig({ ...config, discount_value: e.target.value })} />
                 </Field>
+                <Field
+                  label="Alcance por productos"
+                  description="Define si todos usan la base o si solo algunos productos tienen descuento propio."
+                >
+                  <select className="w-full px-3 py-2 border rounded" value={config.product_scope_mode} onChange={(e) => setConfig({ ...config, product_scope_mode: e.target.value as ProductScopeMode })}>
+                    <option value="all_products">all_products</option>
+                    <option value="selected_only">selected_only</option>
+                    <option value="selected_with_base_fallback">selected_with_base_fallback</option>
+                  </select>
+                </Field>
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Descuentos por producto</h3>
+                    <p className="text-xs text-gray-500">Configura productos específicos con porcentaje propio o precio final manual.</p>
+                  </div>
+                  <button type="button" onClick={addOverride} className="px-3 py-2 text-sm bg-slate-800 text-white rounded">
+                    Agregar producto
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {productOverrides.map((item) => (
+                    <div key={item.id} className="border rounded-lg p-3 grid grid-cols-1 md:grid-cols-5 gap-3">
+                      <Field label="Product ID" description="Usa el gid://shopify/Product/... exacto.">
+                        <input className="w-full px-3 py-2 border rounded" value={item.product_id} onChange={(e) => updateOverride(item.id, { product_id: e.target.value })} />
+                      </Field>
+                      <Field label="Nombre producto" description="Solo referencia visual en el panel.">
+                        <input className="w-full px-3 py-2 border rounded" value={item.product_title} onChange={(e) => updateOverride(item.id, { product_title: e.target.value })} />
+                      </Field>
+                      <Field label="Modo" description="percentage o final_price para este producto.">
+                        <select className="w-full px-3 py-2 border rounded" value={item.mode} onChange={(e) => updateOverride(item.id, { mode: e.target.value as ProductOverrideMode })}>
+                          <option value="percentage">percentage</option>
+                          <option value="final_price">final_price</option>
+                        </select>
+                      </Field>
+                      <Field label="Valor" description={item.mode === 'final_price' ? 'Precio final exacto del producto.' : 'Porcentaje que se aplicará a este producto.'}>
+                        <input className="w-full px-3 py-2 border rounded" value={item.value} onChange={(e) => updateOverride(item.id, { value: e.target.value })} />
+                      </Field>
+                      <div className="flex items-end gap-2">
+                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                          <input type="checkbox" checked={item.active} onChange={(e) => updateOverride(item.id, { active: e.target.checked })} />
+                          Activo
+                        </label>
+                        <button type="button" onClick={() => removeOverride(item.id)} className="px-3 py-2 text-sm border border-red-300 text-red-600 rounded">
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {productOverrides.length === 0 && (
+                    <div className="text-sm text-gray-500 border rounded-lg p-4">
+                      No hay productos configurados todavía.
+                    </div>
+                  )}
+                </div>
               </div>
 
               <Field label="Aliases (JSON array)"><textarea className="w-full min-h-[90px] px-3 py-2 border rounded font-mono text-xs" value={config.state_aliases} onChange={(e) => setConfig({ ...config, state_aliases: e.target.value })} /></Field>
@@ -393,6 +554,16 @@ export default function PreciosCondicionalesNDeSantanderModule({
             <p>Este módulo es el motor de reglas. La app Shopify consulta el endpoint bridge y aplica o no el descuento según la respuesta.</p>
           </div>
 
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+            <h4 className="font-semibold text-emerald-900 mb-2">Nuevo comportamiento de descuentos</h4>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Se mantiene un descuento base general.</li>
+              <li>Puedes definir overrides por producto.</li>
+              <li>Cada producto puede usar <strong>percentage</strong> o <strong>final_price</strong>.</li>
+              <li>El endpoint evaluate ahora puede responder múltiples descuentos por línea en <code>discounts</code>.</li>
+            </ul>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border rounded-lg p-4">
               <h4 className="font-semibold mb-2">App Shopify</h4>
@@ -414,46 +585,6 @@ export default function PreciosCondicionalesNDeSantanderModule({
               </ul>
             </div>
           </div>
-
-          <div className="border rounded-lg p-4">
-            <h4 className="font-semibold mb-2">Estado en Shopify (snapshot entregado)</h4>
-            <ul className="list-disc list-inside space-y-1">
-              <li><strong>Redirect URLs:</strong> ["https://example.com/api/auth"]</li>
-              <li><strong>Scopes:</strong> write_products</li>
-              <li><strong>App URL:</strong> https://example.com</li>
-              <li><strong>Embedded:</strong> true</li>
-              <li><strong>Webhooks api_version:</strong> 2026-07</li>
-              <li><strong>Webhook subscriptions:</strong> 2</li>
-            </ul>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded-lg p-4">
-              <h4 className="font-semibold mb-2">Function</h4>
-              <ul className="list-disc list-inside space-y-1">
-                <li><strong>Handle:</strong> za-discount-function</li>
-                <li><strong>UID:</strong> 13507ac8-b278-71f1-6f90-c8657a72e209367270f5</li>
-              </ul>
-            </div>
-            <div className="border rounded-lg p-4">
-              <h4 className="font-semibold mb-2">Checkout UI extension</h4>
-              <ul className="list-disc list-inside space-y-1">
-                <li><strong>Handle:</strong> za-checkout-ui</li>
-                <li><strong>UID:</strong> 62a0d220-fa21-be9a-62c3-47f1b0c6ace0c97c537e</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <h4 className="font-semibold text-amber-900 mb-2">Flujo simple de conexión</h4>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Checkout llama app Shopify (endpoint /api/za-discount-decision).</li>
-              <li>App firma body con shopify_bridge_secret y llama {`${BASE}/shopify-bridge`}.</li>
-              <li>WORKERS evalúa reglas (IP + estado + país + config).</li>
-              <li>Responde applied/discount/reason.</li>
-              <li>App Shopify aplica o no descuento en checkout.</li>
-            </ol>
-          </div>
         </div>
       )}
 
@@ -462,6 +593,9 @@ export default function PreciosCondicionalesNDeSantanderModule({
           <div className="flex items-center gap-2">
             <button type="button" onClick={loadLogs} disabled={loadingLogs} className="px-3 py-2 text-sm border rounded">
               {loadingLogs ? 'Cargando...' : 'Refrescar'}
+            </button>
+            <button type="button" onClick={clearLogs} disabled={clearingLogs} className="px-3 py-2 text-sm border border-red-300 text-red-600 rounded">
+              {clearingLogs ? 'Limpiando...' : 'Limpiar logs'}
             </button>
             <span className="text-xs text-gray-500">{logs.length} registros</span>
           </div>

@@ -36,6 +36,8 @@ INSERT IGNORE INTO modulos_precios_condicionales_17_config (config_key, config_v
   ('target_state', 'Norte de Santander'),
   ('discount_type', 'percentage'),
   ('discount_value', '0'),
+  ('product_scope_mode', 'all_products'),
+  ('product_overrides', '[]'),
   ('require_shipping_match', '1'),
   ('state_aliases', '["Norte de Santander","N. de Santander","Norte Santander"]'),
   ('ipwhois_base_url', 'https://ipwho.is'),

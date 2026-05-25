@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllConfig, setConfig } from '@/utils/modulos/precios-condicionales-17/config';
+import {
+  getAllConfig,
+  getProductOverrides,
+  setConfig,
+  setProductOverrides,
+} from '@/utils/modulos/precios-condicionales-17/config';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const config = await getAllConfig();
-    return NextResponse.json({ ok: true, config });
+    const [config, productOverrides] = await Promise.all([
+      getAllConfig(),
+      getProductOverrides(),
+    ]);
+    return NextResponse.json({ ok: true, config, product_overrides: productOverrides });
   } catch (error: any) {
     return NextResponse.json({ ok: false, error: error?.message || 'Error al obtener configuración' }, { status: 500 });
   }
@@ -17,6 +25,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     const upserts: Array<Promise<void>> = [];
+    let normalizedProductOverrides;
 
     if (body.enabled != null) upserts.push(setConfig('enabled', body.enabled ? '1' : '0'));
     if (body.target_country_code != null) upserts.push(setConfig('target_country_code', String(body.target_country_code || '').toUpperCase().trim() || null));
@@ -24,6 +33,7 @@ export async function PUT(request: NextRequest) {
     if (body.discount_type != null) upserts.push(setConfig('discount_type', String(body.discount_type || '').trim() || null));
     if (body.discount_value != null) upserts.push(setConfig('discount_value', String(body.discount_value)));
     if (body.require_shipping_match != null) upserts.push(setConfig('require_shipping_match', body.require_shipping_match ? '1' : '0'));
+    if (body.product_scope_mode != null) upserts.push(setConfig('product_scope_mode', String(body.product_scope_mode || '').trim() || null));
 
     if (body.state_aliases != null) {
       const aliases = Array.isArray(body.state_aliases)
@@ -42,9 +52,13 @@ export async function PUT(request: NextRequest) {
     if (body.shopify_bridge_secret != null) upserts.push(setConfig('shopify_bridge_secret', String(body.shopify_bridge_secret || '').trim() || null));
     if (body.shopify_storefront_access_token != null) upserts.push(setConfig('shopify_storefront_access_token', String(body.shopify_storefront_access_token || '').trim() || null));
 
+    if (body.product_overrides !== undefined) {
+      normalizedProductOverrides = await setProductOverrides(Array.isArray(body.product_overrides) ? body.product_overrides : []);
+    }
+
     await Promise.all(upserts);
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, product_overrides: normalizedProductOverrides });
   } catch (error: any) {
     return NextResponse.json({ ok: false, error: error?.message || 'Error al guardar configuración' }, { status: 500 });
   }
