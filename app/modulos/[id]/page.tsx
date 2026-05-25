@@ -25,6 +25,7 @@ import ModUptimeDashboard from '@/modules-custom/uptime-dashboard-ecosistema-aut
 import ModEndpointsAnaliticaBiury from '@/modules-custom/endpoints-anal-tica-biury';
 import ModPreciosCondicionalesNDeSantander from '@/modules-custom/precios-condicionales-n-de-santander';
 import ModMonitorWebCFA from '@/modules-custom/monitor-web-cfa';
+import ModSincronizadorUsadosAutolarte from '@/modules-custom/sincronizador-usados-autolarte';
 
 const MODULES_MAP: Record<string, any> = {
   'verificador-mobilia': ModVerificadorMobilia,
@@ -46,6 +47,7 @@ const MODULES_MAP: Record<string, any> = {
   'endpoints-anal-tica-biury': ModEndpointsAnaliticaBiury,
   'precios-condicionales-n-de-santander': ModPreciosCondicionalesNDeSantander,
   'monitor-web-cfa': ModMonitorWebCFA,
+  'sincronizador-usados-autolarte': ModSincronizadorUsadosAutolarte,
 };
 
 interface Module {
