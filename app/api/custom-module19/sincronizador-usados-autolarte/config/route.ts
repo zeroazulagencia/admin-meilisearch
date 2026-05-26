@@ -3,13 +3,14 @@ import { getAllConfig, setConfig } from '@/utils/modulos/sincronizador-usados-au
 
 export async function GET() {
   const cfg = await getAllConfig();
-  return NextResponse.json({ ok: true, config: cfg });
+  return NextResponse.json({ ok: true, data: cfg });
 }
 
-export async function PUT(req: Request) {
+export async function POST(req: Request) {
   try {
     const body = await req.json();
-    for (const [key, value] of Object.entries(body)) {
+    const data = body.data || body;
+    for (const [key, value] of Object.entries(data)) {
       if (typeof value === 'string' && key !== 'id' && key !== 'created_at') {
         await setConfig(key, value);
       }

@@ -32,25 +32,25 @@ export async function getStats(): Promise<{
   ultimaSync: string | null;
   resumen: { operacion: string; count: number }[];
 }> {
-  const totalRow = (await query(`SELECT COUNT(*) as c FROM ${TABLE}`)) as any[];
-  const okRow = (await query(`SELECT COUNT(*) as c FROM ${TABLE} WHERE status = 'ok'`)) as any[];
-  const errRow = (await query(`SELECT COUNT(*) as c FROM ${TABLE} WHERE status != 'ok'`)) as any[];
-  const lastRow = (await query(`SELECT created_at FROM ${TABLE} ORDER BY id DESC LIMIT 1`)) as any[];
-  const resumen = (await query(
+  const totalRow = ((await query(`SELECT COUNT(*) as c FROM ${TABLE}`)) as any[][])[0];
+  const okRow = ((await query(`SELECT COUNT(*) as c FROM ${TABLE} WHERE status = 'ok'`)) as any[][])[0];
+  const errRow = ((await query(`SELECT COUNT(*) as c FROM ${TABLE} WHERE status != 'ok'`)) as any[][])[0];
+  const lastRow = ((await query(`SELECT created_at FROM ${TABLE} ORDER BY id DESC LIMIT 1`)) as any[][])[0];
+  const rawResumen = ((await query(
     `SELECT operacion, COUNT(*) as count FROM ${TABLE} GROUP BY operacion ORDER BY count DESC`
-  )) as any[];
+  )) as any[][])[0];
 
   return {
     total: totalRow[0]?.c ?? 0,
     okCount: okRow[0]?.c ?? 0,
     errorCount: errRow[0]?.c ?? 0,
     ultimaSync: lastRow[0]?.created_at ?? null,
-    resumen: resumen as { operacion: string; count: number }[],
+    resumen: rawResumen as { operacion: string; count: number }[],
   };
 }
 
 export async function listLogs(limit = 200): Promise<SyncLog[]> {
-  const rows = await query(
+  const [rows] = await query(
     `SELECT id, placa, operacion, resultado, status, detalle, created_at FROM ${TABLE} ORDER BY id DESC LIMIT ?`,
     [limit]
   );

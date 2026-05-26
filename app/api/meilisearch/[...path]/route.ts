@@ -32,15 +32,30 @@ export async function GET(
       meilisearchParams[key] = value;
     });
     
-    const response = await axios.get(`${MEILISEARCH_CONFIG.url}${path}`, {
+    let url = `${MEILISEARCH_CONFIG.url}${path}`;
+    if (Object.keys(meilisearchParams).length > 0) {
+      const query = new URLSearchParams();
+      Object.entries(meilisearchParams).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          query.append(key, value.map((item) => String(item)).join(','));
+          return;
+        }
+        if (value !== undefined && value !== null) {
+          query.append(key, String(value));
+        }
+      });
+      const qs = query.toString();
+      if (qs) url += `?${qs}`;
+    }
+
+    const response = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${MEILISEARCH_CONFIG.apiKey}`,
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
-      },
-      params: Object.keys(meilisearchParams).length > 0 ? meilisearchParams : undefined
+      }
     });
 
     // Agregar headers para evitar caché en la respuesta
@@ -57,8 +72,8 @@ export async function GET(
       data: error.response?.data,
       url: error.config?.url,
       method: error.config?.method,
-      params: error.config?.params
-    });
+        params: error.config?.params
+      });
     
     return NextResponse.json(
       { 
