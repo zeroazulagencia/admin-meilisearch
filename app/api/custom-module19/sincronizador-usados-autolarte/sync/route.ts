@@ -76,6 +76,8 @@ function escapeJsonStr(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
 }
 
+export const maxDuration = 300;
+
 export async function POST() {
   const results: { placa: string; operacion: string; resultado: string; status: string; detalle?: string }[] = [];
   const startTime = Date.now();
@@ -88,7 +90,7 @@ export async function POST() {
     const inventarioUrl = cfg.inventario_url || 'https://autolarte.concesionariovirtual.co/usados/parametros/inventario.json';
     // const replicateKey = cfg.replicate_key || ''; // Para futuro uso con Replicate
 
-    if (cfg.enabled !== '1') {
+    if (cfg.enabled === '0') {
       return NextResponse.json({ ok: false, error: 'Modulo deshabilitado' }, { status: 400 });
     }
 

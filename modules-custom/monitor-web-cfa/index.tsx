@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const BASE = '/api/custom-module18/monitor-web-cfa';
 
@@ -42,6 +42,28 @@ const DEFAULT_CONFIG: ConfigState = {
   enabled: true,
 };
 
+const CHECK_STEPS: string[] = [
+  '1/4 Conectando con servidor remoto...',
+  '2/4 Esperando respuesta...',
+  '3/4 Guardando registro...',
+  '4/4 Evaluando alertas...',
+];
+
+async function safeFetchJson(url: string, opts?: RequestInit): Promise<any> {
+  const res = await fetch(url, opts);
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    const text = await res.text().catch(() => '');
+    const snippet = text.substring(0, 200);
+    throw new Error(`Respuesta inesperada (${res.status}): ${snippet}`);
+  }
+  const json = await res.json();
+  if (!res.ok || json.ok === false) {
+    throw new Error(json.error || `Error ${res.status}`);
+  }
+  return json;
+}
+
 export default function MonitorWebCFA({
   moduleData,
 }: {
@@ -50,35 +72,51 @@ export default function MonitorWebCFA({
   const [activeTab, setActiveTab] = useState<TabId>('inicio');
   const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG);
   const [loadingConfig, setLoadingConfig] = useState(true);
+  const [configError, setConfigError] = useState('');
   const [savingConfig, setSavingConfig] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [saveError, setSaveError] = useState('');
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [statsError, setStatsError] = useState('');
   const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState('');
+  const [checkStep, setCheckStep] = useState('');
   const [lastCheckResult, setLastCheckResult] = useState<any>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [logsError, setLogsError] = useState('');
   const [clearingLogs, setClearingLogs] = useState(false);
+  const [clearLogsError, setClearLogsError] = useState('');
+  const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const tabs: Array<{ id: TabId; label: string }> = [
     { id: 'inicio', label: 'Inicio' },
-    { id: 'config', label: 'Configuración' },
+    { id: 'config', label: 'Configuracion' },
     { id: 'logs', label: 'Logs' },
   ];
 
+  const clearStepTimer = () => {
+    if (stepTimerRef.current) {
+      clearInterval(stepTimerRef.current);
+      stepTimerRef.current = null;
+    }
+  };
+
   const loadConfig = async () => {
     setLoadingConfig(true);
+    setConfigError('');
     try {
-      const res = await fetch(`${BASE}/config`, { cache: 'no-store' });
-      const json = await res.json();
-      if (json.ok && json.config) {
+      const json = await safeFetchJson(`${BASE}/config`, { cache: 'no-store' });
+      if (json.config) {
         setConfig({
           url: String(json.config.url || DEFAULT_CONFIG.url),
           interval_minutes: String(json.config.interval_minutes || DEFAULT_CONFIG.interval_minutes),
           enabled: json.config.enabled === '1' || json.config.enabled === true,
         });
       }
+    } catch (e: any) {
+      setConfigError(e?.message || 'Error de red al cargar configuracion');
     } finally {
       setLoadingConfig(false);
     }
@@ -86,10 +124,12 @@ export default function MonitorWebCFA({
 
   const loadStats = async () => {
     setLoadingStats(true);
+    setStatsError('');
     try {
-      const res = await fetch(`${BASE}/stats`, { cache: 'no-store' });
-      const json = await res.json();
-      if (json.ok) setStats(json);
+      const json = await safeFetchJson(`${BASE}/stats`, { cache: 'no-store' });
+      setStats(json);
+    } catch (e: any) {
+      setStatsError(e?.message || 'Error de red al cargar estadisticas');
     } finally {
       setLoadingStats(false);
     }
@@ -97,10 +137,13 @@ export default function MonitorWebCFA({
 
   const loadLogs = async () => {
     setLoadingLogs(true);
+    setLogsError('');
     try {
-      const res = await fetch(`${BASE}/logs`, { cache: 'no-store' });
-      const json = await res.json();
-      setLogs(json.ok && Array.isArray(json.logs) ? json.logs : []);
+      const json = await safeFetchJson(`${BASE}/logs`, { cache: 'no-store' });
+      setLogs(Array.isArray(json.logs) ? json.logs : []);
+    } catch (e: any) {
+      setLogsError(e?.message || 'Error de red al cargar logs');
+      setLogs([]);
     } finally {
       setLoadingLogs(false);
     }
@@ -120,16 +163,14 @@ export default function MonitorWebCFA({
     setSaveMessage('');
     setSaveError('');
     try {
-      const res = await fetch(`${BASE}/config`, {
+      await safeFetchJson(`${BASE}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       });
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'No se pudo guardar');
-      setSaveMessage('Configuración guardada');
+      setSaveMessage('Configuracion guardada');
     } catch (e: any) {
-      setSaveError(e?.message || 'Error guardando configuración');
+      setSaveError(e?.message || 'Error guardando configuracion');
     } finally {
       setSavingConfig(false);
     }
@@ -137,24 +178,48 @@ export default function MonitorWebCFA({
 
   const runCheck = async () => {
     setChecking(true);
+    setCheckError('');
     setLastCheckResult(null);
+
+    // Etapa 1 - muestra paso fijo
+    setCheckStep(CHECK_STEPS[0]);
+
+    // Rota pasos 2/3/4 mientras espera respuesta del servidor
+    let stepIdx = 1;
+    stepTimerRef.current = setInterval(() => {
+      stepIdx = Math.min(stepIdx + 1, CHECK_STEPS.length - 1);
+      setCheckStep(CHECK_STEPS[stepIdx]);
+    }, 6000);
+
     try {
-      const res = await fetch(`${BASE}/check`, { method: 'POST' });
-      const json = await res.json();
+      const json = await safeFetchJson(`${BASE}/check`, { method: 'POST' });
+      clearStepTimer();
+
+      setCheckStep(CHECK_STEPS[3]); // Evaluando alertas
       setLastCheckResult(json);
+
+      // Delay breve para que se alcance a ver el paso final
+      await new Promise((r) => setTimeout(r, 400));
+
       if (activeTab === 'inicio') loadStats();
       if (activeTab === 'logs') loadLogs();
+    } catch (e: any) {
+      clearStepTimer();
+      setCheckError(e?.message || 'Error de red en verificacion');
     } finally {
+      setCheckStep('');
       setChecking(false);
     }
   };
 
   const clearLogsAction = async () => {
     setClearingLogs(true);
+    setClearLogsError('');
     try {
-      const res = await fetch(`${BASE}/logs`, { method: 'DELETE' });
-      const json = await res.json();
-      if (json.ok) setLogs([]);
+      await safeFetchJson(`${BASE}/logs`, { method: 'DELETE' });
+      setLogs([]);
+    } catch (e: any) {
+      setClearLogsError(e?.message || 'Error limpiando logs');
     } finally {
       setClearingLogs(false);
     }
@@ -209,40 +274,60 @@ export default function MonitorWebCFA({
 
       {activeTab === 'inicio' && (
         <div className="space-y-4">
-          {loadingConfig && loadingStats ? (
-            <div className="text-sm text-gray-500">Cargando...</div>
+          {loadingConfig ? (
+            <div className="text-sm text-gray-500">Cargando configuracion...</div>
+          ) : configError ? (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">{configError}</div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                <div className={`border rounded p-3 ${stats && stats.downCount > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border'}`}>
-                  Estado: <b>{stats && stats.lastCheck ? (stats.downCount > 0 ? 'Con problemas' : 'OK') : '—'}</b>
-                </div>
-                <div className="bg-gray-50 border rounded p-3">
-                  Uptime: <b>{stats ? `${stats.uptimePercent.toFixed(1)}%` : '—'}</b>
-                </div>
-                <div className="bg-gray-50 border rounded p-3">
-                  Caídas: <b>{stats ? stats.downCount : '—'}</b>
-                </div>
-                <div className="bg-gray-50 border rounded p-3">
-                  WAF: <b>{stats ? stats.wafCount : '—'}</b>
-                </div>
-              </div>
-
-              {stats && stats.recentHistory && stats.recentHistory.length > 0 && (
-                <div className="border rounded-lg p-3">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Últimas verificaciones</h3>
-                  <div className="flex gap-1">
-                    {stats.recentHistory.map((h, i) => (
-                      <div
-                        key={i}
-                        className={`w-4 h-8 rounded-sm ${
-                          !h.contentValid ? 'bg-red-500' : h.statusCode === 200 ? 'bg-green-500' : 'bg-yellow-500'
-                        }`}
-                        title={`${fmtTime(h.checked_at)}: ${h.statusCode}`}
-                      />
-                    ))}
+              {loadingStats ? (
+                <div className="text-sm text-gray-500">Cargando estadisticas...</div>
+              ) : statsError ? (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">{statsError}</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                    <div className={`border rounded p-3 ${stats && stats.downCount > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border'}`}>
+                      Estado: <b>{stats && stats.lastCheck ? (stats.downCount > 0 ? 'Con problemas' : 'OK') : '\u2014'}</b>
+                    </div>
+                    <div className="bg-gray-50 border rounded p-3">
+                      Uptime: <b>{stats ? `${stats.uptimePercent.toFixed(1)}%` : '\u2014'}</b>
+                    </div>
+                    <div className="bg-gray-50 border rounded p-3">
+                      Caidas: <b>{stats ? stats.downCount : '\u2014'}</b>
+                    </div>
+                    <div className="bg-gray-50 border rounded p-3">
+                      WAF: <b>{stats ? stats.wafCount : '\u2014'}</b>
+                    </div>
                   </div>
+
+                  {stats && stats.recentHistory && stats.recentHistory.length > 0 && (
+                    <div className="border rounded-lg p-3">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-2">Ultimas verificaciones</h3>
+                      <div className="flex gap-1">
+                        {stats.recentHistory.map((h, i) => (
+                          <div
+                            key={i}
+                            className={`w-4 h-8 rounded-sm ${
+                              !h.contentValid ? 'bg-red-500' : h.statusCode === 200 ? 'bg-green-500' : 'bg-yellow-500'
+                            }`}
+                            title={`${fmtTime(h.checked_at)}: ${h.statusCode}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {checking && (
+                <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded p-3">
+                  <span className="animate-pulse">{checkStep}</span>
                 </div>
+              )}
+
+              {checkError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">{checkError}</div>
               )}
 
               {lastCheckResult && (
@@ -251,7 +336,7 @@ export default function MonitorWebCFA({
                     <div>
                       HTTP {lastCheckResult.check.statusCode} |{' '}
                       {lastCheckResult.check.responseTimeMs}ms |{' '}
-                      {lastCheckResult.check.contentValid ? 'Contenido válido' : 'Contenido inválido'}
+                      {lastCheckResult.check.contentValid ? 'Contenido valido' : 'Contenido invalido'}
                       {lastCheckResult.check.wafDetected && ' | WAF detectado'}
                       {lastCheckResult.alert?.alerted && ' | ALERTA ENVIADA'}
                     </div>
@@ -276,12 +361,14 @@ export default function MonitorWebCFA({
         <div className="space-y-4">
           {loadingConfig ? (
             <div className="text-sm text-gray-500">Cargando...</div>
+          ) : configError ? (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">{configError}</div>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field
                   label="URL a monitorear"
-                  description="Dirección web que se verificará periódicamente."
+                  description="Direccion web que se verificara periodicamente."
                 >
                   <input
                     type="text"
@@ -292,7 +379,7 @@ export default function MonitorWebCFA({
                 </Field>
                 <Field
                   label="Intervalo (minutos)"
-                  description="Cada cuántos minutos se ejecuta la verificación automática."
+                  description="Cada cuantos minutos se ejecuta la verificacion automatica."
                 >
                   <input
                     type="number"
@@ -303,8 +390,8 @@ export default function MonitorWebCFA({
                   />
                 </Field>
                 <Field
-                  label="Módulo habilitado"
-                  description="Activa o desactiva las verificaciones periódicas."
+                  label="Modulo habilitado"
+                  description="Activa o desactiva las verificaciones periodicas."
                 >
                   <input
                     type="checkbox"
@@ -321,7 +408,7 @@ export default function MonitorWebCFA({
                   disabled={savingConfig}
                   className="px-3 py-2 text-sm bg-blue-600 text-white rounded disabled:opacity-50"
                 >
-                  {savingConfig ? 'Guardando...' : 'Guardar configuración'}
+                  {savingConfig ? 'Guardando...' : 'Guardar configuracion'}
                 </button>
                 {saveMessage && <span className="text-sm text-green-600">{saveMessage}</span>}
                 {saveError && <span className="text-sm text-red-600">{saveError}</span>}
@@ -333,7 +420,7 @@ export default function MonitorWebCFA({
 
       {activeTab === 'logs' && (
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <button
               type="button"
               onClick={runCheck}
@@ -350,12 +437,25 @@ export default function MonitorWebCFA({
             >
               {clearingLogs ? 'Limpiando...' : 'Limpiar logs'}
             </button>
+            {clearLogsError && <span className="text-sm text-red-600">{clearLogsError}</span>}
           </div>
+
+          {checking && (
+            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded p-3">
+              <span className="animate-pulse">{checkStep}</span>
+            </div>
+          )}
+
+          {checkError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">{checkError}</div>
+          )}
 
           {loadingLogs ? (
             <div className="text-sm text-gray-500">Cargando logs...</div>
+          ) : logsError ? (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">{logsError}</div>
           ) : logs.length === 0 ? (
-            <div className="text-sm text-gray-400 italic">No hay logs aún</div>
+            <div className="text-sm text-gray-400 italic">No hay logs aun</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs border-collapse">
@@ -364,7 +464,7 @@ export default function MonitorWebCFA({
                     <th className="text-left py-2 pr-3">Fecha</th>
                     <th className="text-left py-2 pr-3">Status</th>
                     <th className="text-left py-2 pr-3">Tiempo</th>
-                    <th className="text-left py-2 pr-3">Tamaño</th>
+                    <th className="text-left py-2 pr-3">Tamano</th>
                     <th className="text-left py-2 pr-3">Contenido</th>
                     <th className="text-left py-2 pr-3">Error</th>
                   </tr>
@@ -384,17 +484,17 @@ export default function MonitorWebCFA({
                           {log.statusCode ?? 'ERR'}
                         </span>
                       </td>
-                      <td className="py-2 pr-3">{log.responseTimeMs != null ? `${log.responseTimeMs}ms` : '—'}</td>
-                      <td className="py-2 pr-3">{log.contentLength != null ? `${(log.contentLength / 1024).toFixed(1)}KB` : '—'}</td>
+                      <td className="py-2 pr-3">{log.responseTimeMs != null ? `${log.responseTimeMs}ms` : '\u2014'}</td>
+                      <td className="py-2 pr-3">{log.contentLength != null ? `${(log.contentLength / 1024).toFixed(1)}KB` : '\u2014'}</td>
                       <td className="py-2 pr-3">
                         {log.contentValid
                           ? <span className="text-green-600 font-medium">OK</span>
                           : log.wafDetected
                             ? <span className="text-yellow-600 font-medium">WAF</span>
-                            : <span className="text-red-600 font-medium">Falló</span>
+                            : <span className="text-red-600 font-medium">Fallo</span>
                         }
                       </td>
-                      <td className="py-2 pr-3 max-w-[200px] truncate text-gray-500">{log.errorMessage ?? '—'}</td>
+                      <td className="py-2 pr-3 max-w-[200px] truncate text-gray-500">{log.errorMessage ?? '\u2014'}</td>
                     </tr>
                   ))}
                 </tbody>
