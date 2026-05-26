@@ -196,17 +196,21 @@ function normalizePrefijoColombia(pais: string, prefijo: string): { paisCorregid
     'israel': 'Israel(+972)',
   };
 
-  const key = `${p}(${c.replace(/^\+/, '')})`;
+  // Asegurar que el prefijo tenga '+' (viene de AI sin prefijo '+')
+  const normalizedC = c.startsWith('+') ? c : `+${c}`;
+
+  const key = `${p}(${normalizedC})`;
   if (mapa[key]) {
     const [paisCorregido, prefijoCorregido] = mapa[key].replace('(+', '|').replace(')', '').split('|');
-    return { paisCorregido, prefijoCorregido };
+    return { paisCorregido, prefijoCorregido: `+${prefijoCorregido}` };
   }
 
-  if (c === '+1' || c === '+57') {
-    return { paisCorregido: p === 'colombia' ? 'Colombia' : pais, prefijoCorregido: c.replace('+', '') };
+  if (normalizedC === '+1' || normalizedC === '+57') {
+    return { paisCorregido: p === 'colombia' ? 'Colombia' : pais, prefijoCorregido: normalizedC };
   }
 
-  return { paisCorregido: pais, prefijoCorregido: prefijo.replace(/^\+/, '') };
+  const prefijoConMas = prefijo.startsWith('+') ? prefijo : `+${prefijo}`;
+  return { paisCorregido: pais, prefijoCorregido: prefijoConMas };
 }
 
 // PASO 6: Crear o actualizar cuenta en Salesforce

@@ -1,65 +1,17 @@
 {
-  "pid": 1427373,
+  "pid": 1433781,
   "status": "done",
   "step": "completado",
   "stepLabel": "Sincronizacion completada",
-  "total": 40,
-  "processed": 40,
-  "errors": 0,
-  "okCount": 40,
-  "errCount": 0,
-  "elapsedSec": "71.7",
+  "total": 100,
+  "processed": 100,
+  "errors": 2,
+  "okCount": 98,
+  "errCount": 2,
+  "elapsedSec": "132.0",
   "results": [
     {
-      "placa": "LFO830",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
-      "status": "ok"
-    },
-    {
-      "placa": "KZK248",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
-      "status": "ok"
-    },
-    {
-      "placa": "NGK117",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
-      "status": "ok"
-    },
-    {
-      "placa": "LKL566",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
-      "status": "ok"
-    },
-    {
-      "placa": "JWU229",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
-      "status": "ok"
-    },
-    {
-      "placa": "KRV316",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
-      "status": "ok"
-    },
-    {
-      "placa": "LVV615",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
-      "status": "ok"
-    },
-    {
-      "placa": "LFN841",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
-      "status": "ok"
-    },
-    {
-      "placa": "NTR598",
+      "placa": "NFZ710",
       "operacion": "update",
       "resultado": "Vehiculo actualizado",
       "status": "ok"
@@ -71,97 +23,199 @@
       "status": "ok"
     },
     {
+      "placa": "NGV160",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "POR258",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NTW769",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NGW079",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NTW674",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "EGZ842",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "LFO071",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "JUK147",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "FIX986",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "FIW242",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NZQ394",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "LQV967",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "QOY206",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "LCX034",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "KXN623",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "JIW954",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "GHX066",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
       "placa": "PJL379",
       "operacion": "update",
       "resultado": "Vehiculo actualizado",
       "status": "ok"
     },
     {
-      "placa": "JOQ937",
+      "placa": "NTR598",
       "operacion": "update",
       "resultado": "Vehiculo actualizado",
       "status": "ok"
     },
     {
-      "placa": "LFN842",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "NGK117",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "LRZ150",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "PJL281",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "NZT160",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "LCZ463",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "NZT183",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "NJV358",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "NIL587",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "LFN382",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "NGS336",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "FIX664",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "NZT415",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "LKT703",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "JPX321",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "NGV160",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "PJQ930",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "LRT807",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "NZS286",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "QIV119",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "POR015",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "LFO879",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "LZW674",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "PJU952",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "FIU150",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "LZV831",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
-      "status": "ok"
-    },
-    {
-      "placa": "LRQ978",
+      "placa": "LFN856",
       "operacion": "update",
       "resultado": "Vehiculo actualizado",
       "status": "ok"
@@ -173,15 +227,87 @@
       "status": "ok"
     },
     {
+      "placa": "LFN842",
+      "operacion": "update",
+      "resultado": "Vehiculo actualizado",
+      "status": "ok"
+    },
+    {
+      "placa": "NHW118",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NGU227",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "FXN671",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NZT546",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "LTQ357",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "JZM139",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "KQQ112",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "KYX314",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "PJL935",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "QKM634",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "LFN382",
+      "operacion": "update",
+      "resultado": "Vehiculo actualizado",
+      "status": "ok"
+    },
+    {
       "placa": "KRU623",
       "operacion": "update",
       "resultado": "Vehiculo actualizado",
       "status": "ok"
     },
     {
-      "placa": "NFZ710",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "LFN686",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
@@ -191,43 +317,67 @@
       "status": "ok"
     },
     {
-      "placa": "LFN856",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "LGR151",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "FPQ063",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "NZR687",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "PRU174",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "FIX811",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "NJV138",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "NZT407",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
-      "placa": "NNR290",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
+      "placa": "NZQ565",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "POR117",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "LQX423",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "JJK285",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "KOP297",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NPP918",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
       "status": "ok"
     },
     {
       "placa": "LZY788",
-      "operacion": "update",
-      "resultado": "Vehiculo actualizado",
-      "status": "ok"
-    },
-    {
-      "placa": "LFN720",
       "operacion": "update",
       "resultado": "Vehiculo actualizado",
       "status": "ok"
@@ -239,26 +389,236 @@
       "status": "ok"
     },
     {
-      "placa": "JYO359",
+      "placa": "FPQ063",
       "operacion": "update",
       "resultado": "Vehiculo actualizado",
       "status": "ok"
     },
     {
-      "placa": "JLZ936",
+      "placa": "LFN720",
       "operacion": "update",
       "resultado": "Vehiculo actualizado",
+      "status": "ok"
+    },
+    {
+      "placa": "NJV138",
+      "operacion": "update",
+      "resultado": "Vehiculo actualizado",
+      "status": "ok"
+    },
+    {
+      "placa": "HCU818",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "PRW993",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NVZ294",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "PJL697",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "LFP745",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NPQ723",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "KUO117",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NTR073",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "PRN391",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "NNO424",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "FIX197",
+      "operacion": "create",
+      "resultado": "Vehiculo nuevo registrado",
+      "status": "ok"
+    },
+    {
+      "placa": "JLZ936",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "NNR290",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "LZV831",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "LRT807",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "LKT703",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "LFN841",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "JWU229",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "LKL566",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "QIV119",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "KZK248",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "LFO879",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "LRQ978",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "LFO830",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "PJL281",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "KRV316",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "LVV615",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "LCZ463",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "PRU174",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "JOQ937",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "PJU952",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "FIX664",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "NJV358",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
+      "status": "ok"
+    },
+    {
+      "placa": "JYO359",
+      "operacion": "delete",
+      "resultado": "Si se pudo eliminar. Ya no esta en inventario",
       "status": "ok"
     }
   ],
   "testResults": {
     "tested": 10,
-    "ok": 8,
-    "errores": 2,
+    "ok": 7,
+    "errores": 3,
     "detalle": [
       {
-        "placa": "PJL379",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2025/10/23/2fd346e3-9770-4318-bce9-0d7c0d2dbd33_9BGEP76C0SB200528_frontright_IA_r_.jpg",
+        "placa": "PRW780",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/03/03/1f9ee8e0-9be3-4c75-8290-643fd7f597b3_9FBRBB003TM371943_frontright_IA_r_.jpg",
         "frontalStatus": "ok(200)",
         "lateralStatus": "ok(200)",
         "galeriaCount": 6,
@@ -269,39 +629,63 @@
         "syncStatus": "ok"
       },
       {
-        "placa": "LKL566",
+        "placa": "LZW674",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/05/12/074211b0-cdb8-4b26-82da-9eb7ec3a756e_KNAD6817AP6786019_frontright_IA_r_.jpg",
+        "frontalStatus": "ok(200)",
+        "lateralStatus": "ok(200)",
+        "galeriaCount": 5,
+        "galeriaAccessibles": 5,
+        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
+        "syncOperacion": "create",
+        "syncResultado": "Vehiculo nuevo registrado",
+        "syncStatus": "ok"
+      },
+      {
+        "placa": "KXN623",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/05/22/44fb9d6b-9939-47dc-b4c1-13ccbee515e0_9BGEN76C0NB177409_frontright_IA_r_.jpg",
+        "frontalStatus": "ok(200)",
+        "lateralStatus": "ok(200)",
+        "galeriaCount": 6,
+        "galeriaAccessibles": 6,
+        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
+        "syncOperacion": "create",
+        "syncResultado": "Vehiculo nuevo registrado",
+        "syncStatus": "ok"
+      },
+      {
+        "placa": "POR258",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/04/13/c98b8ead-10e0-4722-92cb-1ba92134110c_9BGEB69K0SG226881_frontright_IA_r_.jpg",
+        "frontalStatus": "ok(200)",
+        "lateralStatus": "ok(200)",
+        "galeriaCount": 6,
+        "galeriaAccessibles": 6,
+        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
+        "syncOperacion": "create",
+        "syncResultado": "Vehiculo nuevo registrado",
+        "syncStatus": "ok"
+      },
+      {
+        "placa": "POR015",
         "imagenPrincipal": "https://autolarte.com.co/wp-content/uploads/imagen-no-disponible-autolarte-1.png",
         "frontalStatus": "ok(200)",
         "lateralStatus": "no_image",
         "galeriaCount": 0,
         "galeriaAccessibles": 0,
         "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
+        "syncOperacion": "create",
+        "syncResultado": "Vehiculo nuevo registrado",
         "syncStatus": "ok"
       },
       {
-        "placa": "NKR621",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/02/24/2c05d6cc-d08c-491a-ad84-95e181706d7e_3GN7D8RR9RS281358_frontright_IA_r_.jpg",
+        "placa": "LQV967",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/05/22/9bfbd9b9-ff66-49f2-96ac-a27ed2ae674f_WV1ZZZ2HZPA004325_frontright_IA_r_.jpg",
         "frontalStatus": "ok(200)",
         "lateralStatus": "ok(200)",
         "galeriaCount": 6,
-        "galeriaAccessibles": 6,
+        "galeriaAccessibles": 5,
         "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
-        "syncStatus": "ok"
-      },
-      {
-        "placa": "FIX664",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/01/13/df3f8e63-36e4-46d0-a5f8-449607ac586d_9BG148PK0PC416661_frontright_IA_r_.jpg",
-        "frontalStatus": "ok(200)",
-        "lateralStatus": "ok(200)",
-        "galeriaCount": 6,
-        "galeriaAccessibles": 6,
-        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
+        "syncOperacion": "create",
+        "syncResultado": "Vehiculo nuevo registrado",
         "syncStatus": "ok"
       },
       {
@@ -317,67 +701,43 @@
         "syncStatus": "ok"
       },
       {
-        "placa": "PRW780",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/03/03/1f9ee8e0-9be3-4c75-8290-643fd7f597b3_9FBRBB003TM371943_frontright_IA_r_.jpg",
+        "placa": "FIX986",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/05/04/4846aacd-7fc7-4a4d-8b3a-b3c81b6f6f24_LZWADAGA4PB045631_frontright_IA_r_.jpg",
         "frontalStatus": "ok(200)",
         "lateralStatus": "ok(200)",
         "galeriaCount": 6,
-        "galeriaAccessibles": 6,
+        "galeriaAccessibles": 5,
         "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
+        "syncOperacion": "create",
+        "syncResultado": "Vehiculo nuevo registrado",
         "syncStatus": "ok"
       },
       {
-        "placa": "LCZ463",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/02/26/677f7052-951d-4304-b460-8e79f5ec60f8_9BRBZ3BEXP4034578_frontright_IA_r_.jpg",
-        "frontalStatus": "ok(200)",
-        "lateralStatus": "ok(200)",
+        "placa": "KYX314",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/05/22/b806f965-97fa-484d-90f7-98008c8084a6_KNACB81CGN5513830_frontright_IA_r_.jpg",
+        "frontalStatus": "error(404)",
+        "lateralStatus": "error(404)",
         "galeriaCount": 6,
-        "galeriaAccessibles": 6,
-        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
-        "syncStatus": "ok"
-      },
-      {
-        "placa": "KRU623",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/02/10/99e436ef-abf0-455f-bd41-81fe609edcd3_LC0CE4DC5N0000132_frontright_IA_r_.jpg",
-        "frontalStatus": "ok(200)",
-        "lateralStatus": "ok(200)",
-        "galeriaCount": 6,
-        "galeriaAccessibles": 6,
-        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
-        "syncStatus": "ok"
-      },
-      {
-        "placa": "LFN842",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/02/03/e480b5f2-7a1e-4414-9fe3-e510cd0de557_1FMCU0MZXRUA36421_frontright_IA_r_.jpg",
-        "frontalStatus": "ok(200)",
-        "lateralStatus": "ok(200)",
-        "galeriaCount": 6,
-        "galeriaAccessibles": 6,
-        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
-        "syncStatus": "ok"
-      },
-      {
-        "placa": "JYO359",
-        "imagenPrincipal": "https://autolarte.com.co/wp-content/uploads/imagen-no-disponible-autolarte-1.png",
-        "frontalStatus": "ok(200)",
-        "lateralStatus": "no_image",
-        "galeriaCount": 0,
         "galeriaAccessibles": 0,
         "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
+        "syncOperacion": "create",
+        "syncResultado": "Vehiculo nuevo registrado",
+        "syncStatus": "ok"
+      },
+      {
+        "placa": "FIU150",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/05/22/83d0e6a2-f6b6-4526-b2d4-3fd0c7dec11e_9BGEN76C0MB177972_frontright_IA_r_.jpg",
+        "frontalStatus": "error(404)",
+        "lateralStatus": "error(404)",
+        "galeriaCount": 6,
+        "galeriaAccessibles": 1,
+        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
+        "syncOperacion": "create",
+        "syncResultado": "Vehiculo nuevo registrado",
         "syncStatus": "ok"
       }
     ]
   },
-  "startedAt": "2026-05-26T18:00:10.951Z",
-  "finishedAt": "2026-05-26T18:01:22.794Z"
+  "startedAt": "2026-05-26T22:05:02.094Z",
+  "finishedAt": "2026-05-26T22:07:14.207Z"
 }
