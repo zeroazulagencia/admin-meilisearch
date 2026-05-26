@@ -108,12 +108,15 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
   const savingTaskIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (indexUid) {
-      loadDocuments();
-      detectEmbedderName();
-      loadPrimaryKey();
-      loadRequiredFields();
+    if (!indexUid) return;
+    if (isSearching && searchQuery.trim()) {
+      handleSearch();
+      return;
     }
+    loadDocuments();
+    detectEmbedderName();
+    loadPrimaryKey();
+    loadRequiredFields();
   }, [indexUid, offset]);
 
   // Limpiar intervalo cuando el componente se desmonte
@@ -228,8 +231,14 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      // Si no hay query, cargar documentos normales
+      setIsSearching(false);
+      setOffset(0);
       await loadDocuments();
+      return;
+    }
+
+    if (offset !== 0) {
+      setOffset(0);
       return;
     }
 
@@ -1028,14 +1037,9 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
           </div>
           <div className="space-x-2">
             <button
-              onClick={async () => {
+              onClick={() => {
                 const newOffset = Math.max(0, offset - limit);
                 setOffset(newOffset);
-                if (isSearching) {
-                  await handleSearch();
-                } else {
-                  await loadDocuments();
-                }
               }}
               disabled={offset === 0}
               className="px-4 py-2 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -1043,14 +1047,9 @@ export default function DocumentList({ indexUid, onLoadPdf, onLoadWeb, uploadPro
               Anterior
             </button>
             <button
-              onClick={async () => {
+              onClick={() => {
                 const newOffset = offset + limit;
                 setOffset(newOffset);
-                if (isSearching) {
-                  await handleSearch();
-                } else {
-                  await loadDocuments();
-                }
               }}
               disabled={isSearching ? (documents.length < limit) : (offset + limit >= total)}
               className="px-4 py-2 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"

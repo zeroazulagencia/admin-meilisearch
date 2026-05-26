@@ -13,9 +13,23 @@ export async function GET(
     // Remover parámetros de cache-busting antes de enviar a Meilisearch
     const meilisearchParams: any = {};
     searchParams.forEach((value, key) => {
-      if (key !== '_t') { // Ignorar timestamp de cache-busting
-        meilisearchParams[key] = value;
+      if (key === '_t') return;
+      if (key.endsWith('[]')) {
+        const normalizedKey = key.replace(/\[\]$/, '');
+        if (!meilisearchParams[normalizedKey]) {
+          meilisearchParams[normalizedKey] = [];
+        }
+        meilisearchParams[normalizedKey].push(value);
+        return;
       }
+      if (meilisearchParams[key] !== undefined) {
+        if (!Array.isArray(meilisearchParams[key])) {
+          meilisearchParams[key] = [meilisearchParams[key]];
+        }
+        meilisearchParams[key].push(value);
+        return;
+      }
+      meilisearchParams[key] = value;
     });
     
     const response = await axios.get(`${MEILISEARCH_CONFIG.url}${path}`, {
@@ -172,4 +186,3 @@ export async function DELETE(
     );
   }
 }
-
