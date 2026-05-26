@@ -26,6 +26,7 @@ import ModEndpointsAnaliticaBiury from '@/modules-custom/endpoints-anal-tica-biu
 import ModPreciosCondicionalesNDeSantander from '@/modules-custom/precios-condicionales-n-de-santander';
 import ModMonitorWebCFA from '@/modules-custom/monitor-web-cfa';
 import ModSincronizadorUsadosAutolarte from '@/modules-custom/sincronizador-usados-autolarte';
+import ModGeneradorFacturasAutolarte from '@/modules-custom/generador-de-facturas-autolarte-zero-llc';
 
 const MODULES_MAP: Record<string, any> = {
   'verificador-mobilia': ModVerificadorMobilia,
@@ -48,6 +49,7 @@ const MODULES_MAP: Record<string, any> = {
   'precios-condicionales-n-de-santander': ModPreciosCondicionalesNDeSantander,
   'monitor-web-cfa': ModMonitorWebCFA,
   'sincronizador-usados-autolarte': ModSincronizadorUsadosAutolarte,
+  'generador-de-facturas-autolarte-zero-llc': ModGeneradorFacturasAutolarte,
 };
 
 interface Module {

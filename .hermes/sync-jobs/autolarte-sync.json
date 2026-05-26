@@ -1,5 +1,5 @@
 {
-  "pid": 1420739,
+  "pid": 1427373,
   "status": "done",
   "step": "completado",
   "stepLabel": "Sincronizacion completada",
@@ -8,7 +8,7 @@
   "errors": 0,
   "okCount": 40,
   "errCount": 0,
-  "elapsedSec": "67.4",
+  "elapsedSec": "71.7",
   "results": [
     {
       "placa": "LFO830",
@@ -253,12 +253,12 @@
   ],
   "testResults": {
     "tested": 10,
-    "ok": 9,
-    "errores": 1,
+    "ok": 8,
+    "errores": 2,
     "detalle": [
       {
-        "placa": "LFN841",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/04/01/c95d5eab-80a1-469f-b5a3-8595702388aa_93YRJF00XSJ957787_frontright_IA_r_.jpg",
+        "placa": "PJL379",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2025/10/23/2fd346e3-9770-4318-bce9-0d7c0d2dbd33_9BGEP76C0SB200528_frontright_IA_r_.jpg",
         "frontalStatus": "ok(200)",
         "lateralStatus": "ok(200)",
         "galeriaCount": 6,
@@ -269,67 +269,7 @@
         "syncStatus": "ok"
       },
       {
-        "placa": "LZY822",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2025/07/14/5a554ebe-10fa-4b68-aef3-5dceecfaecac_LGXCE4CB4R2000316_frontright_IA_r_.jpg",
-        "frontalStatus": "ok(200)",
-        "lateralStatus": "ok(200)",
-        "galeriaCount": 5,
-        "galeriaAccessibles": 5,
-        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
-        "syncStatus": "ok"
-      },
-      {
-        "placa": "FPQ063",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/03/24/932f1820-f949-4d64-9bb1-812844a386fa_WBAJG1101KEH99703_frontright_IA_r_.jpg",
-        "frontalStatus": "ok(200)",
-        "lateralStatus": "ok(200)",
-        "galeriaCount": 6,
-        "galeriaAccessibles": 6,
-        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
-        "syncStatus": "ok"
-      },
-      {
-        "placa": "LXK952",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/03/16/9dda5ed2-9866-4251-bce5-e098435baff8_3GNKB8RS6PS170668_frontright_IA_r_.jpg",
-        "frontalStatus": "ok(200)",
-        "lateralStatus": "ok(200)",
-        "galeriaCount": 6,
-        "galeriaAccessibles": 6,
-        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
-        "syncStatus": "ok"
-      },
-      {
-        "placa": "LFO830",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/03/13/e0c31187-deb2-4ca6-a55a-6bce791acd0e_9BG148ZK0SC434447_frontright_IA_r_.jpg",
-        "frontalStatus": "ok(200)",
-        "lateralStatus": "ok(200)",
-        "galeriaCount": 6,
-        "galeriaAccessibles": 6,
-        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
-        "syncStatus": "ok"
-      },
-      {
-        "placa": "KZK248",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/03/24/1150c996-b699-40e3-8999-7dcd75d6d0fe_8AGEA76C0PR118724_frontright_IA_r_.jpg",
-        "frontalStatus": "ok(200)",
-        "lateralStatus": "ok(200)",
-        "galeriaCount": 6,
-        "galeriaAccessibles": 6,
-        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
-        "syncOperacion": "update",
-        "syncResultado": "Vehiculo actualizado",
-        "syncStatus": "ok"
-      },
-      {
-        "placa": "JYO359",
+        "placa": "LKL566",
         "imagenPrincipal": "https://autolarte.com.co/wp-content/uploads/imagen-no-disponible-autolarte-1.png",
         "frontalStatus": "ok(200)",
         "lateralStatus": "no_image",
@@ -341,8 +281,20 @@
         "syncStatus": "ok"
       },
       {
-        "placa": "JOQ937",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2025/12/29/ea3bdb5e-983e-41e1-b95b-90483cb4b354_KNACB81CGM5385380_frontright_IA_r_.jpg",
+        "placa": "NKR621",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/02/24/2c05d6cc-d08c-491a-ad84-95e181706d7e_3GN7D8RR9RS281358_frontright_IA_r_.jpg",
+        "frontalStatus": "ok(200)",
+        "lateralStatus": "ok(200)",
+        "galeriaCount": 6,
+        "galeriaAccessibles": 6,
+        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
+        "syncOperacion": "update",
+        "syncResultado": "Vehiculo actualizado",
+        "syncStatus": "ok"
+      },
+      {
+        "placa": "FIX664",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/01/13/df3f8e63-36e4-46d0-a5f8-449607ac586d_9BG148PK0PC416661_frontright_IA_r_.jpg",
         "frontalStatus": "ok(200)",
         "lateralStatus": "ok(200)",
         "galeriaCount": 6,
@@ -365,8 +317,8 @@
         "syncStatus": "ok"
       },
       {
-        "placa": "PJL379",
-        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2025/10/23/2fd346e3-9770-4318-bce9-0d7c0d2dbd33_9BGEP76C0SB200528_frontright_IA_r_.jpg",
+        "placa": "PRW780",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/03/03/1f9ee8e0-9be3-4c75-8290-643fd7f597b3_9FBRBB003TM371943_frontright_IA_r_.jpg",
         "frontalStatus": "ok(200)",
         "lateralStatus": "ok(200)",
         "galeriaCount": 6,
@@ -375,9 +327,57 @@
         "syncOperacion": "update",
         "syncResultado": "Vehiculo actualizado",
         "syncStatus": "ok"
+      },
+      {
+        "placa": "LCZ463",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/02/26/677f7052-951d-4304-b460-8e79f5ec60f8_9BRBZ3BEXP4034578_frontright_IA_r_.jpg",
+        "frontalStatus": "ok(200)",
+        "lateralStatus": "ok(200)",
+        "galeriaCount": 6,
+        "galeriaAccessibles": 6,
+        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
+        "syncOperacion": "update",
+        "syncResultado": "Vehiculo actualizado",
+        "syncStatus": "ok"
+      },
+      {
+        "placa": "KRU623",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/02/10/99e436ef-abf0-455f-bd41-81fe609edcd3_LC0CE4DC5N0000132_frontright_IA_r_.jpg",
+        "frontalStatus": "ok(200)",
+        "lateralStatus": "ok(200)",
+        "galeriaCount": 6,
+        "galeriaAccessibles": 6,
+        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
+        "syncOperacion": "update",
+        "syncResultado": "Vehiculo actualizado",
+        "syncStatus": "ok"
+      },
+      {
+        "placa": "LFN842",
+        "imagenPrincipal": "https://adjunto.concesionariovirtual.co/autolarte/674c7f8b-3cc4-451d-86f7-00f28ec84289/2026/02/03/e480b5f2-7a1e-4414-9fe3-e510cd0de557_1FMCU0MZXRUA36421_frontright_IA_r_.jpg",
+        "frontalStatus": "ok(200)",
+        "lateralStatus": "ok(200)",
+        "galeriaCount": 6,
+        "galeriaAccessibles": 6,
+        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
+        "syncOperacion": "update",
+        "syncResultado": "Vehiculo actualizado",
+        "syncStatus": "ok"
+      },
+      {
+        "placa": "JYO359",
+        "imagenPrincipal": "https://autolarte.com.co/wp-content/uploads/imagen-no-disponible-autolarte-1.png",
+        "frontalStatus": "ok(200)",
+        "lateralStatus": "no_image",
+        "galeriaCount": 0,
+        "galeriaAccessibles": 0,
+        "linkUrl": "https://autolarte.com.co/vehiculos-usados/cct_vehiculos_usados/",
+        "syncOperacion": "update",
+        "syncResultado": "Vehiculo actualizado",
+        "syncStatus": "ok"
       }
     ]
   },
-  "startedAt": "2026-05-26T15:58:59.602Z",
-  "finishedAt": "2026-05-26T16:00:07.047Z"
+  "startedAt": "2026-05-26T18:00:10.951Z",
+  "finishedAt": "2026-05-26T18:01:22.794Z"
 }

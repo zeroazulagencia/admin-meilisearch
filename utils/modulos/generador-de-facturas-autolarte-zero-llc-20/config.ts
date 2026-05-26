@@ -1,6 +1,6 @@
 import { query } from '@/utils/db';
 
-const TABLE = 'modulos_sincronizador_usados_autolarte_19_config';
+const TABLE = 'modulos_generador_de_facturas_autolarte_zero_llc_20_config';
 
 export async function getConfig(key: string): Promise<string | null> {
   const [rows] = await query(`SELECT config_value FROM ${TABLE} WHERE config_key = ?`, [key]);
