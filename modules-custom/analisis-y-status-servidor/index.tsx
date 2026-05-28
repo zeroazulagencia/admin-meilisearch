@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 
 const BASE = '/api/custom-module21/analisis-y-status-servidor';
 
-type TabId = 'servidores' | 'wordpress' | 'config';
+type TabId = 'servidores' | 'wordpress' | 'config' | 'criticos';
 
 const tabs: { id: TabId; label: string }[] = [
   { id: 'servidores', label: 'Servidores' },
   { id: 'wordpress', label: 'WordPress' },
   { id: 'config', label: 'Configuracion' },
+  { id: 'criticos', label: 'Criticos' },
 ];
 
 // ══════════════════════════════════
@@ -562,6 +563,10 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
   const [wpLoadingAuditor, setWpLoadingAuditor] = useState(false);
   const [wpLoadingSecurity, setWpLoadingSecurity] = useState(false);
 
+  // Criticos
+  const [critBlocks, setCritBlocks] = useState<WpBlock[] | null>(null);
+  const [critLoading, setCritLoading] = useState(false);
+
   // Config
   const [saveSuccess, setSaveSuccess] = useState('');
   const [configSaving, setConfigSaving] = useState(false);
@@ -594,6 +599,22 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
       if (json.structured) setWpBlocks(json.structured);
     } catch (e: any) { setErrorMsg(e?.message || 'Error de red'); }
     finally { setLoading(false); }
+  }
+
+  async function runCritCommand(command: string) {
+    setErrorMsg('');
+    setCritBlocks(null);
+    setCritLoading(true);
+    try {
+      const res = await fetch(`${BASE}/ssh/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Error SSH');
+      if (json.structured) setCritBlocks(json.structured);
+    } catch (e: any) { setErrorMsg(e?.message || 'Error de red'); }
+    finally { setCritLoading(false); }
   }
 
   async function fetchStatus() {
@@ -696,6 +717,37 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
           {wpBlocks && wpBlocks.length > 0 && !wpLoadingSite && !wpLoadingPlugins && !wpLoadingLogs && !wpLoadingAuditor && !wpLoadingSecurity && (
             <div className="space-y-4">
               <StructuredBlocksView blocks={wpBlocks} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ════════ CRITICOS ════════ */}
+      {activeTab === 'criticos' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={critLoading} onClick={() => runCritCommand('crit-precheck')}
+              className={`px-4 py-2 text-sm font-medium text-white rounded transition-colors flex items-center gap-2 ${
+                critLoading ? 'bg-orange-400 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700'
+              }`}>
+              {critLoading && <Spinner />}Pre-verificar
+            </button>
+            <button type="button" disabled={critLoading} onClick={() => runCritCommand('crit-kill')}
+              className={`px-4 py-2 text-sm font-medium text-white rounded transition-colors flex items-center gap-2 ${
+                critLoading ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
+              }`}>
+              {critLoading && <Spinner />}Liberar procesos
+            </button>
+            <button type="button" disabled={critLoading} onClick={() => runCritCommand('crit-restart-nginx')}
+              className={`px-4 py-2 text-sm font-medium text-white rounded transition-colors flex items-center gap-2 ${
+                critLoading ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
+              }`}>
+              {critLoading && <Spinner />}Reiniciar Nginx
+            </button>
+          </div>
+          {critBlocks && critBlocks.length > 0 && !critLoading && (
+            <div className="space-y-4">
+              <StructuredBlocksView blocks={critBlocks} />
             </div>
           )}
         </div>

@@ -19,7 +19,10 @@ const ALLOWED_COMMANDS: Record<string, string> = {
   'wp-plugins': `echo "=== PLUGINS ==="; ls -d /var/www/comunicacionesnew/wp-content/plugins/*/ 2>/dev/null | while read p; do echo "  $(basename $p)"; done; echo "---"; echo "=== WP-CLI ==="; which wp >/dev/null 2>&1 && wp --path=/var/www/comunicacionesnew plugin list --format=table 2>/dev/null || echo "WP-CLI no disponible para status"`,
 'wp-logs': `echo "=== PHP-FPM ==="; n=$(pgrep -ac php-fpm 2>/dev/null); if [ "$n" -gt 0 ] 2>/dev/null; then echo "Activo ($n procesos)"; pgrep -al php-fpm 2>/dev/null | head -5; else echo "No PHP-FPM detectado"; fi; echo "---"; echo "=== NGINX ==="; ls /etc/nginx/sites-enabled/ 2>/dev/null | head -10; echo "---"; echo "=== DEBUG.LOG ==="; tail -30 /var/www/comunicacionesnew/wp-content/debug.log 2>/dev/null || echo "No debug.log"; echo "---"; echo "=== PHP ERROR LOG ==="; tail -20 /var/log/php*-fpm.log 2>/dev/null || echo "No php log"; echo "---"; echo "=== DISK WP ==="; du -sh /var/www/comunicacionesnew/ 2>/dev/null`,
 'wp-security-audit': `echo "=== SCAN ==="; find /var/www/comunicacionesnew/ -type f -name '*.zip' -o -type f -name '*.rar' -o -type f -name '*.7z' -o -type f -name '*.tar.gz' -o -type f -name '*.tgz' -o -type f -name '*.tar.bz2' -o -type f -name '*.sql' -o -type f -name '*.sql.gz' -o -type f -name '*.dump' -o -type f -name '*.bak' -o -type f -name '*.old' -o -type f -name '.env' -o -type f -name '.env.*' -o -type f -iname '*backup*' -o -type f -iname '*credentials*' -o -type f -iname '*export*' -o -type f -iname '*db_*' -o -type f -iname '*database*' 2>/dev/null | while IFS= read -r f; do size=$(stat --format="%s" "$f" 2>/dev/null); mtime=$(stat --format="%y" "$f" 2>/dev/null); ext=$(echo "$f" | awk -F. '{print $NF}'); ext_l=$(echo "$ext" | tr '[:upper:]' '[:lower:]'); risk="BAJO"; case "$ext_l" in zip|rar|7z|gz|bz2|xz|tgz) risk="MEDIO";; sql|dump|bak) risk="ALTO";; esac; case "$f" in *.env*|*credentials*) risk="CRITICO";; *backup*|*dump*|*database*) risk="ALTO";; esac; echo "$risk|$size|$mtime|$f"; done | sort -t"|" -k1.1,1.6 -k2 -rn | head -100; echo "---"; echo "=== SUMMARY ==="; find /var/www/comunicacionesnew/ -type f -name '*.zip' -o -type f -name '*.rar' -o -type f -name '*.7z' -o -type f -name '*.tar.gz' -o -type f -name '*.tgz' -o -type f -name '*.tar.bz2' -o -type f -name '*.sql' -o -type f -name '*.sql.gz' -o -type f -name '*.dump' -o -type f -name '*.bak' -o -type f -name '*.old' -o -type f -name '.env' -o -type f -name '.env.*' -o -type f -iname '*backup*' -o -type f -iname '*credentials*' -o -type f -iname '*export*' -o -type f -iname '*db_*' -o -type f -iname '*database*' 2>/dev/null | wc -l`,
-  'wp-file-audit': `echo "=== DETAILS ==="; find /var/www/comunicacionesnew/ -type f -size +5M ! -path '*/cache/*' ! -path '*/tmp/*' ! -path '*/.git/*' 2>/dev/null | while IFS= read -r f; do size=$(stat --format="%s" "$f" 2>/dev/null); mtime=$(stat --format="%y" "$f" 2>/dev/null); ext=$(echo "$f" | awk -F. '{print $NF}'); echo "$ext|$size|$mtime|$f"; done | sort -t"|" -k2 -rn | head -100; echo "---"; echo "=== BY_TYPE ==="; find /var/www/comunicacionesnew/ -type f -size +5M ! -path '*/cache/*' ! -path '*/tmp/*' ! -path '*/.git/*' 2>/dev/null | while IFS= read -r f; do size=$(stat --format="%s" "$f" 2>/dev/null); ext=$(echo "$f" | awk -F. '{print $NF}'); echo "$ext|$size"; done | awk -F'|' '{ext=$1; sz=$2; if(ext ~ /^(jpg|jpeg|png|gif|webp|bmp|svg|ico)$/) c="images"; else if(ext ~ /^(pdf)$/) c="pdf"; else if(ext ~ /^(zip|tar|gz|bz2|xz|7z|rar|tgz)$/) c="archive"; else if(ext ~ /^(mp4|avi|mkv|mov|wmv|flv)$/) c="video"; else if(ext ~ /^(mp3|wav|ogg|flac|aac|wma)$/) c="audio"; else c="other"; a[c]+=sz; n[c]++} END{for(c in a) print c "|" a[c] "|" n[c]}'; echo "---"; echo "=== WP_SIZE ==="; du -sb /var/www/comunicacionesnew/ 2>/dev/null | awk '{print $1}'; echo "---"; echo "=== DISK ==="; df -B1 / 2>/dev/null | tail -1 | awk '{print $2 "|" \$3 "|" \$5}'; echo "---"; echo "=== SUMMARY ==="; find /var/www/comunicacionesnew/ -type f -size +5M ! -path '*/cache/*' ! -path '*/tmp/*' ! -path '*/.git/*' 2>/dev/null | wc -l`,
+'wp-file-audit': `echo "=== DETAILS ==="; find /var/www/comunicacionesnew/ -type f -size +5M ! -path '*/cache/*' ! -path '*/tmp/*' ! -path '*/.git/*' 2>/dev/null | while IFS= read -r f; do size=$(stat --format="%s" "$f" 2>/dev/null); mtime=$(stat --format="%y" "$f" 2>/dev/null); ext=$(echo "$f" | awk -F. '{print $NF}'); echo "$ext|$size|$mtime|$f"; done | sort -t"|" -k2 -rn | head -100; echo "---"; echo "=== BY_TYPE ==="; find /var/www/comunicacionesnew/ -type f -size +5M ! -path '*/cache/*' ! -path '*/tmp/*' ! -path '*/.git/*' 2>/dev/null | while IFS= read -r f; do size=$(stat --format="%s" "$f" 2>/dev/null); ext=$(echo "$f" | awk -F. '{print $NF}'); echo "$ext|$size"; done | awk -F'|' '{ext=$1; sz=$2; if(ext ~ /^(jpg|jpeg|png|gif|webp|bmp|svg|ico)$/) c="images"; else if(ext ~ /^(pdf)$/) c="pdf"; else if(ext ~ /^(zip|tar|gz|bz2|xz|7z|rar|tgz)$/) c="archive"; else if(ext ~ /^(mp4|avi|mkv|mov|wmv|flv)$/) c="video"; else if(ext ~ /^(mp3|wav|ogg|flac|aac|wma)$/) c="audio"; else c="other"; a[c]+=sz; n[c]++} END{for(c in a) print c "|" a[c] "|" n[c]}'; echo "---"; echo "=== WP_SIZE ==="; du -sb /var/www/comunicacionesnew/ 2>/dev/null | awk '{print $1}'; echo "---"; echo "=== DISK ==="; df -B1 / 2>/dev/null | tail -1 | awk '{print $2 "|" $3 "|" $5}'; echo "---"; echo "=== SUMMARY ==="; find /var/www/comunicacionesnew/ -type f -size +5M ! -path '*/cache/*' ! -path '*/tmp/*' ! -path '*/.git/*' 2>/dev/null | wc -l`,
+  'crit-precheck': `echo "=== NGINX_TEST ==="; nginx -t 2>&1; echo "---"; echo "=== SERVICES ==="; for s in nginx php*-fpm mysql mariadb; do echo "$s: $(systemctl is-active $s 2>/dev/null || echo not_found)"; done; echo "---"; echo "=== LOAD ==="; uptime; echo "---"; echo "=== DISK ==="; df -h / | tail -1; echo "---"; echo "=== MEMORY ==="; free -h | grep Mem`,
+  'crit-kill': `echo "=== BEFORE ==="; echo "PHP-FPM workers:"; pgrep -ac php-fpm 2>/dev/null || echo 0; echo "---"; echo "=== ZOMBIES ==="; ps aux | grep -w Z | grep -v grep; echo "---"; echo "=== RESTARTING PHP-FPM ==="; systemctl restart php*-fpm 2>&1; echo "---"; echo "=== AFTER ==="; systemctl status php*-fpm --no-pager 2>/dev/null | head -8; echo "---"; pgrep -ac php-fpm 2>/dev/null || echo 0`,
+  'crit-restart-nginx': `echo "=== NGINX_TEST ==="; nginx -t 2>&1; echo "---"; if nginx -t 2>&1 | grep -qi "syntax is ok"; then echo "REINICIANDO NGINX..."; systemctl restart nginx 2>&1 && (echo "---"; echo "OK: Nginx reiniciado"); echo "---"; echo "=== STATUS ==="; systemctl status nginx --no-pager 2>/dev/null | head -8; else echo "ERROR: Config de nginx con errores. No se reinicia."; fi`,
 };// ── Rate limiter ──
 const REQUEST_LIMIT = 10;
 const WINDOW_MS = 60_000;
@@ -690,6 +693,55 @@ function parseSecurityAudit(raw: string): StructuredBlock[] {
 }
 
 // ═══════════════════════════════════════════════
+// Comandos criticos parsers
+// ═══════════════════════════════════════════════
+
+function parseCritPrecheck(raw: string): StructuredBlock[] {
+  const blocks: StructuredBlock[] = [];
+  const nginxTestOk = /syntax is ok/.test(raw);
+  const nginxActive = /nginx:\s+active/.test(raw);
+  const phpActive = /php[\d.]+-fpm.*active/.test(raw) || /php[\d.]*-fpm:\s+active/.test(raw);
+  blocks.push({
+    type: 'card-grid', title: 'Pre-verificacion',
+    cards: [
+      { label: 'Nginx config', value: nginxTestOk ? 'OK' : 'ERROR', color: nginxTestOk ? 'green' : 'red' },
+      { label: 'Nginx service', value: nginxActive ? 'Activo' : 'Detenido', color: nginxActive ? 'green' : 'red' },
+      { label: 'PHP-FPM', value: phpActive ? 'Activo' : 'Detenido', color: phpActive ? 'green' : 'red' },
+    ],
+  });
+  blocks.push({ type: 'code', title: 'Salida completa', text: raw.trim() });
+  return blocks;
+}
+
+function parseCritKill(raw: string): StructuredBlock[] {
+  const blocks: StructuredBlock[] = [];
+  const ok = /Failed/.test(raw) === false;
+  blocks.push({
+    type: 'card-grid', title: 'Liberar procesos PHP-FPM',
+    cards: [
+      { label: 'Estado', value: ok ? 'Reiniciado' : 'Error', color: ok ? 'green' : 'red' },
+    ],
+  });
+  blocks.push({ type: 'code', title: 'Salida completa', text: raw.trim() });
+  return blocks;
+}
+
+function parseCritRestartNginx(raw: string): StructuredBlock[] {
+  const blocks: StructuredBlock[] = [];
+  const configOk = /syntax is ok/.test(raw);
+  const reiniciado = /OK: Nginx reiniciado/.test(raw);
+  blocks.push({
+    type: 'card-grid', title: 'Reiniciar Nginx',
+    cards: [
+      { label: 'Config test', value: configOk ? 'OK' : 'ERROR', color: configOk ? 'green' : 'red' },
+      { label: 'Resultado', value: reiniciado ? 'Reiniciado' : configOk ? 'Falló' : 'No ejecutado', color: reiniciado ? 'green' : 'red' },
+    ],
+  });
+  blocks.push({ type: 'code', title: 'Salida completa', text: raw.trim() });
+  return blocks;
+}
+
+// ═══════════════════════════════════════════════
 // POST handler
 // ═══════════════════════════════════════════════
 
@@ -765,6 +817,18 @@ export async function POST(request: NextRequest) {
       const rawOutput = await executeSSH(usuario, ip, portNum, password, cmd);
       const blocks = parseSecurityAudit(rawOutput);
       await logAudit('wp-security-audit', 'ok', `${blocks.length} bloques`, clientIp);
+      return NextResponse.json({ ok: true, output: rawOutput, structured: blocks });
+    }
+
+    // ── Criticos: JSON estructurado ──
+    if (commandKey === 'crit-precheck' || commandKey === 'crit-kill' || commandKey === 'crit-restart-nginx') {
+      const cmd = ALLOWED_COMMANDS[commandKey];
+      const rawOutput = await executeSSH(usuario, ip, portNum, password, cmd);
+      let blocks: StructuredBlock[] = [];
+      if (commandKey === 'crit-precheck') blocks = parseCritPrecheck(rawOutput);
+      else if (commandKey === 'crit-kill') blocks = parseCritKill(rawOutput);
+      else if (commandKey === 'crit-restart-nginx') blocks = parseCritRestartNginx(rawOutput);
+      await logAudit(commandKey, 'ok', blocks.map(b => b.title).filter(Boolean).join(', ').substring(0, 200), clientIp);
       return NextResponse.json({ ok: true, output: rawOutput, structured: blocks });
     }
 
