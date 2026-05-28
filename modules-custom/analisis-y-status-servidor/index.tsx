@@ -571,6 +571,11 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
   const [saveSuccess, setSaveSuccess] = useState('');
   const [configSaving, setConfigSaving] = useState(false);
   const [configLoading, setConfigLoading] = useState(false);
+  const [wpCacheStatus, setWpCacheStatus] = useState<string | null>(null);
+  const [wpCacheColor, setWpCacheColor] = useState<string>('yellow');
+  const [wpCacheLoading, setWpCacheLoading] = useState(false);
+  const [flushCacheBlocks, setFlushCacheBlocks] = useState<any[] | null>(null);
+  const [flushCacheLoading, setFlushCacheLoading] = useState(false);
 
   const fetchConfig = useCallback(async () => {
     setErrorMsg('');
@@ -583,7 +588,42 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
     finally { setConfigLoading(false); }
   }, []);
 
-  useEffect(() => { if (activeTab === 'config') fetchConfig(); }, [activeTab, fetchConfig]);
+  useEffect(() => { if (activeTab === 'config') { fetchConfig(); fetchWpCacheStatus(); } }, [activeTab, fetchConfig]);
+
+  async function fetchWpCacheStatus() {
+    setErrorMsg('');
+    setWpCacheStatus(null);
+    setWpCacheLoading(true);
+    try {
+      const res = await fetch(`${BASE}/ssh/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'wp-config-status' }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Error SSH');
+      if (json.structured?.[0]?.cards?.[0]) {
+        setWpCacheStatus(json.structured[0].cards[0].value);
+        setWpCacheColor(json.structured[0].cards[0].color || 'yellow');
+      }
+    } catch (e: any) { setErrorMsg(e?.message || 'Error de red'); }
+    finally { setWpCacheLoading(false); }
+  }
+
+  async function runFlushCaches() {
+    setErrorMsg('');
+    setFlushCacheBlocks(null);
+    setFlushCacheLoading(true);
+    try {
+      const res = await fetch(`${BASE}/ssh/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'flush-caches' }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Error SSH');
+      if (json.structured) setFlushCacheBlocks(json.structured);
+    } catch (e: any) { setErrorMsg(e?.message || 'Error de red'); }
+    finally { setFlushCacheLoading(false); }
+  }
 
   async function runWpCommand(command: string, setLoading: (v: boolean) => void) {
     setErrorMsg('');
@@ -761,7 +801,56 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
 
           {!configLoading && (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Estado de caches */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide text-xs">WP_CACHE</h3>
+                {wpCacheLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-500"><Spinner /> Consultando...</div>
+                ) : wpCacheStatus ? (
+                  <div className={`inline-block border rounded-lg px-4 py-2 text-sm font-semibold ${
+                    wpCacheColor === 'green' ? 'text-green-700 bg-green-50 border-green-200' : 'text-yellow-700 bg-yellow-50 border-yellow-200'
+                  }`}>
+                    {wpCacheStatus}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">No disponible</div>
+                )}
+              </div>
+
+              {/* Boton borrado cache fuerte */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide text-xs">Cache fuerte</h3>
+                <p className="text-xs text-gray-500">Limpia Nginx, PHP-FPM, transients WordPress, temporales y object cache.</p>
+                <button type="button" disabled={flushCacheLoading} onClick={runFlushCaches}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded transition-colors flex items-center gap-2 ${
+                    flushCacheLoading ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
+                  }`}>
+                  {flushCacheLoading && <Spinner />}
+                  Borrado cache fuerte
+                </button>
+                {flushCacheBlocks && flushCacheBlocks.length > 0 && (
+                  <div className="space-y-2">
+                    {flushCacheBlocks.map((block: any, i: number) => (
+                      block.type === 'card-grid' ? (
+                        <div key={i} className="flex items-center gap-3">
+                          {block.cards?.map((card: any, j: number) => (
+                            <span key={j} className={`text-sm font-semibold ${
+                              card.color === 'green' ? 'text-green-700' : 'text-red-700'
+                            }`}>{card.value}</span>
+                          ))}
+                        </div>
+                      ) : block.type === 'code' ? (
+                        <pre key={i} className="text-xs text-gray-800 bg-white border border-gray-200 rounded p-3 whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">{block.text}</pre>
+                      ) : null
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SSH Config */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide text-xs">Configuracion SSH</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {(['usuario', 'ip', 'puerto', 'password'] as const).map(field => (
                   <div key={field} className="space-y-1">
                     <label className="text-sm font-medium text-gray-700 capitalize">{field === 'puerto' ? 'Puerto' : field === 'usuario' ? 'Usuario' : field.toUpperCase()}</label>
@@ -795,6 +884,7 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
                   {configSaving && <Spinner />}
                   Guardar configuracion
                 </button>
+              </div>
               </div>
             </>
           )}
