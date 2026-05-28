@@ -3,6 +3,14 @@ const nextConfig = {
   reactStrictMode: true,
   
   trailingSlash: true,
+
+  // ssh2 uses native .node binaries que webpack no puede empaquetar
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('ssh2');
+    }
+    return config;
+  },
   
   // Desactivar completamente el cache de Next.js
   experimental: {

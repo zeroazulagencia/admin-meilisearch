@@ -27,6 +27,7 @@ import ModPreciosCondicionalesNDeSantander from '@/modules-custom/precios-condic
 import ModMonitorWebCFA from '@/modules-custom/monitor-web-cfa';
 import ModSincronizadorUsadosAutolarte from '@/modules-custom/sincronizador-usados-autolarte';
 import ModGeneradorFacturasAutolarte from '@/modules-custom/generador-de-facturas-autolarte-zero-llc';
+import ModAnalisisStatusServidor from '@/modules-custom/analisis-y-status-servidor';
 
 const MODULES_MAP: Record<string, any> = {
   'verificador-mobilia': ModVerificadorMobilia,
@@ -50,6 +51,7 @@ const MODULES_MAP: Record<string, any> = {
   'monitor-web-cfa': ModMonitorWebCFA,
   'sincronizador-usados-autolarte': ModSincronizadorUsadosAutolarte,
   'generador-de-facturas-autolarte-zero-llc': ModGeneradorFacturasAutolarte,
+  'analisis-y-status-servidor': ModAnalisisStatusServidor,
 };
 
 interface Module {
