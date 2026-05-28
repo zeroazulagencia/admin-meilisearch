@@ -180,7 +180,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
   const loadConfig = async () => {
     setLoadingConfig(true);
     try {
-      const res = await fetch(`${BASE}/config`, { cache: 'no-store' });
+      const res = await fetch(`${BASE}/config/`, { cache: 'no-store' });
       const json = await res.json();
       if (json.ok && json.config) {
         setSensitivePreview({
@@ -291,7 +291,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
       if (config.shopify_bridge_secret.trim()) payload.shopify_bridge_secret = config.shopify_bridge_secret.trim();
       if (config.shopify_storefront_access_token.trim()) payload.shopify_storefront_access_token = config.shopify_storefront_access_token.trim();
 
-      const res = await fetch(`${BASE}/config`, {
+      const res = await fetch(`${BASE}/config/`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -616,8 +616,8 @@ export default function PreciosCondicionalesNDeSantanderModule({
               <h4 className="font-semibold mb-2">WORKERS módulo 17</h4>
               <ul className="list-disc list-inside space-y-1">
                 <li><strong>Bridge:</strong> {`${BASE}/shopify-bridge`}</li>
-                <li><strong>Config:</strong> {`${BASE}/config`}</li>
-                <li><strong>Evaluate:</strong> {`${BASE}/evaluate`}</li>
+                <li><strong>Config:</strong> {`${BASE}/config/`}</li>
+                <li><strong>Evaluate:</strong> {`${BASE}/evaluate/`}</li>
                 <li><strong>Test Shopify:</strong> {`${BASE}/test-shopify`}</li>
               </ul>
             </div>
