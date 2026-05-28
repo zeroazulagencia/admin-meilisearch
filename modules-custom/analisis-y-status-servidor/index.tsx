@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 
 const BASE = '/api/custom-module21/analisis-y-status-servidor';
 
-type TabId = 'servidores' | 'wordpress' | 'config' | 'criticos';
+type TabId = 'servidores' | 'wordpress' | 'config' | 'criticos' | 'logs';
 
 const tabs: { id: TabId; label: string }[] = [
   { id: 'servidores', label: 'Servidores' },
   { id: 'wordpress', label: 'WordPress' },
-  { id: 'config', label: 'Configuracion' },
   { id: 'criticos', label: 'Criticos' },
+  { id: 'config', label: 'Configuracion' },
+  { id: 'logs', label: 'Logs' },
 ];
 
 // ══════════════════════════════════
@@ -299,6 +300,7 @@ function StructuredBlocksView({ blocks }: { blocks: WpBlock[] }) {
   };
 
   const [logFilter, setLogFilter] = useState<string>('all');
+  const [secFilter, setSecFilter] = useState<string>('all');
   const [tablePage, setTablePage] = useState<Record<number, number>>({});
 
   // Si hay tabla de logs, extraer tipos disponibles
@@ -312,6 +314,19 @@ function StructuredBlocksView({ blocks }: { blocks: WpBlock[] }) {
     }
   }
   const logTypes = ['all', 'E_ERROR', ...Array.from(availableTypes)];
+
+  // Extraer extensiones de archivos para filtro de auditoria de seguridad
+  const availableExts = new Set<string>();
+  for (const block of blocks) {
+    if (block.type === 'table' && block.headers?.includes('Riesgo')) {
+      block.rows?.forEach(r => {
+        const filename = r[r.length - 1] || '';
+        const ext = filename.includes('.') ? '.' + (filename.split('.').pop() || '') : '';
+        if (ext && ext.length < 10) availableExts.add(ext);
+      });
+    }
+  }
+  const fileExts = Array.from(availableExts).sort();
 
   function tipoColor(tipo: string): string {
     if (tipo.includes('FATAL') || tipo === 'E_ERROR' || tipo === 'E_COMPILE_ERROR') return 'text-red-700 bg-red-50 font-semibold';
@@ -388,7 +403,7 @@ function StructuredBlocksView({ blocks }: { blocks: WpBlock[] }) {
             const isLogTable = block.headers?.includes('Tipo');
             const isSecurityTable = block.headers?.includes('Riesgo');
             const isFileAuditTable = block.title?.startsWith('Archivos') && block.headers?.includes('Ruta');
-            const filteredRows = isLogTable ? (block.rows || []).filter(shouldShowRow) : (block.rows || []);
+            const filteredRows = isLogTable ? (block.rows || []).filter(shouldShowRow) : isSecurityTable ? (block.rows || []).filter(r => secFilter === 'all' || (r[r.length - 1] || '').endsWith(secFilter)) : (block.rows || []);
             const PAGE_SIZE = 15;
             const totalPages = isLogTable ? 1 : Math.ceil(filteredRows.length / PAGE_SIZE);
             const page = tablePage[i] || 0;
@@ -411,6 +426,31 @@ function StructuredBlocksView({ blocks }: { blocks: WpBlock[] }) {
                               : 'bg-white text-gray-600 border-gray-300 hover:border-gray-500'
                           }`}>
                           {p.label} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {isSecurityTable && fileExts.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pb-2">
+                    <button type="button" onClick={() => setSecFilter('all')}
+                      className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors ${
+                        secFilter === 'all'
+                          ? 'bg-gray-800 text-white border-gray-800'
+                          : 'bg-white text-gray-600 border-gray-300 hover:border-gray-500'
+                      }`}>
+                      Todos ({block.rows?.length || 0})
+                    </button>
+                    {fileExts.map(ext => {
+                      const count = (block.rows || []).filter(r => (r[r.length - 1] || '').endsWith(ext)).length;
+                      return (
+                        <button key={ext} type="button" onClick={() => setSecFilter(ext)}
+                          className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors ${
+                            secFilter === ext
+                              ? 'bg-gray-800 text-white border-gray-800'
+                              : 'bg-white text-gray-600 border-gray-300 hover:border-gray-500'
+                          }`}>
+                          {ext} ({count})
                         </button>
                       );
                     })}
@@ -543,6 +583,129 @@ function StructuredBlocksView({ blocks }: { blocks: WpBlock[] }) {
 }
 
 // ══════════════════════════════════
+// LOG TABLE VIEWER — formatea logs como tabla con filtros
+// ══════════════════════════════════
+
+function LogTableViewer({ output, label }: { output: string; label: string }) {
+  const [logLevelFilter, setLogLevelFilter] = useState<string>('all');
+  const [logTablePage, setLogTablePage] = useState(0);
+
+  // Parse lineas y detectar nivel
+  const lines = output.split('\n').filter(l => l.trim());
+  const parsed = lines.map((line, idx) => {
+    // Detectar nivel en la linea
+    let level = 'info';
+    const upper = line.toUpperCase();
+    if (/FATAL|CRITICAL|EMERG/i.test(upper)) level = 'fatal';
+    else if (/ERROR|FAILED|DENIED|REFUSED|SEVERE/i.test(upper)) level = 'error';
+    else if (/WARN(ING)?/i.test(upper)) level = 'warn';
+    else if (/NOTICE|INFO|DEBUG/i.test(upper)) level = 'info';
+    else if (/TRACE|VERBOSE/i.test(upper)) level = 'debug';
+    return { line, level, idx };
+  });
+
+  // Contar por nivel
+  const counts: Record<string, number> = { all: parsed.length };
+  for (const p of parsed) {
+    counts[p.level] = (counts[p.level] || 0) + 1;
+  }
+
+  // Niveles disponibles
+  const levels = [
+    { key: 'all', label: 'Todos' },
+    { key: 'fatal', label: 'Fatal', cls: 'text-red-700 bg-red-100' },
+    { key: 'error', label: 'Error', cls: 'text-orange-700 bg-orange-50' },
+    { key: 'warn', label: 'Warning', cls: 'text-yellow-700 bg-yellow-50' },
+    { key: 'info', label: 'Info', cls: 'text-blue-700 bg-blue-50' },
+    { key: 'debug', label: 'Debug', cls: 'text-gray-500 bg-gray-100' },
+  ];
+
+  const filtered = logLevelFilter === 'all' ? parsed : parsed.filter(p => p.level === logLevelFilter);
+  const PAGE_SIZE = 20;
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const safePage = Math.min(logTablePage, Math.max(0, totalPages - 1));
+  const pagedRows = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+
+  function levelBadge(level: string) {
+    const lvl = levels.find(l => l.key === level);
+    if (!lvl || lvl.key === 'all') return null;
+    return <span className={`inline-block px-1.5 py-0.5 text-xs font-medium rounded ${lvl.cls}`}>{level.toUpperCase()}</span>;
+  }
+
+  function levelClass(level: string) {
+    if (level === 'fatal') return 'text-red-700 bg-red-50 font-semibold';
+    if (level === 'error') return 'text-orange-700 bg-orange-50';
+    if (level === 'warn') return 'text-yellow-700 bg-yellow-50';
+    if (level === 'info') return 'text-blue-700 bg-blue-50';
+    if (level === 'debug') return 'text-gray-500';
+    return '';
+  }
+
+  return (
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-900 truncate">{label}</h3>
+        <span className="text-xs text-gray-400">{lines.length} lineas</span>
+      </div>
+
+      {/* Filter pills */}
+      <div className="flex flex-wrap gap-1.5">
+        {levels.map(l => (
+          <button key={l.key} type="button" onClick={() => { setLogLevelFilter(l.key); setLogTablePage(0); }}
+            className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors ${
+              logLevelFilter === l.key
+                ? 'bg-gray-800 text-white border-gray-800'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-gray-500'
+            }`}>
+            {l.label} ({counts[l.key] || 0})
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs whitespace-nowrap">
+          <thead>
+            <tr className="text-left text-gray-500 uppercase tracking-wider border-b border-gray-300">
+              <th className="py-2 pr-3 w-14">Nivel</th>
+              <th className="py-2 pr-3">Linea</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedRows.map((p) => (
+              <tr key={p.idx} className={`border-b border-gray-200 ${p.idx % 2 === 0 ? 'bg-white' : ''}`}>
+                <td className={`py-1.5 pr-3 rounded ${levelClass(p.level)}`}>
+                  {levelBadge(p.level)}
+                </td>
+                <td className="py-1.5 pr-3 text-gray-700 font-mono whitespace-pre-wrap break-all">{p.line}</td>
+              </tr>
+            ))}
+            {pagedRows.length === 0 && (
+              <tr><td colSpan={2} className="py-4 text-center text-gray-400 text-xs">Sin resultados</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center gap-2 text-xs text-gray-500 pt-1">
+          <button type="button" disabled={safePage === 0} onClick={() => setLogTablePage(p => p - 1)}
+            className={`px-2 py-1 rounded border ${safePage === 0 ? 'text-gray-300 border-gray-200 cursor-not-allowed' : 'text-gray-600 border-gray-300 hover:bg-gray-100'}`}>
+            Anterior
+          </button>
+          <span>Pagina {safePage + 1} de {totalPages} ({filtered.length} lineas)</span>
+          <button type="button" disabled={safePage >= totalPages - 1} onClick={() => setLogTablePage(p => p + 1)}
+            className={`px-2 py-1 rounded border ${safePage >= totalPages - 1 ? 'text-gray-300 border-gray-200 cursor-not-allowed' : 'text-gray-600 border-gray-300 hover:bg-gray-100'}`}>
+            Siguiente
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════
 // COMPONENTE PRINCIPAL
 // ══════════════════════════════════
 
@@ -577,6 +740,75 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
   const [flushCacheBlocks, setFlushCacheBlocks] = useState<any[] | null>(null);
   const [flushCacheLoading, setFlushCacheLoading] = useState(false);
 
+  // Logs
+  const [logCategory, setLogCategory] = useState('nginx-ssl');
+  const [selectedLogKey, setSelectedLogKey] = useState<string | null>(null);
+  const [logOutputs, setLogOutputs] = useState<Record<string, string>>({});
+  const [logLoading, setLogLoading] = useState<Record<string, boolean>>({});
+  const [logInfos, setLogInfos] = useState<Record<string, { label: string; desc: string }>>({});
+
+  const LOG_CATEGORIES = [
+    { id: 'nginx-ssl', label: 'NGINX 443' },
+    { id: 'nginx-8080', label: 'NGINX 8080' },
+    { id: 'php', label: 'PHP' },
+    { id: 'mysql', label: 'MySQL' },
+    { id: 'sistema', label: 'Sistema' },
+    { id: 'wordpress', label: 'WordPress' },
+    { id: 'hermes', label: 'Hermes' },
+  ];
+
+  const LOG_FILES_BY_CATEGORY: Record<string, { key: string; label: string; desc: string; source: string }[]> = {
+    'nginx-ssl': [
+      { key: 'project_access', label: 'project_access.log', desc: 'Trafico del sitio (X-Forwarded-For)', source: 'ssh' },
+      { key: 'project_error', label: 'project_error.log', desc: 'Errores de nginx (comfamiliar)', source: 'ssh' },
+      { key: 'nginx_access', label: 'access.log', desc: 'Trafico default server', source: 'ssh' },
+      { key: 'nginx_error', label: 'error.log', desc: 'Errores generales nginx', source: 'ssh' },
+    ],
+    'nginx-8080': [
+      { key: 'puerto8080_access', label: 'puerto8080_access.log', desc: 'Trafico puerto 8080', source: 'ssh' },
+      { key: 'puerto8080_error', label: 'puerto8080_error.log', desc: 'Errores puerto 8080', source: 'ssh' },
+    ],
+    'php': [
+      { key: 'php8_3_fpm', label: 'php8.3-fpm.log', desc: 'PHP-FPM activo (~5 KB)', source: 'ssh' },
+      { key: 'php8_4_fpm', label: 'php8.4-fpm.log', desc: 'PHP-FPM 8.4 (inactivo)', source: 'ssh' },
+      { key: 'php8_4_slow', label: 'php8.4-fpm.slow.log', desc: 'Scripts lentos (~37 KB)', source: 'ssh' },
+    ],
+    'mysql': [
+      { key: 'mysql_error', label: 'mysql/error.log', desc: 'Errores de MySQL (568,190 lineas)', source: 'ssh' },
+    ],
+    'sistema': [
+      { key: 'syslog', label: 'syslog', desc: 'Log del sistema (~8 MB diarios)', source: 'ssh' },
+      { key: 'auth', label: 'auth.log', desc: 'Intentos SSH/sudo (~10 MB)', source: 'ssh' },
+      { key: 'kern', label: 'kern.log', desc: 'Kernel (~5 MB)', source: 'ssh' },
+      { key: 'dpkg', label: 'dpkg.log', desc: 'Paquetes instalados', source: 'ssh' },
+    ],
+    'wordpress': [
+      { key: 'wp_debug', label: 'wp-content/debug.log', desc: 'Errores PHP/WP (~38 MB)', source: 'ssh' },
+    ],
+    'hermes': [
+      { key: 'hermes_agent', label: 'agent.log', desc: 'Log de Hermes Agent (~473 KB)', source: 'local' },
+      { key: 'hermes_errors', label: 'errors.log', desc: 'Errores de Hermes (~13 KB)', source: 'local' },
+      { key: 'hermes_gateway', label: 'gateway.log', desc: 'Gateway de Hermes (~212 KB)', source: 'local' },
+    ],
+  };
+
+  const fetchLog = useCallback(async (logKey: string, source: string) => {
+    setErrorMsg('');
+    setLogLoading(prev => ({ ...prev, [logKey]: true }));
+    try {
+      const url = source === 'local' ? `${BASE}/read-local-log/` : `${BASE}/ssh/`;
+      const body = source === 'local'
+        ? JSON.stringify({ logKey, lines: 100 })
+        : JSON.stringify({ command: 'read-log', logKey, lines: 100 });
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Error');
+      setLogOutputs(prev => ({ ...prev, [logKey]: json.output }));
+      if (json.logInfo) setLogInfos(prev => ({ ...prev, [logKey]: json.logInfo }));
+    } catch (e: any) { setErrorMsg(e?.message || 'Error de red'); }
+    finally { setLogLoading(prev => ({ ...prev, [logKey]: false })); }
+  }, []);
+
   const fetchConfig = useCallback(async () => {
     setErrorMsg('');
     setConfigLoading(true);
@@ -588,7 +820,8 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
     finally { setConfigLoading(false); }
   }, []);
 
-  useEffect(() => { if (activeTab === 'config') { fetchConfig(); fetchWpCacheStatus(); } }, [activeTab, fetchConfig]);
+  useEffect(() => { if (activeTab === 'config') { fetchConfig(); } }, [activeTab, fetchConfig]);
+  useEffect(() => { if (activeTab === 'servidores' && statusData) { fetchWpCacheStatus(); } }, [activeTab, statusData]);
 
   async function fetchWpCacheStatus() {
     setErrorMsg('');
@@ -722,6 +955,52 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
               <ProcessTable title="PHP-FPM Workers" data={statusData.phpFpm} highlightCpu highlightMem />
             </div>
           )}
+
+          {/* Estado de caches */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide text-xs">WP_CACHE</h3>
+            {wpCacheLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500"><Spinner /> Consultando...</div>
+            ) : wpCacheStatus ? (
+              <div className={`inline-block border rounded-lg px-4 py-2 text-sm font-semibold ${
+                wpCacheColor === 'green' ? 'text-green-700 bg-green-50 border-green-200' : 'text-yellow-700 bg-yellow-50 border-yellow-200'
+              }`}>
+                {wpCacheStatus}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">No disponible</div>
+            )}
+          </div>
+
+          {/* Boton borrado cache fuerte */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide text-xs">Cache fuerte</h3>
+            <p className="text-xs text-gray-500">Limpia Nginx, PHP-FPM, transients WordPress, temporales y object cache.</p>
+            <button type="button" disabled={flushCacheLoading} onClick={runFlushCaches}
+              className={`px-4 py-2 text-sm font-medium text-white rounded transition-colors flex items-center gap-2 ${
+                flushCacheLoading ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
+              }`}>
+              {flushCacheLoading && <Spinner />}
+              Borrado cache fuerte
+            </button>
+            {flushCacheBlocks && flushCacheBlocks.length > 0 && (
+              <div className="space-y-2">
+                {flushCacheBlocks.map((block: any, i: number) => (
+                  block.type === 'card-grid' ? (
+                    <div key={i} className="flex items-center gap-3">
+                      {block.cards?.map((card: any, j: number) => (
+                        <span key={j} className={`text-sm font-semibold ${
+                          card.color === 'green' ? 'text-green-700' : 'text-red-700'
+                        }`}>{card.value}</span>
+                      ))}
+                    </div>
+                  ) : block.type === 'code' ? (
+                    <pre key={i} className="text-xs text-gray-800 bg-white border border-gray-200 rounded p-3 whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">{block.text}</pre>
+                  ) : null
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -732,7 +1011,6 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
             {([
               ['Estado del sitio', 'wp-site', wpLoadingSite, setWpLoadingSite] as const,
               ['Plugins', 'wp-plugins', wpLoadingPlugins, setWpLoadingPlugins] as const,
-              ['Logs y errores', 'wp-logs', wpLoadingLogs, setWpLoadingLogs] as const,
             ]).map(([label, cmd, loading, setLoading]) => (
               <button key={cmd} type="button" disabled={loading} onClick={() => runWpCommand(cmd, setLoading)}
                 className={`px-4 py-2 text-sm font-medium text-white rounded transition-colors flex items-center gap-2 ${
@@ -801,52 +1079,6 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
 
           {!configLoading && (
             <>
-              {/* Estado de caches */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide text-xs">WP_CACHE</h3>
-                {wpCacheLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-gray-500"><Spinner /> Consultando...</div>
-                ) : wpCacheStatus ? (
-                  <div className={`inline-block border rounded-lg px-4 py-2 text-sm font-semibold ${
-                    wpCacheColor === 'green' ? 'text-green-700 bg-green-50 border-green-200' : 'text-yellow-700 bg-yellow-50 border-yellow-200'
-                  }`}>
-                    {wpCacheStatus}
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500">No disponible</div>
-                )}
-              </div>
-
-              {/* Boton borrado cache fuerte */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide text-xs">Cache fuerte</h3>
-                <p className="text-xs text-gray-500">Limpia Nginx, PHP-FPM, transients WordPress, temporales y object cache.</p>
-                <button type="button" disabled={flushCacheLoading} onClick={runFlushCaches}
-                  className={`px-4 py-2 text-sm font-medium text-white rounded transition-colors flex items-center gap-2 ${
-                    flushCacheLoading ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
-                  }`}>
-                  {flushCacheLoading && <Spinner />}
-                  Borrado cache fuerte
-                </button>
-                {flushCacheBlocks && flushCacheBlocks.length > 0 && (
-                  <div className="space-y-2">
-                    {flushCacheBlocks.map((block: any, i: number) => (
-                      block.type === 'card-grid' ? (
-                        <div key={i} className="flex items-center gap-3">
-                          {block.cards?.map((card: any, j: number) => (
-                            <span key={j} className={`text-sm font-semibold ${
-                              card.color === 'green' ? 'text-green-700' : 'text-red-700'
-                            }`}>{card.value}</span>
-                          ))}
-                        </div>
-                      ) : block.type === 'code' ? (
-                        <pre key={i} className="text-xs text-gray-800 bg-white border border-gray-200 rounded p-3 whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">{block.text}</pre>
-                      ) : null
-                    ))}
-                  </div>
-                )}
-              </div>
-
               {/* SSH Config */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
                 <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide text-xs">Configuracion SSH</h3>
@@ -887,6 +1119,43 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
               </div>
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {/* ════════ LOGS ════════ */}
+      {activeTab === 'logs' && (
+        <div className="space-y-4">
+          {/* Sub-tabs por categoria */}
+          <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
+            {LOG_CATEGORIES.map(cat => (
+              <button key={cat.id} type="button" onClick={() => { setLogCategory(cat.id); setErrorMsg(''); setSelectedLogKey(null); }}
+                className={`px-3 py-1.5 text-xs font-medium border-b-2 -mb-px whitespace-nowrap ${
+                  logCategory === cat.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}>{cat.label}</button>
+            ))}
+          </div>
+
+          {/* Archivos de la categoria activa como tabs */}
+          <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
+            {LOG_FILES_BY_CATEGORY[logCategory]?.map(f => (
+              <button key={f.key} type="button" disabled={logLoading[f.key]}
+                onClick={() => {
+                  if (!logOutputs[f.key]) fetchLog(f.key, f.source);
+                  setSelectedLogKey(f.key);
+                }}
+                className={`px-3 py-1.5 text-xs font-medium border-b-2 -mb-px whitespace-nowrap flex items-center gap-1.5 ${
+                  selectedLogKey === f.key ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}>
+                {logLoading[f.key] && <Spinner />}
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Output del log seleccionado */}
+          {selectedLogKey && logOutputs[selectedLogKey] && (
+            <LogTableViewer key={selectedLogKey} output={logOutputs[selectedLogKey]} label={logInfos[selectedLogKey]?.label || selectedLogKey} />
           )}
         </div>
       )}
