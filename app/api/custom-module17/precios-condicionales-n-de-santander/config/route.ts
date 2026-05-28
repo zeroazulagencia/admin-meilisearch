@@ -58,6 +58,37 @@ export async function PUT(request: NextRequest) {
 
     await Promise.all(upserts);
 
+    // Sincronizar con app externa de price rules si cambió el target_state
+    if (body.target_state != null) {
+      try {
+        const extUrl = process.env.ZA_PRICE_RULES_APP_URL || 'http://localhost:9002';
+        const getRes = await fetch(`${extUrl}/api/za-config`, { cache: 'no-store' });
+        if (getRes.ok) {
+          const extConfig = await getRes.json();
+          const synced = await fetch(`${extUrl}/api/za-config`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              region_state: [String(body.target_state).trim()],
+              region_country_code: extConfig.region_country_code || 'CO',
+              discount_percentage: extConfig.discount_percentage || 10,
+              scope: extConfig.scope || 'all',
+              scope_target_ids: extConfig.scope_target_ids || [],
+              active: extConfig.active !== false,
+            }),
+          });
+          if (!synced.ok) {
+            const errText = await synced.text().catch(() => 'unknown');
+            console.error('[Config Sync] Error al sincronizar con app externa:', synced.status, errText.slice(0, 200));
+          }
+        } else {
+          console.warn('[Config Sync] No se pudo obtener config de app externa:', getRes.status);
+        }
+      } catch (syncError: any) {
+        console.error('[Config Sync] Error de conexión con app externa:', syncError?.message || syncError);
+      }
+    }
+
     return NextResponse.json({ ok: true, product_overrides: normalizedProductOverrides });
   } catch (error: any) {
     return NextResponse.json({ ok: false, error: error?.message || 'Error al guardar configuración' }, { status: 500 });

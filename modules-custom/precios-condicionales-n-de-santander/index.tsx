@@ -78,6 +78,27 @@ const DEFAULT_CONFIG: ConfigState = {
   shopify_storefront_access_token: '',
 };
 
+const COLOMBIA_DEPARTMENTS = [
+  'Amazonas', 'Antioquia', 'Arauca', 'Atlántico', 'Bolívar',
+  'Boyacá', 'Caldas', 'Caquetá', 'Casanare', 'Cauca',
+  'Cesar', 'Chocó', 'Córdoba', 'Cundinamarca', 'Guainía',
+  'Guaviare', 'Huila', 'La Guajira', 'Magdalena', 'Meta',
+  'Nariño', 'Norte de Santander', 'Putumayo', 'Quindío',
+  'Risaralda', 'San Andrés y Providencia', 'Santander', 'Sucre',
+  'Tolima', 'Valle del Cauca', 'Vaupés', 'Vichada',
+];
+
+const DEPARTMENT_DEFAULT_ALIASES: Record<string, string[]> = {
+  'Norte de Santander': ['Norte de Santander', 'N. de Santander', 'Norte Santander'],
+  'Valle del Cauca': ['Valle del Cauca', 'Valle'],
+  'San Andrés y Providencia': ['San Andrés y Providencia', 'San Andrés', 'San Andres'],
+};
+
+function buildStateAliases(department: string): string {
+  const aliases = DEPARTMENT_DEFAULT_ALIASES[department] || [department];
+  return JSON.stringify(aliases);
+}
+
 const DEFAULT_SENSITIVE_PREVIEW: SensitivePreview = {
   shopify_admin_access_token: '',
   shopify_api_key: '',
@@ -439,7 +460,23 @@ export default function PreciosCondicionalesNDeSantanderModule({
                   <input type="checkbox" checked={config.require_shipping_match} onChange={(e) => setConfig({ ...config, require_shipping_match: e.target.checked })} />
                 </Field>
                 <Field label="País objetivo"><input className="w-full px-3 py-2 border rounded" value={config.target_country_code} onChange={(e) => setConfig({ ...config, target_country_code: e.target.value })} /></Field>
-                <Field label="Estado objetivo"><input className="w-full px-3 py-2 border rounded" value={config.target_state} onChange={(e) => setConfig({ ...config, target_state: e.target.value })} /></Field>
+                <Field
+                  label="Departamento objetivo"
+                  description="Selecciona el departamento de Colombia al que aplica el descuento condicional."
+                >
+                  <select
+                    className="w-full px-3 py-2 border rounded"
+                    value={config.target_state}
+                    onChange={(e) => {
+                      const dept = e.target.value;
+                      setConfig({ ...config, target_state: dept, state_aliases: buildStateAliases(dept) });
+                    }}
+                  >
+                    {COLOMBIA_DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </Field>
                 <Field
                   label="Tipo descuento base"
                   description="percentage: aplica un porcentaje sobre el precio. fixed_per_item: descuenta un valor fijo por ítem."
