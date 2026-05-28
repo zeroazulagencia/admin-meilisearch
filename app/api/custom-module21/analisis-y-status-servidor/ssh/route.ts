@@ -677,7 +677,7 @@ function parseSecurityAudit(raw: string): StructuredBlock[] {
     blocks.push({
       type: 'table', title: `Archivos expuestos (mostrando ${files.length} de ${totalCount})`,
       headers: ['Riesgo', 'Tamano', 'Modificado', 'Ruta'],
-      rows: files.map(f => [f.risk, f.size, f.date, f.path.substring(0, 90)]),
+      rows: files.map(f => [f.risk, f.size, f.date, f.path]),
     });
   } else {
     blocks.push({
