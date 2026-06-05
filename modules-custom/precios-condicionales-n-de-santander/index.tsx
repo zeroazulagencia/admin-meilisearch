@@ -27,6 +27,7 @@ type ConfigState = {
   product_scope_mode: ProductScopeMode;
   require_shipping_match: boolean;
   state_aliases: string;
+  state_discounts: string;
   ipwhois_base_url: string;
   shopify_shop_domain: string;
   shopify_admin_access_token: string;
@@ -68,6 +69,7 @@ const DEFAULT_CONFIG: ConfigState = {
   product_scope_mode: 'all_products',
   require_shipping_match: true,
   state_aliases: '["Norte de Santander","N. de Santander","Norte Santander"]',
+  state_discounts: '[]',
   ipwhois_base_url: 'https://ipwho.is',
   shopify_shop_domain: '',
   shopify_admin_access_token: '',
@@ -81,7 +83,7 @@ const DEFAULT_CONFIG: ConfigState = {
 const COLOMBIA_DEPARTMENTS = [
   'Amazonas', 'Antioquia', 'Arauca', 'Atlántico', 'Bolívar',
   'Boyacá', 'Caldas', 'Caquetá', 'Casanare', 'Cauca',
-  'Cesar', 'Chocó', 'Córdoba', 'Cundinamarca', 'Guainía',
+  'Cesar', 'Chocó', 'Córdoba', 'Cundinamarca', 'Bogotá', 'Guainía',
   'Guaviare', 'Huila', 'La Guajira', 'Magdalena', 'Meta',
   'Nariño', 'Norte de Santander', 'Putumayo', 'Quindío',
   'Risaralda', 'San Andrés y Providencia', 'Santander', 'Sucre',
@@ -177,12 +179,51 @@ export default function PreciosCondicionalesNDeSantanderModule({
     return 'Todos los productos usan la base';
   }, [config.product_scope_mode]);
 
-  const loadConfig = async () => {
+  const doConsoleLog = async () => {
+  try {
+    const cfgRes = await fetch(`${BASE}/config/`, { cache: 'no-store' });
+    const cfgJson = await cfgRes.json();
+    if (!cfgJson.ok) return;
+    const c = cfgJson.config;
+    console.log('%c=== MÓDULO 17 - Precios Condicionales N de Santander ===', 'font-weight:bold;color:#2563eb');
+    console.log(`Departamento objetivo: ${c.target_state}`);
+    console.log(`Descuento: ${c.discount_value}${c.discount_type === 'percentage' ? '%' : ' COP'}`);
+    console.log(`Estado: ${c.enabled === '1' || c.enabled === true ? 'Activo' : 'Inactivo'}`);
+
+    try {
+      const testRes = await fetch(`${BASE}/evaluate/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip: '181.57.0.1', shipping_state: c.target_state, shipping_country_code: 'CO' }),
+      });
+      const testJson = await testRes.json();
+      console.log('%cResultado evaluate:', 'font-weight:bold');
+      console.log(`  Applied: ${testJson.applied} | Reason: ${testJson.reason}`);
+      console.log(`  Discount:`, testJson.discount);
+      console.log(`  Geo detectado:`, testJson.geo);
+    } catch (e) { console.warn('Evaluate auto-test failed:', e); }
+
+    try {
+      const prodRes = await fetch(`${BASE}/products`);
+      const prodJson = await prodRes.json();
+      if (prodJson.ok && prodJson.products?.length > 0) {
+        console.log('%cProductos en Shopify:', 'font-weight:bold');
+        prodJson.products.forEach((p: any) => { console.log(`  ${p.title}: $${p.price}`); });
+      } else {
+        console.log('No se pudieron obtener productos de Shopify');
+      }
+    } catch (e) { console.warn('Product fetch failed:', e); }
+
+    console.log('%c========================================', 'color:#2563eb');
+  } catch (e) { /* silent */ }
+};
+
+const loadConfig = async () => {
     setLoadingConfig(true);
     try {
       const res = await fetch(`${BASE}/config/`, { cache: 'no-store' });
       const json = await res.json();
       if (json.ok && json.config) {
+        doConsoleLog();
         setSensitivePreview({
           shopify_admin_access_token: String(json.config.shopify_admin_access_token || ''),
           shopify_api_key: String(json.config.shopify_api_key || ''),
@@ -207,6 +248,11 @@ export default function PreciosCondicionalesNDeSantanderModule({
                 : 'all_products',
           require_shipping_match: json.config.require_shipping_match !== '0' && json.config.require_shipping_match !== false,
           state_aliases: String(json.config.state_aliases || DEFAULT_CONFIG.state_aliases),
+          state_discounts: json.config.state_discounts
+            ? (typeof json.config.state_discounts === 'string'
+                ? json.config.state_discounts
+                : JSON.stringify(json.config.state_discounts))
+            : '[]',
           ipwhois_base_url: String(json.config.ipwhois_base_url || 'https://ipwho.is'),
           shopify_shop_domain: String(json.config.shopify_shop_domain || ''),
           shopify_admin_access_token: '',
@@ -281,6 +327,15 @@ export default function PreciosCondicionalesNDeSantanderModule({
         product_overrides: normalizedOverrides,
         require_shipping_match: config.require_shipping_match,
         state_aliases: Array.isArray(parsedAliases) ? parsedAliases : [],
+        state_discounts: (() => {
+          try {
+            const parsed = JSON.parse(config.state_discounts || '[]');
+            const arr = Array.isArray(parsed) ? parsed : [];
+            return arr.filter((_, i: number) => activeDiscountIndices.includes(i));
+          } catch {
+            return [];
+          }
+        })(),
         ipwhois_base_url: config.ipwhois_base_url,
         shopify_shop_domain: config.shopify_shop_domain,
       };
@@ -355,6 +410,65 @@ export default function PreciosCondicionalesNDeSantanderModule({
     setProductOverrides((prev) => [...prev, EMPTY_OVERRIDE()]);
   };
 
+  const parsedStateDiscounts = useMemo(() => {
+    try {
+      const parsed = JSON.parse(config.state_discounts || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  }, [config.state_discounts]);
+
+  const updateStateDiscount = (idx: number, patch: { state?: string; discount?: number }) => {
+    try {
+      const list = [...parsedStateDiscounts];
+      list[idx] = { ...list[idx], ...patch };
+      setConfig({ ...config, state_discounts: JSON.stringify(list) });
+    } catch { /* silent */ }
+  };
+
+  const removeStateDiscount = (idx: number) => {
+    try {
+      const list = parsedStateDiscounts.filter((_, i) => i !== idx);
+      setConfig({ ...config, state_discounts: JSON.stringify(list) });
+    } catch { /* silent */ }
+  };
+
+  const addStateDiscountRow = () => {
+    try {
+      const list = [...parsedStateDiscounts, { state: COLOMBIA_DEPARTMENTS[0], discount: 0 }];
+      setConfig({ ...config, state_discounts: JSON.stringify(list) });
+    } catch { /* silent */ }
+  };
+
+  const [excludeDept, setExcludeDept] = useState<string | null>(null);
+
+  const seleccionarTodos = () => {
+    const list = COLOMBIA_DEPARTMENTS.map((d) => ({ state: d, discount: Number(config.discount_value) || 0 }));
+    setConfig({ ...config, state_discounts: JSON.stringify(list) });
+  };
+
+  const seleccionarTodosExcepto = (exclude: string | null) => {
+    const list = COLOMBIA_DEPARTMENTS
+      .filter((d) => d !== exclude)
+      .map((d) => ({ state: d, discount: Number(config.discount_value) || 0 }));
+    setConfig({ ...config, state_discounts: JSON.stringify(list) });
+  };
+
+  const [activeDiscountIndices, setActiveDiscountIndices] = useState<number[]>([]);
+
+  useEffect(() => {
+    setActiveDiscountIndices(parsedStateDiscounts.map((_, i) => i));
+  }, [config.state_discounts]);
+
+  const toggleDiscountActive = (idx: number) => {
+    setActiveDiscountIndices((prev) =>
+      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
+    );
+  };
+
+  const toggleAllDiscounts = (value: boolean) => {
+    setActiveDiscountIndices(value ? parsedStateDiscounts.map((_, i) => i) : []);
+  };
+
   const clearLogs = async () => {
     setClearingLogs(true);
     try {
@@ -411,10 +525,10 @@ export default function PreciosCondicionalesNDeSantanderModule({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div className="bg-gray-50 border rounded p-3">Estado: <b>{config.enabled ? 'Activo' : 'Inactivo'}</b></div>
               <div className="bg-gray-50 border rounded p-3">País objetivo: <b>{config.target_country_code}</b></div>
-              <div className="bg-gray-50 border rounded p-3">Estado objetivo: <b>{config.target_state}</b></div>
               <div className="bg-gray-50 border rounded p-3">Regla envío: <b>{shippingRuleLabel}</b></div>
               <div className="bg-gray-50 border rounded p-3">Alcance productos: <b>{scopeModeLabel}</b></div>
               <div className="bg-gray-50 border rounded p-3">Overrides configurados: <b>{productOverrides.filter((item) => item.active).length}</b></div>
+              <div className="bg-gray-50 border rounded p-3">Descuentos por depto: <b>{parsedStateDiscounts.length > 0 ? parsedStateDiscounts.map((d: any) => `${d.state}: ${d.discount}%`).join(', ') : 'Ninguno'}</b></div>
             </div>
           )}
 
@@ -460,23 +574,123 @@ export default function PreciosCondicionalesNDeSantanderModule({
                   <input type="checkbox" checked={config.require_shipping_match} onChange={(e) => setConfig({ ...config, require_shipping_match: e.target.checked })} />
                 </Field>
                 <Field label="País objetivo"><input className="w-full px-3 py-2 border rounded" value={config.target_country_code} onChange={(e) => setConfig({ ...config, target_country_code: e.target.value })} /></Field>
-                <Field
-                  label="Departamento objetivo"
-                  description="Selecciona el departamento de Colombia al que aplica el descuento condicional."
-                >
-                  <select
-                    className="w-full px-3 py-2 border rounded"
-                    value={config.target_state}
-                    onChange={(e) => {
-                      const dept = e.target.value;
-                      setConfig({ ...config, target_state: dept, state_aliases: buildStateAliases(dept) });
-                    }}
-                  >
-                    {COLOMBIA_DEPARTMENTS.map((dept) => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </Field>
+
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Descuentos por departamento</h3>
+                    <p className="text-xs text-gray-500">Cada departamento puede tener su propio % de descuento. Usa los checkboxes para activar/desactivar.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={seleccionarTodos} className="px-3 py-2 text-sm bg-slate-800 text-white rounded">
+                      Seleccionar todos
+                    </button>
+                    <details className="relative">
+                      <summary className="px-3 py-2 text-sm bg-slate-700 text-white rounded cursor-pointer whitespace-nowrap">
+                        Todos excepto...
+                      </summary>
+                      <div className="absolute right-0 top-full mt-1 z-10 bg-white border rounded shadow-lg p-2 min-w-[220px]">
+                        <p className="text-xs text-gray-500 mb-2">Elige el depto a excluir:</p>
+                        <select
+                          className="w-full px-2 py-1.5 border rounded text-sm"
+                          value={excludeDept || ''}
+                          onChange={(e) => {
+                            const val = e.target.value || null;
+                            setExcludeDept(val);
+                            if (val) {
+                              seleccionarTodosExcepto(val);
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <option value="">-- Seleccionar --</option>
+                          {COLOMBIA_DEPARTMENTS.map((d) => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </details>
+                    <button type="button" onClick={addStateDiscountRow} className="px-3 py-2 text-sm border border-gray-400 text-gray-700 rounded">
+                      Agregar manual
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-sm mb-2">
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      ref={(el) => { if (el) el.indeterminate = activeDiscountIndices.length > 0 && activeDiscountIndices.length < parsedStateDiscounts.length; }}
+                      checked={activeDiscountIndices.length === parsedStateDiscounts.length && parsedStateDiscounts.length > 0}
+                      onChange={(e) => toggleAllDiscounts(e.target.checked)}
+                    />
+                    <span className="text-gray-600">{activeDiscountIndices.length}/{parsedStateDiscounts.length} activos</span>
+                  </label>
+                </div>
+
+                <div className="space-y-3">
+                  {parsedStateDiscounts.map((item, idx) => {
+                    const isActive = activeDiscountIndices.includes(idx);
+                    return (
+                      <div key={idx} className={`border rounded-lg p-3 grid grid-cols-1 md:grid-cols-5 gap-3 ${isActive ? '' : 'opacity-40'}`}>
+                        <div className="flex items-center md:items-start">
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={isActive}
+                              onChange={() => toggleDiscountActive(idx)}
+                              className="mt-0.5"
+                            />
+                          </label>
+                        </div>
+                        <Field label="Departamento">
+                          <select
+                            className="w-full px-3 py-2 border rounded"
+                            value={item.state}
+                            onChange={(e) => updateStateDiscount(idx, { state: e.target.value })}
+                          >
+                            {COLOMBIA_DEPARTMENTS.map((dept) => (
+                              <option key={dept} value={dept}>{dept}</option>
+                            ))}
+                          </select>
+                        </Field>
+                        <Field label="% descuento">
+                          <input
+                            className="w-full px-3 py-2 border rounded"
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={item.discount}
+                            onChange={(e) => updateStateDiscount(idx, { discount: Number(e.target.value) || 0 })}
+                          />
+                        </Field>
+                        <Field label="Alias">
+                          <input
+                            className="w-full px-3 py-2 border rounded bg-gray-50 text-gray-500"
+                            value={buildStateAliases(item.state)}
+                            disabled
+                          />
+                        </Field>
+                        <div className="flex items-end">
+                          <button type="button" onClick={() => removeStateDiscount(idx)} className="px-3 py-2 text-sm border border-red-300 text-red-600 rounded">
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {parsedStateDiscounts.length === 0 && (
+                    <div className="text-sm text-gray-500 border rounded-lg p-4">
+                      No hay descuentos por departamento configurados.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field
                   label="Tipo descuento base"
                   description="percentage: aplica un porcentaje sobre el precio. fixed_per_item: descuenta un valor fijo por ítem."
@@ -487,8 +701,8 @@ export default function PreciosCondicionalesNDeSantanderModule({
                   </select>
                 </Field>
                 <Field
-                  label="Valor descuento base"
-                  description="Usa números positivos. Ejemplo: percentage + 10 = -10% sobre el precio. fixed_per_item + 5000 = -$5.000 por ítem."
+                  label="Valor descuento base (fallback)"
+                  description="Usa números positivos. Se usa como fallback si un departamento no está en la lista de descuentos."
                 >
                   <input className="w-full px-3 py-2 border rounded" value={config.discount_value} onChange={(e) => setConfig({ ...config, discount_value: e.target.value })} />
                 </Field>

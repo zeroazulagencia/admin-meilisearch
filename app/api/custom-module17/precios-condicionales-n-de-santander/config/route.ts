@@ -42,6 +42,20 @@ export async function PUT(request: NextRequest) {
       upserts.push(setConfig('state_aliases', aliases || null));
     }
 
+    if (body.state_discounts != null) {
+      const normalized = Array.isArray(body.state_discounts)
+        ? JSON.stringify(
+            body.state_discounts
+              .map((item: any) => ({
+                state: String(item?.state || '').trim(),
+                discount: Number(item?.discount || 0),
+              }))
+              .filter((item: any) => item.state && Number.isFinite(item.discount) && item.discount >= 0)
+          )
+        : '[]';
+      upserts.push(setConfig('state_discounts', normalized));
+    }
+
     if (body.ipwhois_base_url != null) upserts.push(setConfig('ipwhois_base_url', String(body.ipwhois_base_url || '').trim() || null));
 
     if (body.shopify_shop_domain != null) upserts.push(setConfig('shopify_shop_domain', String(body.shopify_shop_domain || '').trim() || null));
@@ -58,28 +72,34 @@ export async function PUT(request: NextRequest) {
 
     await Promise.all(upserts);
 
-    // Sincronizar con app externa de price rules si cambió el target_state
-    if (body.target_state != null) {
+    // Sincronizar con app externa de price rules
+    if (body.state_discounts != null) {
       try {
         const extUrl = process.env.ZA_PRICE_RULES_APP_URL || 'http://localhost:9002';
         const getRes = await fetch(`${extUrl}/api/za-config`, { cache: 'no-store' });
         if (getRes.ok) {
           const extConfig = await getRes.json();
+          const syncBody: Record<string, any> = {
+            region_state: body.state_discounts.map((item: any) => String(item.state || '').trim()).filter(Boolean),
+            region_country_code: body.target_country_code || extConfig.region_country_code || 'CO',
+            discount_percentage: body.state_discounts.length > 0 ? Number(body.state_discounts[0].discount || 0) : (extConfig.discount_percentage || 10),
+            state_discounts: body.state_discounts,
+            scope: extConfig.scope || 'all',
+            scope_target_ids: extConfig.scope_target_ids || [],
+            active: body.enabled != null ? (body.enabled === true || body.enabled === 1 || body.enabled === '1') : (extConfig.active !== false),
+          };
+          // Limpiar undefined
+          Object.keys(syncBody).forEach(k => syncBody[k] === undefined && delete syncBody[k]);
           const synced = await fetch(`${extUrl}/api/za-config`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              region_state: [String(body.target_state).trim()],
-              region_country_code: extConfig.region_country_code || 'CO',
-              discount_percentage: extConfig.discount_percentage || 10,
-              scope: extConfig.scope || 'all',
-              scope_target_ids: extConfig.scope_target_ids || [],
-              active: extConfig.active !== false,
-            }),
+            body: JSON.stringify(syncBody),
           });
           if (!synced.ok) {
             const errText = await synced.text().catch(() => 'unknown');
             console.error('[Config Sync] Error al sincronizar con app externa:', synced.status, errText.slice(0, 200));
+          } else {
+            console.log('[Config Sync] Sincronizado exitosamente con app externa: state_discounts, region_state, discount_percentage');
           }
         } else {
           console.warn('[Config Sync] No se pudo obtener config de app externa:', getRes.status);

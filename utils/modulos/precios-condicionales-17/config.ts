@@ -17,6 +17,11 @@ export type DiscountType = 'percentage' | 'fixed_per_item';
 export type ProductScopeMode = 'all_products' | 'selected_only' | 'selected_with_base_fallback';
 export type ProductOverrideMode = 'percentage' | 'final_price';
 
+export interface StateDiscount {
+  state: string;
+  discount: number;
+}
+
 export interface ProductDiscountOverride {
   id: string;
   product_id: string;
@@ -168,6 +173,7 @@ export async function getRuntimeConfig() {
     shopifyStorefrontAccessToken,
     productScopeMode,
     productOverrides,
+    stateDiscounts,
   ] = await Promise.all([
     getConfig('enabled'),
     getConfig('target_country_code'),
@@ -186,6 +192,7 @@ export async function getRuntimeConfig() {
     getConfig('shopify_storefront_access_token'),
     getConfig('product_scope_mode'),
     getProductOverrides(),
+    getConfig('state_discounts'),
   ]);
 
   let aliases: string[] = [];
@@ -198,6 +205,23 @@ export async function getRuntimeConfig() {
       }
     } catch {
       aliases = [];
+    }
+  }
+
+  let parsedStateDiscounts: StateDiscount[] = [];
+  if (stateDiscounts) {
+    try {
+      const parsed = JSON.parse(stateDiscounts);
+      if (Array.isArray(parsed)) {
+        parsedStateDiscounts = parsed
+          .map((item: any) => ({
+            state: String(item?.state || '').trim(),
+            discount: Number(item?.discount || 0),
+          }))
+          .filter((item) => item.state && Number.isFinite(item.discount) && item.discount >= 0);
+      }
+    } catch {
+      parsedStateDiscounts = [];
     }
   }
 
@@ -219,5 +243,6 @@ export async function getRuntimeConfig() {
     shopifyStorefrontAccessToken: shopifyStorefrontAccessToken || null,
     productScopeMode: normalizeProductScopeMode(productScopeMode),
     productOverrides,
+    stateDiscounts: parsedStateDiscounts,
   } as const;
 }

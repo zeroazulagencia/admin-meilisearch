@@ -260,6 +260,20 @@ export async function POST(request: NextRequest) {
   const ipStateMatches = matchState(config.targetState, config.stateAliases, geo?.region || '');
   const ipCountryMatches = normalizeText(geo?.country_code) === normalizeText(config.targetCountryCode);
 
+  // Buscar descuento específico para el estado detectado
+  const resolvedState = geo?.region || null;
+  const matchedStateDiscount = config.stateDiscounts.length > 0 && resolvedState
+    ? config.stateDiscounts.find((sd) => {
+        const input = normalizeText(resolvedState);
+        const target = normalizeText(sd.state);
+        return input === target;
+      })
+    : null;
+
+  // Determinar el valor de descuento efectivo según el departamento detectado
+  const effectiveDiscountValue = matchedStateDiscount?.discount ?? config.discountValue;
+  const effectiveDiscountType = config.discountType;
+
   const shippingStateMatches = config.requireShippingMatch
     ? matchState(config.targetState, config.stateAliases, shippingState || '')
     : true;
@@ -286,9 +300,12 @@ export async function POST(request: NextRequest) {
         .map((item) => [item.product_id, item])
     );
 
+    const effectiveDiscountValue = matchedStateDiscount?.discount ?? config.discountValue;
+    const effectiveDiscountType = config.discountType;
+
     const baseDiscount = {
-      type: config.discountType,
-      value: config.discountValue,
+      type: effectiveDiscountType,
+      value: effectiveDiscountValue,
       source: 'base' as const,
     };
 
@@ -322,8 +339,8 @@ export async function POST(request: NextRequest) {
         product_id: productId || null,
         product_title: line.product_title || null,
         quantity: line.quantity || 1,
-        type: config.discountType,
-        value: config.discountValue,
+        type: effectiveDiscountType,
+        value: effectiveDiscountValue,
         source: 'base',
       });
     }
@@ -337,11 +354,13 @@ export async function POST(request: NextRequest) {
     reason: applied && config.productScopeMode === 'selected_only' && discounts.length === 0 ? 'no_selected_products_in_cart' : reason,
     discount: applied
       ? {
-          type: config.discountType,
-          value: config.discountValue,
+          type: effectiveDiscountType,
+          value: effectiveDiscountValue,
           target_country_code: config.targetCountryCode,
           target_state: config.targetState,
           product_scope_mode: config.productScopeMode,
+          matched_state_discount: matchedStateDiscount || null,
+          state_discounts: config.stateDiscounts.length > 0 ? config.stateDiscounts : undefined,
         }
       : null,
     discounts,

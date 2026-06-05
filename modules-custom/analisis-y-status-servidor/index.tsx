@@ -759,7 +759,7 @@ export default function AnalisisStatusServidor({ moduleData }: { moduleData?: { 
 
   const LOG_FILES_BY_CATEGORY: Record<string, { key: string; label: string; desc: string; source: string }[]> = {
     'nginx-ssl': [
-      { key: 'project_access', label: 'project_access.log', desc: 'Trafico del sitio (X-Forwarded-For)', source: 'ssh' },
+      { key: 'project_access', label: 'project_access.log', desc: 'Trafico del sitio (X-RDWR-IP)', source: 'ssh' },
       { key: 'project_error', label: 'project_error.log', desc: 'Errores de nginx (comfamiliar)', source: 'ssh' },
       { key: 'nginx_access', label: 'access.log', desc: 'Trafico default server', source: 'ssh' },
       { key: 'nginx_error', label: 'error.log', desc: 'Errores generales nginx', source: 'ssh' },

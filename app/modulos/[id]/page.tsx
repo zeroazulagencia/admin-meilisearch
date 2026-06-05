@@ -28,6 +28,7 @@ import ModMonitorWebCFA from '@/modules-custom/monitor-web-cfa';
 import ModSincronizadorUsadosAutolarte from '@/modules-custom/sincronizador-usados-autolarte';
 import ModGeneradorFacturasAutolarte from '@/modules-custom/generador-de-facturas-autolarte-zero-llc';
 import ModAnalisisStatusServidor from '@/modules-custom/analisis-y-status-servidor';
+import ModBridgeSiigo from '@/modules-custom/bridge-siigo';
 
 const MODULES_MAP: Record<string, any> = {
   'verificador-mobilia': ModVerificadorMobilia,
@@ -52,6 +53,7 @@ const MODULES_MAP: Record<string, any> = {
   'sincronizador-usados-autolarte': ModSincronizadorUsadosAutolarte,
   'generador-de-facturas-autolarte-zero-llc': ModGeneradorFacturasAutolarte,
   'analisis-y-status-servidor': ModAnalisisStatusServidor,
+  'bridge-siigo': ModBridgeSiigo,
 };
 
 interface Module {

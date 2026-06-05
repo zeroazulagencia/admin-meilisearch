@@ -23,6 +23,9 @@ const ALLOWED_COMMANDS: Record<string, string> = {
   'crit-precheck': `php_svc=$(systemctl list-units --type=service 2>/dev/null | grep -oP 'php[\\d.]+-fpm\\.service' | head -1 | sed 's/\\.service//'); echo "=== NGINX_TEST ==="; nginx -t 2>&1; echo "---"; echo "=== SERVICES ==="; for s in nginx mysql mariadb; do echo "$s: $(systemctl show -p ActiveState --value "$s" 2>/dev/null || echo not_found)"; done; echo "php-fpm: $(systemctl show -p ActiveState --value "$php_svc" 2>/dev/null || echo not_found)"; echo "---"; echo "=== LOAD ==="; uptime; echo "---"; echo "=== DISK ==="; df -h / | tail -1; echo "---"; echo "=== MEMORY ==="; free -h | grep Mem`,
 'crit-kill': `php_svc=$(systemctl list-units --type=service 2>/dev/null | grep -oP 'php[\\d.]+-fpm\\.service' | head -1 | sed 's/\\.service//'); echo "=== BEFORE ==="; echo "PHP-FPM workers:"; pgrep -ac php-fpm 2>/dev/null || echo 0; echo "---"; echo "=== ZOMBIES ==="; ps aux | grep -w Z | grep -v grep; echo "---"; echo "=== RESTARTING PHP-FPM ==="; if [ -n "$php_svc" ]; then systemctl restart "$php_svc" 2>&1; else systemctl restart php*-fpm 2>&1; fi; echo "---"; echo "=== AFTER ==="; if [ -n "$php_svc" ]; then systemctl status "$php_svc" --no-pager 2>/dev/null | head -8; else systemctl status php*-fpm --no-pager 2>/dev/null | head -8; fi; echo "---"; pgrep -ac php-fpm 2>/dev/null || echo 0`,
   'crit-restart-nginx': `echo "=== DIAG ==="; ls -la /etc/letsencrypt/live/saludcomfamiliar.com/ 2>&1; stat --format="Permisos: %a | Dueno: %U:%G | Archivo: %n" /etc/letsencrypt/live/saludcomfamiliar.com/fullchain.pem 2>&1; echo "---"; echo "=== FIX CERTS ==="; chmod -R 755 /etc/letsencrypt/live/ 2>&1; chmod -R 755 /etc/letsencrypt/archive/ 2>&1; echo "Permisos corregidos"; echo "---"; echo "=== NGINX_TEST ==="; nginx -t 2>&1; echo "---"; if nginx -t 2>&1 | grep -qi "syntax is ok"; then echo "REINICIANDO NGINX..."; systemctl restart nginx 2>&1 && (echo "---"; echo "OK: Nginx reiniciado"); echo "---"; echo "=== STATUS ==="; systemctl status nginx --no-pager 2>/dev/null | head -8; else echo "ERROR: Config de nginx con errores. No se reinicia."; fi`,
+  'wp-config-status': `echo "=== WP_CACHE ==="; grep -l "WP_CACHE" /var/www/comunicacionesnew/wp-config.php 2>/dev/null && echo "Definida" || echo "No definida"; echo "---"; echo "=== OBJECT CACHE ==="; if which wp >/dev/null 2>&1; then wp --path=/var/www/comunicacionesnew cache type 2>/dev/null || echo "No disponible"; else echo "WP-CLI no disponible"; fi; echo "---"; echo "=== NGINX CACHE ==="; ls /var/cache/nginx/ 2>/dev/null | head -5; echo "---"; echo "=== PHP-FPM ==="; pgrep -ac php-fpm 2>/dev/null || echo 0`,
+  'flush-caches': `echo "=== FLUSH START ==="; date; echo "---"; echo "=== WP TRANSIENTS ==="; if which wp >/dev/null 2>&1; then wp --path=/var/www/comunicacionesnew transient delete --all --network 2>&1; wp --path=/var/www/comunicacionesnew cache flush 2>&1; echo "WordPress cache flushed"; else echo "WP-CLI no disponible"; fi; echo "---"; echo "=== LIMPIANDO TEMP ==="; rm -rf /tmp/wp-* /tmp/*.tmp /tmp/php* 2>/dev/null; echo "Temp cleaned"; echo "---"; echo "=== RESTART PHP-FPM ==="; php_svc=$(systemctl list-units --type=service 2>/dev/null | grep -oP 'php[\d.]+-fpm\.service' | head -1 | sed 's/\.service//'); if [ -n "$php_svc" ]; then systemctl restart "$php_svc" 2>&1 && echo "$php_svc reiniciado" || echo "Error reiniciando $php_svc"; else systemctl restart php*-fpm 2>&1 || echo "No se pudo reiniciar PHP-FPM"; fi; echo "---"; echo "=== RELOAD NGINX ==="; nginx -t 2>&1 | grep -qi "syntax is ok" && (systemctl reload nginx 2>&1; echo "Nginx reloaded") || echo "Nginx config error, no reload"; echo "---"; echo "=== FLUSH END ==="; date`,
+  'read-log': 'LOG_READER',
 };// ── Rate limiter ──
 const REQUEST_LIMIT = 10;
 const WINDOW_MS = 60_000;
@@ -742,12 +745,47 @@ function parseCritRestartNginx(raw: string): StructuredBlock[] {
 }
 
 // ═══════════════════════════════════════════════
+// Log file map — whitelist de logs vía SSH
+// ═══════════════════════════════════════════════
+
+interface LogFileInfo {
+  path: string;
+  label: string;
+  desc: string;
+}
+
+const LOG_FILE_MAP: Record<string, LogFileInfo> = {
+  // NGINX — SSL (443)
+  'project_access': { path: '/var/log/nginx/project_access.log', label: 'project_access.log', desc: 'Trafico del sitio (X-RDWR-IP)' },
+  'project_error': { path: '/var/log/nginx/project_error.log', label: 'project_error.log', desc: 'Errores de nginx (comfamiliar)' },
+  'nginx_access': { path: '/var/log/nginx/access.log', label: 'access.log', desc: 'Trafico default server' },
+  'nginx_error': { path: '/var/log/nginx/error.log', label: 'error.log', desc: 'Errores generales nginx' },
+  // NGINX — 8080
+  'puerto8080_access': { path: '/var/log/nginx/puerto8080_access.log', label: 'puerto8080_access.log', desc: 'Trafico puerto 8080' },
+  'puerto8080_error': { path: '/var/log/nginx/puerto8080_error.log', label: 'puerto8080_error.log', desc: 'Errores puerto 8080' },
+  // PHP
+  'php8_3_fpm': { path: '/var/log/php8.3-fpm.log', label: 'php8.3-fpm.log', desc: 'PHP-FPM activo' },
+  'php8_4_fpm': { path: '/var/log/php8.4-fpm.log', label: 'php8.4-fpm.log', desc: 'PHP-FPM 8.4 (inactivo)' },
+  'php8_4_slow': { path: '/var/log/php8.4-fpm.slow.log', label: 'php8.4-fpm.slow.log', desc: 'Scripts lentos' },
+  // MySQL
+  'mysql_error': { path: '/var/log/mysql/error.log', label: 'mysql/error.log', desc: 'Errores de MySQL' },
+  // Sistema
+  'syslog': { path: '/var/log/syslog', label: 'syslog', desc: 'Log del sistema' },
+  'auth': { path: '/var/log/auth.log', label: 'auth.log', desc: 'Intentos SSH/sudo' },
+  'kern': { path: '/var/log/kern.log', label: 'kern.log', desc: 'Kernel' },
+  'dpkg': { path: '/var/log/dpkg.log', label: 'dpkg.log', desc: 'Paquetes instalados' },
+  // WordPress
+  'wp_debug': { path: '/var/www/comunicacionesnew/wp-content/debug.log', label: 'wp-content/debug.log', desc: 'Errores PHP/WP' },
+};
+
+// ═══════════════════════════════════════════════
 // POST handler
 // ═══════════════════════════════════════════════
 
 export async function POST(request: NextRequest) {
   const clientIp =
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    request.headers.get('x-rdwr-ip')?.trim()
+    || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || request.headers.get('x-real-ip')
     || 'unknown';
 
@@ -786,6 +824,42 @@ export async function POST(request: NextRequest) {
       const structured = parseStatusStructured(rawOutput);
       await logAudit('status', 'ok', `${structured.hostname} | CPU:${structured.topCpu.length} | MEM:${structured.topMem.length} | PHP:${structured.phpFpm.length}`, clientIp);
       return NextResponse.json({ ok: true, structured });
+    }
+
+    // ── WP Cache status: card con estado ──
+    if (commandKey === 'wp-config-status') {
+      const cmd = ALLOWED_COMMANDS[commandKey];
+      const rawOutput = await executeSSH(usuario, ip, portNum, password, cmd);
+      const sections = splitSections(rawOutput);
+      const wpCache = sections['WP_CACHE'] || 'Desconocido';
+      const objCache = sections['OBJECT CACHE'] || 'Desconocido';
+      const phpFpm = sections['PHP-FPM'] || '?';
+      const color = (wpCache.includes('Definida') && objCache !== 'No disponible') ? 'green' : 'yellow';
+      const blocks: StructuredBlock[] = [{
+        type: 'card-grid',
+        title: 'Estado de caches',
+        cards: [
+          { label: 'WP_CACHE', value: wpCache, color },
+          { label: 'Object cache', value: objCache, color: objCache === 'No disponible' ? 'yellow' : 'green' },
+          { label: 'PHP-FPM', value: phpFpm, color: 'green' },
+        ],
+      }];
+      await logAudit('wp-config-status', 'ok', wpCache, clientIp);
+      return NextResponse.json({ ok: true, output: rawOutput, structured: blocks });
+    }
+
+    // ── Flush caches: structured blocks ──
+    if (commandKey === 'flush-caches') {
+      const cmd = ALLOWED_COMMANDS[commandKey];
+      const rawOutput = await executeSSH(usuario, ip, portNum, password, cmd);
+      const sections = splitSections(rawOutput);
+      const blocks: StructuredBlock[] = Object.entries(sections).map(([title, text]) => ({
+        type: 'code' as const,
+        title,
+        text,
+      }));
+      await logAudit('flush-caches', 'ok', Object.keys(sections).join(', '), clientIp);
+      return NextResponse.json({ ok: true, output: rawOutput, structured: blocks });
     }
 
     // ── Comandos WordPress: devuelven JSON estructurado ──
@@ -830,6 +904,20 @@ export async function POST(request: NextRequest) {
       else if (commandKey === 'crit-restart-nginx') blocks = parseCritRestartNginx(rawOutput);
       await logAudit(commandKey, 'ok', blocks.map(b => b.title).filter(Boolean).join(', ').substring(0, 200), clientIp);
       return NextResponse.json({ ok: true, output: rawOutput, structured: blocks });
+    }
+
+    // ── Read log file (remote) ──
+    if (commandKey === 'read-log') {
+      const logKey = body.logKey as string;
+      const logInfo = LOG_FILE_MAP[logKey];
+      if (!logInfo) {
+        return NextResponse.json({ ok: false, error: 'Log key no valida' }, { status: 400 });
+      }
+      const lines = body.lines || 100;
+      const cmd = `tail -n ${lines} ${logInfo.path} 2>&1 || echo \"Archivo no encontrado o sin permisos\"`;
+      const rawOutput = await executeSSH(usuario, ip, portNum, password, cmd);
+      await logAudit(`read-log:${logKey}`, 'ok', `${lines} lines`, clientIp);
+      return NextResponse.json({ ok: true, output: rawOutput, logInfo });
     }
 
     // ── Otros comandos: texto crudo ──

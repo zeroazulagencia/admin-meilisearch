@@ -14,7 +14,7 @@ import { processTreliWebhook } from '@/utils/modulos/biury-pagos/module8-orchest
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const limit = Math.max(1, Math.min(200, Number(body.limit) || 50));
+    const limit = Math.max(1, Math.min(200, Number(body.limit) || 5));
     const status = typeof body.status === 'string' ? body.status.trim().toLowerCase() : null;
     const sku = typeof body.sku === 'string' && body.sku.trim() ? body.sku.trim() : null;
     const logId = Number(body.id) || null;
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       : logs;
 
     const batchDelayMs = 300;
-    const maxDurationMs = 25000;
+    const maxDurationMs = 300000;
     const startAt = Date.now();
     let timedOut = false;
     let lastIndex = -1;
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
           results.push({ payment_id: log.payment_id || 'unknown', status: 'error', message: 'Sin payload' });
           continue;
         }
-        const result = await processTreliWebhook({ content: payload, logId: log.id || null });
+        const result = await processTreliWebhook({ content: payload, logId: log.id || null, skipRateLimit: true });
         if (result.status === 'success') {
           success += 1;
           results.push({ payment_id: log.payment_id || 'unknown', status: 'success' });

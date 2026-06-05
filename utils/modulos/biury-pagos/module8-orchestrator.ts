@@ -115,7 +115,8 @@ async function createSiigoVoucher(
   paymentData: any,
   siigoToken: string,
   rawData: any,
-  matchedRule: NonNullable<Awaited<ReturnType<typeof matchProductRule>>>
+  matchedRule: NonNullable<Awaited<ReturnType<typeof matchProductRule>>>,
+  skipRateLimit?: boolean
 ): Promise<{ success: boolean; response: SiigoVoucherResponse; error?: string }> {
   const gatewayRaw = paymentData.payment_gateway_name || '';
   const gateway = gatewayRaw.toLowerCase();
@@ -164,7 +165,11 @@ async function createSiigoVoucher(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      await waitForSiigoSlot();
+      if (skipRateLimit) {
+        await waitForSiigoSlot(3000);
+      } else {
+        await waitForSiigoSlot();
+      }
       const response = await fetch('https://api.siigo.com/v1/vouchers', {
         method: 'POST',
         headers: {
@@ -204,7 +209,7 @@ async function createSiigoVoucher(
       if (!response.ok) {
         if (isInvalidCustomer(responseData) && !customerCreated) {
           const customerPayload = buildCustomerPayload(paymentData, rawData);
-          const customerResult = await createSiigoCustomer(customerPayload, siigoToken);
+          const customerResult = await createSiigoCustomer(customerPayload, siigoToken, skipRateLimit);
           responseData = {
             ...responseData,
             customer_create: customerResult.response || { error: customerResult.error || 'Error al crear cliente' },
@@ -248,7 +253,7 @@ async function createSiigoVoucher(
   };
 }
 
-export async function processTreliWebhook(payload: { content: any; logId?: number | null }): Promise<{
+export async function processTreliWebhook(payload: { content: any; logId?: number | null; skipRateLimit?: boolean }): Promise<{
   ok: boolean;
   status: 'success' | 'error' | 'filtered';
   logId?: number;
@@ -257,6 +262,7 @@ export async function processTreliWebhook(payload: { content: any; logId?: numbe
   const data = payload.content;
   const normalized = normalizePaymentData(data);
   const payloadRaw = JSON.stringify(payload?.content ?? payload ?? {});
+  const skipRateLimit = payload.skipRateLimit === true;
 
   if (!normalized || !normalized.items || !normalized.items.length) {
     const logId = await saveLog(payload.logId, {
@@ -310,7 +316,7 @@ export async function processTreliWebhook(payload: { content: any; logId?: numbe
     return { ok: true, status: 'error', logId, error: authResult.error || 'Error al obtener token de Siigo' };
   }
 
-  const siigoResult = await createSiigoVoucher(normalized, authResult.token, data, matchedRule);
+  const siigoResult = await createSiigoVoucher(normalized, authResult.token, data, matchedRule, skipRateLimit);
   const receiptDocumentId = extractReceiptDocumentId(siigoResult.response);
 
   const logId = await saveLog(payload.logId, {
@@ -469,14 +475,18 @@ function isInvalidCustomer(responseData: any): boolean {
   return code === 'invalid_reference' && String(message).toLowerCase().includes('customer');
 }
 
-async function createSiigoCustomer(payload: any, siigoToken: string): Promise<{ success: boolean; response: any; error?: string }>
+async function createSiigoCustomer(payload: any, siigoToken: string, skipRateLimit?: boolean): Promise<{ success: boolean; response: any; error?: string }>
 {
   const maxAttempts = 3;
   let lastResponse: any = {};
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      await waitForSiigoSlot();
+      if (skipRateLimit) {
+        await waitForSiigoSlot(3000);
+      } else {
+        await waitForSiigoSlot();
+      }
       const response = await fetch('https://api.siigo.com/v1/customers', {
         method: 'POST',
         headers: {
@@ -538,11 +548,11 @@ function sleep(ms: number) {
 }
 
 let lastSiigoRequestAt = 0;
-async function waitForSiigoSlot() {
-  const minIntervalMs = 20000;
+async function waitForSiigoSlot(minIntervalMs?: number) {
+  const minInterval = minIntervalMs ?? 20000;
   const elapsed = Date.now() - lastSiigoRequestAt;
-  if (elapsed < minIntervalMs) {
-    await sleep(minIntervalMs - elapsed);
+  if (elapsed < minInterval) {
+    await sleep(minInterval - elapsed);
   }
   lastSiigoRequestAt = Date.now();
 }
