@@ -257,8 +257,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 502 });
   }
 
-  const ipStateMatches = matchState(config.targetState, config.stateAliases, geo?.region || '');
   const ipCountryMatches = normalizeText(geo?.country_code) === normalizeText(config.targetCountryCode);
+
+  const ipStateMatches = matchState(config.targetState, config.stateAliases, geo?.region || '')
+    || (config.stateDiscounts.length > 0 && !!config.stateDiscounts.find((sd) => {
+        const input = normalizeText(geo?.region || '');
+        const target = normalizeText(sd.state);
+        return input === target;
+      }));
 
   // Buscar descuento específico para el estado detectado
   const resolvedState = geo?.region || null;
@@ -359,8 +365,6 @@ export async function POST(request: NextRequest) {
           target_country_code: config.targetCountryCode,
           target_state: config.targetState,
           product_scope_mode: config.productScopeMode,
-          matched_state_discount: matchedStateDiscount || null,
-          state_discounts: config.stateDiscounts.length > 0 ? config.stateDiscounts : undefined,
         }
       : null,
     discounts,
