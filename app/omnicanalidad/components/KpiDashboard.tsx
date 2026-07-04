@@ -6,6 +6,7 @@ import type { Document } from '@/utils/meilisearch';
 interface KpiDashboardProps {
   documents: Document[];
   agentName: string;
+  mensajesPorTipo?: Record<string, { mensajes: number; conversaciones: number }>;
 }
 
 interface DayStats {
@@ -36,8 +37,9 @@ function getConversationKey(doc: Document): string {
   return 'unknown';
 }
 
-export default function KpiDashboard({ documents, agentName }: KpiDashboardProps) {
+export default function KpiDashboard({ documents, agentName, mensajesPorTipo }: KpiDashboardProps) {
   const [showDaily, setShowDaily] = useState(false);
+  const [showTipos, setShowTipos] = useState(false);
   const { stats, dailyData } = useMemo(() => {
     if (!documents || documents.length === 0) return { stats: null, dailyData: [] };
 
@@ -176,6 +178,48 @@ export default function KpiDashboard({ documents, agentName }: KpiDashboardProps
               <p className="text-2xl font-bold text-gray-900">{stats.pendingClassification}</p>
             </div>
           </div>
+
+          {/* Tipos de Consulta - collapsible */}
+          {mensajesPorTipo && Object.keys(mensajesPorTipo).length > 0 && (
+            <div className="border-t border-gray-100 pt-3">
+              <button
+                onClick={() => setShowTipos(!showTipos)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <h3 className="text-sm font-semibold text-gray-700">Tipos de Consulta</h3>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform ${showTipos ? 'rotate-180' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showTipos && (
+                <div className="overflow-x-auto mt-2">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-2 px-2 text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                        <th className="text-right py-2 px-2 text-xs font-medium text-gray-500 uppercase">Mensajes</th>
+                        <th className="text-right py-2 px-2 text-xs font-medium text-gray-500 uppercase">Conversaciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(mensajesPorTipo)
+                        .sort(([, a], [, b]) => b.conversaciones - a.conversaciones)
+                        .map(([tipo, data]) => (
+                          <tr key={tipo} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-2 px-2 text-gray-700 font-medium">{tipo}</td>
+                            <td className="py-2 px-2 text-right text-gray-900">{data.mensajes}</td>
+                            <td className="py-2 px-2 text-right text-gray-900">{data.conversaciones}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Daily breakdown - collapsible */}
           {dailyData.length > 0 && (

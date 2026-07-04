@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { meilisearchAPI, Document } from '@/utils/meilisearch';
 import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
@@ -625,6 +625,26 @@ export default function Conversaciones() {
   const permissions = getPermissions();
   const isAdmin = permissions?.type === 'admin';
 
+  // Clasificador de tipos de consulta: cuenta mensajes y conversaciones por tipo
+  const mensajesPorTipo = useMemo(() => {
+    const counts: Record<string, { mensajes: number; conversaciones: number }> = {};
+    const convTypes = new Map<string, string>();
+    for (const doc of allDocumentsForCSV) {
+      const msg = (doc as any)['message-Human'] || (doc as any)['message'] || '';
+      if (!msg.trim()) continue;
+      const type = classifyQueryType(msg);
+      if (!counts[type]) counts[type] = { mensajes: 0, conversaciones: 0 };
+      counts[type].mensajes++;
+      const phoneId = doc.phone_id || doc.phone_number_id || '';
+      const key = phoneId ? `phone_${phoneId}` : `session_${doc.session_id || ''}`;
+      if (!convTypes.has(key)) convTypes.set(key, type);
+    }
+    for (const type of Array.from(convTypes.values())) {
+      if (counts[type]) counts[type].conversaciones++;
+    }
+    return counts;
+  }, [allDocumentsForCSV]);
+
   return (
     <ProtectedLayout>
       <div className="flex justify-between items-center mb-6">
@@ -876,7 +896,7 @@ export default function Conversaciones() {
         {/* KPI Dashboard - Solo para agente Amistoso */}
         {selectedAgent === 'amistoso' && (
           <div className="mb-6">
-            <KpiDashboard documents={allDocumentsForCSV} agentName="amistoso" />
+            <KpiDashboard documents={allDocumentsForCSV} agentName="amistoso" mensajesPorTipo={mensajesPorTipo} />
           </div>
         )}
 
