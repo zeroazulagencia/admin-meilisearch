@@ -174,6 +174,7 @@ export async function getRuntimeConfig() {
     productScopeMode,
     productOverrides,
     stateDiscounts,
+    excludedStatesRaw,
   ] = await Promise.all([
     getConfig('enabled'),
     getConfig('target_country_code'),
@@ -193,6 +194,7 @@ export async function getRuntimeConfig() {
     getConfig('product_scope_mode'),
     getProductOverrides(),
     getConfig('state_discounts'),
+    getConfig('excluded_states'),
   ]);
 
   let aliases: string[] = [];
@@ -225,6 +227,18 @@ export async function getRuntimeConfig() {
     }
   }
 
+  let excludedStates: string[] = [];
+  if (excludedStatesRaw) {
+    try {
+      const parsed = JSON.parse(excludedStatesRaw);
+      if (Array.isArray(parsed)) {
+        excludedStates = parsed.map((item: any) => String(item || '').trim()).filter(Boolean);
+      }
+    } catch {
+      excludedStates = [];
+    }
+  }
+
   return {
     enabled: enabled === '1' || enabled === 'true',
     targetCountryCode: (targetCountryCode || 'CO').toUpperCase(),
@@ -244,5 +258,6 @@ export async function getRuntimeConfig() {
     productScopeMode: normalizeProductScopeMode(productScopeMode),
     productOverrides,
     stateDiscounts: parsedStateDiscounts,
+    excludedStates,
   } as const;
 }

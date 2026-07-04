@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { requireAuth } from '@/utils/api-auth';
 
 async function getDbConfig(poolMain: mysql.Pool) {
   const [rows]: any = await poolMain.query(

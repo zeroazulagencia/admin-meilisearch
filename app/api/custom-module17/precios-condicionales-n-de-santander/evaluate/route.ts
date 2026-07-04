@@ -288,13 +288,24 @@ export async function POST(request: NextRequest) {
     ? normalizeText(shippingCountryCode) === normalizeText(config.targetCountryCode)
     : true;
 
+  // Verificar excluded_states: tanto el estado detectado por IP como el shipping
+  const ipIsExcluded = config.excludedStates.length > 0 && resolvedState
+    ? config.excludedStates.some((ex) => normalizeText(ex) === normalizeText(resolvedState))
+    : false;
+
+  const shippingIsExcluded = config.excludedStates.length > 0 && shippingState
+    ? config.excludedStates.some((ex) => normalizeText(ex) === normalizeText(shippingState))
+    : false;
+
   let reason = 'ok';
   let applied = false;
 
   if (!ipCountryMatches) reason = 'ip_country_mismatch';
   else if (!ipStateMatches) reason = 'ip_state_mismatch';
+  else if (ipIsExcluded) reason = 'state_excluded';
   else if (!shippingCountryMatches) reason = 'shipping_country_mismatch';
   else if (!shippingStateMatches) reason = 'shipping_state_mismatch';
+  else if (shippingIsExcluded) reason = 'state_excluded';
   else applied = true;
 
   const discounts = (() => {

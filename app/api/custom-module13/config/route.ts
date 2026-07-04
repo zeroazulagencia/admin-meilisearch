@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { requireAuth } from '@/utils/api-auth';
 
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST || 'localhost',
@@ -12,7 +13,10 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const [rows]: any = await pool.query(
       'SELECT `key`, value FROM modules_13_config'
@@ -28,6 +32,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await req.json();
     const configKeys = [
@@ -53,7 +60,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ ok: true, message: 'Configuración guardada' });
+    return NextResponse.json({ ok: true, message: 'Configuracion guardada' });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
   }

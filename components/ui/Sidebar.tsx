@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import {
   ChartBarIcon,
@@ -15,12 +14,9 @@ import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   DocumentTextIcon,
-  CurrencyDollarIcon,
   CircleStackIcon,
-  CodeBracketIcon,
   Squares2X2Icon,
   MapIcon,
-  ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import SidebarItem from './SidebarItem';
 import settings from '@/settings.json';
@@ -43,13 +39,6 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
   const { handleLogout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [roadmapExpanded, setRoadmapExpanded] = useState(false);
-
-  const submenuItems = [
-    { href: '/omnicanalidad', label: 'Omnicanalidad' },
-    { href: '/whatsapp-manager', label: 'WhatsApp Manager' },
-    { href: '/facturacion', label: 'Facturación' },
-  ];
 
   // Cargar estado del sidebar desde localStorage
   useEffect(() => {
@@ -106,8 +95,7 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     { href: '/conversaciones', label: 'Conversaciones', perm: 'conversaciones', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
     { href: '/roadmap', label: 'Roadmap', perm: 'roadmap', icon: <MapIcon className="w-5 h-5" /> },
     { href: '/db-manager', label: 'DB Manager', perm: 'dbManager', icon: <CircleStackIcon className="w-5 h-5" /> },
-    { href: '/consumo-api', label: 'Consumo API', perm: 'consumoApi', icon: <ChartBarIcon className="w-5 h-5" /> },
-    { href: '/developers', label: 'Developers', perm: 'developers', icon: <CodeBracketIcon className="w-5 h-5" /> },
+    // Consumo API y Developers ocultados por solicitud del admin
   ];
 
   // Filtrar items según permisos
@@ -208,52 +196,13 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
         {/* Navegación */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1 sidebar-scrollbar">
           {navItems.map((item) => (
-            item.href === '/roadmap' ? (
-              <div key={item.href}>
-                <button
-                  onClick={() => setRoadmapExpanded(!roadmapExpanded)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                    pathname === item.href || submenuItems.some(s => pathname.startsWith(s.href))
-                      ? 'bg-[#5DE1E5] text-gray-900 font-semibold'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                  } ${isCollapsed ? 'justify-center' : ''}`}
-                  title={isCollapsed ? item.label : ''}
-                >
-                  <span className="flex-shrink-0">{item.icon}</span>
-                  {!isCollapsed && (
-                    <>
-                      <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                      <ChevronDownIcon className={`w-4 h-4 transition-transform ${roadmapExpanded ? 'rotate-180' : ''}`} />
-                    </>
-                  )}
-                </button>
-                {!isCollapsed && roadmapExpanded && (
-                  <div className="ml-6 mt-1 space-y-1 border-l-2 border-gray-200 pl-3">
-                    {submenuItems.map(sub => (
-                      <Link
-                        key={sub.href}
-                        href={sub.href}
-                        className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
-                          pathname === sub.href
-                            ? 'bg-[#5DE1E5] text-gray-900 font-semibold'
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                        }`}
-                      >
-                        {sub.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <SidebarItem
-                key={item.href}
-                href={item.href}
-                icon={item.icon}
-                label={item.label}
-                isCollapsed={isCollapsed}
-              />
-            )
+            <SidebarItem
+              key={item.href}
+              href={item.href}
+              icon={item.icon}
+              label={item.label}
+              isCollapsed={isCollapsed}
+            />
           ))}
         </nav>
 

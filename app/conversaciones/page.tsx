@@ -6,6 +6,7 @@ import { getPermissions, getUserId } from '@/utils/permissions';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import AgentSelector from '@/components/ui/AgentSelector';
 import NoticeModal from '@/components/ui/NoticeModal';
+import KpiDashboard from '@/app/omnicanalidad/components/KpiDashboard';
 
 interface ConversationGroup {
   user_id: string;
@@ -869,6 +870,13 @@ export default function Conversaciones() {
               </div>
             </div>
           </>
+        )}
+
+        {/* KPI Dashboard - Solo para agente Amistoso */}
+        {selectedAgent === 'amistoso' && (
+          <div className="mb-6">
+            <KpiDashboard documents={allDocumentsForCSV} agentName="amistoso" />
+          </div>
         )}
 
         {selectedAgent === 'all' || !selectedPlatformAgent || selectedPlatformAgent === 'all' ? (

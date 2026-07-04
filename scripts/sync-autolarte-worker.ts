@@ -324,10 +324,15 @@ async function main() {
         }
 
         const estadoImagen = imagenPrincipal.includes('imagen-no-disponible') ? 'no' : 'si';
-        const imagenesProcesadas = v.imgs && Object.keys(v.imgs).length > 0 ? 'no' : 'no';
+        const imagenesProcesadas = v.imgs && Object.keys(v.imgs).length > 0 ? 'si' : 'no';
+
+        // Generate unique slug for WordPress URL
+        const slugStr = [v.marca || '', String(v.modelo_ano || ''), placa.toLowerCase()].filter(Boolean).join('-');
+        const cctSlug = slugStr.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 
         const body = JSON.stringify({
           cct_status: 'publish',
+          cct_slug: cctSlug,
           titulo: v.descripcion || '',
           modelo: String(v.modelo_ano || ''),
           kilometraje: String(v.kilometraje || ''),
@@ -356,6 +361,23 @@ async function main() {
           imagenes_procesadas: imagenesProcesadas,
         });
 
+        // Helper to update WP post slug after JetCCT create/update
+        const updatePostSlug = async (resp: Response) => {
+          try {
+            const data = await resp.json();
+            const postId = data?.cct_single_post_id;
+            if (postId && cctSlug) {
+              await fetch(`${wpUrl}/wp-json/wp/v2/vehiculos-usados/${postId}`, {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slug: cctSlug }),
+              });
+            }
+          } catch {
+            // Slug update is best-effort; don't fail the whole operation
+          }
+        };
+
         if (Array.isArray(existentes) && existentes.length >= 2) {
           const dupId = (existentes[1] as any)._ID;
           if (dupId) {
@@ -364,26 +386,29 @@ async function main() {
             });
           }
           const firstId = (existentes[0] as any)._ID;
-          await wpFetch(`${wpUrl}/wp-json/jet-cct/cct_vehiculos_usados/${firstId}`, {
+          const putResp = await wpFetch(`${wpUrl}/wp-json/jet-cct/cct_vehiculos_usados/${firstId}`, {
             method: 'PUT',
             headers: { ...headers, 'Content-Type': 'application/json' },
             body,
           });
+          await updatePostSlug(putResp);
           results.push({ placa, operacion: 'update', resultado: 'Duplicado eliminado y vehiculo actualizado', status: 'ok' });
         } else if (existe) {
           const existingId = (existentes[0] as any)._ID;
-          await wpFetch(`${wpUrl}/wp-json/jet-cct/cct_vehiculos_usados/${existingId}`, {
+          const putResp = await wpFetch(`${wpUrl}/wp-json/jet-cct/cct_vehiculos_usados/${existingId}`, {
             method: 'PUT',
             headers: { ...headers, 'Content-Type': 'application/json' },
             body,
           });
+          await updatePostSlug(putResp);
           results.push({ placa, operacion: 'update', resultado: 'Vehiculo actualizado', status: 'ok' });
         } else {
-          await wpFetch(`${wpUrl}/wp-json/jet-cct/cct_vehiculos_usados/`, {
+          const postResp = await wpFetch(`${wpUrl}/wp-json/jet-cct/cct_vehiculos_usados/`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
             body,
           });
+          await updatePostSlug(postResp);
           results.push({ placa, operacion: 'create', resultado: 'Vehiculo nuevo registrado', status: 'ok' });
         }
       } catch (err: any) {

@@ -56,6 +56,13 @@ export async function PUT(request: NextRequest) {
       upserts.push(setConfig('state_discounts', normalized));
     }
 
+    if (body.excluded_states != null) {
+      const normalized = Array.isArray(body.excluded_states)
+        ? JSON.stringify(body.excluded_states.map((v: any) => String(v || '').trim()).filter(Boolean))
+        : '[]';
+      upserts.push(setConfig('excluded_states', normalized));
+    }
+
     if (body.ipwhois_base_url != null) upserts.push(setConfig('ipwhois_base_url', String(body.ipwhois_base_url || '').trim() || null));
 
     if (body.shopify_shop_domain != null) upserts.push(setConfig('shopify_shop_domain', String(body.shopify_shop_domain || '').trim() || null));
@@ -84,6 +91,7 @@ export async function PUT(request: NextRequest) {
             region_country_code: body.target_country_code || extConfig.region_country_code || 'CO',
             discount_percentage: body.state_discounts.length > 0 ? Number(body.state_discounts[0].discount || 0) : (extConfig.discount_percentage || 10),
             state_discounts: body.state_discounts,
+            excluded_states: body.excluded_states != null ? (Array.isArray(body.excluded_states) ? body.excluded_states : []) : (extConfig.excluded_states || []),
             scope: extConfig.scope || 'all',
             scope_target_ids: extConfig.scope_target_ids || [],
             active: body.enabled != null ? (body.enabled === true || body.enabled === 1 || body.enabled === '1') : (extConfig.active !== false),

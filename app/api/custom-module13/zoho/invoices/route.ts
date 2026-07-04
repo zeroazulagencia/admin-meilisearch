@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { requireAuth } from '@/utils/api-auth';
 
 async function getDbConfig(poolMain: mysql.Pool) {
   const [rows]: any = await poolMain.query('SELECT `key`, value FROM modules_13_config');
   const config: Record<string, string> = {};
   for (const row of rows) config[row['key']] = row.value;
   return config;
-}
-
-function verifyAuth(req: NextRequest, config: Record<string, string>) {
-  if (!config.api_token) return true;
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return false;
-  const token = authHeader.replace('Bearer ', '');
-  return token === config.api_token;
 }
 
 async function getZohoAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<{accessToken: string, apiDomain: string} | null> {
@@ -45,6 +38,9 @@ async function getZohoAccessToken(clientId: string, clientSecret: string, refres
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof NextResponse) return auth;
+
   const pool = mysql.createPool({
     host: process.env.MYSQL_HOST || 'localhost',
     port: parseInt(process.env.MYSQL_PORT || '3306'),
@@ -60,20 +56,16 @@ export async function GET(req: NextRequest) {
     const config: Record<string, string> = {};
     for (const row of rows) config[row['key']] = row.value;
 
-    if (config.api_token && !verifyAuth(req, config)) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tokenData = await getZohoAccessToken(
+    const tokenResult = await getZohoAccessToken(
       config.zoho_client_id,
       config.zoho_client_secret,
       config.zoho_refresh_token
     );
 
-    if (!tokenData) return NextResponse.json({ ok: false, error: 'No token' }, { status: 500 });
+    if (!tokenResult) return NextResponse.json({ ok: false, error: 'No token' }, { status: 500 });
 
-    const apiDomain = tokenData.apiDomain;
-    const accessToken = tokenData.accessToken;
+    const apiDomain = tokenResult.apiDomain;
+    const accessToken = tokenResult.accessToken;
 
     const contactId = req.nextUrl.searchParams.get('contact_id');
     const invoiceNumber = req.nextUrl.searchParams.get('invoice_number');

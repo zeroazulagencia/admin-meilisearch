@@ -28,6 +28,7 @@ type ConfigState = {
   require_shipping_match: boolean;
   state_aliases: string;
   state_discounts: string;
+  excluded_states: string;
   ipwhois_base_url: string;
   shopify_shop_domain: string;
   shopify_admin_access_token: string;
@@ -70,6 +71,7 @@ const DEFAULT_CONFIG: ConfigState = {
   require_shipping_match: true,
   state_aliases: '["Norte de Santander","N. de Santander","Norte Santander"]',
   state_discounts: '[]',
+  excluded_states: '[]',
   ipwhois_base_url: 'https://ipwho.is',
   shopify_shop_domain: '',
   shopify_admin_access_token: '',
@@ -253,7 +255,12 @@ const loadConfig = async () => {
                 ? json.config.state_discounts
                 : JSON.stringify(json.config.state_discounts))
             : '[]',
-          ipwhois_base_url: String(json.config.ipwhois_base_url || 'https://ipwho.is'),
+          excluded_states: json.config.excluded_states
+            ? (typeof json.config.excluded_states === 'string'
+                ? json.config.excluded_states
+                : JSON.stringify(json.config.excluded_states))
+            : '[]',
+          ipwhois_base_url: String(json.config.ipwhois_base_url || DEFAULT_CONFIG.ipwhois_base_url),
           shopify_shop_domain: String(json.config.shopify_shop_domain || ''),
           shopify_admin_access_token: '',
           shopify_api_key: '',
@@ -332,6 +339,14 @@ const loadConfig = async () => {
             const parsed = JSON.parse(config.state_discounts || '[]');
             const arr = Array.isArray(parsed) ? parsed : [];
             return arr.filter((_, i: number) => activeDiscountIndices.includes(i));
+          } catch {
+            return [];
+          }
+        })(),
+        excluded_states: (() => {
+          try {
+            const parsed = JSON.parse(config.excluded_states || '[]');
+            return Array.isArray(parsed) ? parsed : [];
           } catch {
             return [];
           }
@@ -687,6 +702,73 @@ const loadConfig = async () => {
                       No hay descuentos por departamento configurados.
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* excluded_states section */}
+              <div className="border rounded-lg p-4 space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Departamentos excluidos</h3>
+                  <p className="text-xs text-gray-500">Estos departamentos nunca recibiran descuento, incluso si su deteccion por IP los clasifica en la lista de activos.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(() => {
+                    try {
+                      const excluded = JSON.parse(config.excluded_states || '[]');
+                      return Array.isArray(excluded) ? excluded : [];
+                    } catch { return []; }
+                  })().length === 0 && (
+                    <div className="text-sm text-gray-500 w-full">Ningun departamento excluido</div>
+                  )}
+                  {(() => {
+                    try {
+                      const excluded: string[] = JSON.parse(config.excluded_states || '[]');
+                      return Array.isArray(excluded) ? excluded : [];
+                    } catch { return []; }
+                  })().map((dept: string) => (
+                    <div key={dept} className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 text-sm text-red-700">
+                      <span>{dept}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          try {
+                            const current: string[] = JSON.parse(config.excluded_states || '[]');
+                            const next = current.filter((d: string) => d !== dept);
+                            setConfig({ ...config, excluded_states: JSON.stringify(next) });
+                          } catch {}
+                        }}
+                        className="text-red-500 hover:text-red-700 ml-1"
+                      >
+                        x
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    className="px-3 py-2 border rounded text-sm"
+                    value=""
+                    onChange={(e) => {
+                      const dept = e.target.value;
+                      if (!dept) return;
+                      try {
+                        const current: string[] = JSON.parse(config.excluded_states || '[]');
+                        if (!current.includes(dept)) {
+                          setConfig({ ...config, excluded_states: JSON.stringify([...current, dept]) });
+                        }
+                      } catch {}
+                    }}
+                  >
+                    <option value="">Agregar departamento...</option>
+                    {COLOMBIA_DEPARTMENTS.filter((d) => {
+                      try {
+                        const current: string[] = JSON.parse(config.excluded_states || '[]');
+                        return !current.includes(d);
+                      } catch { return true; }
+                    }).map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

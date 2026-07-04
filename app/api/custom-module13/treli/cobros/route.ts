@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { requireAuth } from '@/utils/api-auth';
 
 async function getDbConfig(poolMain: mysql.Pool) {
   const [rows]: any = await poolMain.query('SELECT `key`, value FROM modules_13_config');
@@ -8,15 +9,10 @@ async function getDbConfig(poolMain: mysql.Pool) {
   return config;
 }
 
-function verifyAuth(req: NextRequest, config: Record<string, string>) {
-  if (!config.api_token) return true;
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return false;
-  const token = authHeader.replace('Bearer ', '');
-  return token === config.api_token;
-}
-
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof NextResponse) return auth;
+
   const pool = mysql.createPool({
     host: process.env.MYSQL_HOST || 'localhost',
     port: parseInt(process.env.MYSQL_PORT || '3306'),
@@ -31,10 +27,6 @@ export async function GET(req: NextRequest) {
     const [rows]: any = await pool.query('SELECT `key`, value FROM modules_13_config');
     const config: Record<string, string> = {};
     for (const row of rows) config[row['key']] = row.value;
-
-    if (config.api_token && !verifyAuth(req, config)) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-    }
 
     if (!config.treli_api_key) {
       return NextResponse.json({ ok: false, error: 'Treli token no configurado' }, { status: 500 });

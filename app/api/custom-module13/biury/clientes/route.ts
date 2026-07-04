@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { requireAuth } from '@/utils/api-auth';
 
 async function getDbConfig(poolMain: mysql.Pool) {
   const [rows]: any = await poolMain.query(
@@ -13,15 +14,10 @@ async function getDbConfig(poolMain: mysql.Pool) {
   return config;
 }
 
-function verifyAuth(req: NextRequest, config: Record<string, string>) {
-  if (!config.api_token) return true;
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return false;
-  const token = authHeader.replace('Bearer ', '');
-  return token === config.api_token;
-}
-
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof NextResponse) return auth;
+
   const poolMain = mysql.createPool({
     host: process.env.MYSQL_HOST || 'localhost',
     port: parseInt(process.env.MYSQL_PORT || '3306'),
@@ -35,10 +31,6 @@ export async function GET(req: NextRequest) {
 
   try {
     const config = await getDbConfig(poolMain);
-
-    if (config.api_token && !verifyAuth(req, config)) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-    }
 
     const wpPool = mysql.createPool({
       host: config.wp_db_host,

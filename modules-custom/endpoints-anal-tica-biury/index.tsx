@@ -105,9 +105,16 @@ export default function EndpointsAnaliticaBiury() {
 
   const [resultKey, setResultKey] = useState<string>('');
 
+  const authHeaders = (): Record<string, string> => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('admin-user-id') : null;
+    return userId ? { 'x-admin-user-id': userId } : {};
+  };
+
   const loadConfig = async () => {
     try {
-      const res = await fetch('/api/custom-module13/config');
+      const res = await fetch('/api/custom-module13/config', {
+        headers: { ...authHeaders() },
+      });
       const data = await res.json();
       if (data.ok && data.config) {
         setConfig((prev) => ({ ...prev, ...data.config }));
@@ -127,7 +134,7 @@ export default function EndpointsAnaliticaBiury() {
     try {
       const res = await fetch('/api/custom-module13/config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(config),
       });
       const data = await res.json();

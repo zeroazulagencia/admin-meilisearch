@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { requireAuth } from '@/utils/api-auth';
 
 async function getDbConfig(poolMain: mysql.Pool) {
   const [rows]: any = await poolMain.query('SELECT `key`, value FROM modules_13_config');
   const config: Record<string, string> = {};
   for (const row of rows) config[row['key']] = row.value;
   return config;
-}
-
-function verifyAuth(req: NextRequest, config: Record<string, string>) {
-  if (!config.api_token) return true;
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return false;
-  const token = authHeader.replace('Bearer ', '');
-  return token === config.api_token;
 }
 
 async function getZohoAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string | null> {
@@ -54,10 +47,6 @@ export async function GET(req: NextRequest) {
 
   try {
     const config = await getDbConfig(pool);
-    
-    if (config.api_token && !verifyAuth(req, config)) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-    }
     
     const accessToken = await getZohoAccessToken(config.zoho_client_id, config.zoho_client_secret, config.zoho_refresh_token);
 
