@@ -7,6 +7,7 @@ import ProtectedLayout from '@/components/ProtectedLayout';
 import AgentSelector from '@/components/ui/AgentSelector';
 import NoticeModal from '@/components/ui/NoticeModal';
 import KpiDashboard from '@/app/omnicanalidad/components/KpiDashboard';
+import { classifyQueryType } from '@/app/omnicanalidad/utils/query-classifier';
 
 interface ConversationGroup {
   user_id: string;
@@ -1015,7 +1016,13 @@ export default function Conversaciones() {
                             {/* Mensaje Human - mostrar si existe message-Human o message con type user */}
                             {(hasHuman || (hasMessage && message.type === 'user')) && (
                               <div className="flex justify-end mb-2">
-                                <div className="max-w-[70%] bg-green-500 text-white rounded-2xl px-3 py-2 shadow-sm" style={{ 
+                                <div className="max-w-[70%] flex flex-col items-end">
+                                  {hasHuman && (
+                                    <span className="text-[10px] font-medium text-gray-400 mb-1 bg-gray-100 px-2 py-0.5 rounded-full">
+                                      {classifyQueryType(message['message-Human'] || message['message'] || '')}
+                                    </span>
+                                  )}
+                                  <div className="bg-green-500 text-white rounded-2xl px-3 py-2 shadow-sm" style={{ 
                                   borderRadius: '18px 18px 4px 18px' // Esquina redondeada estilo WhatsApp
                                 }}>
                                   {/* Mostrar imagen si existe */}
@@ -1050,12 +1057,13 @@ export default function Conversaciones() {
                                     <svg className="w-4 h-4 text-blue-200" fill="currentColor" viewBox="0 0 20 20">
                                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            )}
-                            
-                            {/* Mensaje AI - mostrar si existe message-AI o message con type agent */}
+                              )}
+                              
+                              {/* Mensaje AI - mostrar si existe message-AI o message con type agent */}
                             {(hasAI || (hasMessage && message.type === 'agent')) && (
                               <div className="flex justify-start mb-2">
                                 <div className="max-w-[70%] bg-white rounded-2xl px-3 py-2 shadow-sm" style={{ 
