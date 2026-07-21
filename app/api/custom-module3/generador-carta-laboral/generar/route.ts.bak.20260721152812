@@ -18,11 +18,8 @@ async function getSighaToken(config: Record<string, string>): Promise<string> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: config.sigha_email, clave: config.sigha_clave }),
   });
-  const data = await res.json().catch(() => ({} as any));
-  if (!data.token) {
-    const detail = data.message || data.error || `HTTP ${res.status}`;
-    throw new Error(`No se pudo obtener token de sigha.com.co: ${detail}`);
-  }
+  const data = await res.json();
+  if (!data.token) throw new Error('No se pudo obtener token de sigha.com.co');
   return data.token;
 }
 
