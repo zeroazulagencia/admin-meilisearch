@@ -11,7 +11,17 @@ interface KpiData {
   totalMessages: number;
   newUniqueVisitors: number;
   returningVisitors: number;
-  growth: { rate: number; previousConversations: number; currentConversations: number };
+  growth: {
+    rate: number;
+    previousConversations: number;
+    currentConversations: number;
+    visitorsRate: number;
+    previousVisitors: number;
+    currentVisitors: number;
+    invoicesRate: number;
+    previousInvoices: number;
+    currentInvoices: number;
+  };
 }
 
 interface KpiResponse {
@@ -253,7 +263,8 @@ export async function exportKpiToExcel(
   const wb = new ExcelJS.Workbook();
   wb.creator = 'WORKERS Analytics';
 
-  const getPeriod = (p: string) =>
+  const getPeriod = (p: string, start?: string, end?: string) =>
+    p.startsWith('custom:') ? (start && end ? `${start} → ${end}` : 'Período Personalizado') :
     p === 'week' ? 'Semana' : p === 'month' ? 'Mes' : 'Año';
 
   // ═══════════════════════════════════════════
@@ -261,15 +272,16 @@ export async function exportKpiToExcel(
   // ═══════════════════════════════════════════
   const s1 = wb.addWorksheet('Resumen KPIs', { views: [{ showGridLines: false }] });
   s1.getColumn(1).width = 34;
-  [2, 3, 4].forEach((c) => (s1.getColumn(c).width = 20));
+  for (let ci = 2; ci <= data.length + 1; ci++) s1.getColumn(ci).width = 20;
 
   // Título
-  s1.mergeCells('A1:D1');
+  const lastCol = s1.getColumn(data.length + 1).letter;
+  s1.mergeCells(`A1:${lastCol}1`);
   styleCell(s1.getCell('A1'), { bold: true, size: 18, color: C.header, align: 'center' });
   s1.getCell('A1').value = `KPIs - ${agentName.charAt(0).toUpperCase() + agentName.slice(1)}`;
   s1.getRow(1).height = 42;
 
-  s1.mergeCells('A2:D2');
+  s1.mergeCells(`A2:${lastCol}2`);
   styleCell(s1.getCell('A2'), { size: 10, color: C.gray, align: 'center' });
   s1.getCell('A2').value = `Exportado: ${new Date().toLocaleDateString('es-CO', {
     year: 'numeric', month: 'long', day: 'numeric',
@@ -278,8 +290,9 @@ export async function exportKpiToExcel(
   s1.getRow(2).height = 20;
 
   // Cabeceras
+  const periodLabels = data.map(d => getPeriod(d.period, d.start, d.end));
   const hRow = s1.getRow(4);
-  hRow.values = ['Métrica', 'Semana', 'Mes', 'Año'];
+  hRow.values = ['Métrica', ...periodLabels];
   hRow.height = 28;
   hRow.eachCell((c) => styleCell(c, { bold: true, color: C.white, bg: C.header, align: 'center' }));
 
@@ -301,9 +314,8 @@ export async function exportKpiToExcel(
     r.height = 24;
     styleCell(r.getCell(1), { bold: true });
     r.getCell(1).value = m.label;
-    ['week', 'month', 'year'].forEach((period, j) => {
-      const d = data.find((x) => x.period === period);
-      const val = d ? (d.current[m.key] as number) : 0;
+    data.forEach((d, j) => {
+      const val = d.current[m.key] as number;
       const cell = r.getCell(j + 2);
       cell.value = m.fmt === '0.0%' ? val / 100 : val;
       styleCell(cell, {
@@ -319,9 +331,8 @@ export async function exportKpiToExcel(
   gRow.height = 24;
   styleCell(gRow.getCell(1), { bold: true });
   gRow.getCell(1).value = 'Crecimiento vs Período Anterior';
-  ['week', 'month', 'year'].forEach((period, j) => {
-    const d = data.find((x) => x.period === period);
-    const rate = d ? d.current.growth.rate : 0;
+  data.forEach((d, j) => {
+    const rate = d.current.growth.rate;
     const cell = gRow.getCell(j + 2);
     cell.value = rate / 100;
     styleCell(cell, {
@@ -340,13 +351,11 @@ export async function exportKpiToExcel(
   [2, 3, 4, 5, 6].forEach((c) => (s2.getColumn(c).width = 18));
 
   let row = 1;
-  ['week', 'month', 'year'].forEach((period) => {
-    const d = data.find((x) => x.period === period);
-    if (!d) return;
+  data.forEach((d) => {
 
     s2.mergeCells(`A${row}:F${row}`);
     const t = s2.getCell(`A${row}`);
-    t.value = `${getPeriod(period)} (${d.start} → ${d.end})`;
+    t.value = `${getPeriod(d.period, d.start, d.end)} (${d.start} → ${d.end})`;
     styleCell(t, { bold: true, size: 13, color: C.white, bg: C.header, align: 'center' });
     s2.getRow(row).height = 30;
     row++;
@@ -442,68 +451,64 @@ export async function exportKpiToExcel(
   s3.getColumn(1).width = 80;
 
   // Chart 1: Barras - Conversaciones y Facturas
-  const labels = ['Semana', 'Mes', 'Año'];
+  const chartLabels = data.map(d => getPeriod(d.period, d.start, d.end));
   const chart1Data = [
     {
       label: 'Conversaciones',
-      data: ['week', 'month', 'year'].map((p) => data.find((x) => x.period === p)?.current.totalConversations ?? 0),
+      data: data.map((d) => d.current.totalConversations),
       color: '#1A73E8',
     },
     {
       label: 'Facturas',
-      data: ['week', 'month', 'year'].map((p) => data.find((x) => x.period === p)?.current.facturasRegistradas ?? 0),
+      data: data.map((d) => d.current.facturasRegistradas),
       color: '#0F9D58',
     },
     {
       label: 'Abandonadas',
-      data: ['week', 'month', 'year'].map((p) => data.find((x) => x.period === p)?.current.abandonedConversations ?? 0),
+      data: data.map((d) => d.current.abandonedConversations),
       color: '#EA4335',
     },
   ];
 
-  const chart1Url = renderBarChart(labels, chart1Data, 'Conversaciones, Facturas y Abandonadas');
+  const chart1Url = renderBarChart(chartLabels, chart1Data, 'Conversaciones, Facturas y Abandonadas');
   // Chart 2: Nuevos vs Recurrentes
   const chart2Data = [
     {
       label: 'Nuevos',
-      data: ['week', 'month', 'year'].map((p) => data.find((x) => x.period === p)?.current.newUniqueVisitors ?? 0),
+      data: data.map((d) => d.current.newUniqueVisitors),
       color: '#1A73E8',
     },
     {
       label: 'Recurrentes',
-      data: ['week', 'month', 'year'].map((p) => data.find((x) => x.period === p)?.current.returningVisitors ?? 0),
+      data: data.map((d) => d.current.returningVisitors),
       color: '#0F9D58',
     },
   ];
-  const chart2Url = renderBarChart(labels, chart2Data, 'Visitantes Nuevos vs Recurrentes');
+  const chart2Url = renderBarChart(chartLabels, chart2Data, 'Visitantes Nuevos vs Recurrentes');
 
   // Chart 3: Tasa éxito vs abandono
   const chart3Data = [
     {
       label: 'Éxito',
-      data: ['week', 'month', 'year'].map(
-        (p) => Math.round((data.find((x) => x.period === p)?.current.successRate ?? 0) * 10) / 10,
-      ),
+      data: data.map((d) => Math.round(d.current.successRate * 10) / 10),
       color: '#0F9D58',
     },
     {
       label: 'Abandono',
-      data: ['week', 'month', 'year'].map(
-        (p) => Math.round((data.find((x) => x.period === p)?.current.abandonmentRate ?? 0) * 10) / 10,
-      ),
+      data: data.map((d) => Math.round(d.current.abandonmentRate * 10) / 10),
       color: '#EA4335',
     },
   ];
-  const chart3Url = renderBarChart(labels, chart3Data, 'Tasa de Éxito vs Abandono', 500, 320);
+  const chart3Url = renderBarChart(chartLabels, chart3Data, 'Tasa de Éxito vs Abandono', 500, 320);
 
-  // Chart 4: Pie - Visitantes totales año
-  const yearData = data.find((x) => x.period === 'year');
+  // Chart 4: Pie - Visitantes totales (primer periodo como referencia)
+  const refData = data[0];
   let chart4Url = '';
-  if (yearData) {
+  if (refData) {
     chart4Url = renderPieChart(
       ['Nuevos', 'Recurrentes'],
-      [yearData.current.newUniqueVisitors, yearData.current.returningVisitors],
-      'Distribución Anual de Visitantes',
+      [refData.current.newUniqueVisitors, refData.current.returningVisitors],
+      'Distribución de Visitantes',
     );
   }
 
@@ -552,7 +557,7 @@ export async function exportKpiToExcel(
   [2, 3, 4].forEach((c) => (s4.getColumn(c).width = 20));
 
   const dH = s4.getRow(1);
-  dH.values = ['Dato', 'Semana', 'Mes', 'Año'];
+  dH.values = ['Dato', ...periodLabels];
   dH.height = 28;
   dH.eachCell((c) => styleCell(c, { bold: true, color: C.white, bg: C.header, align: 'center' }));
 
@@ -582,10 +587,9 @@ export async function exportKpiToExcel(
     r.height = 22;
     styleCell(r.getCell(1), { bold: true });
     r.getCell(1).value = m.label;
-    ['week', 'month', 'year'].forEach((period, j) => {
-      const d = data.find((x) => x.period === period);
+    data.forEach((d, j) => {
       const cell = r.getCell(j + 2);
-      cell.value = d ? m.fn(d) : '-';
+      cell.value = m.fn(d);
       styleCell(cell, { align: 'center', bg: i % 2 === 0 ? C.lightBg : undefined });
     });
   });

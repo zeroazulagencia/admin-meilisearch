@@ -8,6 +8,8 @@ interface KpiDashboardProps {
   documents: Document[];
   agentName: string;
   mensajesPorTipo?: Record<string, { mensajes: number; conversaciones: number }>;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 interface DayStats {
@@ -37,12 +39,19 @@ interface KpiApiResponse {
       rate: number;
       previousConversations: number;
       currentConversations: number;
+      visitorsRate: number;
+      previousVisitors: number;
+      currentVisitors: number;
+      invoicesRate: number;
+      previousInvoices: number;
+      currentInvoices: number;
     };
   };
   previous: {
     totalConversations: number;
     facturasRegistradas: number;
     successRate: number;
+    uniqueVisitors: number;
   };
   start: string;
   end: string;
@@ -69,7 +78,7 @@ function getConversationKey(doc: Document): string {
 
 type Period = 'week' | 'month' | 'year';
 
-export default function KpiDashboard({ documents, agentName, mensajesPorTipo }: KpiDashboardProps) {
+export default function KpiDashboard({ documents, agentName, mensajesPorTipo, dateFrom, dateTo }: KpiDashboardProps) {
   const [showDaily, setShowDaily] = useState(false);
   const [showTipos, setShowTipos] = useState(false);
   const [kpiPeriod, setKpiPeriod] = useState<Period>('month');
@@ -77,18 +86,38 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo }: 
   const [loadingKpi, setLoadingKpi] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  const hasCustomRange = !!(dateFrom && dateTo);
+
+  const getKpiUrl = useCallback((period?: Period) => {
+    const base = `/api/omnicanalidad/kpi/?agent_name=${encodeURIComponent(agentName)}`;
+    if (hasCustomRange) {
+      return `${base}&date_from=${dateFrom}&date_to=${dateTo}`;
+    }
+    return `${base}&period=${period || kpiPeriod}`;
+  }, [agentName, dateFrom, dateTo, kpiPeriod, hasCustomRange]);
+
   const handleExport = useCallback(async () => {
     setExporting(true);
     try {
-      const periods: Period[] = ['week', 'month', 'year'];
-      const results = await Promise.all(
-        periods.map(p =>
-          fetch(`/api/omnicanalidad/kpi/?agent_name=${encodeURIComponent(agentName)}&period=${p}`)
-            .then(r => r.json())
-            .then(d => d.ok ? d : null)
-        )
-      );
-      const validData = results.filter(Boolean) as KpiApiResponse[];
+      let validData: KpiApiResponse[];
+
+      if (hasCustomRange) {
+        // Export solo el rango actual
+        const res = await fetch(getKpiUrl()).then(r => r.json());
+        if (res.ok) validData = [res];
+        else throw new Error('No se pudieron obtener datos');
+      } else {
+        const periods: Period[] = ['week', 'month', 'year'];
+        const results = await Promise.all(
+          periods.map(p =>
+            fetch(`/api/omnicanalidad/kpi/?agent_name=${encodeURIComponent(agentName)}&period=${p}`)
+              .then(r => r.json())
+              .then(d => d.ok ? d : null)
+          )
+        );
+        validData = results.filter(Boolean) as KpiApiResponse[];
+      }
+
       if (validData.length === 0) throw new Error('No se pudieron obtener datos');
 
       const buffer = await exportKpiToExcel(validData, agentName);
@@ -105,20 +134,20 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo }: 
     } finally {
       setExporting(false);
     }
-  }, [agentName]);
+  }, [agentName, getKpiUrl, hasCustomRange]);
 
   // Fetch KPI from API
   useEffect(() => {
     if (!agentName) return;
     setLoadingKpi(true);
-    fetch(`/api/omnicanalidad/kpi/?agent_name=${encodeURIComponent(agentName)}&period=${kpiPeriod}`)
+    fetch(getKpiUrl())
       .then(r => r.json())
       .then(data => {
         if (data.ok) setKpiData(data);
       })
       .catch(err => console.error('[KPI] Error fetching:', err))
       .finally(() => setLoadingKpi(false));
-  }, [agentName, kpiPeriod]);
+  }, [agentName, getKpiUrl, kpiPeriod, hasCustomRange]);
 
   const { stats, dailyData } = useMemo(() => {
     if (!documents || documents.length === 0) return { stats: null, dailyData: [] };
@@ -228,6 +257,11 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo }: 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
           KPIs · {agentName}
+          {hasCustomRange && kpiData && (
+            <span className="ml-2 text-xs font-normal text-gray-400">
+              {kpiData.start} → {kpiData.end}
+            </span>
+          )}
         </h2>
         <div className="flex items-center gap-2">
           <button
@@ -252,22 +286,24 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo }: 
               </span>
             )}
           </button>
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
-            {periods.map(p => (
-            <button
-              key={p.key}
-              onClick={() => setKpiPeriod(p.key)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                kpiPeriod === p.key
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+          {!hasCustomRange && (
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+              {periods.map(p => (
+              <button
+                key={p.key}
+                onClick={() => setKpiPeriod(p.key)}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  kpiPeriod === p.key
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          )}
         </div>
-      </div>
       </div>
 
       {!currentKpi ? (
@@ -289,11 +325,16 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo }: 
               )}
             </div>
 
-            {/* Visitantes Únicos Nuevos */}
+            {/* Visitantes Únicos */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Visitantes Nuevos</p>
-              <p className="text-2xl font-bold text-blue-600">{currentKpi.newUniqueVisitors}</p>
-              <p className="text-xs text-gray-400 mt-1">{currentKpi.returningVisitors} recurrentes</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Visitantes Únicos</p>
+              <p className="text-2xl font-bold text-blue-600">{currentKpi.uniqueVisitors}</p>
+              <p className="text-xs text-gray-400 mt-1">{currentKpi.newUniqueVisitors} nuevos, {currentKpi.returningVisitors} recurrentes</p>
+              {currentKpi.growth && (
+                <p className={`text-xs mt-1 ${currentKpi.growth.visitorsRate >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {currentKpi.growth.visitorsRate >= 0 ? '↑' : '↓'} {Math.abs(currentKpi.growth.visitorsRate)}% vs período anterior
+                </p>
+              )}
             </div>
 
             {/* Tasa de Éxito */}
@@ -323,6 +364,11 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo }: 
                   ? `Anterior: ${kpiData.previous.facturasRegistradas}`
                   : 'desde el chat'}
               </p>
+              {currentKpi.growth && (
+                <p className={`text-xs mt-1 ${currentKpi.growth.invoicesRate >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {currentKpi.growth.invoicesRate >= 0 ? '↑' : '↓'} {Math.abs(currentKpi.growth.invoicesRate)}% vs período anterior
+                </p>
+              )}
             </div>
 
             {/* Crecimiento */}

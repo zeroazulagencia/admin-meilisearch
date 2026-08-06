@@ -190,20 +190,34 @@ export async function GET(req: NextRequest) {
     const sp = req.nextUrl.searchParams;
     const agent_name = sp.get('agent_name');
     const period = sp.get('period') || 'week';
+    const date_from = sp.get('date_from');
+    const date_to = sp.get('date_to');
+    const useCustomRange = !!(date_from && date_to);
 
     if (!agent_name) {
       return NextResponse.json({ ok: false, error: 'agent_name requerido' }, { status: 400 });
     }
 
-    // Período actual
-    const { start: curStart, end: curEnd } = getPeriodRange(period);
+    let curStart: Date, curEnd: Date, periodLabel: string;
+
+    if (useCustomRange) {
+      curStart = new Date(date_from!);
+      curEnd = new Date(date_to!);
+      periodLabel = `custom:${date_from}:${date_to}`;
+    } else {
+      const range = getPeriodRange(period);
+      curStart = range.start;
+      curEnd = range.end;
+      periodLabel = period;
+    }
+
     const startStr = formatDate(curStart);
     const endOfDay = new Date(curEnd);
     endOfDay.setDate(endOfDay.getDate() + 1);
     const endStr = formatDate(endOfDay);
 
     // Período anterior (para crecimiento)
-    const prevPeriod = getPreviousPeriodRange(period, curStart, curEnd);
+    const prevPeriod = getPreviousPeriodRange(periodLabel.startsWith('custom') ? 'month' : periodLabel, curStart, curEnd);
     const prevStartStr = formatDate(prevPeriod.start);
     const prevEndOfDay = new Date(prevPeriod.end);
     prevEndOfDay.setDate(prevEndOfDay.getDate() + 1);
@@ -227,31 +241,42 @@ export async function GET(req: NextRequest) {
     const currentUserIds = Array.from(new Set(currentDocs.map(getUserId).filter(Boolean)));
     const { newUsers, returningUsers } = classifyUsers(currentUserIds, knownUsers);
 
-    // --- Crecimiento ---
-    let growthRate = 0;
-    if (previous.totalConversations > 0) {
-      growthRate = Number((((current.totalConversations - previous.totalConversations) / previous.totalConversations) * 100).toFixed(1));
-    } else if (current.totalConversations > 0) {
-      growthRate = 100; // de 0 a N es crecimiento del 100%
-    }
+    // --- Crecimiento por métrica ---
+    const calcGrowth = (curVal: number, prevVal: number): number => {
+      if (prevVal > 0) return Number(((curVal - prevVal) / prevVal * 100).toFixed(1));
+      if (curVal > 0) return 100;
+      return 0;
+    };
 
     // Actualizar BD con nuevos usuarios
     addKnownUsers(agent_name, newUsers);
 
     return NextResponse.json({
       ok: true,
-      period,
+      period: periodLabel,
       current: {
         ...current,
         newUniqueVisitors: newUsers.length,
         returningVisitors: returningUsers.length,
         growth: {
-          rate: growthRate,
+          rate: calcGrowth(current.totalConversations, previous.totalConversations),
           previousConversations: previous.totalConversations,
           currentConversations: current.totalConversations,
+          visitorsRate: calcGrowth(current.uniqueVisitors, previous.uniqueVisitors),
+          previousVisitors: previous.uniqueVisitors,
+          currentVisitors: current.uniqueVisitors,
+          invoicesRate: calcGrowth(current.facturasRegistradas, previous.facturasRegistradas),
+          previousInvoices: previous.facturasRegistradas,
+          currentInvoices: current.facturasRegistradas,
         },
       },
-      previous,
+      previous: {
+        ...previous,
+        totalConversations: previous.totalConversations,
+        facturasRegistradas: previous.facturasRegistradas,
+        successRate: previous.successRate,
+        uniqueVisitors: previous.uniqueVisitors,
+      },
       start: startStr,
       end: endStr,
     });

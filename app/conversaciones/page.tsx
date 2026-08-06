@@ -895,9 +895,9 @@ export default function Conversaciones() {
 
         {/* KPI Dashboard - Solo para agente Amistoso */}
         {selectedAgent === 'amistoso' && (
-          <div className="mb-6">
-            <KpiDashboard documents={allDocumentsForCSV} agentName="amistoso" mensajesPorTipo={mensajesPorTipo} />
-          </div>
+            <div className="mb-6">
+              <KpiDashboard documents={allDocumentsForCSV} agentName="amistoso" mensajesPorTipo={mensajesPorTipo} dateFrom={dateFrom} dateTo={dateTo} />
+            </div>
         )}
 
         {selectedAgent === 'all' || !selectedPlatformAgent || selectedPlatformAgent === 'all' ? (
