@@ -29,6 +29,7 @@ import ModSincronizadorUsadosAutolarte from '@/modules-custom/sincronizador-usad
 import ModGeneradorFacturasAutolarte from '@/modules-custom/generador-de-facturas-autolarte-zero-llc';
 import ModAnalisisStatusServidor from '@/modules-custom/analisis-y-status-servidor';
 import ModBridgeSiigo from '@/modules-custom/bridge-siigo';
+import ModForocpiExportacionRegistros from '@/modules-custom/forocpi-exportacion-registros';
 
 const MODULES_MAP: Record<string, any> = {
   'verificador-mobilia': ModVerificadorMobilia,
@@ -54,6 +55,7 @@ const MODULES_MAP: Record<string, any> = {
   'generador-de-facturas-autolarte-zero-llc': ModGeneradorFacturasAutolarte,
   'analisis-y-status-servidor': ModAnalisisStatusServidor,
   'bridge-siigo': ModBridgeSiigo,
+  'forocpi-exportacion-registros': ModForocpiExportacionRegistros,
 };
 
 interface Module {

@@ -63,10 +63,12 @@ export default function GeneradorFacturasAutolarte({
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoicesLoading, setInvoicesLoading] = useState(false);
   const [invoicesError, setInvoicesError] = useState('');
+  const [hasMore, setHasMore] = useState(false);
+  const [pageStack, setPageStack] = useState<{ after: string | null }[]>([{ after: null }]);
+  const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
     if (activeTab === 'config') fetchConfig();
-    if (activeTab === 'facturas') fetchInvoices();
   }, [activeTab]);
 
   async function fetchConfig() {
@@ -81,17 +83,39 @@ export default function GeneradorFacturasAutolarte({
     }
   }
 
-  async function fetchInvoices() {
+  async function fetchInvoices(after: string | null = null) {
     setInvoicesLoading(true);
     setInvoicesError('');
     try {
-      const json = await safeFetchJson(`${BASE}/invoices`);
+      const url = after ? `${BASE}/invoices?after=${after}` : `${BASE}/invoices`;
+      const json = await safeFetchJson(url);
       setInvoices(json.data || []);
+      setHasMore(json.has_more || false);
     } catch (e: any) {
       setInvoicesError(e?.message || 'Error de red');
     } finally {
       setInvoicesLoading(false);
     }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'facturas') {
+      const cursor = pageStack[currentPage]?.after ?? null;
+      fetchInvoices(cursor);
+    }
+  }, [activeTab, currentPage]);
+
+  async function goNextPage() {
+    if (!invoices.length || !hasMore) return;
+    const lastId = invoices[invoices.length - 1].id;
+    const newStack = [...pageStack.slice(0, currentPage + 1), { after: lastId }];
+    setPageStack(newStack);
+    setCurrentPage(currentPage + 1);
+  }
+
+  function goPrevPage() {
+    if (currentPage <= 0) return;
+    setCurrentPage(currentPage - 1);
   }
 
   async function handleSaveConfig() {
@@ -200,52 +224,71 @@ export default function GeneradorFacturasAutolarte({
           )}
 
           {!invoicesLoading && invoices.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left text-gray-500">
-                    <th className="py-2 pr-4 font-medium">Factura</th>
-                    <th className="py-2 pr-4 font-medium">Fecha</th>
-                    <th className="py-2 pr-4 font-medium">Monto</th>
-                    <th className="py-2 pr-4 font-medium">Estado</th>
-                    <th className="py-2 font-medium">PDF</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoices.map((inv) => (
-                    <tr key={inv.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 pr-4 text-gray-900">{inv.number || inv.id}</td>
-                      <td className="py-3 pr-4 text-gray-700">{formatDate(inv.created)}</td>
-                      <td className="py-3 pr-4 text-gray-900 font-medium">
-                        {formatCurrency(inv.amount_due, inv.currency)}
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded border ${statusColors[inv.status] || 'text-gray-700 bg-gray-50 border-gray-200'}`}>
-                          {statusLabels[inv.status] || inv.status}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        {inv.invoice_pdf ? (
-                          <a
-                            href={inv.invoice_pdf}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            PDF
-                          </a>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-left text-gray-500">
+                      <th className="py-2 pr-4 font-medium">Factura</th>
+                      <th className="py-2 pr-4 font-medium">Fecha</th>
+                      <th className="py-2 pr-4 font-medium">Monto</th>
+                      <th className="py-2 pr-4 font-medium">Estado</th>
+                      <th className="py-2 font-medium">PDF</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {invoices.map((inv) => (
+                      <tr key={inv.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 pr-4 text-gray-900">{inv.number || inv.id}</td>
+                        <td className="py-3 pr-4 text-gray-700">{formatDate(inv.created)}</td>
+                        <td className="py-3 pr-4 text-gray-900 font-medium">
+                          {formatCurrency(inv.amount_due, inv.currency)}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded border ${statusColors[inv.status] || 'text-gray-700 bg-gray-50 border-gray-200'}`}>
+                            {statusLabels[inv.status] || inv.status}
+                          </span>
+                        </td>
+                        <td className="py-3">
+                          {inv.invoice_pdf ? (
+                            <a
+                              href={inv.invoice_pdf}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              PDF
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  onClick={goPrevPage}
+                  disabled={currentPage === 0}
+                  className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ← Anterior
+                </button>
+                <span className="text-sm text-gray-500">Página {currentPage + 1}</span>
+                <button
+                  onClick={goNextPage}
+                  disabled={!hasMore}
+                  className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Siguiente →
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}

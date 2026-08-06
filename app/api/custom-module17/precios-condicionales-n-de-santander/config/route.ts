@@ -79,45 +79,108 @@ export async function PUT(request: NextRequest) {
 
     await Promise.all(upserts);
 
-    // Sincronizar con app externa de price rules
-    if (body.state_discounts != null) {
-      try {
-        const extUrl = process.env.ZA_PRICE_RULES_APP_URL || 'http://localhost:9002';
-        const getRes = await fetch(`${extUrl}/api/za-config`, { cache: 'no-store' });
-        if (getRes.ok) {
-          const extConfig = await getRes.json();
-          const syncBody: Record<string, any> = {
-            region_state: body.state_discounts.map((item: any) => String(item.state || '').trim()).filter(Boolean),
-            region_country_code: body.target_country_code || extConfig.region_country_code || 'CO',
-            discount_percentage: body.state_discounts.length > 0 ? Number(body.state_discounts[0].discount || 0) : (extConfig.discount_percentage || 10),
-            state_discounts: body.state_discounts,
-            excluded_states: body.excluded_states != null ? (Array.isArray(body.excluded_states) ? body.excluded_states : []) : (extConfig.excluded_states || []),
-            scope: extConfig.scope || 'all',
-            scope_target_ids: extConfig.scope_target_ids || [],
-            active: body.enabled != null ? (body.enabled === true || body.enabled === 1 || body.enabled === '1') : (extConfig.active !== false),
-          };
-          // Limpiar undefined
-          Object.keys(syncBody).forEach(k => syncBody[k] === undefined && delete syncBody[k]);
-          const synced = await fetch(`${extUrl}/api/za-config`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(syncBody),
-          });
-          if (!synced.ok) {
-            const errText = await synced.text().catch(() => 'unknown');
-            console.error('[Config Sync] Error al sincronizar con app externa:', synced.status, errText.slice(0, 200));
-          } else {
-            console.log('[Config Sync] Sincronizado exitosamente con app externa: state_discounts, region_state, discount_percentage');
-          }
-        } else {
-          console.warn('[Config Sync] No se pudo obtener config de app externa:', getRes.status);
-        }
-      } catch (syncError: any) {
-        console.error('[Config Sync] Error de conexión con app externa:', syncError?.message || syncError);
+    // Sincronizar con app externa de price rules (SIEMPRE, no solo cuando cambia state_discounts)
+    const extUrl = process.env.ZA_PRICE_RULES_APP_URL || 'http://localhost:9002';
+
+    // Obtener config actual completa (lo que vino en el body + lo que ya estaba en BD)
+    const currentConfig = await getAllConfig();
+
+    const finalEnabled = body.enabled != null
+      ? (body.enabled === true || body.enabled === 1 || body.enabled === '1')
+      : (currentConfig.enabled === '1' || currentConfig.enabled === 'true');
+
+    const finalTargetState = body.target_state != null
+      ? String(body.target_state || '').trim()
+      : String(currentConfig.target_state || 'Antioquia').trim();
+
+    const finalCountryCode = body.target_country_code != null
+      ? String(body.target_country_code || '').toUpperCase().trim()
+      : String(currentConfig.target_country_code || 'CO').toUpperCase().trim();
+
+    const finalDiscountValue = body.discount_value != null
+      ? Number(body.discount_value)
+      : Number(currentConfig.discount_value || 0);
+
+    const finalStateDiscounts = body.state_discounts != null
+      ? body.state_discounts
+      : (() => {
+          try { const v = JSON.parse(currentConfig.state_discounts || '[]'); return Array.isArray(v) && v.length > 0 ? v : null; } catch { return null; }
+        })();
+
+    const finalExcludedStates = body.excluded_states != null
+      ? (Array.isArray(body.excluded_states) ? body.excluded_states : [])
+      : (() => {
+          try { const v = JSON.parse(currentConfig.excluded_states || '[]'); return Array.isArray(v) && v.length > 0 ? v : null; } catch { return null; }
+        })();
+
+    const syncBody: Record<string, any> = {
+      region_state: [finalTargetState],
+      region_country_code: finalCountryCode,
+      discount_percentage: finalDiscountValue,
+      scope: 'all',
+      scope_target_ids: [],
+      active: finalEnabled,
+    };
+    // Solo incluir state_discounts y excluded_states si tienen datos
+    if (finalStateDiscounts) syncBody.state_discounts = finalStateDiscounts;
+    if (finalExcludedStates) syncBody.excluded_states = finalExcludedStates;
+
+    let syncStatus: string = 'ok';
+    let syncSent: any = null;
+    let syncResponse: any = null;
+    try {
+      const synced = await fetch(`${extUrl}/api/za-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(syncBody),
+      });
+      syncSent = syncBody;
+      if (!synced.ok) {
+        const errText = await synced.text().catch(() => 'unknown');
+        console.error('[Config Sync] Error al sincronizar con app externa:', synced.status, errText.slice(0, 200));
+        syncStatus = `error: App Shopify respondió ${synced.status}`;
+        syncResponse = { status: synced.status, body: errText.slice(0, 500) };
+      } else {
+        console.log('[Config Sync] Sincronizado exitosamente con app externa');
+        syncResponse = await synced.json().catch(() => ({ raw: 'ok' }));
       }
+    } catch (syncError: any) {
+      console.error('[Config Sync] Error de conexión con app externa:', syncError?.message || syncError);
+      syncStatus = `error: ${syncError?.message || 'Error de conexión'}`;
+      syncResponse = { error: syncError?.message };
     }
 
-    return NextResponse.json({ ok: true, product_overrides: normalizedProductOverrides });
+    // Verificar config final en App Shopify
+    let verifyResult: any = null;
+    try {
+      const verifyRes = await fetch(`${extUrl}/api/za-config`, { cache: 'no-store' });
+      if (verifyRes.ok) verifyResult = await verifyRes.json();
+    } catch {}
+
+    return NextResponse.json({
+      ok: true,
+      sync: syncStatus,
+      sync_sent: syncSent,
+      sync_response: syncResponse,
+      shopify_actual: verifyResult ? {
+        active: verifyResult.active,
+        discount_percentage: verifyResult.discount_percentage,
+        region_state: verifyResult.region_state,
+        state_discounts: verifyResult.state_discounts,
+        excluded_states: verifyResult.excluded_states?.length || 0,
+      } : null,
+      body_received: {
+        enabled: body.enabled,
+        target_state: body.target_state,
+        target_country_code: body.target_country_code,
+        discount_value: body.discount_value,
+        state_discounts: body.state_discounts,
+        excluded_states: Array.isArray(body.excluded_states) ? body.excluded_states?.length : body.excluded_states,
+        product_scope_mode: body.product_scope_mode,
+        require_shipping_match: body.require_shipping_match,
+      },
+      product_overrides: normalizedProductOverrides,
+    });
   } catch (error: any) {
     return NextResponse.json({ ok: false, error: error?.message || 'Error al guardar configuración' }, { status: 500 });
   }

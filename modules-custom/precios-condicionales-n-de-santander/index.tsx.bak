@@ -155,9 +155,6 @@ export default function PreciosCondicionalesNDeSantanderModule({
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
 
-  // Estado del endpoint externo de la App Shopify
-  const [shopifyEndpointStatus, setShopifyEndpointStatus] = useState<'checking' | 'ok' | 'error'>('checking');
-
   // Test state: selector de departamento + IP opcional
   const [testDepartment, setTestDepartment] = useState('Norte de Santander');
   const [testIp, setTestIp] = useState('181.57.0.1');
@@ -311,26 +308,6 @@ export default function PreciosCondicionalesNDeSantanderModule({
     loadConfig();
   }, []);
 
-  // Verificar estado del endpoint externo (App Shopify) al montar y cada 30s
-  const checkExternalEndpoint = async () => {
-    try {
-      const res = await fetch('https://clients-elreten-shopify-prices.zeroazul.com/api/za-config', { cache: 'no-store' });
-      if (res.ok) {
-        setShopifyEndpointStatus('ok');
-      } else {
-        setShopifyEndpointStatus('error');
-      }
-    } catch {
-      setShopifyEndpointStatus('error');
-    }
-  };
-
-  useEffect(() => {
-    checkExternalEndpoint();
-    const interval = setInterval(checkExternalEndpoint, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
   useEffect(() => {
     if (activeTab === 'logs') loadLogs();
   }, [activeTab]);
@@ -470,17 +447,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'No se pudo guardar');
       await loadConfig();
-      let msg = 'Departamentos guardados';
-      if (json.sync === 'ok') {
-        msg += ' ✅ App Shopify OK';
-        const sd = json.body_received?.state_discounts;
-        const excl = json.body_received?.excluded_states;
-        if (Array.isArray(sd)) msg += ` | ${sd.length} deptos con descuento`;
-        if (excl) msg += ` | ${excl} excluidos`;
-      } else {
-        msg += ` ⚠️ ${json.sync}`;
-      }
-      setSaveMessage(msg);
+      setSaveMessage('Departamentos guardados');
     } catch (e: any) {
       setSaveError(e?.message || 'Error guardando departamentos');
     } finally {
@@ -512,16 +479,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'No se pudo guardar');
       await loadConfig();
-      let msg = 'Configuracion base guardada';
-      if (json.sync === 'ok') {
-        msg += ' ✅ App Shopify OK';
-        msg += ` | Sent: ${JSON.stringify(json.sync_sent || {})}`;
-        msg += ` | Shopify: ${JSON.stringify(json.shopify_actual || {})}`;
-      } else {
-        msg += ` ⚠️ ${json.sync}`;
-        msg += ` | Response: ${JSON.stringify(json.sync_response || {})}`;
-      }
-      setSaveMessage(msg);
+      setSaveMessage('Configuracion base guardada');
     } catch (e: any) {
       setSaveError(e?.message || 'Error guardando configuracion base');
     } finally {
@@ -557,8 +515,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'No se pudo guardar');
       await loadConfig();
-      const syncMsg = json.sync === 'ok' ? ' ✅ App Shopify OK' : json.sync ? ` ⚠️ ${json.sync}` : '';
-      setSaveMessage('Productos guardados' + syncMsg);
+      setSaveMessage('Productos guardados');
     } catch (e: any) {
       setSaveError(e?.message || 'Error guardando productos');
     } finally {
@@ -590,8 +547,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'No se pudo guardar');
       await loadConfig();
-      const syncMsg = json.sync === 'ok' ? ' ✅ App Shopify OK' : json.sync ? ` ⚠️ ${json.sync}` : '';
-      setSaveMessage('Shopify guardado' + syncMsg);
+      setSaveMessage('Shopify guardado');
     } catch (e: any) {
       setSaveError(e?.message || 'Error guardando configuracion Shopify');
     } finally {
@@ -718,18 +674,6 @@ export default function PreciosCondicionalesNDeSantanderModule({
               <div className="bg-gray-50 border rounded p-3">
                 Deptos incluidos: <b>{departmentItems.filter((d) => d.status === 'included').length}</b> |
                 Excluidos: <b>{departmentItems.filter((d) => d.status === 'excluded').length}</b>
-              </div>
-              <div className={`border rounded p-3 ${shopifyEndpointStatus === 'ok' ? 'bg-emerald-50 border-emerald-300' : shopifyEndpointStatus === 'error' ? 'bg-red-50 border-red-300' : 'bg-gray-50 border-gray-300'}`}>
-                App Shopify:
-                <b>{
-                  shopifyEndpointStatus === 'ok' ? ' OK' :
-                  shopifyEndpointStatus === 'error' ? ' CAIDO' : ' Verificando...'
-                }</b>
-                {shopifyEndpointStatus !== 'checking' && (
-                  <span className="ml-1">
-                    {shopifyEndpointStatus === 'ok' ? '✅' : '❌'}
-                  </span>
-                )}
               </div>
             </div>
           )}

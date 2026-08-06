@@ -1,9 +1,10 @@
 /** Clasificador de tipos de consulta basado en el contenido del primer mensaje */
 
 export const QUERY_TYPE_KEYWORDS: Record<string, string[]> = {
-  'Ubicaciones': [
+  'Rutas': [
     'donde queda', 'ubicacion', 'ubicado', 'donde', 'lugar', 'localizado',
-    'dirección', 'por donde', 'en que parte', 'parqueadero'
+    'dirección', 'por donde', 'en que parte', 'parqueadero', 'ruta', 'como llegar',
+    'mapa', 'navegacion',
   ],
   'Horarios': [
     'horario', 'horas', 'abre', 'cierra', 'abierto', 'hasta que hora',
@@ -16,7 +17,7 @@ export const QUERY_TYPE_KEYWORDS: Record<string, string[]> = {
     'tienda', 'locales', 'almacén', 'restaurante', 'local', 'hay reebok',
     'hay happy', 'locales', 'barberia'
   ],
-  'Eventos / Actividades': [
+  'Eventos y programación': [
     'evento', 'eventos', 'actividades', 'programacion', 'tributo',
     'programación', 'funciones', 'funcion', 'funcio'
   ],

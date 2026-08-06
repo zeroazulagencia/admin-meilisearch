@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MEILISEARCH_CONFIG } from '@/utils/constants';
+import {
+  buildKnownUsers,
+  getKnownUsers,
+  classifyUsers,
+  addKnownUsers,
+} from '@/app/omnicanalidad/utils/known-users';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +23,6 @@ function getPeriodRange(period: string): { start: Date; end: Date } {
     case 'week': {
       start = new Date(end);
       start.setDate(end.getDate() - 7);
-      // 7 days ago at 00:00:00
       start.setHours(0, 0, 0, 0);
       break;
     }
@@ -27,13 +32,22 @@ function getPeriodRange(period: string): { start: Date; end: Date } {
     case 'year':
       start = new Date(end.getFullYear(), 0, 1);
       break;
-    default:
+    default: {
       start = new Date(end);
       start.setDate(end.getDate() - 7);
       start.setHours(0, 0, 0, 0);
+    }
   }
 
   return { start, end };
+}
+
+function getPreviousPeriodRange(period: string, curStart: Date, curEnd: Date): { start: Date; end: Date } {
+  const diff = curEnd.getTime() - curStart.getTime();
+  return {
+    start: new Date(curStart.getTime() - diff),
+    end: new Date(curStart.getTime()),
+  };
 }
 
 function formatDate(date: Date): string {
@@ -86,9 +100,46 @@ function getConversationKey(doc: any): string {
   return 'unknown';
 }
 
+function esMensajeFactura(doc: any): boolean {
+  // Una factura registrada se identifica por:
+  // 1. El mensaje AI contiene confirmación de registro
+  // 2. El usuario envió una imagen (image_base64)
+  const aiMsg = (doc['message-AI'] || '').toLowerCase();
+  const tieneImagen = !!doc.image_base64;
+  const esConfirmacion = /factura\s*(registrada|recibida|en\s*proceso)/i.test(aiMsg) ||
+                         /ya\s*fue\s*registrada/i.test(aiMsg) ||
+                         /registro\s*exitoso/i.test(aiMsg);
+
+  return esConfirmacion || (tieneImagen && /factura/i.test(aiMsg));
+}
+
+async function loadDocuments(agentName: string, filterStr: string): Promise<any[]> {
+  const allDocs: any[] = [];
+  let offset = 0;
+  const batchLimit = 1000;
+
+  while (allDocs.length < MAX_DOCS) {
+    const results = await searchMeilisearch(agentName, filterStr, batchLimit, offset);
+    const hits = results.hits || [];
+    if (hits.length === 0) break;
+
+    for (const doc of hits) {
+      if (doc.type === 'user' || doc.type === 'agent') {
+        allDocs.push(doc);
+      }
+    }
+
+    if (hits.length < batchLimit) break;
+    offset += batchLimit;
+  }
+
+  return allDocs;
+}
+
 function calculateKPIs(documents: any[]) {
   const uniqueUsers = new Set<string>();
   const convMap = new Map<string, { userMsgs: number; aiMsgs: number }>();
+  let facturasRegistradas = 0;
 
   for (const doc of documents) {
     const uid = getUserId(doc);
@@ -101,31 +152,36 @@ function calculateKPIs(documents: any[]) {
     const conv = convMap.get(key)!;
     if (doc['message-Human']?.trim()) conv.userMsgs++;
     if (doc['message-AI']?.trim()) conv.aiMsgs++;
+
+    // Contar facturas registradas
+    if (esMensajeFactura(doc)) {
+      facturasRegistradas++;
+    }
   }
 
   let successful = 0;
+  let abandoned = 0;
   Array.from(convMap.values()).forEach((conv) => {
-    if (conv.userMsgs > 0 && conv.aiMsgs > 0) successful++;
+    if (conv.userMsgs > 0 && conv.aiMsgs > 0) {
+      successful++;
+    } else if (conv.userMsgs > 0 && conv.aiMsgs === 0) {
+      // Usuario preguntó pero agente nunca respondió → abandono
+      abandoned++;
+    }
+    // Si aiMsgs > 0 pero userMsgs === 0 es solo mensaje de bienvenida, no cuenta
   });
 
   const totalConvs = convMap.size;
-
-  // Contar mensajes por tipo
-  let totalUserMessages = 0;
-  let totalAgentMessages = 0;
-  for (const doc of documents) {
-    if (doc['message-Human']?.trim()) totalUserMessages++;
-    if (doc['message-AI']?.trim()) totalAgentMessages++;
-  }
 
   return {
     uniqueVisitors: uniqueUsers.size,
     totalConversations: totalConvs,
     successfulConversations: successful,
+    abandonedConversations: abandoned,
     successRate: totalConvs > 0 ? Number((successful / totalConvs * 100).toFixed(1)) : 0,
+    abandonmentRate: totalConvs > 0 ? Number(((abandoned / totalConvs) * 100).toFixed(1)) : 0,
+    facturasRegistradas,
     totalMessages: documents.length,
-    totalUserMessages,
-    totalAgentMessages,
   };
 }
 
@@ -139,43 +195,63 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'agent_name requerido' }, { status: 400 });
     }
 
+    // Período actual
     const { start: curStart, end: curEnd } = getPeriodRange(period);
-
-    // Construir filtro Meilisearch con rango de fechas
-    // Construir filtro Meilisearch con rango de fechas (solo YYYY-MM-DD)
     const startStr = formatDate(curStart);
-    // endOfDay = día siguiente para capturar todo el día actual
     const endOfDay = new Date(curEnd);
     endOfDay.setDate(endOfDay.getDate() + 1);
     const endStr = formatDate(endOfDay);
-    const filterStr = `agent = "${agent_name}" AND datetime >= ${startStr} AND datetime < ${endStr}`;
+
+    // Período anterior (para crecimiento)
+    const prevPeriod = getPreviousPeriodRange(period, curStart, curEnd);
+    const prevStartStr = formatDate(prevPeriod.start);
+    const prevEndOfDay = new Date(prevPeriod.end);
+    prevEndOfDay.setDate(prevEndOfDay.getDate() + 1);
+    const prevEndStr = formatDate(prevEndOfDay);
 
     // Cargar documentos del período actual
-    const allDocs: any[] = [];
-    let offset = 0;
-    const batchLimit = 1000;
+    const filterStr = `agent = "${agent_name}" AND datetime >= ${startStr} AND datetime < ${endStr}`;
+    const currentDocs = await loadDocuments(agent_name, filterStr);
 
-    while (allDocs.length < MAX_DOCS) {
-      const results = await searchMeilisearch(agent_name, filterStr, batchLimit, offset);
-      const hits = results.hits || [];
-      if (hits.length === 0) break;
+    // Cargar documentos del período anterior
+    const prevFilterStr = `agent = "${agent_name}" AND datetime >= ${prevStartStr} AND datetime < ${prevEndStr}`;
+    const prevDocs = await loadDocuments(agent_name, prevFilterStr);
 
-      for (const doc of hits) {
-        if (doc.type === 'user' || doc.type === 'agent') {
-          allDocs.push(doc);
-        }
-      }
+    // Calcular KPIs
+    const current = calculateKPIs(currentDocs);
+    const previous = calculateKPIs(prevDocs);
 
-      if (hits.length < batchLimit) break;
-      offset += batchLimit;
+    // --- Visitantes nuevos vs conocidos ---
+    // Obtener o construir la BD de usuarios conocidos (histórico completo)
+    const knownUsers = await getKnownUsers(agent_name);
+    const currentUserIds = Array.from(new Set(currentDocs.map(getUserId).filter(Boolean)));
+    const { newUsers, returningUsers } = classifyUsers(currentUserIds, knownUsers);
+
+    // --- Crecimiento ---
+    let growthRate = 0;
+    if (previous.totalConversations > 0) {
+      growthRate = Number((((current.totalConversations - previous.totalConversations) / previous.totalConversations) * 100).toFixed(1));
+    } else if (current.totalConversations > 0) {
+      growthRate = 100; // de 0 a N es crecimiento del 100%
     }
 
-    const current = calculateKPIs(allDocs);
+    // Actualizar BD con nuevos usuarios
+    addKnownUsers(agent_name, newUsers);
 
     return NextResponse.json({
       ok: true,
       period,
-      current,
+      current: {
+        ...current,
+        newUniqueVisitors: newUsers.length,
+        returningVisitors: returningUsers.length,
+        growth: {
+          rate: growthRate,
+          previousConversations: previous.totalConversations,
+          currentConversations: current.totalConversations,
+        },
+      },
+      previous,
       start: startStr,
       end: endStr,
     });

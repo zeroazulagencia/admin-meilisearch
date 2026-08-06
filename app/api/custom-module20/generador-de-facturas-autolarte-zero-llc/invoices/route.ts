@@ -5,17 +5,21 @@ export const dynamic = 'force-dynamic';
 
 const CUSTOMER_ID = 'cus_Mk1Npqxg8BHBjG';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const key = await getConfig('stripe_key');
     if (!key) {
       return NextResponse.json({ ok: false, error: 'No hay Stripe API Key guardada' }, { status: 400 });
     }
 
-    const res = await fetch(
-      `https://api.stripe.com/v1/invoices?customer=${CUSTOMER_ID}&limit=5`,
-      { headers: { Authorization: `Bearer ${key}` } }
-    );
+    const { searchParams } = new URL(req.url);
+    const after = searchParams.get('after');
+    const limit = 10;
+
+    let url = `https://api.stripe.com/v1/invoices?customer=${CUSTOMER_ID}&limit=${limit}`;
+    if (after) url += `&starting_after=${after}`;
+
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` } });
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -36,7 +40,12 @@ export async function GET() {
       hosted_invoice_url: inv.hosted_invoice_url,
     }));
 
-    return NextResponse.json({ ok: true, data: invoices });
+    return NextResponse.json({
+      ok: true,
+      data: invoices,
+      has_more: data.has_more || false,
+      last_id: invoices.length > 0 ? invoices[invoices.length - 1].id : null,
+    });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || 'Error de conexión' }, { status: 500 });
   }

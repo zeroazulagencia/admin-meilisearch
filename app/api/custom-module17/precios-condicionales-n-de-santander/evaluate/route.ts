@@ -21,6 +21,7 @@ type EvaluateBody = {
   product_id?: string;
   variant_id?: string;
   product_title?: string;
+  product_handle?: string;
   lines?: EvaluateCartLine[];
 };
 
@@ -33,6 +34,55 @@ type IpWhoisResponse = {
   city?: string;
   message?: string;
 };
+
+/** Estructura compartida que ambos servicios (ipwho.is, ipapi.co) pueden llenar */
+type GeoResult = {
+  region: string | null;
+  country_code: string | null;
+  city: string | null;
+  ip?: string;
+  region_code?: string | null;
+};
+
+async function fetchGeo(ip: string): Promise<GeoResult> {
+  // 1) Intentar ipwho.is
+  try {
+    const data = await httpGetJson<IpWhoisResponse>(
+      `https://ipwho.is/${encodeURIComponent(ip)}`
+    );
+    if (data?.success && data?.region) {
+      return {
+        ip: data.ip || ip,
+        region: data.region,
+        country_code: data.country_code || null,
+        region_code: data.region_code || null,
+        city: data.city || null,
+      };
+    }
+  } catch {
+    // fallback
+  }
+
+  // 2) Fallback a ipapi.co (retorna region aunque country no sea CO)
+  try {
+    const data: any = await httpGetJson<any>(
+      `https://ipapi.co/${encodeURIComponent(ip)}/json/`
+    );
+    if (data?.region) {
+      return {
+        ip: data.ip || ip,
+        region: data.region,
+        country_code: data.country_code || data.country || null,
+        region_code: data.region_code || null,
+        city: data.city || null,
+      };
+    }
+  } catch {
+    // sin mas fallback
+  }
+
+  return { region: null, country_code: null, city: null };
+}
 
 function httpGetJson<T>(url: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -52,6 +102,119 @@ function httpGetJson<T>(url: string): Promise<T> {
       });
     }).on('error', reject);
   });
+}
+
+function httpPostJson<T>(url: string, body: Record<string, unknown>, headers?: Record<string, string>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify(body);
+    const urlObj = new URL(url);
+
+    const options: https.RequestOptions = {
+      hostname: urlObj.hostname,
+      path: urlObj.pathname + urlObj.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let raw = '';
+      res.on('data', (chunk) => (raw += chunk));
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(raw) as T);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
+
+type ShopifyProductInfo = {
+  id: string;
+  title: string;
+  handle: string;
+  price: string;
+  compareAtPrice: string | null;
+  imageUrl: string | null;
+};
+
+async function fetchShopifyProductByHandle(
+  shopDomain: string,
+  storefrontToken: string,
+  handle: string
+): Promise<ShopifyProductInfo | null> {
+  try {
+    const query = `
+      query getProductByHandle($handle: String!) {
+        productByHandle(handle: $handle) {
+          id
+          title
+          handle
+          images(first: 1) {
+            edges {
+              node {
+                url
+                altText
+              }
+            }
+          }
+          variants(first: 1) {
+            edges {
+              node {
+                id
+                price
+                compareAtPrice
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const data = await httpPostJson<{
+      data?: {
+        productByHandle?: {
+          id: string;
+          title: string;
+          handle: string;
+          images: { edges: Array<{ node: { url: string; altText: string | null } }> };
+          variants: { edges: Array<{ node: { id: string; price: string; compareAtPrice: string | null } }> };
+        };
+      };
+      errors?: Array<{ message: string }>;
+    }>(
+      `https://${shopDomain}/api/2024-07/graphql.json`,
+      { query, variables: { handle } },
+      {
+        'X-Shopify-Storefront-Access-Token': storefrontToken,
+      }
+    );
+
+    const product = data?.data?.productByHandle;
+    if (!product) return null;
+
+    const variant = product.variants?.edges?.[0]?.node;
+    const image = product.images?.edges?.[0]?.node;
+
+    return {
+      id: product.id,
+      title: product.title,
+      handle: product.handle,
+      price: variant?.price || '0',
+      compareAtPrice: variant?.compareAtPrice || null,
+      imageUrl: image?.url || null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function normalizeText(value: string | null | undefined): string {
@@ -134,6 +297,7 @@ export async function POST(request: NextRequest) {
   const ipAddress = getClientIp(request, body.ip);
   const shippingState = body.shipping_state || null;
   const shippingCountryCode = (body.shipping_country_code || '').toUpperCase() || null;
+  const productHandle = body.product_handle || null;
   const cartLines = resolveCartLines(body);
 
   if (!config.enabled) {
@@ -192,14 +356,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 400 });
   }
 
-  const lookupUrl = `${config.ipwhoisBaseUrl.replace(/\/$/, '')}/${encodeURIComponent(ipAddress)}`;
-
-  let geo: IpWhoisResponse | null = null;
+  // Resolver geo por IP con fallback (ipwho.is → ipapi.co)
+  let geo: GeoResult | null = null;
 
   try {
-    geo = await httpGetJson<IpWhoisResponse>(lookupUrl);
+    geo = await fetchGeo(ipAddress);
 
-    if (!geo?.success) {
+    if (!geo?.region) {
       const response = {
         ok: false,
         applied: false,
@@ -233,7 +396,7 @@ export async function POST(request: NextRequest) {
       ok: false,
       applied: false,
       reason: 'ip_lookup_exception',
-      error: error?.message || 'Error consultando ipwhois',
+      error: error?.message || 'Error consultando geoip',
       discount: null,
       discounts: [],
       geo: null,
@@ -242,6 +405,8 @@ export async function POST(request: NextRequest) {
     await insertDecisionLog({
       eventType: 'evaluate',
       ipAddress,
+      resolvedState: null,
+      resolvedCountryCode: null,
       shippingState,
       shippingCountryCode,
       targetState: config.targetState,
@@ -259,12 +424,14 @@ export async function POST(request: NextRequest) {
 
   const ipCountryMatches = normalizeText(geo?.country_code) === normalizeText(config.targetCountryCode);
 
+  const ipInStateDiscounts = config.stateDiscounts.length > 0 && !!config.stateDiscounts.find((sd) => {
+    const input = normalizeText(geo?.region || '');
+    const target = normalizeText(sd.state);
+    return input === target;
+  });
+
   const ipStateMatches = matchState(config.targetState, config.stateAliases, geo?.region || '')
-    || (config.stateDiscounts.length > 0 && !!config.stateDiscounts.find((sd) => {
-        const input = normalizeText(geo?.region || '');
-        const target = normalizeText(sd.state);
-        return input === target;
-      }));
+    || ipInStateDiscounts;
 
   // Buscar descuento específico para el estado detectado
   const resolvedState = geo?.region || null;
@@ -300,7 +467,7 @@ export async function POST(request: NextRequest) {
   let reason = 'ok';
   let applied = false;
 
-  if (!ipCountryMatches) reason = 'ip_country_mismatch';
+  if (!ipCountryMatches && !ipInStateDiscounts) reason = 'ip_country_mismatch';
   else if (!ipStateMatches) reason = 'ip_state_mismatch';
   else if (ipIsExcluded) reason = 'state_excluded';
   else if (!shippingCountryMatches) reason = 'shipping_country_mismatch';
@@ -365,6 +532,15 @@ export async function POST(request: NextRequest) {
     return resolved;
   })();
 
+  // Fetch producto real desde Shopify Storefront API si se proporciono un handle
+  const realProduct = (productHandle && config.shopifyShopDomain && config.shopifyStorefrontAccessToken)
+    ? await fetchShopifyProductByHandle(
+        config.shopifyShopDomain,
+        config.shopifyStorefrontAccessToken,
+        productHandle
+      )
+    : null;
+
   const response = {
     ok: true,
     applied: applied && (config.productScopeMode !== 'selected_only' || discounts.length > 0),
@@ -393,6 +569,38 @@ export async function POST(request: NextRequest) {
       shipping_state_matches: shippingStateMatches,
       require_shipping_match: config.requireShippingMatch,
     },
+    product: realProduct
+      ? {
+          id: realProduct.id,
+          title: realProduct.title,
+          handle: realProduct.handle,
+          image_url: realProduct.imageUrl,
+          url: `https://${config.shopifyShopDomain}/products/${realProduct.handle}`,
+          original_price: realProduct.price,
+          compare_at_price: realProduct.compareAtPrice,
+          discount_applied: applied,
+          final_price: applied
+            ? (() => {
+                const orig = Number(realProduct.price);
+                const dv = Number(effectiveDiscountValue);
+                if (effectiveDiscountType === 'percentage') {
+                  return String(Math.max(0, Math.round(orig * (1 - dv / 100) * 100) / 100));
+                }
+                return String(Math.max(0, orig - dv));
+              })()
+            : realProduct.price,
+          savings: applied
+            ? (() => {
+                const orig = Number(realProduct.price);
+                const dv = Number(effectiveDiscountValue);
+                if (effectiveDiscountType === 'percentage') {
+                  return String(Math.round(orig * dv / 100 * 100) / 100);
+                }
+                return String(Math.min(dv, orig));
+              })()
+            : '0',
+        }
+      : null,
   };
 
   await insertDecisionLog({
