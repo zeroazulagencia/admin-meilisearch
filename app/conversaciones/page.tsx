@@ -7,7 +7,7 @@ import ProtectedLayout from '@/components/ProtectedLayout';
 import AgentSelector from '@/components/ui/AgentSelector';
 import NoticeModal from '@/components/ui/NoticeModal';
 import KpiDashboard from '@/app/omnicanalidad/components/KpiDashboard';
-import { classifyQueryType } from '@/app/omnicanalidad/utils/query-classifier';
+import { classifyQueryType, classifyConversation } from '@/app/omnicanalidad/utils/query-classifier';
 
 interface ConversationGroup {
   user_id: string;
@@ -32,6 +32,91 @@ interface HumanModeStatus {
   isHumanMode: boolean;
   takenBy?: number;
   takenAt?: string;
+}
+
+interface MessageFileInfo {
+  name: string;
+  mime: string;
+  kind: 'image' | 'file';
+}
+
+function getMessageFile(message: Document): MessageFileInfo | null {
+  const mime = String(message.file_mime || message.document_mime || message.image_mime || '').trim();
+  const name = String(
+    message.file_name ||
+    message.document_filename ||
+    message.document_name ||
+    message.filename ||
+    message.image_name ||
+    ''
+  ).trim();
+  const human = String(message['message-Human'] || message['message'] || '');
+  const archivoMatch = human.match(/\[Archivo\]\s*(.+)$/im);
+  const looksPdf = /pdf/i.test(mime) || /\.pdf$/i.test(name) || /\.pdf$/i.test(archivoMatch?.[1] || '');
+  const looksImage = /^image\//i.test(mime);
+  const base64 = String(message.image_base64 || '').trim();
+  const base64IsImage = base64.startsWith('data:image/') || (looksImage && base64.length > 50 && !looksPdf);
+
+  if (looksPdf || message.file_name || message.document_filename || message.filename || archivoMatch) {
+    return {
+      name: name || archivoMatch?.[1]?.trim() || 'documento.pdf',
+      mime: mime || 'application/pdf',
+      kind: 'file',
+    };
+  }
+
+  if (base64IsImage || (looksImage && name)) {
+    return { name: name || 'imagen', mime: mime || 'image/jpeg', kind: 'image' };
+  }
+
+  if (name && !looksImage) {
+    return { name, mime: mime || 'application/octet-stream', kind: 'file' };
+  }
+
+  return null;
+}
+
+function getHumanTextWithoutFileTag(message: Document, file: MessageFileInfo | null): string {
+  let text = String(message['message-Human'] || (message.type === 'user' ? message['message'] : '') || '').trim();
+  if (file?.kind === 'file' && file.name) {
+    const escaped = file.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    text = text.replace(new RegExp(`\\[Archivo\\]\\s*${escaped}\\s*$`, 'i'), '').trim();
+    text = text.replace(/\[Archivo\]\s*.+$/im, '').trim();
+  }
+  return text;
+}
+
+function getMessagePreview(message: Document): string {
+  const file = getMessageFile(message);
+  const human = getHumanTextWithoutFileTag(message, file);
+  if (human) return human.substring(0, 50);
+  if (file?.kind === 'file') return `📎 ${file.name}`.substring(0, 50);
+  if (file?.kind === 'image' || String(message.image_base64 || '').trim()) return '📷 Imagen';
+  const ai = String(message['message-AI'] || '').trim();
+  if (ai) return ai.substring(0, 50);
+  const generic = String(message['message'] || '').trim();
+  return generic.substring(0, 50);
+}
+
+function FileAttachmentChip({ file, inverted = false }: { file: MessageFileInfo; inverted?: boolean }) {
+  const isPdf = /pdf/i.test(file.mime) || /\.pdf$/i.test(file.name);
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-lg px-2 py-1.5 mb-1 ${
+        inverted ? 'bg-white/20' : 'bg-gray-100'
+      }`}
+    >
+      <svg className={`w-8 h-8 flex-shrink-0 ${inverted ? 'text-white' : 'text-red-600'}`} fill="currentColor" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h5v1.5H8V10z" />
+      </svg>
+      <div className="min-w-0">
+        <p className={`text-sm font-medium truncate ${inverted ? 'text-white' : 'text-gray-900'}`}>{file.name}</p>
+        <p className={`text-[10px] uppercase ${inverted ? 'text-white/80' : 'text-gray-500'}`}>
+          {isPdf ? 'PDF' : (file.mime.split('/')[1] || 'archivo')}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default function Conversaciones() {
@@ -229,38 +314,47 @@ export default function Conversaciones() {
         }
       }
       
-      // Si no hay búsqueda o si la búsqueda falló, cargar todos los documentos normalmente
+      // Si no hay búsqueda o si la búsqueda falló, usar search con filtros (más rápido que getDocuments)
       if (!searchQuery || !searchQuery.trim() || searchFailed) {
-        let currentOffset = 0;
-        const batchLimit = 1000;
-        let hasMore = true;
+        // Construir filtros igual que en la búsqueda con texto
+        const filters: string[] = [];
+        if (selectedAgent) {
+          filters.push(`agent = "${selectedAgent}"`);
+        }
+        if (dateFrom && dateTo) {
+          const fromDateISO = new Date(dateFrom + 'T00:00:00Z').toISOString();
+          const toDateISO = new Date(dateTo + 'T23:59:59Z').toISOString();
+          filters.push(`datetime >= "${fromDateISO}"`);
+          filters.push(`datetime <= "${toDateISO}"`);
+        }
         
-        while (hasMore) {
-          const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
+        const filterStr = filters.join(' AND ');
+        
+        // Paginar con searchDocuments (respeta maxTotalHits de Meilisearch)
+        let searchHasMore = true;
+        let searchOffset = 0;
+        const searchLimit = 1000;
+        
+        while (searchHasMore) {
+          const searchResults = await meilisearchAPI.searchDocuments(
+            INDEX_UID,
+            '*', // wildcard search para traer todos los docs
+            searchLimit,
+            searchOffset,
+            { filter: filterStr }
+          );
           
-          // Filtrar por agente, por type === 'agent' o 'user' y por rango de fechas
-          const filtered = data.results.filter((doc: Document) => {
-            const isAgent = doc.agent === selectedAgent;
-            const isTypeAgent = doc.type === 'agent' || doc.type === 'user';
-            
-            // Filtro de fechas
-            let isInDateRange = true;
-            if (dateFrom && doc.datetime) {
-              const docDate = new Date(doc.datetime);
-              const fromDate = new Date(dateFrom + 'T00:00:00');
-              const toDate = new Date(dateTo + 'T23:59:59');
-              isInDateRange = docDate >= fromDate && docDate <= toDate;
-            }
-            
-            return isAgent && isTypeAgent && isInDateRange;
+          // Filtrar manualmente por type (agent o user) - no filterable en Meilisearch
+          const filtered = (searchResults.hits as Document[]).filter((doc: Document) => {
+            return doc.type === 'agent' || doc.type === 'user';
           });
           
           allDocuments.push(...filtered);
           
-          if (data.results.length < batchLimit) {
-            hasMore = false;
+          if (searchResults.hits.length < searchLimit) {
+            searchHasMore = false;
           } else {
-            currentOffset += batchLimit;
+            searchOffset += searchLimit;
           }
         }
       }
@@ -421,15 +515,7 @@ export default function Conversaciones() {
           lastMessageKeys: Object.keys(lastMessage)
         });
         
-        // Obtener último mensaje de texto (Human, AI o message genérico)
-        let lastMessageText = '';
-        if (lastMessage['message-Human']) {
-          lastMessageText = lastMessage['message-Human'].substring(0, 50);
-        } else if (lastMessage['message-AI']) {
-          lastMessageText = lastMessage['message-AI'].substring(0, 50);
-        } else if (lastMessage['message']) {
-          lastMessageText = lastMessage['message'].substring(0, 50);
-        }
+        const lastMessageText = getMessagePreview(lastMessage);
         
         // Debug: mostrar información final del grupo
         console.log('[MAPEO] Grupo final:', {
@@ -485,14 +571,27 @@ export default function Conversaciones() {
       if (searchQuery && searchQuery.trim()) {
         const queryLower = searchQuery.toLowerCase();
         filteredConversations = conversationGroupsArray.filter(group => {
-          // Buscar en todos los mensajes de la conversación
+          // Buscar en todos los mensajes de la conversación + campos de identificación
           return group.messages.some(message => {
             const humanMsg = message['message-Human'] || '';
             const aiMsg = message['message-AI'] || '';
             const genericMsg = message['message'] || '';
+            const fileName = String(
+              message.file_name || message.document_filename || message.filename || message.image_name || ''
+            );
+            // También buscar en campos de identificación (user_id, phone_id, etc.)
+            const userId = String(
+              message.user_id || message.iduser || message.userid || message.i_user || message.id_user || ''
+            );
+            const phoneId = String(
+              message.phone_id || message.phone_number_id || ''
+            );
             return humanMsg.toLowerCase().includes(queryLower) || 
                    aiMsg.toLowerCase().includes(queryLower) ||
-                   genericMsg.toLowerCase().includes(queryLower);
+                   genericMsg.toLowerCase().includes(queryLower) ||
+                   fileName.toLowerCase().includes(queryLower) ||
+                   userId.toLowerCase().includes(queryLower) ||
+                   phoneId.toLowerCase().includes(queryLower);
           });
         });
         console.log(`Conversaciones filtradas por búsqueda: ${filteredConversations.length} de ${conversationGroupsArray.length}`);
@@ -560,7 +659,7 @@ export default function Conversaciones() {
     }
 
     // Crear CSV con encabezados
-    const headers = ['user_id', 'phone_number_id', 'phone_id', 'session_id', 'agent', 'type', 'datetime', 'message-Human', 'message-AI', 'message', 'conversation_id'];
+    const headers = ['user_id', 'phone_number_id', 'phone_id', 'session_id', 'agent', 'type', 'datetime', 'message-Human', 'message-AI', 'message', 'file_name', 'file_mime', 'conversation_id'];
     const csvRows = [headers.join(',')];
 
     // Agregar filas de datos
@@ -576,6 +675,8 @@ export default function Conversaciones() {
         ((doc['message-Human'] as string) || '').replace(/"/g, '""'), // Escapar comillas
         ((doc['message-AI'] as string) || '').replace(/"/g, '""'), // Escapar comillas
         (doc.message || doc.text || '').replace(/"/g, '""'), // Escapar comillas
+        String(doc.file_name || doc.document_filename || doc.filename || doc.image_name || '').replace(/"/g, '""'),
+        String(doc.file_mime || doc.document_mime || doc.image_mime || '').replace(/"/g, '""'),
         doc.conversation_id || ''
       ];
       // Envolver cada campo en comillas para manejar comas y saltos de línea
@@ -628,22 +729,45 @@ export default function Conversaciones() {
   // Clasificador de tipos de consulta: cuenta mensajes y conversaciones por tipo
   const mensajesPorTipo = useMemo(() => {
     const counts: Record<string, { mensajes: number; conversaciones: number }> = {};
-    const convTypes = new Map<string, string>();
+    const convMessages = new Map<string, { messages: { text: string; datetime: string }[] }>();
+
+    // 1. Agrupar todos los mensajes por conversación (phone_id/session_id)
     for (const doc of allDocumentsForCSV) {
       const msg = (doc as any)['message-Human'] || (doc as any)['message'] || '';
       if (!msg.trim()) continue;
-      const type = classifyQueryType(msg);
-      if (!counts[type]) counts[type] = { mensajes: 0, conversaciones: 0 };
-      counts[type].mensajes++;
       const phoneId = doc.phone_id || doc.phone_number_id || '';
       const key = phoneId ? `phone_${phoneId}` : `session_${doc.session_id || ''}`;
-      if (!convTypes.has(key)) convTypes.set(key, type);
+      if (!convMessages.has(key)) {
+        convMessages.set(key, { messages: [] });
+      }
+      convMessages.get(key)!.messages.push({
+        text: msg,
+        datetime: (doc as any).datetime || '',
+      });
     }
-    for (const type of Array.from(convTypes.values())) {
-      if (counts[type]) counts[type].conversaciones++;
-    }
+
+    // 2. Por cada conversación, ordenar mensajes y clasificar probando hasta 3
+    convMessages.forEach((data) => {
+      // Ordenar cronológicamente
+      data.messages.sort((a, b) => a.datetime.localeCompare(b.datetime));
+      const texts = data.messages.map(m => m.text);
+
+      // Clasificar la conversación (prueba msg 1, 2 y 3 si los anteriores son General)
+      const convType = classifyConversation(texts);
+
+      if (!counts[convType]) counts[convType] = { mensajes: 0, conversaciones: 0 };
+      counts[convType].conversaciones++;
+
+      // Cada mensaje individual cuenta hacia el tipo que le corresponda
+      for (const text of texts) {
+        const msgType = classifyQueryType(text);
+        if (!counts[msgType]) counts[msgType] = { mensajes: 0, conversaciones: 0 };
+        counts[msgType].mensajes++;
+      }
+    });
+
     return counts;
-  }, [allDocumentsForCSV]);
+  }, [allDocumentsForCSV, dateFrom, dateTo]);
 
   return (
     <ProtectedLayout>
@@ -893,6 +1017,14 @@ export default function Conversaciones() {
           </>
         )}
 
+        {/* Info: fecha desde que hay datos */}
+        {selectedAgent !== 'all' && selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
+          <div className="text-xs text-gray-400 mb-4 px-1 flex gap-3">
+            <span>📅 Datos desde: <strong>28 ago 2025</strong></span>
+            <span>🧾 Primera factura registrada: <strong>01 mar 2026</strong></span>
+          </div>
+        )}
+
         {/* KPI Dashboard - Solo para agente Amistoso */}
         {selectedAgent === 'amistoso' && (
             <div className="mb-6">
@@ -1023,49 +1155,56 @@ export default function Conversaciones() {
                       style={{ scrollBehavior: 'smooth' }}
                     >
                       {selectedConversation.messages.map((message, index) => {
-                        const hasHuman = message['message-Human'] && message['message-Human'].trim() !== '';
+                        const file = getMessageFile(message);
+                        const hasFile = file?.kind === 'file';
+                        const humanText = getHumanTextWithoutFileTag(message, file);
+                        const hasHuman = humanText !== '';
                         const hasAI = message['message-AI'] && message['message-AI'].trim() !== '';
                         const hasMessage = message['message'] && message['message'].trim() !== '';
-                        const hasImage = message['image_base64'] && message['image_base64'].trim() !== '';
+                        const imageSrc = String(message['image_base64'] || '').trim();
+                        const hasImage = Boolean(imageSrc) && file?.kind !== 'file' && (
+                          imageSrc.startsWith('data:image/') || imageSrc.startsWith('http') || (file?.kind === 'image')
+                        );
                         
-                        // Si no tiene ningún mensaje ni imagen, no mostrar nada
-                        if (!hasHuman && !hasAI && !hasMessage && !hasImage) return null;
+                        // Si no tiene texto, imagen ni archivo, no mostrar nada
+                        if (!hasHuman && !hasAI && !hasMessage && !hasImage && !hasFile) return null;
+                        
+                        const showHumanBubble = hasHuman || hasFile || (hasMessage && message.type === 'user') || (hasImage && !hasAI && message.type === 'user');
                         
                         return (
                           <div key={index} className="flex flex-col gap-2">
-                            {/* Mensaje Human - mostrar si existe message-Human o message con type user */}
-                            {(hasHuman || (hasMessage && message.type === 'user')) && (
+                            {/* Mensaje Human - texto, PDF/archivo o imagen enviada por el usuario */}
+                            {showHumanBubble && (
                               <div className="flex justify-end mb-2">
                                 <div className="max-w-[70%] flex flex-col items-end">
                                   {hasHuman && (
                                     <span className="text-[10px] font-medium text-gray-400 mb-1 bg-gray-100 px-2 py-0.5 rounded-full">
-                                      {classifyQueryType(message['message-Human'] || message['message'] || '')}
+                                      {classifyQueryType(humanText)}
                                     </span>
                                   )}
                                   <div className="bg-green-500 text-white rounded-2xl px-3 py-2 shadow-sm" style={{ 
                                   borderRadius: '18px 18px 4px 18px' // Esquina redondeada estilo WhatsApp
                                 }}>
-                                  {/* Mostrar imagen si existe */}
+                                  {hasFile && file && <FileAttachmentChip file={file} inverted />}
+                                  {/* Mostrar imagen si existe (no PDFs) */}
                                   {hasImage && (
                                     <div className="mb-2 rounded-lg overflow-hidden">
                                       <img 
-                                        src={message['image_base64']} 
+                                        src={imageSrc} 
                                         alt="Imagen del mensaje" 
                                         className="max-w-full h-auto rounded-lg"
                                         style={{ maxHeight: '300px' }}
                                       />
                                     </div>
                                   )}
+                                  {humanText && (
                                   <p className="text-sm whitespace-pre-wrap break-words">
                                     {searchQuery 
-                                      ? highlightSearchText(
-                                          message['message-Human'] || message['message'] || '', 
-                                          searchQuery, 
-                                          true
-                                        )
-                                      : (message['message-Human'] || message['message'] || '')
+                                      ? highlightSearchText(humanText, searchQuery, true)
+                                      : humanText
                                     }
                                   </p>
+                                  )}
                                   <div className="flex items-center justify-end gap-1 mt-1">
                                     <p className="text-xs text-green-100">
                                       {formatTime(message.datetime)}
@@ -1089,11 +1228,12 @@ export default function Conversaciones() {
                                 <div className="max-w-[70%] bg-white rounded-2xl px-3 py-2 shadow-sm" style={{ 
                                   borderRadius: '18px 18px 18px 4px' // Esquina redondeada estilo WhatsApp
                                 }}>
+                                  {hasFile && file && !showHumanBubble && <FileAttachmentChip file={file} />}
                                   {/* Mostrar imagen si existe */}
-                                  {hasImage && (
+                                  {hasImage && !showHumanBubble && (
                                     <div className="mb-2 rounded-lg overflow-hidden">
                                       <img 
-                                        src={message['image_base64']} 
+                                        src={imageSrc} 
                                         alt="Imagen del mensaje" 
                                         className="max-w-full h-auto rounded-lg"
                                         style={{ maxHeight: '300px' }}
@@ -1116,19 +1256,19 @@ export default function Conversaciones() {
                               </div>
                             )}
                             
-                            {/* Si solo hay imagen sin mensaje */}
-                            {hasImage && !hasHuman && !hasAI && !hasMessage && (
-                              <div className="flex justify-start">
-                                <div className="max-w-[70%] bg-white rounded-lg px-4 py-2 shadow-sm">
+                            {/* Si solo hay imagen sin mensaje de texto */}
+                            {hasImage && !showHumanBubble && !hasAI && !hasMessage && (
+                              <div className="flex justify-end">
+                                <div className="max-w-[70%] bg-green-500 rounded-2xl px-3 py-2 shadow-sm" style={{ borderRadius: '18px 18px 4px 18px' }}>
                                   <div className="rounded-lg overflow-hidden">
                                     <img 
-                                      src={message['image_base64']} 
+                                      src={imageSrc} 
                                       alt="Imagen del mensaje" 
                                       className="max-w-full h-auto rounded-lg"
                                       style={{ maxHeight: '300px' }}
                                     />
                                   </div>
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className="text-xs text-green-100 mt-1 text-right">
                                     {formatTime(message.datetime)}
                                   </p>
                                 </div>
@@ -1228,8 +1368,10 @@ export default function Conversaciones() {
                         <div><span className="text-blue-600">agent</span>: <span className="text-gray-600">string (requerido) - Nombre del agente (debe coincidir con conversation_agent_name)</span></div>
                         <div><span className="text-blue-600">user_id</span>: <span className="text-gray-600">string (requerido) - ID de sesión o teléfono para agrupar conversaciones</span></div>
                         <div><span className="text-blue-600">phone_id</span>: <span className="text-gray-600">string (opcional) - Número de teléfono para WhatsApp o Telegram (solo si aplica)</span></div>
-                        <div><span className="text-blue-600">message-Human</span>: <span className="text-gray-600">string (requerido) - Mensaje del usuario/humano</span></div>
-                        <div><span className="text-blue-600">message-AI</span>: <span className="text-gray-600">string (requerido) - Respuesta del agente/AI</span></div>
+                        <div><span className="text-blue-600">message-Human</span>: <span className="text-gray-600">string - Mensaje del usuario. Si envía un PDF sin texto, usar &quot;[Archivo] nombre.pdf&quot;</span></div>
+                        <div><span className="text-blue-600">message-AI</span>: <span className="text-gray-600">string - Respuesta del agente/AI</span></div>
+                        <div><span className="text-blue-600">file_name</span>: <span className="text-gray-600">string (opcional) - Nombre del archivo enviado (PDF u otro). No enviar el binario</span></div>
+                        <div><span className="text-blue-600">file_mime</span>: <span className="text-gray-600">string (opcional) - MIME del archivo, ej. application/pdf</span></div>
                       </div>
                     </div>
                   </div>
@@ -1245,6 +1387,7 @@ export default function Conversaciones() {
                       <li>El campo <code className="bg-gray-200 px-1 rounded">user_id</code> es el ID de sesión o teléfono usado para agrupar conversaciones</li>
                       <li>El campo <code className="bg-gray-200 px-1 rounded">phone_id</code> solo se incluye cuando es WhatsApp o Telegram, debe ser el número completo</li>
                       <li>Los campos <code className="bg-gray-200 px-1 rounded">message-Human</code> y <code className="bg-gray-200 px-1 rounded">message-AI</code> son ambos obligatorios en cada inserción</li>
+                      <li>Si el usuario envía un PDF u otro archivo, envía <code className="bg-gray-200 px-1 rounded">file_name</code> y <code className="bg-gray-200 px-1 rounded">file_mime</code>. No guardes el PDF (ni base64). En <code className="bg-gray-200 px-1 rounded">message-Human</code> usa el caption o <code className="bg-gray-200 px-1 rounded">[Archivo] nombre.pdf</code></li>
                       <li>Las conversaciones se agrupan automáticamente por <code className="bg-gray-200 px-1 rounded">user_id</code></li>
                       <li>Necesitarás tu API Key de Meilisearch para autenticación</li>
                     </ul>

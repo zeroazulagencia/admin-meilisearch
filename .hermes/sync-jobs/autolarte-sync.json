@@ -1,23 +1,17 @@
 {
-  "pid": 3251536,
+  "pid": 3333086,
   "status": "done",
   "step": "completado",
   "stepLabel": "Sincronizacion completada",
-  "total": 148,
-  "processed": 148,
-  "errors": 148,
+  "total": 156,
+  "processed": 156,
+  "errors": 156,
   "okCount": 0,
-  "errCount": 148,
+  "errCount": 156,
   "elapsedSec": "32.2",
   "results": [
     {
       "placa": "NFZ710",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "NGV160",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
@@ -41,12 +35,6 @@
       "status": "error"
     },
     {
-      "placa": "JQP140",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
       "placa": "KQQ112",
       "operacion": "error",
       "resultado": "fetch failed",
@@ -59,13 +47,13 @@
       "status": "error"
     },
     {
-      "placa": "QOY206",
+      "placa": "FIY487",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
     },
     {
-      "placa": "JYQ665",
+      "placa": "QKM634",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
@@ -95,7 +83,25 @@
       "status": "error"
     },
     {
+      "placa": "LTS289",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "NNT269",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
       "placa": "NVZ845",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "JYZ143",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
@@ -119,132 +125,6 @@
       "status": "error"
     },
     {
-      "placa": "GRM068",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "JPW604",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "KRX896",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "KTZ824",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "LFN856",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "LXK952",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "PRX750",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "NGW079",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "NTW674",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "LTO705",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "JZO630",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "GVQ733",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "FIW315",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "LRR083",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "NGS371",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "POR122",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "NZT978",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "NFV331",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "FUP685",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "LRW908",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "POR054",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
       "placa": "NKR621",
       "operacion": "error",
       "resultado": "fetch failed",
@@ -257,13 +137,13 @@
       "status": "error"
     },
     {
-      "placa": "NNL346",
+      "placa": "NGW079",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
     },
     {
-      "placa": "FIX811",
+      "placa": "NNL346",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
@@ -287,25 +167,7 @@
       "status": "error"
     },
     {
-      "placa": "LQV967",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "JOP876",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "QKM634",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "PQU824",
+      "placa": "QOY206",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
@@ -317,13 +179,13 @@
       "status": "error"
     },
     {
-      "placa": "HQP225",
+      "placa": "NGU023",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
     },
     {
-      "placa": "NGU023",
+      "placa": "NZT978",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
@@ -341,6 +203,12 @@
       "status": "error"
     },
     {
+      "placa": "FUP685",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
       "placa": "FIY324",
       "operacion": "error",
       "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
@@ -353,13 +221,25 @@
       "status": "error"
     },
     {
-      "placa": "PJL379",
+      "placa": "JQP529",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "LRX881",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "JPW604",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
     },
     {
-      "placa": "PRW780",
+      "placa": "KRX896",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
@@ -371,13 +251,265 @@
       "status": "error"
     },
     {
+      "placa": "LXK952",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "PRX750",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "NTW674",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "LTO705",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "LQV967",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "JOP876",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "GVQ733",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "PQU824",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "FIW315",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "LRR083",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "NGS371",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "HQP225",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "POU118",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "POR122",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "NFV331",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "LRW908",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "POR054",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "LZV620",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "GRM068",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "PJQ776",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "EON561",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "KOS016",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "JOR358",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "NVZ294",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "PMP541",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "NGX839",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "LFN720",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "LQM987",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "PMM828",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "JKK582",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "GEW081",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "LFO326",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "GEP819",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "JPV656",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "EIM584",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "PJL379",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "KTZ824",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "LFN856",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "PRW780",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
       "placa": "KRU623",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
     },
     {
+      "placa": "NGV160",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "NZQ347",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
       "placa": "NNL347",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "FIX811",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
@@ -389,19 +521,19 @@
       "status": "error"
     },
     {
-      "placa": "JZK537",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
       "placa": "PJQ930",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
     },
     {
-      "placa": "FIY487",
+      "placa": "JQP140",
+      "operacion": "error",
+      "resultado": "fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "JYQ665",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
@@ -428,18 +560,6 @@
       "placa": "LGR077",
       "operacion": "error",
       "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "POU118",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "NNT269",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
       "status": "error"
     },
     {
@@ -473,31 +593,7 @@
       "status": "error"
     },
     {
-      "placa": "JOR358",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "NVZ294",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "NGX839",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "LZV620",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "LQM987",
+      "placa": "KOS392",
       "operacion": "error",
       "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
       "status": "error"
@@ -509,13 +605,7 @@
       "status": "error"
     },
     {
-      "placa": "JKK582",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "PJQ776",
+      "placa": "FIU963",
       "operacion": "error",
       "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
       "status": "error"
@@ -533,49 +623,7 @@
       "status": "error"
     },
     {
-      "placa": "JQP529",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "EON561",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "LRX881",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "LFO326",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "GEP819",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
-      "placa": "JPV656",
-      "operacion": "error",
-      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
-      "status": "error"
-    },
-    {
       "placa": "PJL697",
-      "operacion": "error",
-      "resultado": "fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "LFN720",
       "operacion": "error",
       "resultado": "fetch failed",
       "status": "error"
@@ -635,13 +683,19 @@
       "status": "error"
     },
     {
-      "placa": "GHX711",
+      "placa": "KZK218",
       "operacion": "error",
       "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
       "status": "error"
     },
     {
-      "placa": "KZK218",
+      "placa": "FQT585",
+      "operacion": "error",
+      "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
+      "status": "error"
+    },
+    {
+      "placa": "LGN159",
       "operacion": "error",
       "resultado": "WP API POST https://autolarte.com.co/wp-json/jet-cct/cct_vehiculos_usados/ -> 401: {\"code\":\"rest_forbidden\",\"message\":\"Lo siento, no tienes permisos para hacer eso.\",\"data\":{\"status\":401}}",
       "status": "error"
@@ -654,18 +708,6 @@
     },
     {
       "placa": "MTT886",
-      "operacion": "delete",
-      "resultado": "No se pudo eliminar: fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "JYZ143",
-      "operacion": "delete",
-      "resultado": "No se pudo eliminar: fetch failed",
-      "status": "error"
-    },
-    {
-      "placa": "LTS289",
       "operacion": "delete",
       "resultado": "No se pudo eliminar: fetch failed",
       "status": "error"
@@ -696,6 +738,12 @@
     },
     {
       "placa": "LFN331",
+      "operacion": "delete",
+      "resultado": "No se pudo eliminar: fetch failed",
+      "status": "error"
+    },
+    {
+      "placa": "JZO630",
       "operacion": "delete",
       "resultado": "No se pudo eliminar: fetch failed",
       "status": "error"
@@ -905,6 +953,6 @@
     "errores": 0,
     "detalle": []
   },
-  "startedAt": "2026-08-06T06:00:36.174Z",
-  "finishedAt": "2026-08-06T06:01:08.473Z"
+  "startedAt": "2026-08-10T18:00:09.848Z",
+  "finishedAt": "2026-08-10T18:00:42.194Z"
 }

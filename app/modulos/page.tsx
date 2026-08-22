@@ -173,6 +173,15 @@ export default function ModulosPage() {
     );
   };
 
+  const DISABLED_MODULES = [
+    'bridge-siigo',
+    'sincronizador-usados-autolarte',
+    'verificador-mobilia',
+    'endpoints-anal-tica-biury',
+    'sistema-de-cambio-de-fondos-y-placas',
+    'biury-pagos',
+  ];
+
   return (
     <ProtectedLayout>
       <div className="flex justify-between items-center mb-6">
@@ -288,36 +297,51 @@ export default function ModulosPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredModules.map((module) => (
-            <div
-              key={module.id}
-              onClick={() => window.location.href = `/modulos/${module.id}`}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-[#5DE1E5] hover:shadow-md transition-all cursor-pointer group"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <AgentAvatar photo={module.agent_photo} name={module.agent_name} size="lg" />
-                <span className="text-xs text-gray-400">
-                  {new Date(module.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </span>
-              </div>
-              <h3 className="text-base font-semibold text-gray-900 group-hover:text-[#4BC5C9] transition-colors">{module.title}</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                {module.agent_name}
-                {module.client_name ? ` - ${module.client_name}` : ''}
-              </p>
-              {module.description && (
-                <p className="text-xs text-gray-400 mt-2 line-clamp-2">{module.description}</p>
-              )}
-              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                <span className="text-xs text-gray-400 font-mono">{module.folder_name}</span>
-                {([1, 6].includes(module.id) && (module.error_count || 0) > 0) && (
-                  <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                    {module.error_count} errores
+          {filteredModules.map((module) => {
+            const isDisabled = DISABLED_MODULES.includes(module.folder_name);
+            return (
+              <div
+                key={module.id}
+                onClick={() => { if (!isDisabled) window.location.href = `/modulos/${module.id}`; }}
+                className={`bg-white rounded-xl shadow-sm border p-5 transition-all cursor-pointer group ${
+                  isDisabled
+                    ? 'border-gray-200 opacity-50 grayscale hover:border-gray-300 hover:shadow-sm'
+                    : 'border-gray-200 hover:border-[#5DE1E5] hover:shadow-md'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <AgentAvatar photo={module.agent_photo} name={module.agent_name} size="lg" />
+                  <span className="text-xs text-gray-400">
+                    {new Date(module.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </span>
+                </div>
+                <h3 className={`text-base font-semibold transition-colors ${
+                  isDisabled ? 'text-gray-400' : 'text-gray-900 group-hover:text-[#4BC5C9]'
+                }`}>{module.title}</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {module.agent_name}
+                  {module.client_name ? ` - ${module.client_name}` : ''}
+                </p>
+                {module.description && (
+                  <p className={`text-xs mt-2 line-clamp-2 ${isDisabled ? 'text-gray-300' : 'text-gray-400'}`}>{module.description}</p>
                 )}
+                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                  {isDisabled ? (
+                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-500">
+                      Desactivado
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400 font-mono">{module.folder_name}</span>
+                  )}
+                  {([1, 6].includes(module.id) && (module.error_count || 0) > 0) && (
+                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                      {module.error_count} errores
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

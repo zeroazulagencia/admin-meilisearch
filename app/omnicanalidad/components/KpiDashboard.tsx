@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import type { Document } from '@/utils/meilisearch';
 import { exportKpiToExcel } from '@/app/omnicanalidad/utils/exportKpiToExcel';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface KpiDashboardProps {
   documents: Document[];
@@ -102,10 +103,15 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo, da
       let validData: KpiApiResponse[];
 
       if (hasCustomRange) {
-        // Export solo el rango actual
-        const res = await fetch(getKpiUrl()).then(r => r.json());
-        if (res.ok) validData = [res];
-        else throw new Error('No se pudieron obtener datos');
+        // Usar los datos ya cargados en pantalla (evita desincronización con filtros)
+        if (kpiData) {
+          validData = [kpiData];
+        } else {
+          // Fallback si aún no hay datos cargados
+          const res = await fetch(getKpiUrl()).then(r => r.json());
+          if (res.ok) validData = [res];
+          else throw new Error('No se pudieron obtener datos');
+        }
       } else {
         const periods: Period[] = ['week', 'month', 'year'];
         const results = await Promise.all(
@@ -134,20 +140,24 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo, da
     } finally {
       setExporting(false);
     }
-  }, [agentName, getKpiUrl, hasCustomRange]);
+  }, [agentName, getKpiUrl, hasCustomRange, kpiData]);
 
   // Fetch KPI from API
   useEffect(() => {
     if (!agentName) return;
     setLoadingKpi(true);
-    fetch(getKpiUrl())
+    const url = getKpiUrl();
+    // Cache-bust: agregar timestamp para evitar que el browser/CDN cachee
+    const separator = url.includes('?') ? '&' : '?';
+    const fetchUrl = `${url}${separator}_t=${Date.now()}`;
+    fetch(fetchUrl)
       .then(r => r.json())
       .then(data => {
         if (data.ok) setKpiData(data);
       })
       .catch(err => console.error('[KPI] Error fetching:', err))
       .finally(() => setLoadingKpi(false));
-  }, [agentName, getKpiUrl, kpiPeriod, hasCustomRange]);
+  }, [agentName, getKpiUrl, kpiPeriod, hasCustomRange, dateFrom, dateTo]);
 
   const { stats, dailyData } = useMemo(() => {
     if (!documents || documents.length === 0) return { stats: null, dailyData: [] };
@@ -385,7 +395,7 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo, da
             </div>
           </div>
 
-          {/* Tipos de Consulta - collapsible */}
+          {/* Tipos de Consulta - collapsible with donut chart */}
           {mensajesPorTipo && Object.keys(mensajesPorTipo).length > 0 && (
             <div className="border-t border-gray-100 pt-3">
               <button
@@ -400,30 +410,89 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo, da
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              {showTipos && (
-                <div className="overflow-x-auto mt-2">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-2 px-2 text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                        <th className="text-right py-2 px-2 text-xs font-medium text-gray-500 uppercase">Mensajes</th>
-                        <th className="text-right py-2 px-2 text-xs font-medium text-gray-500 uppercase">Conversaciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(mensajesPorTipo)
-                        .sort(([, a], [, b]) => b.conversaciones - a.conversaciones)
-                        .map(([tipo, data]) => (
-                          <tr key={tipo} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-2 px-2 text-gray-700 font-medium">{tipo}</td>
-                            <td className="py-2 px-2 text-right text-gray-900">{data.mensajes}</td>
-                            <td className="py-2 px-2 text-right text-gray-900">{data.conversaciones}</td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
+              {showTipos && (() => {
+                const DONUT_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#6B7280'];
+                // Top 5 + Otros
+                const sorted = Object.entries(mensajesPorTipo)
+                  .sort(([, a], [, b]) => b.mensajes - a.mensajes);
+                const top5 = sorted.slice(0, 5);
+                const others = sorted.slice(5);
+                const othersSum = others.reduce((sum, [, d]) => sum + d.mensajes, 0);
+                const chartData = top5.map(([name, data], i) => ({
+                  name,
+                  value: data.mensajes,
+                  color: DONUT_COLORS[i] || DONUT_COLORS[DONUT_COLORS.length - 1],
+                  mensajes: data.mensajes,
+                }));
+                if (othersSum > 0) {
+                  chartData.push({
+                    name: 'Otros',
+                    value: othersSum,
+                    color: '#D1D5DB',
+                    mensajes: othersSum,
+                  });
+                }
+                const totalMsgs = chartData.reduce((s, d) => s + d.value, 0);
+                return (
+                <div className="mt-2 space-y-3">
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Clasificación automática del <strong>primer mensaje</strong> de cada conversación en el período{' '}
+                    <strong>{dateFrom ? dateFrom.replace(/-/g, '/') : '—'} → {dateTo ? dateTo.replace(/-/g, '/') : '—'}</strong>.
+                    Si el primer mensaje es <em>General</em>, se prueban el segundo y tercer mensaje para mejor precisión.
+                  </p>
+                  {/* Donut chart */}
+                  <div className="flex flex-col items-center">
+                    <div className="relative" style={{ width: 200, height: 200 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={chartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={55}
+                            outerRadius={85}
+                            dataKey="value"
+                            stroke="none"
+                          >
+                            {chartData.map((entry, idx) => (
+                              <Cell key={idx} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value: number, name: string) => [
+                              `${value} msgs (${((value / totalMsgs) * 100).toFixed(1)}%)`,
+                              name,
+                            ]}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      {/* Center label */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-gray-900">{totalMsgs}</p>
+                          <p className="text-[10px] text-gray-400 leading-tight">mensajes</p>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Legend + counts */}
+                    <div className="w-full mt-2 space-y-1">
+                      {chartData.map((item, idx) => (
+                        <div key={item.name} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                            <span className="text-gray-600 capitalize">{item.name}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-gray-900 font-medium">{item.mensajes} msgs</span>
+                            <span className="text-gray-400">{((item.value / totalMsgs) * 100).toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
@@ -450,9 +519,7 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo, da
                         <th className="text-left py-2 px-2 text-xs font-medium text-gray-500 uppercase">Fecha</th>
                         <th className="text-right py-2 px-2 text-xs font-medium text-gray-500 uppercase">Conversaciones</th>
                         <th className="text-right py-2 px-2 text-xs font-medium text-gray-500 uppercase">Mensajes</th>
-                        <th className="text-right py-2 px-2 text-xs font-medium text-gray-500 uppercase">Visitantes</th>
-                        <th className="text-right py-2 px-2 text-xs font-medium text-gray-500 uppercase">Usuario</th>
-                        <th className="text-right py-2 px-2 text-xs font-medium text-gray-500 uppercase">Agente</th>
+                        <th className="text-right py-2 px-2 text-xs font-medium text-gray-500 uppercase">Promedio por conv.</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -461,9 +528,11 @@ export default function KpiDashboard({ documents, agentName, mensajesPorTipo, da
                           <td className="py-2 px-2 text-gray-700 font-medium">{fmtDate(day.date)}</td>
                           <td className="py-2 px-2 text-right text-gray-900">{day.conversations}</td>
                           <td className="py-2 px-2 text-right text-gray-900">{day.messages}</td>
-                          <td className="py-2 px-2 text-right text-gray-900">{day.visitors}</td>
-                          <td className="py-2 px-2 text-right text-gray-500">{day.userMessages}</td>
-                          <td className="py-2 px-2 text-right text-blue-600 font-medium">{day.agentMessages}</td>
+                          <td className="py-2 px-2 text-right text-gray-500">
+                            {day.conversations > 0
+                              ? (day.messages / day.conversations).toFixed(1)
+                              : '—'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

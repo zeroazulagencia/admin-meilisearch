@@ -58,7 +58,7 @@ async function getLatestSuccessfulExecution(baseUrl: string, apiKey: string, wor
   });
   if (!res.ok) return null;
   const json = await res.json();
-  const executions: N8nExecution[] = Array.isArray(json?.data) ? json.data : [];
+  const executions: N8nExecution[] = json?.data?.results ?? (Array.isArray(json?.data) ? json.data : []);
   const success = executions.find((exec) => exec?.status === 'success' && exec?.finished === true);
   return success || null;
 }

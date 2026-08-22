@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: 'Empleados digitales :: DWORKERS | Agencia de Inteligencia Artificial',
   description: 'Empleados digitales multiagente con inteligencia artificial, automatizar interacciones y optimizar procesos empresariales. Maximiza Beneficios con agentes IA, asistentes digitales y automatización RPA.',
   keywords: 'agentes IA, agentes ai, asistentes digitales, agencia de inteligencia artificial, multiagentes, automatización empresarial, RPA, inteligencia artificial, agentes digitales, automatización con IA',
+  alternates: {
+    canonical: 'https://workers.zeroazul.com/',
+  },
   icons: {
     icon: '/public-img/favicon.png',
     apple: '/public-img/favicon.png',

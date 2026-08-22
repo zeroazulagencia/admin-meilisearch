@@ -10,7 +10,6 @@ import {
 export const dynamic = 'force-dynamic';
 
 const INDEX_UID = 'bd_conversations_dworkers';
-const MAX_DOCS = 5000;
 
 function getPeriodRange(period: string): { start: Date; end: Date } {
   const end = new Date();
@@ -118,7 +117,7 @@ async function loadDocuments(agentName: string, filterStr: string): Promise<any[
   let offset = 0;
   const batchLimit = 1000;
 
-  while (allDocs.length < MAX_DOCS) {
+  while (true) {
     const results = await searchMeilisearch(agentName, filterStr, batchLimit, offset);
     const hits = results.hits || [];
     if (hits.length === 0) break;
@@ -215,6 +214,8 @@ export async function GET(req: NextRequest) {
     const endOfDay = new Date(curEnd);
     endOfDay.setDate(endOfDay.getDate() + 1);
     const endStr = formatDate(endOfDay);
+    // Fecha original para display (endStr es +1 día para filtro exclusivo de Meilisearch)
+    const displayEndStr = formatDate(curEnd);
 
     // Período anterior (para crecimiento)
     const prevPeriod = getPreviousPeriodRange(periodLabel.startsWith('custom') ? 'month' : periodLabel, curStart, curEnd);
@@ -278,7 +279,7 @@ export async function GET(req: NextRequest) {
         uniqueVisitors: previous.uniqueVisitors,
       },
       start: startStr,
-      end: endStr,
+      end: displayEndStr,
     });
   } catch (e: any) {
     console.error('[KPI API] Error:', e?.message, e?.response?.data || '');

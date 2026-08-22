@@ -54,6 +54,24 @@ export function classifyQueryType(message: string): string {
   return 'General';
 }
 
+/**
+ * Clasifica una conversación completa probando hasta 3 mensajes.
+ * Si el primer mensaje es "General", prueba el segundo, y luego el tercero.
+ * Si ningún mensaje coincide, retorna "General".
+ */
+export function classifyConversation(messages: string[]): string {
+  // Probar hasta los primeros 3 mensajes no vacíos
+  let tested = 0;
+  for (const msg of messages) {
+    if (!msg.trim()) continue;
+    const type = classifyQueryType(msg);
+    if (type !== 'General') return type;
+    tested++;
+    if (tested >= 3) break;
+  }
+  return 'General';
+}
+
 /** Detectar si una conversación fue exitosa (tuvo al menos un intercambio) */
 export function isSuccessfulConversation(
   userMsgs: number,

@@ -12,7 +12,14 @@ export async function getConfigValue(key: string): Promise<string | null> {
   const value = rows[0]?.config_value ?? null;
   if (!value) return null;
   if (SENSITIVE_KEYS.has(key) && isEncrypted(value)) {
-    return decrypt(value);
+    try {
+      return decrypt(value);
+    } catch (_e) {
+      // Decrypt failed — ENCRYPTION_KEY may have changed or token corrupt.
+      // Return raw value so the caller can detect invalid credentials.
+      console.warn(`[config] Decrypt failed for key=${key}. Using raw value.`);
+      return value;
+    }
   }
   return value;
 }
