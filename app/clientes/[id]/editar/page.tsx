@@ -54,7 +54,7 @@ export default function EditarCliente() {
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [associatedAgents, setAssociatedAgents] = useState<any[]>([]);
   const [agentMonthlyValues, setAgentMonthlyValues] = useState<{[key: number]: string}>({});
-  const [savingAgentIds, setSavingAgentIds] = useState<Set<number>>(new Set());
+  const [savingAgentIds, setSavingAgentIds] = useState<number[]>([]);
   const [permissions, setPermissions] = useState<any>({});
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
@@ -377,7 +377,7 @@ export default function EditarCliente() {
   // Save monthly value for a specific agent
   const saveAgentMonthlyValue = async (agentId: number, value: number) => {
     try {
-      setSavingAgentIds(prev => new Set([...prev, agentId]));
+      setSavingAgentIds(prev => [...prev, agentId]);
       const res = await fetch(`/api/agents/${agentId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -398,11 +398,7 @@ export default function EditarCliente() {
     } catch (e) {
       console.error('Error saving agent monthly value:', e);
     } finally {
-      setSavingAgentIds(prev => {
-        const next = new Set(prev);
-        next.delete(agentId);
-        return next;
-      });
+      setSavingAgentIds(prev => prev.filter(id => id !== agentId));
     }
   };
 
@@ -743,7 +739,7 @@ export default function EditarCliente() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {associatedAgents.map((agent) => {
-                  const isSaving = savingAgentIds.has(agent.id);
+                  const isSaving = savingAgentIds.includes(agent.id);
                   const displayValue = agentMonthlyValues[agent.id] ?? (agent.monthly_value_usd?.toString() || '');
                   
                   return (

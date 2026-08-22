@@ -6,6 +6,13 @@ import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
 import { getPermissions } from '@/utils/permissions';
 
+interface AgentSmall {
+  id: number;
+  name: string;
+  photo?: string | null;
+  monthly_value_usd?: number | null;
+}
+
 interface ClientDB {
   id: number;
   name: string;
@@ -14,7 +21,28 @@ interface ClientDB {
   company?: string;
   clave?: string;
   permissions?: any;
+  agents?: AgentSmall[];
+  totalMonthlyValue?: number;
 }
+
+const SmallAvatar = ({ photo, name }: { photo?: string | null; name: string }) => {
+  const [imgError, setImgError] = useState(false);
+  if (photo && !imgError) {
+    return (
+      <img
+        src={photo}
+        alt={name}
+        className="w-8 h-8 rounded-full object-cover border border-gray-200"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  return (
+    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center border border-gray-200">
+      <span className="text-white font-semibold text-xs">{name.charAt(0).toUpperCase()}</span>
+    </div>
+  );
+};
 
 export default function Clientes() {
   const router = useRouter();
@@ -159,7 +187,32 @@ export default function Clientes() {
         const data = await res.json();
         console.log('Clients loaded:', data);
         if (data.ok && data.clients) {
-          setClients(data.clients);
+          let allClientsWithAgents = data.clients.map((client: any) => {
+            const agentsRes = fetch(`/api/agents?client_id=${client.id}`).then(r => r.json());
+            return { client, agentsPromise: agentsRes };
+          });
+
+          // Wait for all agent requests in parallel
+          const results = await Promise.all(allClientsWithAgents.map(async ({ client, agentsPromise }) => {
+            const agentsData = await agentsPromise;
+            if (agentsData.ok && agentsData.agents) {
+              const agents = agentsData.agents.filter((a: any) => a.client_id === parseInt(client.id.toString()));
+              const totalMonthlyValue = agents.reduce((sum: number, a: any) => sum + (parseFloat(a.monthly_value_usd) || 0), 0);
+              return {
+                ...client,
+                agents: agents.map((a: any) => ({
+                  id: a.id,
+                  name: a.name,
+                  photo: a.photo,
+                  monthly_value_usd: parseFloat(a.monthly_value_usd) || 0
+                })),
+                totalMonthlyValue
+              };
+            }
+            return { ...client, agents: [], totalMonthlyValue: 0 };
+          }));
+
+          setClients(results);
         }
       } catch (err) {
         console.error('Error cargando clientes:', err);
@@ -328,6 +381,12 @@ export default function Clientes() {
                   Perfil
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Agentes
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Mensual (USD)
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Empresa
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -340,7 +399,7 @@ export default function Clientes() {
                   Acciones
                 </th>
               </tr>
-              </thead>
+            </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {clients.map((client) => {
                 let permissions: any = {};
@@ -364,6 +423,20 @@ export default function Clientes() {
                         {isAdmin ? 'Super Admin' : 'Cliente'}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {client.agents && client.agents.length > 0 ? (
+                        <div className="flex items-center gap-1">
+                          {client.agents.map((agent) => (
+                            <SmallAvatar key={agent.id} photo={agent.photo} name={agent.name} />
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                      {client.totalMonthlyValue !== undefined && client.totalMonthlyValue > 0 ? `$${client.totalMonthlyValue.toFixed(2)}` : '-'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {client.company}
                     </td>
@@ -373,23 +446,23 @@ export default function Clientes() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {client.phone}
                     </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => router.push(`/clientes/${client.id}/editar`)}
-                      className="mr-4 transition-colors"
-                      style={{ color: '#5DE1E5' }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = '#4DD1D5'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = '#5DE1E5'}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(client.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Eliminar
-                    </button>
-                  </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => router.push(`/clientes/${client.id}/editar`)}
+                        className="mr-4 transition-colors"
+                        style={{ color: '#5DE1E5' }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = '#4DD1D5'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = '#5DE1E5'}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(client.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -399,4 +472,3 @@ export default function Clientes() {
     </ProtectedLayout>
   );
 }
-
