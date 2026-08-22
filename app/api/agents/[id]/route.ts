@@ -801,7 +801,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const body = await req.json();
+    const body: Record<string, any> = await req.json();
     
     // Campos permitidos para actualización parcial
     const allowedFields: Record<string, boolean> = {
@@ -809,13 +809,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     };
     
     const updateFields: string[] = [];
-    const updateValues: any[] = [];
+    const updateValues: (string | number)[] = [];
     
     for (const [key, value] of Object.entries(body)) {
       if (allowedFields[key]) {
+        let numVal: number;
+        if (value === '' || value === null || value === undefined) {
+          numVal = 0;
+        } else {
+          numVal = Number(value);
+          if (isNaN(numVal)) continue;
+        }
         updateFields.push(`${key} = ?`);
-        updateValues.push(value === '' || value === null ? 0 : parseFloat(value));
-        console.log(`[API AGENTS] [PATCH] Actualizando ${key}: ${updateValues[updateValues.length - 1]} para agente ${id}`);
+        updateValues.push(numVal);
+        console.log(`[API AGENTS] [PATCH] Actualizando ${key}: ${numVal} para agente ${id}`);
       } else if (!body.hasOwnProperty(key)) {
         continue;
       } else {
