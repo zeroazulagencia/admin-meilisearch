@@ -193,7 +193,8 @@ export default function Clientes() {
           });
 
           // Wait for all agent requests in parallel
-          const results = await Promise.all(allClientsWithAgents.map(async ({ client, agentsPromise }) => {
+          const results = await Promise.all(allClientsWithAgents.map(async (item: { client: any; agentsPromise: Promise<any> }) => {
+            const { client, agentsPromise } = item;
             const agentsData = await agentsPromise;
             if (agentsData.ok && agentsData.agents) {
               const agents = agentsData.agents.filter((a: any) => a.client_id === parseInt(client.id.toString()));
