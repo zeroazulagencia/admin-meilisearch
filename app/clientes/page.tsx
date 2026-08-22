@@ -179,41 +179,14 @@ export default function Clientes() {
       return;
     }
 
-    // Cargar clientes desde MySQL (solo si es admin)
+    // Cargar clientes desde MySQL (todo en 1 sola llamada AJAX)
     const loadClients = async () => {
       try {
-        console.log('Loading clients...');
-        const res = await fetch('/api/clients');
+        console.log('Loading clients all...');
+        const res = await fetch('/api/clients-all');
         const data = await res.json();
-        console.log('Clients loaded:', data);
         if (data.ok && data.clients) {
-          let allClientsWithAgents = data.clients.map((client: any) => {
-            const agentsRes = fetch(`/api/agents?client_id=${client.id}`).then(r => r.json());
-            return { client, agentsPromise: agentsRes };
-          });
-
-          // Wait for all agent requests in parallel
-          const results = await Promise.all(allClientsWithAgents.map(async (item: { client: any; agentsPromise: Promise<any> }) => {
-            const { client, agentsPromise } = item;
-            const agentsData = await agentsPromise;
-            if (agentsData.ok && agentsData.agents) {
-              const agents = agentsData.agents.filter((a: any) => a.client_id === parseInt(client.id.toString()));
-              const totalMonthlyValue = agents.reduce((sum: number, a: any) => sum + (parseFloat(a.monthly_value_usd) || 0), 0);
-              return {
-                ...client,
-                agents: agents.map((a: any) => ({
-                  id: a.id,
-                  name: a.name,
-                  photo: a.photo,
-                  monthly_value_usd: parseFloat(a.monthly_value_usd) || 0
-                })),
-                totalMonthlyValue
-              };
-            }
-            return { ...client, agents: [], totalMonthlyValue: 0 };
-          }));
-
-          setClients(results);
+          setClients(data.clients);
         }
       } catch (err) {
         console.error('Error cargando clientes:', err);

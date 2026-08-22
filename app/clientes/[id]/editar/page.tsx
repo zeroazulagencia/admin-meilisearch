@@ -84,17 +84,29 @@ export default function EditarCliente() {
     
     const clientId = params.id as string;
     
-    // Cargar cliente desde MySQL
+    // Cargar cliente desde MySQL (usar /api/clients-all para traer todo en 1 fetch)
     const loadClient = async () => {
       try {
         console.log('[EDITAR CLIENTE] Cargando cliente con ID:', clientId);
-        const res = await fetch(`/api/clients/${clientId}`);
+        const res = await fetch('/api/clients-all');
         const data = await res.json();
-        console.log('[EDITAR CLIENTE] Respuesta del API:', data);
+        console.log('[EDITAR CLIENTE] Respuesta del API:', data.ok ? `${data.clients.length} clientes cargados` : data.error);
         
-        if (data.ok && data.client) {
-          const client = data.client;
-          console.log('[EDITAR CLIENTE] Cliente cargado:', client);
+        if (data.ok && data.clients) {
+          const clientData = data.clients.find((c: any) => c.id === parseInt(clientId));
+          console.log('[EDITAR CLIENTE] Cliente encontrado:', !!clientData);
+          
+          if (!clientData) {
+            setAlertModal({
+              isOpen: true,
+              title: 'Error',
+              message: 'Cliente no encontrado: ' + clientId,
+              type: 'error',
+            });
+            return;
+          }
+          
+          const client = clientData;
           setCurrentClient(client);
           setFormData({
             name: client.name,
@@ -146,30 +158,21 @@ export default function EditarCliente() {
             setPermissions(defaultPerms);
           }
           
-          // Buscar agentes asociados desde MySQL
-          try {
-            const resAgents = await fetch('/api/agents');
-            const dataAgents = await resAgents.json();
-            if (dataAgents.ok && dataAgents.agents) {
-              const agentsForClient = dataAgents.agents.filter((a: any) => a.client_id === parseInt(clientId));
-              setAssociatedAgents(agentsForClient);
-            }
-          } catch (e) {
-            console.error('Error cargando agentes del cliente:', e);
-          }
+          // Los agentes ya vienen embebidos en clients-all
+          const agentsForClient = client.agents || [];
+          setAssociatedAgents(agentsForClient);
+          console.log(`[EDITAR CLIENTE] ${agentsForClient.length} agentes encontrados`);
         } else {
           console.error('[EDITAR CLIENTE] Cliente no encontrado o respuesta inválida:', data);
-          // NO redirigir automáticamente, mostrar error
           setAlertModal({
             isOpen: true,
             title: 'Error',
-            message: 'Cliente no encontrado: ' + (data.error || 'Desconocido'),
+            message: 'Error al cargar datos: ' + (data.error || 'Desconocido'),
             type: 'error',
           });
         }
       } catch (err) {
         console.error('[EDITAR CLIENTE] Error cargando cliente:', err);
-        // NO redirigir automáticamente, mostrar error
         setAlertModal({
           isOpen: true,
           title: 'Error',
