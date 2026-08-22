@@ -53,6 +53,8 @@ export default function EditarCliente() {
   const [emailError, setEmailError] = useState('');
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [associatedAgents, setAssociatedAgents] = useState<any[]>([]);
+  const [agentMonthlyValues, setAgentMonthlyValues] = useState<{[key: number]: string}>({});
+  const [savingAgentIds, setSavingAgentIds] = useState<Set<number>>(new Set());
   const [permissions, setPermissions] = useState<any>({});
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
@@ -370,6 +372,45 @@ export default function EditarCliente() {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setFormData({ ...formData, clave: password });
+  };
+
+  // Save monthly value for a specific agent
+  const saveAgentMonthlyValue = async (agentId: number, value: number) => {
+    try {
+      setSavingAgentIds(prev => new Set([...prev, agentId]));
+      const res = await fetch(`/api/agents/${agentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ monthly_value_usd: value })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        // Refresh associated agents list
+        const resAgents = await fetch('/api/agents');
+        const dataAgents = await resAgents.json();
+        if (dataAgents.ok && dataAgents.agents && currentClient) {
+          const agentsForClient = dataAgents.agents.filter((a: any) => a.client_id === parseInt(currentClient.id.toString()));
+          setAssociatedAgents(agentsForClient);
+        }
+      } else {
+        console.error('Error saving agent monthly value:', data.error);
+      }
+    } catch (e) {
+      console.error('Error saving agent monthly value:', e);
+    } finally {
+      setSavingAgentIds(prev => {
+        const next = new Set(prev);
+        next.delete(agentId);
+        return next;
+      });
+    }
+  };
+
+  // Update local agent monthly value in state
+  const updateLocalAgentValue = (agentId: number, value: number) => {
+    setAssociatedAgents(prev => 
+      prev.map(a => a.id === agentId ? { ...a, monthly_value_usd: value } : a)
+    );
   };
 
 
@@ -701,31 +742,108 @@ export default function EditarCliente() {
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {associatedAgents.map((agent) => (
-                  <div 
-                    key={agent.id} 
-                    className="border-2 border-gray-200 rounded-lg p-4 transition-colors cursor-pointer"
-                    style={{ '--hover-border': '#5DE1E5' } as React.CSSProperties}
-                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#5DE1E5'}
-                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
-                    onClick={() => router.push(`/agentes/${agent.id}/editar`)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0">
-                        <AgentAvatar photo={agent.photo} name={agent.name} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 truncate">{agent.name}</h3>
-                        {agent.description && (
-                          <p className="text-sm text-gray-500 line-clamp-2">{agent.description}</p>
-                        )}
-                        {agent.conversation_agent_name && (
-                          <p className="text-xs text-gray-400 mt-1">ID: {agent.conversation_agent_name}</p>
+                {associatedAgents.map((agent) => {
+                  const isSaving = savingAgentIds.has(agent.id);
+                  const displayValue = agentMonthlyValues[agent.id] ?? (agent.monthly_value_usd?.toString() || '');
+                  
+                  return (
+                    <div 
+                      key={agent.id} 
+                      className="border-2 border-gray-200 rounded-lg p-4 transition-colors"
+                      style={{ '--hover-border': '#5DE1E5' } as React.CSSProperties}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = '#5DE1E5'}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+                    >
+                      {/* Card header — clickable to navigate to agent edit */}
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/agentes/${agent.id}/editar`)}
+                        className="flex items-center gap-3 w-full text-left"
+                      >
+                        <div className="flex-shrink-0">
+                          <AgentAvatar photo={agent.photo} name={agent.name} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 truncate">{agent.name}</h3>
+                          {agent.description && (
+                            <p className="text-sm text-gray-500 line-clamp-2">{agent.description}</p>
+                          )}
+                          {agent.conversation_agent_name && (
+                            <p className="text-xs text-gray-400 mt-1">ID: {agent.conversation_agent_name}</p>
+                          )}
+                        </div>
+                        <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      
+                      {/* Monthly Value Field */}
+                      <div className="border-t border-gray-100 pt-3 mt-3">
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Valor mensual (USD)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={displayValue}
+                              onChange={(e) => {
+                                setAgentMonthlyValues(prev => ({ ...prev, [agent.id]: e.target.value }));
+                              }}
+                              onBlur={() => {
+                                const val = parseFloat(displayValue);
+                                if (!isNaN(val) && val !== (agent.monthly_value_usd || 0)) {
+                                  updateLocalAgentValue(agent.id, val);
+                                  saveAgentMonthlyValue(agent.id, val);
+                                } else {
+                                  // Revert to DB value
+                                  setAgentMonthlyValues(prev => {
+                                    const next = { ...prev };
+                                    delete next[agent.id];
+                                    return next;
+                                  });
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const val = parseFloat(displayValue);
+                                  if (!isNaN(val) && val !== (agent.monthly_value_usd || 0)) {
+                                    updateLocalAgentValue(agent.id, val);
+                                    saveAgentMonthlyValue(agent.id, val);
+                                  } else {
+                                    setAgentMonthlyValues(prev => {
+                                      const next = { ...prev };
+                                      delete next[agent.id];
+                                      return next;
+                                    });
+                                  }
+                                }
+                              }}
+                              className="w-full pl-6 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:border-transparent"
+                              style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
+                            />
+                          </div>
+                          {isSaving && (
+                            <svg className="animate-spin h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                          )}
+                        </div>
+                        {(agent.monthly_value_usd && parseFloat(agent.monthly_value_usd) > 0) && !isSaving && (
+                          <p className="text-xs text-green-600 mt-1">
+                            {displayValue ? `$${parseFloat(displayValue).toFixed(2)}` : `$${parseFloat(agent.monthly_value_usd).toFixed(2)}`} USD/mes
+                          </p>
                         )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

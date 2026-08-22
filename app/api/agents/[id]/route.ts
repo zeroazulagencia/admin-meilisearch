@@ -797,6 +797,50 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
+// PATCH - Actualizar campo específico de un agente (ej: monthly_value_usd)
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const body = await req.json();
+    
+    // Campos permitidos para actualización parcial
+    const allowedFields: Record<string, boolean> = {
+      monthly_value_usd: true,
+    };
+    
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    
+    for (const [key, value] of Object.entries(body)) {
+      if (allowedFields[key]) {
+        updateFields.push(`${key} = ?`);
+        updateValues.push(value === '' || value === null ? 0 : parseFloat(value));
+        console.log(`[API AGENTS] [PATCH] Actualizando ${key}: ${updateValues[updateValues.length - 1]} para agente ${id}`);
+      } else if (!body.hasOwnProperty(key)) {
+        continue;
+      } else {
+        console.warn(`[API AGENTS] [PATCH] Campo no permitido ignorado: ${key} para agente ${id}`);
+      }
+    }
+    
+    if (updateFields.length === 0) {
+      return NextResponse.json({ ok: false, error: 'Ningún campo válido proporcionado' }, { status: 400 });
+    }
+    
+    updateValues.push(id);
+    
+    await query(
+      `UPDATE agents SET ${updateFields.join(', ')} WHERE id = ?`,
+      updateValues
+    );
+    console.log('[API AGENTS] [PATCH] Actualización exitosa para agente ID:', id);
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    console.error('[API AGENTS] [PATCH] Error actualizando agente:', e?.message || e);
+    return NextResponse.json({ ok: false, error: e?.message || 'Error al actualizar agente' }, { status: 500 });
+  }
+}
+
 // DELETE - Eliminar un agente
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

@@ -55,7 +55,7 @@ export async function GET() {
     }
     
     // Construir query base
-    let baseFields = 'id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name';
+    let baseFields = 'id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name, monthly_value_usd';
     let queryFields = baseFields;
     
     // Agregar campos opcionales si existen
