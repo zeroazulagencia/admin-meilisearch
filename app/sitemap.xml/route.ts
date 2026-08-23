@@ -8,6 +8,16 @@ const routes = [
   { loc: '/', changefreq: 'daily', priority: 1.0 },
   { loc: '/modulos', changefreq: 'weekly', priority: 0.8 },
   { loc: '/modulos/13', changefreq: 'weekly', priority: 0.9 },
+  { loc: '/agente-ia-ventas', changefreq: 'weekly', priority: 0.8 },
+  { loc: '/agente-ia-whatsapp', changefreq: 'weekly', priority: 0.8 },
+  { loc: '/agentes-ia-atencion-cliente', changefreq: 'weekly', priority: 0.8 },
+  { loc: '/agente-ia-finanzas', changefreq: 'weekly', priority: 0.8 },
+  { loc: '/agente-ia-cobros', changefreq: 'weekly', priority: 0.8 },
+  { loc: '/agente-ia-inventarios', changefreq: 'weekly', priority: 0.8 },
+  { loc: '/agente-ia-rrhh', changefreq: 'weekly', priority: 0.8 },
+  { loc: '/agente-ia-analitica', changefreq: 'weekly', priority: 0.8 },
+  { loc: '/agente-ia-para-servicios', changefreq: 'weekly', priority: 0.8 },
+  { loc: '/ia-integrada-crm-erp', changefreq: 'weekly', priority: 0.8 },
 ];
 
 export async function GET(req: NextRequest) {

@@ -50,3 +50,4 @@ database/*.dump
 # Agent avatars
 public/agent-avatars/*
 !public/agent-avatars/.gitkeep
+.backups/

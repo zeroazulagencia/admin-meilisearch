@@ -514,6 +514,26 @@ export default function Home() {
               <span className="font-bold text-2xl" style={{ color: '#5DE1E5' }}>WORKERS</span>
               <p className="text-gray-400 mt-2 max-w-md">Agencia de agentes de inteligencia artificial para empresas. Contrata agentes especializados para automatizar tareas, destrabar procesos y escalar tu operacion con mas eficiencia.</p>
             </div>
+            <div>
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-4">Soluciones · Agentes IA</p>
+              <ul className="space-y-2 text-sm">
+                <li><a href="/agente-ia-ventas" className="text-gray-400 hover:text-[#5DE1E5] transition-colors">Agente IA Ventas</a></li>
+                <li><a href="/agente-ia-whatsapp" className="text-gray-400 hover:text-[#5DE1E5] transition-colors">Agente IA WhatsApp</a></li>
+                <li><a href="/agentes-ia-atencion-cliente" className="text-gray-400 hover:text-[#5DE1E5] transition-colors">Atencion al Cliente</a></li>
+                <li><a href="/agente-ia-finanzas" className="text-gray-400 hover:text-[#5DE1E5] transition-colors">Agente IA Finanzas</a></li>
+                <li><a href="/agente-ia-cobros" className="text-gray-400 hover:text-[#5DE1E5] transition-colors">Agente IA Cobros</a></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-4">Mas soluciones</p>
+              <ul className="space-y-2 text-sm">
+                <li><a href="/agente-ia-inventarios" className="text-gray-400 hover:text-[#5DE1E5] transition-colors">Agente IA Inventarios</a></li>
+                <li><a href="/agente-ia-rrhh" className="text-gray-400 hover:text-[#5DE1E5] transition-colors">Agente IA RRHH</a></li>
+                <li><a href="/agente-ia-analitica" className="text-gray-400 hover:text-[#5DE1E5] transition-colors">Agente IA Analitica</a></li>
+                <li><a href="/agente-ia-para-servicios" className="text-gray-400 hover:text-[#5DE1E5] transition-colors">Agente IA Servicios</a></li>
+                <li><a href="/ia-integrada-crm-erp" className="text-gray-400 hover:text-[#5DE1E5] transition-colors">IA integrada a CRM/ERP</a></li>
+              </ul>
+            </div>
             <div className="text-center md:text-right">
               <div className="bg-gray-800 rounded-xl p-4 inline-block">
                 <p className="text-xs text-gray-400 uppercase tracking-wider">Agente IA Operativo</p>
