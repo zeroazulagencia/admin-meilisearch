@@ -27,21 +27,27 @@ interface ClientDB {
 
 const SmallAvatar = ({ photo, name }: { photo?: string | null; name: string }) => {
   const [imgError, setImgError] = useState(false);
-  if (photo && !imgError) {
-    return (
-      <img
-        src={photo}
-        alt={name}
-        className="w-8 h-8 rounded-full object-cover border border-gray-200"
-        onError={() => setImgError(true)}
-      />
-    );
-  }
   return (
-    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center border border-gray-200">
-      <span className="text-white font-semibold text-xs">{name.charAt(0).toUpperCase()}</span>
+    <div title={name} className="relative shrink-0">
+      {photo && !imgError ? (
+        <img
+          src={photo}
+          alt={name}
+          className="w-8 h-8 rounded-full object-cover border border-gray-200"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center border border-gray-200">
+          <span className="text-white font-semibold text-xs">{name.charAt(0).toUpperCase()}</span>
+        </div>
+      )}
     </div>
   );
+};
+
+const formatCOP = (val: number): string => {
+  if (!val || val <= 0) return '-';
+  return '$' + val.toLocaleString('es-CO') + ' COP';
 };
 
 export default function Clientes() {
@@ -69,10 +75,8 @@ export default function Clientes() {
     e.preventDefault();
     
     if (editingClient) {
-      // Actualizar - redireccionar a la página de edición
       router.push(`/clientes/${editingClient.id}/editar`);
     } else {
-      // Crear en MySQL
       try {
         const res = await fetch('/api/clients', {
           method: 'POST',
@@ -81,7 +85,6 @@ export default function Clientes() {
         });
         const data = await res.json();
         if (data.ok) {
-          // Recargar página para ver el nuevo cliente
           window.location.reload();
         } else {
           setAlertModal({
@@ -114,27 +117,67 @@ export default function Clientes() {
     type: 'warning',
   });
 
-  const handleDelete = async (id: number) => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Confirmar eliminación',
-      message: '¿Estás seguro de eliminar este cliente?',
-      type: 'warning',
-      deleteId: id,
-      onConfirm: async () => {
-        try {
-          const res = await fetch(`/api/clients/${id}`, {
-            method: 'DELETE'
-          });
-          const data = await res.json();
-          if (data.ok) {
-            // Recargar clientes
-            const res2 = await fetch('/api/clients');
-            const data2 = await res2.json();
-            if (data2.ok && data2.clients) {
-              setClients(data2.clients);
+  const handleDelete = async (id: number, name: string) => {
+    try {
+      const res = await fetch('/api/clients/check-agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        setAlertModal({ isOpen: true, title: 'Error', message: 'Error al verificar clientes', type: 'error' });
+        return;
+      }
+
+      if (!res.ok || !data.ok) {
+        console.log('[handleDelete] BLOCKED - showing error alert');
+        const agentsList = data.agents?.map((a: any) => a.name).join(', ') || '';
+        setAlertModal({
+          isOpen: true,
+          title: 'No se puede eliminar',
+          message: `${data.error}${agentsList ? `\n\nAgentes asociados: ${agentsList}` : ''}`,
+          type: 'error',
+        });
+        return;
+      }
+      
+      console.log('[handleDelete] OK - showing confirm modal');
+
+      // No agents - show confirmation modal
+      setConfirmModal({
+        isOpen: true,
+        title: 'Confirmar eliminación',
+        message: `¿Estás seguro de eliminar "${name}"? Esta acción no se puede deshacer.`,
+        type: 'warning',
+        deleteId: id,
+        onConfirm: async () => {
+          console.log('[handleDelete] Confirmed - executing DELETE');
+          try {
+            const delRes = await fetch(`/api/clients/${id}`, {
+              method: 'DELETE',
+            });
+            const delData = await delRes.json();
+            if (delData.ok) {
+              // Refresh list - force fresh data from server
+              const refreshRes = await fetch('/api/clients-all', { cache: 'no-store' });
+              const refreshData = await refreshRes.json();
+              if (refreshData.ok && refreshData.clients) {
+                setClients(refreshData.clients);
+              }
+              setConfirmModal({ isOpen: false, title: '', message: '', type: 'info', deleteId: undefined, onConfirm: () => {} });
+            } else {
+              setAlertModal({
+                isOpen: true,
+                title: 'Error',
+                message: delData.error || 'Error al eliminar cliente',
+                type: 'error',
+              });
             }
-          } else {
+          } catch (err) {
             setAlertModal({
               isOpen: true,
               title: 'Error',
@@ -142,16 +185,17 @@ export default function Clientes() {
               type: 'error',
             });
           }
-        } catch (err) {
-          setAlertModal({
-            isOpen: true,
-            title: 'Error',
-            message: 'Error al eliminar cliente',
-            type: 'error',
-          });
         }
-      }
-    });
+      });
+    } catch (err) {
+      console.error('[handleDelete] Exception:', err);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Error inesperado al verificar cliente',
+        type: 'error',
+      });
+    }
   };
 
   const resetForm = () => {
@@ -161,28 +205,23 @@ export default function Clientes() {
   };
 
   useEffect(() => {
-    // Verificar si el usuario es admin
     const permissions = getPermissions();
     if (permissions) {
       const userIsAdmin = permissions.type === 'admin';
       setIsAdmin(userIsAdmin);
       if (!userIsAdmin) {
-        // No es admin, redirigir al dashboard
         setLoading(false);
         router.push('/dashboard');
         return;
       }
     } else {
-      // No hay permisos, redirigir al dashboard
       setLoading(false);
       router.push('/dashboard');
       return;
     }
 
-    // Cargar clientes desde MySQL (todo en 1 sola llamada AJAX)
     const loadClients = async () => {
       try {
-        console.log('Loading clients all...');
         const res = await fetch('/api/clients-all');
         const data = await res.json();
         if (data.ok && data.clients) {
@@ -204,24 +243,6 @@ export default function Clientes() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full border-[#5DE1E5]"></div>
         </div>
-        <NoticeModal
-          isOpen={alertModal.isOpen}
-          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
-          title={alertModal.title}
-          message={alertModal.message}
-          type={alertModal.type}
-        />
-        
-        {/* Modal de confirmación */}
-        <NoticeModal
-          isOpen={confirmModal.isOpen}
-          onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-          title={confirmModal.title}
-          message={confirmModal.message}
-          type={confirmModal.type}
-          showCancel={true}
-          onConfirm={confirmModal.onConfirm}
-        />
       </ProtectedLayout>
     );
   }
@@ -243,147 +264,68 @@ export default function Clientes() {
 
       {showForm && (
         <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {editingClient ? 'Editar Cliente' : 'Nuevo Cliente'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Usuario
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.usuario}
-                    onChange={(e) => setFormData({ ...formData, usuario: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Clave
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={formData.clave}
-                    onChange={(e) => setFormData({ ...formData, clave: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Empresa
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Teléfono
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }}
-                  />
-                </div>
+          <h2 className="text-xl font-semibold mb-4">
+            {editingClient ? 'Editar Cliente' : 'Nuevo Cliente'}
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }} />
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all"
-                  style={{ backgroundColor: '#5DE1E5' }}
-                >
-                  {editingClient ? 'Actualizar' : 'Guardar'}
-                </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Cancelar
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+                <input type="text" required value={formData.usuario} onChange={(e) => setFormData({ ...formData, usuario: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }} />
               </div>
-            </form>
-          </div>
-        )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Clave</label>
+                <input type="password" required value={formData.clave} onChange={(e) => setFormData({ ...formData, clave: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                <input type="text" value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': '#5DE1E5' } as React.CSSProperties & { '--tw-ring-color': string }} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" className="px-4 py-2 text-gray-900 rounded-lg hover:opacity-90 transition-all" style={{ backgroundColor: '#5DE1E5' }}>
+                {editingClient ? 'Actualizar' : 'Guardar'}
+              </button>
+              <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nombre
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Perfil
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Agentes
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mensual (USD)
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Empresa
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Teléfono
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perfil</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agentes</th>
+                {isAdmin && (
+                  <>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mensual</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Empresa</th>
+                  </>
+                )}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {clients.map((client) => {
-                let permissions: any = {};
-                try {
-                  permissions = typeof client.permissions === 'string' ? JSON.parse(client.permissions) : (client.permissions || {});
-                } catch {
-                  permissions = {};
-                }
-                const isAdmin = permissions?.type === 'admin';
-                
+                const clientIsAdmin = client.permissions?.type === 'admin';
                 return (
                   <tr key={client.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -391,10 +333,10 @@ export default function Clientes() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span 
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${isAdmin ? 'bg-purple-100 text-purple-800' : ''}`}
-                        style={!isAdmin ? { backgroundColor: 'rgba(93, 225, 229, 0.1)', color: '#0369a1' } : {}}
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${clientIsAdmin ? 'bg-purple-100 text-purple-800' : ''}`}
+                        style={!clientIsAdmin ? { backgroundColor: 'rgba(93, 225, 229, 0.1)', color: '#0369a1' } : {}}
                       >
-                        {isAdmin ? 'Super Admin' : 'Cliente'}
+                        {clientIsAdmin ? 'Super Admin' : 'Cliente'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -408,18 +350,16 @@ export default function Clientes() {
                         <span className="text-gray-400 text-xs">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                      {client.totalMonthlyValue !== undefined && client.totalMonthlyValue > 0 ? `$${client.totalMonthlyValue.toFixed(2)}` : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {client.company}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {client.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {client.phone}
-                    </td>
+                    {(isAdmin) && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                          {formatCOP(client.totalMonthlyValue || 0)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
+                          {client.company}
+                        </td>
+                      </>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => router.push(`/clientes/${client.id}/editar`)}
@@ -431,7 +371,7 @@ export default function Clientes() {
                         Editar
                       </button>
                       <button
-                        onClick={() => handleDelete(client.id)}
+                        onClick={() => handleDelete(client.id, client.name)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar
@@ -443,6 +383,27 @@ export default function Clientes() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Alert Modal */}
+      <NoticeModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
+
+      {/* Confirm Delete Modal */}
+      <NoticeModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        showCancel={true}
+        onConfirm={confirmModal.onConfirm}
+      />
     </ProtectedLayout>
   );
 }
