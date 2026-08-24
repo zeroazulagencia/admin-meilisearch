@@ -16,6 +16,7 @@ export async function GET(
         m.agent_id,
         m.title,
         m.folder_name,
+        m.is_active,
         m.description,
         m.created_at,
         m.updated_at,
@@ -90,6 +91,7 @@ export async function PUT(
         m.agent_id,
         m.title,
         m.folder_name,
+        m.is_active,
         m.description,
         m.created_at,
         m.updated_at,
@@ -114,6 +116,66 @@ export async function PUT(
       {
         ok: false,
         error: 'Error al actualizar el módulo: ' + (error?.message || 'Error desconocido')
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const moduleId = params.id;
+    const body = await request.json();
+    const { is_active } = body;
+
+    if (typeof is_active !== 'boolean') {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'is_active (boolean) es requerido'
+        },
+        { status: 400 }
+      );
+    }
+
+    await query<any>(
+      'UPDATE modules SET is_active = ? WHERE id = ?',
+      [is_active ? 1 : 0, moduleId]
+    );
+
+    const [rows] = await query<any>(
+      `SELECT 
+        m.id,
+        m.agent_id,
+        m.title,
+        m.folder_name,
+        m.is_active,
+        m.description,
+        m.created_at,
+        m.updated_at,
+        a.name as agent_name,
+        c.name as client_name
+      FROM modules m
+      LEFT JOIN agents a ON m.agent_id = a.id
+      LEFT JOIN clients c ON a.client_id = c.id
+      WHERE m.id = ?`,
+      [moduleId]
+    );
+
+    console.log('[API MODULES] [PATCH] Estado actualizado');
+    return NextResponse.json({
+      ok: true,
+      module: rows && rows.length > 0 ? rows[0] : null
+    });
+  } catch (error: any) {
+    console.error('[API MODULES] [PATCH] Error:', error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Error al actualizar el estado: ' + (error?.message || 'Error desconocido')
       },
       { status: 500 }
     );

@@ -109,20 +109,16 @@ export default function ModuleDetailPage() {
         console.log('[MODULE DETAIL] folder_name:', moduleFolderName);
         
         setLoadingComponent(true);
-        try {
-          const Component = MODULES_MAP[moduleFolderName];
-          if (Component) {
-            setModuleComponent(() => Component);
-            console.log('[MODULE DETAIL] Component loaded from map');
-          } else {
-            throw new Error(`Módulo "${moduleFolderName}" no está registrado en el mapa de módulos`);
-          }
-        } catch (e: any) {
-          console.error('[MODULE DETAIL] Import error:', e);
-          setError(`El módulo "${moduleFolderName}" no tiene implementación o hay un error en el código. Error: ${e?.message || e}`);
-        } finally {
-          setLoadingComponent(false);
+        const Component = MODULES_MAP[moduleFolderName];
+        if (Component) {
+          setModuleComponent(() => Component);
+          console.log('[MODULE DETAIL] Component loaded from map');
+        } else {
+          // No registrado aun en el mapa: mostrar fallback, no morir
+          setModuleComponent(null);
+          console.log('[MODULE DETAIL] Sin componente en mapa; usando fallback');
         }
+        setLoadingComponent(false);
       } catch (e: any) {
         console.error('[MODULE DETAIL] Error:', e);
         setError(e?.message || 'Error al cargar el módulo');
@@ -203,29 +199,25 @@ export default function ModuleDetailPage() {
         {loadingComponent ? (
           <ModuleLoading />
         ) : ModuleComponent ? (
-          <Suspense fallback={
-            <ModuleLoading />
-          }>
+          <Suspense fallback={<ModuleLoading />}>
             {module.folder_name === 'sync-data-tableros-gain' ? (
-              <div className="p-4 md:p-6">
-                <ModuleComponent moduleData={module} />
-              </div>
+              <div className="p-4 md:p-6"><ModuleComponent moduleData={module} /></div>
             ) : (
               <ModuleComponent moduleData={module} />
             )}
           </Suspense>
         ) : (
           <div className="p-6">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
               <div className="flex items-start gap-3">
-                <span className="text-2xl">⚠️</span>
+                <span className="text-2xl">🛠️</span>
                 <div>
-                  <h3 className="font-semibold text-yellow-900 mb-2">Componente no encontrado</h3>
-                  <p className="text-yellow-800 mb-3">
-                    El módulo <code className="bg-yellow-100 px-1 rounded">{module.folder_name}</code> no tiene un archivo <code className="bg-yellow-100 px-1 rounded">index.tsx</code> o tiene errores.
+                  <h3 className="font-semibold text-blue-900 mb-2">Modulo en construccion</h3>
+                  <p className="text-blue-800 mb-3">
+                    El modulo <code className="bg-blue-100 px-1 rounded">{module.folder_name}</code> esta registrado pero aun no tiene componente.
                   </p>
-                  <p className="text-sm text-yellow-700">
-                    Ruta esperada: <code className="bg-yellow-100 px-1 rounded text-xs">modules-custom/{module.folder_name}/index.tsx</code>
+                  <p className="text-sm text-blue-700">
+                    Ruta esperada: <code className="bg-blue-100 px-1 rounded text-xs">modules-custom/{module.folder_name}/index.tsx</code>
                   </p>
                 </div>
               </div>

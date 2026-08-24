@@ -21,6 +21,7 @@ interface ModuleItem {
   agent_id: number;
   title: string;
   folder_name: string;
+  is_active: number;
   description: string | null;
   agent_name: string;
   agent_photo?: string | null;
@@ -41,6 +42,7 @@ export default function ModulosPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [togglingModuleId, setTogglingModuleId] = useState<number | null>(null);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false,
     message: '',
@@ -159,6 +161,27 @@ export default function ModulosPage() {
     }
   };
 
+  const toggleModuleActive = async (moduleId: number, nextActive: boolean) => {
+    try {
+      setTogglingModuleId(moduleId);
+      const res = await fetch(`/api/modules/${moduleId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: nextActive ? 1 : 0 }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo actualizar el modulo');
+      setAlertModal({ isOpen: true, title: 'Exito', message: data.message || 'Modulo actualizado.', type: 'success' });
+      const permissions = getPermissions();
+      loadModulesWithPermissions(isAdmin, permissions);
+    } catch (error: any) {
+      console.error('[MODULOS] Error cambiando estado:', error);
+      setAlertModal({ isOpen: true, title: 'Error', message: 'No se pudo cambiar el estado: ' + (error?.message || 'Error desconocido'), type: 'error' });
+    } finally {
+      setTogglingModuleId(null);
+    }
+  };
+
   const AgentAvatar = ({ photo, name, size = 'md' }: { photo?: string | null; name: string; size?: 'sm' | 'md' | 'lg' }) => {
     const sizeClasses = { sm: 'w-6 h-6 text-xs', md: 'w-8 h-8 text-sm', lg: 'w-10 h-10 text-sm' };
     const [imgError, setImgError] = useState(false);
@@ -172,15 +195,6 @@ export default function ModulosPage() {
       </div>
     );
   };
-
-  const DISABLED_MODULES = [
-    'bridge-siigo',
-    'sincronizador-usados-autolarte',
-    'verificador-mobilia',
-    'endpoints-anal-tica-biury',
-    'sistema-de-cambio-de-fondos-y-placas',
-    'biury-pagos',
-  ];
 
   return (
     <ProtectedLayout>
@@ -298,7 +312,18 @@ export default function ModulosPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredModules.map((module) => {
-            const isDisabled = DISABLED_MODULES.includes(module.folder_name);
+            // Legacy: si is_active no viene (viejos) o es null, se considera activo salvo los 6 legacy desactivados
+            const LEGACY_DISABLED = [
+              'bridge-siigo',
+              'sincronizador-usados-autolarte',
+              'verificador-mobilia',
+              'endpoints-anal-tica-biury',
+              'sistema-de-cambio-de-fondos-y-placas',
+              'biury-pagos',
+            ];
+            const isDisabled = module.is_active === undefined || module.is_active === null
+              ? LEGACY_DISABLED.includes(module.folder_name)
+              : module.is_active === 0;
             return (
               <div
                 key={module.id}
@@ -333,11 +358,30 @@ export default function ModulosPage() {
                   ) : (
                     <span className="text-xs text-gray-400 font-mono">{module.folder_name}</span>
                   )}
-                  {([1, 6].includes(module.id) && (module.error_count || 0) > 0) && (
-                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                      {module.error_count} errores
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {([1, 6].includes(module.id) && (module.error_count || 0) > 0) && (
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                        {module.error_count} errores
+                      </span>
+                    )}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleModuleActive(module.id, !isDisabled); }}
+                        disabled={togglingModuleId === module.id}
+                        title={isDisabled ? 'Activar modulo' : 'Desactivar modulo'}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          isDisabled
+                            ? 'bg-gray-100 text-gray-600 hover:bg-[#5DE1E5] hover:text-gray-900'
+                            : 'bg-[#5DE1E5] text-gray-900 hover:bg-red-100 hover:text-red-700'
+                        }`}
+                      >
+                        {togglingModuleId === module.id ? (
+                          <span className="inline-block h-3 w-3 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#5DE1E5' }}></span>
+                        ) : isDisabled ? 'Activar' : 'Desactivar'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
