@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
+import fs from 'fs';
+import path from 'path';
 
 const ERROR_COUNT_MODULES: Record<number, { table: string; label: string }> = {
   1: { table: 'modulos_suvi_12_leads', label: 'suvi_leads' },
@@ -95,10 +97,81 @@ export async function POST(request: NextRequest) {
     // Generar folder_name único basado en el título
     const folderName = title
       .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // quita tildes
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    
-    // Insertar módulo
+      .replace(/^-+|-+$/g, '')
+      .replace(/-+/g, '-');
+
+    // ---- PUNTO 2: crear folder de implementación + registrar en MODULES_MAP ----
+    let folderCreated = false;
+    let mapRegistered = false;
+    try {
+      const BASE = process.env.SCAFFOLD_ROOT || process.cwd();
+      const MODULES_DIR = process.env.SCAFFOLD_MODULES_DIR || path.join(BASE, 'modules-custom');
+      const MODULES_PAGE = process.env.SCAFFOLD_MODULES_PAGE || path.join(BASE, 'app', 'modulos', '[id]', 'page.tsx');
+
+      if (!folderName) {
+        console.warn('[API MODULES] [POST] folder_name vacío, se omite creación de folder');
+      } else {
+        // nombre del componente (Mod + PascalCase del folder)
+        const componentName = 'Mod' + folderName
+          .split('-')
+          .filter(Boolean)
+          .map((s: string) => s.charAt(0).toUpperCase() + s.slice(1))
+          .join('');
+
+        const moduleDir = path.join(MODULES_DIR, folderName);
+        const outFile = path.join(moduleDir, 'index.tsx');
+
+        // 1) crear directorio + index.tsx desde plantilla (solo si no existe)
+        if (!fs.existsSync(outFile)) {
+          fs.mkdirSync(moduleDir, { recursive: true });
+          const tmpl = fs.readFileSync(
+            process.env.SCAFFOLD_TEMPLATE || path.join(BASE, 'scripts', 'templates', 'module-index.tsx'),
+            'utf8'
+          );
+          fs.writeFileSync(outFile, tmpl.replace(/__MODULE_COMPONENT_NAME__/g, componentName), 'utf8');
+          folderCreated = true;
+          console.log('[Install] [POST] folder creado:', `modules-custom/${folderName}/index.tsx`);
+        } else {
+          console.log('[Install] [POST] folder ya existía:', folderName);
+        }
+
+        // 2) registrar import + entrada MODULES_MAP en app/modulos/[id]/page.tsx
+        if (fs.existsSync(MODULES_PAGE)) {
+          let src = fs.readFileSync(MODULES_PAGE, 'utf8');
+
+          const importLine = `import ${componentName} from '@/modules-custom/${folderName}';`;
+          if (!src.includes(`'@/modules-custom/${folderName}'`)) {
+            src = src.replace(/(\/\/ Static imports for known modules\n?)/, `$1${importLine}\n`);
+          }
+
+          const entry = `  '${folderName}': ${componentName},`;
+          if (!src.includes(`'${folderName}':`)) {
+            const lines = src.split('\n');
+            const mapStartLine = lines.findIndex((l: string) => l.includes('const MODULES_MAP'));
+            let insertAt = -1;
+            for (let i = 0; i < lines.length; i++) {
+              if (i <= mapStartLine) continue;
+              if (/^\};\s*$/.test(lines[i])) { insertAt = i; break; }
+            }
+            if (insertAt !== -1) {
+              lines.splice(insertAt, 0, entry);
+              src = lines.join('\n');
+              fs.writeFileSync(MODULES_PAGE, src, 'utf8');
+              mapRegistered = true;
+            }
+          } else {
+            mapRegistered = true;
+          }
+        }
+      }
+    } catch (folderErr: any) {
+      console.warn('[Install] [POST] No se pudo materializar folder:', folderErr?.message || folderErr);
+    }
+
+    // Insertar módulo en BD
     const [result] = await query<any>(
       'INSERT INTO modules (agent_id, title, folder_name, description) VALUES (?, ?, ?, ?)',
       [agent_id, title, folderName, description || null]
@@ -107,7 +180,7 @@ export async function POST(request: NextRequest) {
     const moduleId = (result as any).insertId;
     
     console.log('[API MODULES] [POST] Módulo creado con ID:', moduleId);
-    
+
     // Obtener el módulo completo con datos del agente
     const [moduleRows] = await query<any>(
       `SELECT 
@@ -130,6 +203,8 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       ok: true,
+      folderCreated,
+      mapRegistered,
       module: moduleRows && moduleRows.length > 0 ? moduleRows[0] : null
     });
   } catch (error: any) {

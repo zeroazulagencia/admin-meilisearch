@@ -131,7 +131,7 @@ export async function PATCH(
     const body = await request.json();
     const { is_active } = body;
 
-    if (typeof is_active !== 'boolean') {
+    if (typeof is_active === 'undefined' || is_active === null) {
       return NextResponse.json(
         {
           ok: false,
@@ -141,9 +141,11 @@ export async function PATCH(
       );
     }
 
+    const active = is_active === true || is_active === 1 ? 1 : 0;
+
     await query<any>(
       'UPDATE modules SET is_active = ? WHERE id = ?',
-      [is_active ? 1 : 0, moduleId]
+      [active, moduleId]
     );
 
     const [rows] = await query<any>(
