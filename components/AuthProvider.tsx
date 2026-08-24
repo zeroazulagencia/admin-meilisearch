@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import LoginForm from './LoginForm';
 import { hasAccessToRoute, getPermissions, findFirstAccessibleRoute } from '@/utils/permissions';
@@ -33,15 +33,25 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Stabilize mutable values in refs so useCallback deps stay constant
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
+
+  const routerRef = useRef(router);
+  routerRef.current = router;
+
+  // ─── Stable helpers ────────────────────────────────────────
   const clearSessionData = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
+    if (typeof window === 'undefined') return;
     localStorage.removeItem('admin-authenticated');
     localStorage.removeItem('admin-user');
     localStorage.removeItem('admin-login-time');
     localStorage.removeItem('admin-user-id');
     localStorage.removeItem('admin-permissions');
+  }, []);
+
+  const handleLogin = useCallback((authenticated: boolean) => {
+    setIsAuthenticated(authenticated);
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -50,6 +60,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     router.push('/');
   }, [clearSessionData, router]);
 
+  // ─── Core auth check (stable identity — no changing deps) ──
   const checkAuth = useCallback(() => {
     if (typeof window === 'undefined') {
       setIsLoading(false);
@@ -60,57 +71,61 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     try {
       const authenticated = localStorage.getItem('admin-authenticated');
       const loginTime = localStorage.getItem('admin-login-time');
+      const rawPermissions = localStorage.getItem('admin-permissions');
 
-      console.log('[AuthProvider] Verificando autenticación:', { authenticated, hasLoginTime: !!loginTime, pathname });
+      console.log('[AuthProvider] Verificando autenticación:', {
+        authenticated,
+        hasLoginTime: !!loginTime,
+        currentPath: pathnameRef.current,
+      });
 
-      if (authenticated === 'true' && loginTime) {
-        const loginDate = new Date(loginTime);
-        const now = new Date();
-        const hoursDiff = (now.getTime() - loginDate.getTime()) / (1000 * 60 * 60);
-
-        if (hoursDiff < 24) {
-          const rawPermissions = localStorage.getItem('admin-permissions');
-          let userPermissions: any = null;
-
-          try {
-            userPermissions = rawPermissions ? JSON.parse(rawPermissions) : null;
-          } catch (parseError) {
-            console.error('[AuthProvider] No se pudieron parsear los permisos, limpiando sesión', parseError);
-          }
-
-          if (!userPermissions) {
-            console.warn('[AuthProvider] Permisos faltantes o inválidos, limpiando sesión');
-            clearSessionData();
-            setIsAuthenticated(false);
-            router.push('/');
-            return;
-          }
-
-          setIsAuthenticated(true);
-
-          if (pathname && !hasAccessToRoute(pathname, userPermissions)) {
-            const firstRoute = findFirstAccessibleRoute(userPermissions);
-            if (firstRoute && firstRoute !== pathname) {
-              console.log('[AuthProvider] Redirigiendo a primera ruta accesible:', firstRoute);
-              router.push(firstRoute);
-            } else if (userPermissions.canLogin === true) {
-              console.log('[AuthProvider] Sin acceso específico, enviando a dashboard');
-              router.push('/dashboard');
-            } else {
-              console.log('[AuthProvider] Sin permisos, cerrando sesión');
-              clearSessionData();
-              setIsAuthenticated(false);
-              router.push('/');
-            }
-          }
-        } else {
-          console.log('[AuthProvider] Sesión expirada');
-          clearSessionData();
-          setIsAuthenticated(false);
-        }
-      } else {
+      if (authenticated !== 'true' || !loginTime || !rawPermissions) {
         console.log('[AuthProvider] No hay sesión válida');
         setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+
+      let userPermissions: any;
+      try {
+        userPermissions = JSON.parse(rawPermissions);
+      } catch {
+        console.error('[AuthProvider] Permisos corruptos, limpiando');
+        clearSessionData();
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check expiry
+      const hoursDiff =
+        (Date.now() - new Date(loginTime).getTime()) / (1000 * 60 * 60);
+      if (hoursDiff >= 24) {
+        console.log('[AuthProvider] Sesión expirada (>24h)');
+        clearSessionData();
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+
+      // Check route access
+      const currentP = pathnameRef.current;
+      if (currentP && !hasAccessToRoute(currentP, userPermissions)) {
+        const firstRoute = findFirstAccessibleRoute(userPermissions);
+        if (firstRoute && firstRoute !== currentP) {
+          console.log('[AuthProvider] Redirigiendo:', firstRoute);
+          router.push(firstRoute);
+        } else if (userPermissions.canLogin === true) {
+          console.log('[AuthProvider] Sin acceso específico → /dashboard');
+          router.push('/dashboard');
+        } else {
+          console.log('[AuthProvider] Sin permisos → logout');
+          clearSessionData();
+          setIsAuthenticated(false);
+          router.push('/');
+        }
       }
     } catch (error) {
       console.error('[AuthProvider] Error en checkAuth:', error);
@@ -118,82 +133,65 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [clearSessionData, pathname, router]);
+  }, [clearSessionData, router]);
 
+  // ─── Refresh (stable identity) ─────────────────────────────
   const refreshSession = useCallback(() => {
     setIsLoading(true);
     checkAuth();
   }, [checkAuth]);
 
+  // ─── Effects ───────────────────────────────────────────────
+  // Initial mount — run once
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.log('[AuthProvider] Timeout alcanzado, forzando fin de carga');
-      setIsLoading(false);
-    }, 2000);
-
+    console.log('[AuthProvider] Mount inicial, pathname:', pathname);
     refreshSession();
+  }, [refreshSession]); // refreshSession is stable ✓
 
+  // Storage + visibility listeners — stable
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key?.startsWith('admin-')) refreshSession();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refreshSession();
+    };
+
+    window.addEventListener('storage', onStorage);
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      clearTimeout(timeout);
+      window.removeEventListener('storage', onStorage);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [refreshSession]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const handleStorageChange = (event: StorageEvent) => {
-      if (!event.key) return;
-      if (!event.key.startsWith('admin-')) return;
-      console.log('[AuthProvider] Cambio en storage detectado, revalidando sesión');
-      refreshSession();
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log('[AuthProvider] Ventana activa, revalidando sesión');
-        refreshSession();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [refreshSession]);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      console.log('[AuthProvider] Sesión no válida para ruta protegida');
-    }
-  }, [isAuthenticated, isLoading]);
-
-  const handleLogin = (authenticated: boolean) => {
-    setIsAuthenticated(authenticated);
-  };
-
-  // Rutas públicas que no requieren autenticación
-  const isPublicRoute = pathname === '/';
-
-  // Rutas protegidas que requieren autenticación
-  const protectedRoutes = ['/dashboard', '/admin-conocimiento', '/ejecuciones', '/conversaciones', '/consumo-api', '/clientes', '/agentes', '/modulos'];
-  const isProtectedRoute = pathname && protectedRoutes.some(route => pathname.startsWith(route));
+  // Guard redirect when not authenticated on protected routes
+  const protectedRoutes = [
+    '/dashboard', '/admin-conocimiento', '/ejecuciones',
+    '/conversaciones', '/consumo-api', '/clientes',
+    '/agentes', '/modulos',
+  ];
+  const isProtectedRoute =
+    pathname && protectedRoutes.some((r) => pathname.startsWith(r));
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && isProtectedRoute) {
+      console.log('[AuthProvider] Redirecting to / (unauthorized)');
       router.replace('/');
     }
   }, [isAuthenticated, isLoading, isProtectedRoute, router]);
 
+  // ─── Render ────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block animate-spin h-8 w-8 border-2 border-t-transparent rounded-full" style={{ borderColor: '#5DE1E5' }}></div>
+          <div
+            className="inline-block animate-spin h-8 w-8 border-2 border-t-transparent rounded-full"
+            style={{ borderColor: '#5DE1E5' }}
+          ></div>
           <p className="mt-2 text-gray-600">Verificando sesión...</p>
         </div>
       </div>
@@ -205,8 +203,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-lg w-full space-y-6 px-4">
           <div className="bg-white rounded-2xl shadow p-6 text-center">
-            <h2 className="text-2xl font-semibold text-gray-900">Sesión requerida</h2>
-            <p className="text-gray-600 mt-2">Tu sesión expiró o no existe. Inicia sesión nuevamente para continuar.</p>
+            <h2 className="text-2xl font-semibold text-gray-900">
+              Sesión requerida
+            </h2>
+            <p className="text-gray-600 mt-2">
+              Tu sesión expiró o no existe. Inicia sesión nuevamente para continuar.
+            </p>
           </div>
           <LoginForm onLogin={handleLogin} />
         </div>
@@ -214,13 +216,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     );
   }
 
-  // Exportar funciones de login/logout para uso en landing page
   const authContext = {
     isAuthenticated,
     isLoading,
     handleLogin,
     handleLogout,
-    refreshSession
+    refreshSession,
   };
 
   return (

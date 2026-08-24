@@ -64,6 +64,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+
+    // Check for associated agents first
+    const [agents]: any = await query('SELECT id, name FROM agents WHERE client_id = ? LIMIT 1', [id]);
+    if (agents && agents.length > 0) {
+      return NextResponse.json({
+        ok: false,
+        error: 'No se puede eliminar: este cliente tiene agentes asociados',
+        blocked: true,
+        agents: agents.map((a: any) => a.name),
+      }, { status: 409 });
+    }
+
     await query('DELETE FROM clients WHERE id = ?', [id]);
     return NextResponse.json({ ok: true });
   } catch (e: any) {

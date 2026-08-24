@@ -35,6 +35,8 @@ export default function Agentes() {
   const [agentsLoading, setAgentsLoading] = useState<boolean>(true);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('active');
+  const [searchName, setSearchName] = useState<string>('');
   const [filteredAgents, setFilteredAgents] = useState<AgentDB[]>([]);
   
   useEffect(() => {
@@ -134,22 +136,30 @@ export default function Agentes() {
     return 0;
   });
 
-  // Función para aplicar filtro por cliente
-  const applyClientFilter = (agentsList: AgentDB[], clientId: string) => {
-    if (clientId === 'all') {
-      setFilteredAgents(agentsList);
-    } else {
-      const filtered = agentsList.filter(a => a.client_id === parseInt(clientId));
-      setFilteredAgents(filtered);
+  // Función para aplicar filtros combinados: cliente + estado + nombre
+  const applyFilters = () => {
+    let result = agents;
+
+    if (selectedClientId !== 'all') {
+      result = result.filter(a => a.client_id === parseInt(selectedClientId));
     }
+
+    if (selectedStatus !== 'all') {
+      result = result.filter(a => (a.status || 'active') === selectedStatus);
+    }
+
+    if (searchName.trim() !== '') {
+      const q = searchName.trim().toLowerCase();
+      result = result.filter(a => a.name.toLowerCase().includes(q));
+    }
+
+    setFilteredAgents(result);
   };
 
-  // Efecto para aplicar filtro cuando cambia selectedClientId o agents
+  // Efecto para aplicar filtros cuando cambia alguno de los criterios
   useEffect(() => {
-    if (agents.length > 0) {
-      applyClientFilter(agents, selectedClientId);
-    }
-  }, [selectedClientId, agents]);
+    applyFilters();
+  }, [selectedClientId, selectedStatus, searchName, agents]);
   const [showForm, setShowForm] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentDB | null>(null);
   const [formData, setFormData] = useState({
@@ -463,62 +473,73 @@ export default function Agentes() {
           </div>
         )}
 
-        {/* Filtro por Cliente */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Filtrar por Cliente
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              value={selectedClientId === 'all' ? '' : (clients.find(c => c.id.toString() === selectedClientId)?.name || '')}
-              onChange={(e) => {
-                const searchValue = e.target.value.toLowerCase();
-                if (searchValue === '') {
-                  setSelectedClientId('all');
-                } else {
-                  // Buscar cliente que coincida
-                  const matchedClient = sortedClients.find(c => 
-                    c.name.toLowerCase().includes(searchValue)
-                  );
-                  if (matchedClient) {
-                    setSelectedClientId(matchedClient.id.toString());
-                  } else {
-                    setSelectedClientId('all');
-                  }
-                }
-              }}
-              onFocus={(e) => {
-                // Mostrar dropdown al hacer focus
-                e.target.select();
-              }}
-              placeholder="Escribe para buscar cliente..."
-              className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
-              list="clients-list"
-            />
-            <datalist id="clients-list">
-              <option value="">Todos los clientes</option>
-              {sortedClients.map(client => (
-                <option key={client.id} value={client.name}>
-                  {client.name}
-                </option>
-              ))}
-            </datalist>
-            {selectedClientId !== 'all' && (
-              <button
-                onClick={() => setSelectedClientId('all')}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                title="Limpiar filtro"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </div>
+        {/* Filtros: Cliente + Estado + Nombre */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                  <div className="flex flex-wrap gap-4 items-end">
+                    <div className="w-full sm:w-72">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Cliente
+                      </label>
+                      <select
+                        value={selectedClientId}
+                        onChange={(e) => setSelectedClientId(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                      >
+                        <option value="all">Todos los clientes</option>
+                        {sortedClients.map(client => (
+                          <option key={client.id} value={client.id}>
+                            {client.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="w-full sm:w-56">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Estado
+                      </label>
+                      <select
+                        value={selectedStatus}
+                        onChange={(e) => setSelectedStatus(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                                      >
+                                        <option value="all">Todos los estados</option>
+                        <option value="active">Activo</option>
+                        <option value="inactive">Inactivo</option>
+                      </select>
+                    </div>
+
+                    <div className="w-full sm:w-72">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nombre
+                      </label>
+                      <input
+                        type="text"
+                        value={searchName}
+                        onChange={(e) => setSearchName(e.target.value)}
+                        placeholder="Buscar por nombre..."
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                      />
+                    </div>
+
+                    {(selectedClientId !== 'all' || selectedStatus !== 'all' || searchName.trim() !== '') && (
+                      <button
+                        onClick={() => {
+                          setSelectedClientId('all');
+                          setSelectedStatus('all');
+                          setSearchName('');
+                        }}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                      >
+                        Limpiar filtros
+                      </button>
+                    )}
+                  </div>
+                </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {!agentsLoading && filteredAgents.map((agent) => (
-            <div key={agent.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div key={agent.id} className={`bg-white rounded-xl shadow-sm border overflow-hidden ${agent.status === 'inactive' ? 'border-gray-200 opacity-60 grayscale' : 'border-gray-200'}`}>
               <div className="w-full h-48 flex items-center justify-center bg-gray-100">
                 {agent.photo ? (
                   <img 
@@ -536,7 +557,12 @@ export default function Agentes() {
                 </div>
               </div>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{agent.name}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">
+                  {agent.name}
+                  {agent.status === 'inactive' && (
+                    <span className="ml-2 inline-block align-middle text-[10px] font-semibold uppercase tracking-wide bg-gray-200 text-gray-500 rounded px-1.5 py-0.5">Inactivo</span>
+                  )}
+                </h3>
                 <div className="mb-2">
                   <span className="text-xs font-medium text-gray-400 uppercase">Cliente:</span>
                   <p className="text-sm font-medium truncate" style={{ color: '#5DE1E5' }}>{clients.find(c => c.id === agent.client_id)?.name || 'Sin asignar'}</p>

@@ -10,6 +10,7 @@ interface AgentSmall {
   id: number;
   name: string;
   photo?: string | null;
+  status?: string | null;
   monthly_value_usd?: number | null;
 }
 
@@ -25,20 +26,21 @@ interface ClientDB {
   totalMonthlyValue?: number;
 }
 
-const SmallAvatar = ({ photo, name }: { photo?: string | null; name: string }) => {
+const SmallAvatar = ({ photo, name, status }: { photo?: string | null; name: string; status?: string | null }) => {
   const [imgError, setImgError] = useState(false);
+  const inactive = status === 'inactive';
   return (
-    <div title={name} className="relative shrink-0">
+    <div title={name} className={`relative shrink-0 rounded-full overflow-hidden ${inactive ? 'grayscale opacity-40 ring-1 ring-gray-300' : ''}`}>
       {photo && !imgError ? (
         <img
           src={photo}
           alt={name}
-          className="w-8 h-8 rounded-full object-cover border border-gray-200"
+          className={`w-8 h-8 rounded-full object-cover border border-gray-200 ${inactive ? 'grayscale opacity-40' : ''}`}
           onError={() => setImgError(true)}
         />
       ) : (
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center border border-gray-200">
-          <span className="text-white font-semibold text-xs">{name.charAt(0).toUpperCase()}</span>
+        <div className={`w-8 h-8 rounded-full ${inactive ? 'bg-gray-200 text-gray-600' : 'bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9]'} flex items-center justify-center border border-gray-200 ${inactive ? 'opacity-60' : ''}`}>
+          <span className={`${inactive ? 'text-gray-500' : 'text-white'} font-semibold text-xs`}>{name.charAt(0).toUpperCase()}</span>
         </div>
       )}
     </div>
@@ -343,7 +345,7 @@ export default function Clientes() {
                       {client.agents && client.agents.length > 0 ? (
                         <div className="flex items-center gap-1">
                           {client.agents.map((agent) => (
-                            <SmallAvatar key={agent.id} photo={agent.photo} name={agent.name} />
+                            <SmallAvatar key={agent.id} photo={agent.photo} name={agent.name} status={agent.status} />
                           ))}
                         </div>
                       ) : (
