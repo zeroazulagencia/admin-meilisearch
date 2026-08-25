@@ -474,19 +474,33 @@ function ComparativaView({ registros }: { registros: Registro[] }) {
 // ════════════════════ CONFIGURACIÓN ════════════════════
 function ConfigView({ config, setConfig, configDirty, setConfigDirty, onSave }:
   { config: Record<string, string>; setConfig: (c: Record<string, string>) => void; configDirty: boolean; setConfigDirty: (b: boolean) => void; onSave: () => void }) {
+  const [showKey, setShowKey] = useState(false);
+  const [copied, setCopied] = useState(false);
   return (
     <div className="max-w-2xl space-y-4">
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
         <h3 className="text-sm font-semibold text-gray-900">API Key del receptor</h3>
         <p className="text-xs text-gray-500">
-          n8n debe enviar esta clave en el header <code className="bg-white border border-gray-200 rounded px-1">X-API-Key</code> (o <code>Authorization: Bearer</code>) al llamar <code>POST /api/audit-responses</code>.
-        </p>
-        <input
-          value={config.api_key || ''}
-          onChange={(e) => { setConfig({ ...config, api_key: e.target.value }); setConfigDirty(true); }}
-          placeholder="Clave secreta (genérala y pégala aquí)"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-        />
+                  n8n debe enviar esta clave en el header <code className="bg-white border border-gray-200 rounded px-1">X-API-Key</code> (o <code>Authorization: Bearer ...</code>) al llamar <code>POST /api/audit-responses</code>.
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    value={config.api_key || ''}
+                    onChange={(e) => { setConfig({ ...config, api_key: e.target.value }); setConfigDirty(true); }}
+                    placeholder="Clave secreta (genérala y pégala aquí)"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white font-mono flex-1"
+                  />
+                  <button
+                    onClick={() => setShowKey((v) => !v)}
+                    title={showKey ? 'Ocultar clave' : 'Mostrar clave completa'}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-700 hover:bg-gray-100"
+                  >{showKey ? '🙈' : '👁️'}</button>
+                  <button
+                    onClick={() => { navigator.clipboard?.writeText(config.api_key || ''); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-blue-600 hover:bg-gray-100"
+                  >{copied ? '✓ Copiada' : 'Copiar'}</button>
+                </div>
         {configDirty && (
           <div className="flex items-center gap-2">
             <button onClick={onSave} className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium">Guardar</button>
