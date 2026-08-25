@@ -473,7 +473,8 @@ export default function Agentes() {
           </div>
         )}
 
-        {/* Filtros: Cliente + Estado + Nombre */}
+        {/* Filtros: Cliente + Estado + Nombre (solo visibles para admin) */}
+        {permissions?.type === 'admin' && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                   <div className="flex flex-wrap gap-4 items-end">
                     <div className="w-full sm:w-72">
@@ -536,6 +537,7 @@ export default function Agentes() {
                     )}
                   </div>
                 </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {!agentsLoading && filteredAgents.map((agent) => (

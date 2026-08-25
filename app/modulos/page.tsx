@@ -1,12 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
 import settings from '@/settings.json';
 import { getPermissions } from '@/utils/permissions';
-import { Combobox, ComboboxInput, ComboboxOption, ComboboxOptions, ComboboxButton } from '@headlessui/react';
-import { ChevronUpDownIcon, CheckIcon } from '@heroicons/react/20/solid';
 
 interface Agent {
   id: number;
@@ -38,7 +36,7 @@ export default function ModulosPage() {
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [formData, setFormData] = useState({ agent_id: '', title: '', description: '' });
   const [selectedAgentFilter, setSelectedAgentFilter] = useState<Agent | null>(null);
-  const [agentQuery, setAgentQuery] = useState('');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<'activos' | 'inactivos' | 'todos'>('activos');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -53,17 +51,18 @@ export default function ModulosPage() {
     return [...agents].sort((a, b) => a.name.localeCompare(b.name));
   }, [agents]);
 
-  const filteredAgentsForCombobox = useMemo(() => {
-    if (!agentQuery) return sortedAgents;
-    return sortedAgents.filter(agent =>
-      agent.name.toLowerCase().includes(agentQuery.toLowerCase())
-    );
-  }, [sortedAgents, agentQuery]);
-
   const filteredModules = useMemo(() => {
-    if (!selectedAgentFilter) return modules;
-    return modules.filter(m => m.agent_id === selectedAgentFilter.id);
-  }, [modules, selectedAgentFilter]);
+    let result = modules;
+    if (selectedAgentFilter) {
+      result = result.filter(m => m.agent_id === selectedAgentFilter.id);
+    }
+    if (selectedStatusFilter === 'activos') {
+      result = result.filter(m => m.is_active === 1);
+    } else if (selectedStatusFilter === 'inactivos') {
+      result = result.filter(m => m.is_active === 0);
+    }
+    return result;
+  }, [modules, selectedAgentFilter, selectedStatusFilter]);
 
   useEffect(() => {
     const permissions = getPermissions();
@@ -218,87 +217,53 @@ export default function ModulosPage() {
         </div>
       </div>
 
-      {/* Filtro con Combobox searchable */}
-      <div className="flex items-center gap-3 mb-6">
-        <Combobox value={selectedAgentFilter} onChange={(agent) => { setSelectedAgentFilter(agent); setAgentQuery(''); }}>
-          <div className="relative w-72">
+      {/* Filtros (solo visibles para admin): Agente + Estado */}
+      {isAdmin && (
+        <div className="flex flex-wrap items-end gap-3 mb-6">
+          <div className="w-full sm:w-72">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Agente</label>
             <div className="relative">
-              <ComboboxInput
-                className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm bg-white"
-                displayValue={(agent: Agent | null) => agent?.name || ''}
+              <select
+                value={selectedAgentFilter?.id ?? ''}
                 onChange={(e) => {
-                  setAgentQuery(e.target.value);
-                  if (selectedAgentFilter) {
-                    setSelectedAgentFilter(null);
-                  }
+                  const val = e.target.value;
+                  setSelectedAgentFilter(val === '' ? null : (sortedAgents.find(a => a.id === parseInt(val)) ?? null));
                 }}
-                placeholder="Buscar agente..."
-              />
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm bg-white appearance-none"
+              >
+                <option value="">Todos los agentes</option>
+                {sortedAgents.map(agent => (
+                  <option key={agent.id} value={agent.id}>{agent.name}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
                 {selectedAgentFilter ? (
                   <AgentAvatar photo={selectedAgentFilter.photo} name={selectedAgentFilter.name} size="sm" />
-                ) : agentQuery && filteredAgentsForCombobox.length > 0 ? (
-                  <AgentAvatar photo={filteredAgentsForCombobox[0].photo} name={filteredAgentsForCombobox[0].name} size="sm" />
                 ) : (
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 )}
               </div>
-              <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
-                <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-              </ComboboxButton>
             </div>
-            <ComboboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white py-1 text-sm shadow-lg border border-gray-200">
-              <ComboboxOption
-                value={null}
-                className={({ active }) =>
-                  `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-[#5DE1E5] text-white' : 'text-gray-900'}`
-                }
-              >
-                {({ selected, active }) => (
-                  <>
-                    <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
-                      Todos los agentes
-                    </span>
-                    {selected && (
-                      <span className={`absolute inset-y-0 left-0 flex items-center pl-3 ${active ? 'text-white' : 'text-[#5DE1E5]'}`}>
-                        <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                      </span>
-                    )}
-                  </>
-                )}
-              </ComboboxOption>
-              {filteredAgentsForCombobox.map((agent) => (
-                <ComboboxOption
-                  key={agent.id}
-                  value={agent}
-                  className={({ active }) =>
-                    `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-[#5DE1E5] text-white' : 'text-gray-900'}`
-                  }
-                >
-                  {({ selected, active }) => (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <AgentAvatar photo={agent.photo} name={agent.name} size="sm" />
-                        <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
-                          {agent.name}
-                        </span>
-                      </div>
-                      {selected && (
-                        <span className={`absolute inset-y-0 left-0 flex items-center pl-3 ${active ? 'text-white' : 'text-[#5DE1E5]'}`}>
-                          <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                        </span>
-                      )}
-                    </>
-                  )}
-                </ComboboxOption>
-              ))}
-            </ComboboxOptions>
           </div>
-        </Combobox>
-        <span className="text-sm text-gray-500">{filteredModules.length} modulo(s)</span>
-      </div>
+
+          <div className="w-full sm:w-48">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+            <select
+              value={selectedStatusFilter}
+              onChange={(e) => setSelectedStatusFilter(e.target.value as 'activos' | 'inactivos' | 'todos')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm bg-white"
+            >
+              <option value="activos">Solo activos</option>
+              <option value="inactivos">Solo inactivos</option>
+              <option value="todos">Todos los estados</option>
+            </select>
+          </div>
+
+          <span className="text-sm text-gray-500 pb-2">{filteredModules.length} modulo(s)</span>
+        </div>
+      )}
 
       {/* Grid de cards */}
       {loadingModules ? (
