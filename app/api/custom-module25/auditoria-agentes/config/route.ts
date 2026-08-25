@@ -5,12 +5,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    // Devolver el api_key completo: la UI lo muestra oculto (password) y lo
+    // revela solo con el toggle; no enmascarar en el backend.
     const config = await getAllConfig();
-    // Enmascarar el api_key completo salvo los últimos 4 para mostrar en UI
-    if (config.api_key) {
-      const k = config.api_key;
-      config.api_key = k.length > 8 ? `${'*'.repeat(k.length - 4)}${k.slice(-4)}` : '****';
-    }
     return NextResponse.json({ ok: true, config });
   } catch (error: any) {
     return NextResponse.json({ ok: false, error: error?.message || 'Error al obtener configuracion' }, { status: 500 });

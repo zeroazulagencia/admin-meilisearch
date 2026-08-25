@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import * as XLSX from 'xlsx';
 import {
   ResponsiveContainer,
   LineChart,
@@ -104,6 +105,98 @@ function round1(n: unknown) {
   return Number.isFinite(x) ? Math.round(x * 10) / 10 : 0;
 }
 
+function _pad2(n: number) {
+  return String(n).padStart(2, '0');
+}
+
+function _fechaLocal(d: Date) {
+  return `${d.getFullYear()}-${_pad2(d.getMonth() + 1)}-${_pad2(d.getDate())}`;
+}
+
+function _fechaCorta(iso: string) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso ? String(iso).slice(0, 10) : '';
+  return _fechaLocal(d);
+}
+
+function _fmtTranscript(t: unknown): string {
+  if (typeof t === 'string') return t;
+  if (Array.isArray(t)) {
+    return t
+      .map((m: any) => {
+        if (typeof m === 'string') return m;
+        const quien = m.sender || m.author || m.role || m.user || 'Usuario';
+        const hora = m.timestamp || m.time || m.created_at || '';
+        const txt = m.text || m.message || m.content || m.body || JSON.stringify(m);
+        return hora ? `[${quien}] (${hora}) ${txt}` : `[${quien}] ${txt}`;
+      })
+      .join('\n');
+  }
+  return t ? JSON.stringify(t) : '';
+}
+
+function _mejoras(ex: Example): string {
+  const l = ex.puntos_de_mejora || [];
+  return l
+    .map((p) => (p.titulo ? p.titulo : p.descripcion || ''))
+    .filter(Boolean)
+    .join('; ');
+}
+
+function descargarExcel(registros: Registro[], agente: string) {
+  const filas: Record<string, string | number>[] = [];
+  registros.forEach((r) => {
+    const exs = r.examples || [];
+    const rs = r.summary || {};
+    if (exs.length === 0) {
+      filas.push({
+        Periodo: _fechaCorta(r.audit_start),
+        Agente: r.agente_id || '',
+        'Cliente / Empresa': r.cliente_empresa || r.agent_display_name || '',
+        Plataforma: r.plataforma || '',
+        Veredicto: rs.verdict || '',
+        Categoria: rs.nivel || '',
+        'Score general': rs.overall_score ?? '',
+        Precision: round1(rs.criteria_averages?.precision),
+        Tono: round1(rs.criteria_averages?.tono),
+        Resolucion: round1(rs.criteria_averages?.resolucion),
+        Claridad: round1(rs.criteria_averages?.claridad),
+        Seguimiento: round1(rs.criteria_averages?.seguimiento),
+        Fortalezas: '',
+        'Puntos de mejora': '',
+        Transcript: '',
+      });
+      return;
+    }
+    exs.forEach((ex) => {
+      const scores = ex.scores || rs.criteria_averages || {};
+      filas.push({
+        Periodo: _fechaCorta(r.audit_start),
+        Agente: r.agente_id || '',
+        'Cliente / Empresa': r.cliente_empresa || r.agent_display_name || '',
+        Plataforma: r.plataforma || '',
+        Veredicto: ex.verdict || rs.verdict || '',
+        Categoria: ex.nivel || rs.nivel || '',
+        'Score general': ex.puntaje_general ?? rs.overall_score ?? 0,
+        Precision: ex.scores ? round1(ex.scores.precision) : round1(rs.criteria_averages?.precision),
+        Tono: ex.scores ? round1(ex.scores.tono) : round1(rs.criteria_averages?.tono),
+        Resolucion: ex.scores ? round1(ex.scores.resolucion) : round1(rs.criteria_averages?.resolucion),
+        Claridad: ex.scores ? round1(ex.scores.claridad) : round1(rs.criteria_averages?.claridad),
+        Seguimiento: ex.scores ? round1(ex.scores.seguimiento) : round1(rs.criteria_averages?.seguimiento),
+        Fortalezas: (ex.fortalezas || []).join('; '),
+        'Puntos de mejora': _mejoras(ex),
+        Transcript: _fmtTranscript(ex.transcript),
+      });
+    });
+  });
+  if (filas.length === 0) return;
+  const ws = XLSX.utils.json_to_sheet(filas);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Auditorias');
+  const nombre = `auditoria_${agente || 'todos'}_${_fechaCorta(new Date().toISOString())}.xlsx`;
+  XLSX.writeFile(wb, nombre);
+}
+
 // ════════════════════ COMPONENTE PRINCIPAL ════════════════════
 export default function AuditoriaAgentesModule() {
   const [tab, setTab] = useState<TabId>('analisis');
@@ -172,13 +265,23 @@ export default function AuditoriaAgentesModule() {
           </p>
         </div>
         {agentes.length > 0 && tab !== 'config' && (
-          <select
-            value={selectedAgente}
-            onChange={(e) => setSelectedAgente(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white"
-          >
-            {agentes.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedAgente}
+              onChange={(e) => setSelectedAgente(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white"
+            >
+              {agentes.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+            <button
+              onClick={() => descargarExcel(datosAgente, selectedAgente)}
+              disabled={datosAgente.length === 0}
+              title="Descarga un .xlsx con todas las conversaciones auditadas del agente seleccionado. 'Descargar todo el histórico' incluye también las de otros periodos sin agente."
+              className="border border-blue-300 rounded-lg px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Descargar transcripciones (.xlsx)
+            </button>
+          </div>
         )}
       </div>
 
