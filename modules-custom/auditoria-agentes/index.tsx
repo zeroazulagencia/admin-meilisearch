@@ -205,18 +205,25 @@ export default function AuditoriaAgentesModule() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAgente, setSelectedAgente] = useState<string>('');
+  const [esAdmin, setEsAdmin] = useState(false);
 
   const [config, setConfig] = useState<Record<string, string>>({});
   const [configDirty, setConfigDirty] = useState(false);
+
+  const authHeaders = (): Record<string, string> => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('admin-user-id') : null;
+    return userId ? { 'x-admin-user-id': userId } : {};
+  };
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BASE}/auditoria/`, { cache: 'no-store' });
+      const res = await fetch(`${BASE}/auditoria/`, { cache: 'no-store', headers: { ...authHeaders() } });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'Error al cargar');
       setRegistros(json.registros || []);
+      setEsAdmin(json.esAdmin === true);
       const ags = (json.agentes || []).map((a: any) => a.agente);
       setAgentes(ags);
       if (ags.length > 0) setSelectedAgente((prev) => (prev ? prev : ags[0]));
@@ -229,7 +236,7 @@ export default function AuditoriaAgentesModule() {
 
   const loadConfig = async () => {
     try {
-      const res = await fetch(`${BASE}/config/`, { cache: 'no-store' });
+      const res = await fetch(`${BASE}/config/`, { cache: 'no-store', headers: { ...authHeaders() } });
       const json = await res.json();
       if (json.ok) setConfig(json.config || {});
     } catch { /* silencio */ }
@@ -237,6 +244,13 @@ export default function AuditoriaAgentesModule() {
 
   useEffect(() => { loadData(); loadConfig(); }, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+
+  // Redirigir a no-admins fuera de tabs restringidas
+  useEffect(() => {
+    if (!esAdmin && (tab === 'comparativa' || tab === 'config')) {
+      setTab('analisis');
+    }
+  }, [esAdmin, tab]);
 
   const datosAgente = useMemo(() => {
     return registros.filter((r) => !selectedAgente || r.agente_id === selectedAgente);
@@ -246,7 +260,7 @@ export default function AuditoriaAgentesModule() {
     try {
       const res = await fetch(`${BASE}/config/`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(config),
       });
       const json = await res.json();
@@ -254,6 +268,10 @@ export default function AuditoriaAgentesModule() {
       else alert(json.error || 'Error al guardar');
     } catch (e: any) { alert(e.message || 'Error'); }
   };
+
+  const visibleTabs = useMemo(() => {
+    return tabs.filter((t) => t.id === 'analisis' || esAdmin);
+  }, [esAdmin]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
@@ -264,7 +282,7 @@ export default function AuditoriaAgentesModule() {
             Resultados de auditorías automáticas de bots WhatsApp/Instagram generadas por n8n.
           </p>
         </div>
-        {agentes.length > 0 && tab !== 'config' && (
+        {agentes.length > 0 && tab !== 'config' && esAdmin && (
           <div className="flex items-center gap-2">
             <select
               value={selectedAgente}
@@ -287,7 +305,7 @@ export default function AuditoriaAgentesModule() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200">
-        {tabs.map((t) => (
+        {visibleTabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
@@ -312,10 +330,10 @@ export default function AuditoriaAgentesModule() {
       {!loading && !error && tab === 'analisis' && (
         <AnalisisView registros={datosAgente} agente={selectedAgente} />
       )}
-      {!loading && !error && tab === 'comparativa' && (
+      {!loading && !error && tab === 'comparativa' && esAdmin && (
         <ComparativaView registros={registros} />
       )}
-      {!loading && !error && tab === 'config' && (
+      {!loading && !error && tab === 'config' && esAdmin && (
         <ConfigView config={config} setConfig={setConfig} configDirty={configDirty}
           setConfigDirty={setConfigDirty} onSave={saveConfig} />
       )}
