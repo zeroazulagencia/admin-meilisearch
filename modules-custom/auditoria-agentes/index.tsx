@@ -193,7 +193,9 @@ function descargarExcel(registros: Registro[], agente: string) {
   const ws = XLSX.utils.json_to_sheet(filas);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Auditorias');
-  const nombre = `auditoria_${agente || 'todos'}_${_fechaCorta(new Date().toISOString())}.xlsx`;
+  const primerRegistro = registros[0];
+  const fechaPeriodo = primerRegistro ? _fechaCorta(primerRegistro.audit_start) : _fechaCorta(new Date().toISOString());
+  const nombre = `auditoria_${agente || 'todos'}_${fechaPeriodo}.xlsx`;
   XLSX.writeFile(wb, nombre);
 }
 
@@ -282,7 +284,7 @@ export default function AuditoriaAgentesModule() {
             Resultados de auditorías automáticas de bots WhatsApp/Instagram generadas por n8n.
           </p>
         </div>
-        {agentes.length > 0 && tab !== 'config' && esAdmin && (
+        {(agentes.length > 0 && tab !== 'config') && (
           <div className="flex items-center gap-2">
             <select
               value={selectedAgente}
