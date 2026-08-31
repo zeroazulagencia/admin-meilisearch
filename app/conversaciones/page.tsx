@@ -7,6 +7,7 @@ import ProtectedLayout from '@/components/ProtectedLayout';
 import AgentSelector from '@/components/ui/AgentSelector';
 import NoticeModal from '@/components/ui/NoticeModal';
 import KpiDashboard from '@/app/omnicanalidad/components/KpiDashboard';
+import DashboardConversaciones from '@/components/dashboard/DashboardConversaciones';
 import { classifyQueryType, classifyConversation } from '@/app/omnicanalidad/utils/query-classifier';
 
 interface ConversationGroup {
@@ -1030,6 +1031,26 @@ export default function Conversaciones() {
             <div className="mb-6">
               <KpiDashboard documents={allDocumentsForCSV} agentName="amistoso" mensajesPorTipo={mensajesPorTipo} dateFrom={dateFrom} dateTo={dateTo} />
             </div>
+        )}
+
+        {/* Dashboard Conversaciones - Solo para agente Lucas (Autolarte) */}
+        {selectedAgent === 'Lucas' && selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
+          <div className="mb-6">
+            {(() => {
+              const agent = allPlatformAgents.find(p => p.id === parseInt(selectedPlatformAgent));
+              const displayName = agent?.name || 'Lucas';
+              return (
+                <DashboardConversaciones
+                  documents={allDocumentsForCSV}
+                  mensajesPorTipo={mensajesPorTipo}
+                  agentName="Lucas"
+                  agentDisplayName={displayName}
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
+                />
+              );
+            })()}
+          </div>
         )}
 
         {selectedAgent === 'all' || !selectedPlatformAgent || selectedPlatformAgent === 'all' ? (
