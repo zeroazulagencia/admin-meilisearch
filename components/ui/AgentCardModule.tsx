@@ -17,10 +17,23 @@ interface Agent {
   workflows?: { workflowIds?: number[] };
 }
 
-const AgentAvatar = ({ photo, name, size = 14 }: { photo?: string | null; name: string; size?: number }) => {
+const AgentTooltip = ({ description, children }: { description?: string | null; children: React.ReactNode }) => {
+  if (!description) return <>{children}</>;
+  return (
+    <div className="group/tooltip relative inline-flex">
+      {children}
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-normal max-w-[220px] text-center z-50">
+        {description}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-gray-900 rotate-45" />
+      </div>
+    </div>
+  );
+};
+
+const AgentAvatar = ({ photo, name, size = 14, description }: { photo?: string | null; name: string; size?: number; description?: string | null }) => {
   const [imgError, setImgError] = useState(false);
   const px = size * 4;
-  return (
+  const avatar = (
     <div
       className="shrink-0 rounded-full overflow-hidden bg-gray-100 ring-2 ring-white"
       style={{ width: px, height: px, minWidth: px, minHeight: px }}
@@ -34,6 +47,7 @@ const AgentAvatar = ({ photo, name, size = 14 }: { photo?: string | null; name: 
       )}
     </div>
   );
+  return <AgentTooltip description={description}>{avatar}</AgentTooltip>;
 };
 
 const StatusBadge = ({ status }: { status?: string }) => {
@@ -47,10 +61,11 @@ const StatusBadge = ({ status }: { status?: string }) => {
     inactive: 'Inactivo',
     pause: 'Pausado',
   };
+  const isInactive = !status || status !== 'active';
   const color = colors[status || ''] || 'bg-gray-100 text-gray-500';
   const label = labels[status || ''] || status || 'Desconocido';
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${color} ${isInactive ? 'opacity-60' : ''}`}>
       <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${status === 'active' ? 'bg-green-500' : status === 'pause' ? 'bg-yellow-500' : 'bg-gray-400'}`} />
       {label}
     </span>
@@ -106,6 +121,7 @@ export default function AgentCardModule() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(agent => {
+          const isActive = agent.status === 'active';
           const clientName = agent.client_name
             ? agent.client_name.charAt(0).toUpperCase() + agent.client_name.slice(1)
             : '';
@@ -116,26 +132,36 @@ export default function AgentCardModule() {
           return (
             <div
               key={agent.id}
-              className="bg-white border border-gray-200 rounded-xl p-5 hover:border-[#5DE1E5] hover:shadow-sm transition-all group"
+              className={`rounded-xl p-5 transition-all group ${
+                isActive
+                  ? 'bg-white border border-gray-200 hover:border-[#5DE1E5] hover:shadow-sm'
+                  : 'bg-gray-50 border border-gray-200 opacity-70 grayscale-[0.3]'
+              }`}
             >
-              <div className="flex items-start gap-3">
-                <AgentAvatar photo={agent.photo} name={agent.name} size={10} />
+              <div className="flex items-start gap-4">
+                <AgentAvatar photo={agent.photo} name={agent.name} size={14} description={agent.description} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-900 truncate group-hover:text-[#5DE1E5] transition-colors">
+                    <h3 className={`text-sm font-semibold truncate transition-colors ${
+                      isActive ? 'text-gray-900 group-hover:text-[#5DE1E5]' : 'text-gray-500'
+                    }`}>
                       {agent.name.toUpperCase()}
                     </h3>
                     <StatusBadge status={agent.status} />
                   </div>
                   {agent.description && (
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{agent.description}</p>
+                    <p className={`text-xs mt-1 line-clamp-2 ${
+                      isActive ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
+                      {agent.description}
+                    </p>
                   )}
                 </div>
               </div>
 
               {clientName && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className={`mt-3 pt-3 border-t ${isActive ? 'border-gray-100' : 'border-gray-200'}`}>
+                  <div className={`flex items-center gap-2 text-xs ${isActive ? 'text-gray-500' : 'text-gray-400'}`}>
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
@@ -144,7 +170,7 @@ export default function AgentCardModule() {
                 </div>
               )}
 
-              <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
+              <div className={`mt-3 flex items-center gap-3 text-xs ${isActive ? 'text-gray-400' : 'text-gray-300'}`}>
                 <span className="inline-flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 21h10" />

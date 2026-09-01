@@ -10,6 +10,7 @@ interface Agent {
   name: string;
   status: string;
   photo?: string | null;
+  description?: string | null;
   client_id?: number;
   agent_code?: string;
   client_name?: string;
@@ -23,19 +24,34 @@ function formatAgent(agent: Agent): string {
   return clientName ? `${nameUpper} - ${clientName}` : nameUpper;
 }
 
+const AgentTooltip = ({ description, children }: { description?: string | null; children: React.ReactNode }) => {
+  if (!description) return <>{children}</>;
+  return (
+    <div className="group/tooltip relative inline-flex">
+      {children}
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-normal max-w-[220px] text-center z-50">
+        {description}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-gray-900 rotate-45" />
+      </div>
+    </div>
+  );
+};
+
 const AgentAvatar = ({
   photo,
   name,
-  size = 10,
+  size = 12,
+  description,
 }: {
   photo?: string | null;
   name: string;
   size?: number;
+  description?: string | null;
 }) => {
   const [imgError, setImgError] = useState(false);
   const px = size * 4;
 
-  return (
+  const avatar = (
     <div
       className="shrink-0 rounded-full overflow-hidden bg-gray-100"
       style={{ width: px, height: px, minWidth: px, minHeight: px }}
@@ -54,6 +70,7 @@ const AgentAvatar = ({
       )}
     </div>
   );
+  return <AgentTooltip description={description}>{avatar}</AgentTooltip>;
 };
 
 export default function AgentSelectModule() {
@@ -236,12 +253,16 @@ export default function AgentSelectModule() {
                           setQuery('');
                           setOpen(false);
                         }}
-                        className={`group relative cursor-default py-2 pl-3 pr-9 text-gray-900 select-none hover:bg-[#5DE1E5] hover:text-white ${
+                        className={`group relative cursor-default py-2 pl-3 pr-9 select-none ${
                           isSelected ? 'bg-[#5DE1E5]/10' : ''
+                        } ${
+                          agent.status !== 'active' && agent.status !== undefined
+                            ? 'text-gray-400 hover:text-gray-500 hover:bg-gray-50'
+                            : 'text-gray-900 hover:bg-[#5DE1E5] hover:text-white'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <AgentAvatar photo={agent.photo} name={agent.name} size={10} />
+                          <AgentAvatar photo={agent.photo} name={agent.name} size={12} description={agent.description} />
                           <div className="flex flex-col min-w-0 flex-1">
                             <span
                               className={`block truncate text-sm ${
@@ -277,7 +298,7 @@ export default function AgentSelectModule() {
       {/* Selected agent card */}
       {selected && (
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center gap-4">
-          <AgentAvatar photo={selected.photo} name={selected.name} size={12} />
+          <AgentAvatar photo={selected.photo} name={selected.name} size={14} description={selected.description} />
           <div>
             <p className="text-sm font-semibold text-gray-900">{formatAgent(selected)}</p>
             <div className="flex items-center gap-2 mt-0.5">

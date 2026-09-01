@@ -37,19 +37,34 @@ function formatAgent(agent: Agent): string {
   return clientName ? `${nameUpper} - ${clientName}` : nameUpper;
 }
 
+const AgentTooltip = ({ description, children }: { description?: string | null; children: React.ReactNode }) => {
+  if (!description) return <>{children}</>;
+  return (
+    <div className="group/tooltip relative inline-flex">
+      {children}
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-normal max-w-[220px] text-center z-50">
+        {description}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-gray-900 rotate-45" />
+      </div>
+    </div>
+  );
+};
+
 const AgentAvatar = ({
   photo,
   name,
-  size = 10,
+  size = 12,
+  description,
 }: {
   photo?: string | null;
   name: string;
   size?: number;
+  description?: string | null;
 }) => {
   const [imgError, setImgError] = useState(false);
   const px = size * 4;
 
-  return (
+  const avatar = (
     <div
       className="shrink-0 rounded-full overflow-hidden bg-gray-100"
       style={{ width: px, height: px, minWidth: px, minHeight: px }}
@@ -68,6 +83,7 @@ const AgentAvatar = ({
       )}
     </div>
   );
+  return <AgentTooltip description={description}>{avatar}</AgentTooltip>;
 };
 
 export default function AgentSelector({
@@ -109,7 +125,7 @@ export default function AgentSelector({
   }, []);
 
   // Opción "Todos" si aplica
-  const allOption = includeAllOption ? { id: 'all', name: allOptionLabel, photo: null, client_name: undefined } : null;
+  const allOption = includeAllOption ? { id: 'all' as const, name: allOptionLabel, photo: null, client_name: undefined, status: undefined, description: undefined } : null;
   const displayAgents = allOption ? [allOption, ...agents] : agents;
 
   const getText = (agent: Agent): string => {
@@ -183,6 +199,7 @@ export default function AgentSelector({
               filteredAgents.map(agent => {
                 const isSelected = currentSelected?.id === agent.id;
                 const isAll = agent.id === 'all';
+                const isInactive = !isAll && agent.status && agent.status !== 'active';
 
                 return (
                   <div
@@ -198,7 +215,9 @@ export default function AgentSelector({
                       setQuery('');
                       setOpen(false);
                     }}
-                    className={`group relative cursor-default py-2 pl-3 pr-9 text-gray-900 select-none hover:bg-[#5DE1E5] hover:text-white ${
+                    className={`group relative cursor-default py-2 pl-3 pr-9 select-none ${
+                      isInactive ? 'text-gray-400 hover:text-gray-500 hover:bg-gray-50' : 'text-gray-900 hover:bg-[#5DE1E5] hover:text-white'
+                    } ${
                       isSelected ? 'bg-[#5DE1E5]/10' : ''
                     }`}
                   >
@@ -206,12 +225,12 @@ export default function AgentSelector({
                       {isAll ? (
                         <div
                           className="shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-medium"
-                          style={{ width: 40, height: 40, minWidth: 40, minHeight: 40 }}
+                          style={{ width: 48, height: 48, minWidth: 48, minHeight: 48 }}
                         >
                           <span className="text-lg">⊞</span>
                         </div>
                       ) : (
-                        <AgentAvatar photo={agent.photo} name={agent.name} size={10} />
+                        <AgentAvatar photo={agent.photo} name={agent.name} size={12} description={agent.description} />
                       )}
                       <div className="flex flex-col min-w-0 flex-1">
                         <span
@@ -221,9 +240,18 @@ export default function AgentSelector({
                         >
                           {getText(agent)}
                         </span>
+                        {!isAll && agent.description && (
+                          <span className={`block truncate text-xs mt-0.5 ${
+                            isInactive ? 'text-gray-300' : 'text-gray-400 group-hover:text-white/70'
+                          }`}>
+                            {agent.description}
+                          </span>
+                        )}
                       </div>
                       {isSelected && (
-                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-[#5DE1E5] group-hover:text-white">
+                        <span className={`absolute inset-y-0 right-0 flex items-center pr-3 ${
+                          isInactive ? 'text-gray-300' : 'text-[#5DE1E5] group-hover:text-white'
+                        }`}>
                           <CheckIcon className="size-4" />
                         </span>
                       )}
