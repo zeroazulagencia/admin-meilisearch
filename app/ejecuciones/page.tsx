@@ -16,6 +16,7 @@ interface AgentDB {
   name: string;
   description?: string;
   photo?: string;
+  status?: string;
   workflows?: any;
 }
 
@@ -47,20 +48,21 @@ export default function Ejecuciones() {
   const [allWorkflows, setAllWorkflows] = useState<Workflow[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<any>(null);
 
-  // Filtrar agentes según permisos
+  // Filtrar agentes: solo activos y según permisos
   const agents = (() => {
+    const activeAgents = allAgents.filter(a => a.status === 'active');
     const permissions = getPermissions();
     const userId = getUserId();
-    
-    if (!permissions || !userId) return allAgents;
-    if (permissions.type === 'admin') return allAgents;
-    
+
+    if (!permissions || !userId) return activeAgents;
+    if (permissions.type === 'admin') return activeAgents;
+
     // Si no tiene permiso viewAll, filtrar solo sus agentes
     if (!permissions.ejecuciones?.viewAll) {
-      return allAgents.filter(a => a.client_id === parseInt(userId));
+      return activeAgents.filter(a => a.client_id === parseInt(userId));
     }
-    
-    return allAgents;
+
+    return activeAgents;
   })();
   useEffect(() => {
     const loadAgents = async () => {

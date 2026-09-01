@@ -17,6 +17,7 @@ import {
   CircleStackIcon,
   Squares2X2Icon,
   MapIcon,
+  CodeBracketIcon,
 } from '@heroicons/react/24/outline';
 import SidebarItem from './SidebarItem';
 import settings from '@/settings.json';
@@ -95,6 +96,7 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     { href: '/conversaciones', label: 'Conversaciones', perm: 'conversaciones', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
     { href: '/roadmap', label: 'Roadmap', perm: 'roadmap', icon: <MapIcon className="w-5 h-5" /> },
     { href: '/db-manager', label: 'DB Manager', perm: 'dbManager', icon: <CircleStackIcon className="w-5 h-5" /> },
+    { href: '/ui', label: 'UI', perm: 'ui', icon: <CodeBracketIcon className="w-5 h-5" /> },
     // Consumo API y Developers ocultados por solicitud del admin
   ];
 
@@ -112,6 +114,11 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     // DB Manager solo para admins
     if (item.perm === 'dbManager') {
       return permissions.type === 'admin';
+    }
+    
+    // UI solo para superadmin (admin@zeroazul.com)
+    if (item.perm === 'ui') {
+      return permissions.type === 'admin' && user?.email === 'admin@zeroazul.com';
     }
     
     // Admin tiene acceso a todo
@@ -133,16 +140,52 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     // Si tiene permiso de ver (propios o todos) o editar (propios o todos), tiene acceso
     const hasAccess = sectionPerms.viewOwn === true || sectionPerms.viewAll === true || sectionPerms.editOwn === true || sectionPerms.editAll === true;
     return hasAccess;
-  }).map(item => {
-    // Cambiar label para clientes
-    if (item.perm === 'adminConocimiento' && permissions && permissions.type !== 'admin') {
-      return { ...item, label: 'Conocimiento' };
+  });
+
+  // Separar items en Cliente y Admin
+  const clientePerms = ['agentes', 'modulos', 'adminConocimiento', 'reportes', 'conversaciones'];
+  const clienteItems: NavItem[] = [];
+  const adminItems: NavItem[] = [];
+
+  navItems.forEach(item => {
+    if (clientePerms.includes(item.perm)) {
+      clienteItems.push(item);
+    } else {
+      adminItems.push(item);
     }
-    return item;
+  });
+
+  // Cambiar label 'Admin Conocimiento' → 'Conocimiento' en cliente
+  clienteItems.forEach(item => {
+    if (item.perm === 'adminConocimiento') {
+      item.label = 'Conocimiento';
+    }
   });
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  const renderSection = (title: string, items: NavItem[]) => {
+    if (items.length === 0) return null;
+    return (
+      <>
+        {!isCollapsed && (
+          <div className="px-3 py-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{title}</span>
+          </div>
+        )}
+        {items.map((item) => (
+          <SidebarItem
+            key={item.href}
+            href={item.href}
+            icon={item.icon}
+            label={item.label}
+            isCollapsed={isCollapsed}
+          />
+        ))}
+      </>
+    );
   };
 
   return (
@@ -195,15 +238,13 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
 
         {/* Navegación */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1 sidebar-scrollbar">
-          {navItems.map((item) => (
-            <SidebarItem
-              key={item.href}
-              href={item.href}
-              icon={item.icon}
-              label={item.label}
-              isCollapsed={isCollapsed}
-            />
-          ))}
+          {renderSection('Cliente', clienteItems)}
+          {adminItems.length > 0 && (
+            <>
+              {!isCollapsed && <div className="my-2 border-t border-gray-200" />}
+              {renderSection('Admin', adminItems)}
+            </>
+          )}
         </nav>
 
         {/* Footer del Sidebar - Usuario y Logout */}

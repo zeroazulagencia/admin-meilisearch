@@ -3,10 +3,9 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const MODEL = 'gpt-image-1';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const MODEL = 'openai/gpt-image-1';
 const AVATARS_DIR = join(process.cwd(), 'public', 'agent-avatars');
-const MAX_SIZE = 800; // Máximo 800x800px
 
 // Asegurar que el directorio existe
 async function ensureDir() {
@@ -26,10 +25,6 @@ async function downloadAndSaveImage(imageUrl: string): Promise<string> {
 
     const imageBuffer = await imageResponse.arrayBuffer();
     const buffer = Buffer.from(imageBuffer);
-    
-    // Usar sharp si está disponible, sino usar canvas o simplemente guardar
-    // Por ahora, guardamos directamente y el frontend puede procesarla si es necesario
-    // En el futuro se puede agregar sharp para procesamiento en servidor
     
     await ensureDir();
     
@@ -53,9 +48,9 @@ async function downloadAndSaveImage(imageUrl: string): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
-    if (!OPENAI_API_KEY) {
+    if (!OPENROUTER_API_KEY) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY no está configurada' },
+        { error: 'OPENROUTER_API_KEY no está configurada' },
         { status: 500 }
       );
     }
@@ -70,12 +65,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Llamar a la API de OpenAI GPT Image 1
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
+    // Llamar a OpenRouter API (compatible con OpenAI)
+    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://workers.zeroazul.com',
+        'X-Title': 'Workers Admin'
       },
       body: JSON.stringify({
         model: MODEL,
@@ -87,17 +84,17 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-      console.error('OpenAI API error:', errorData);
+      console.error('OpenRouter API error:', errorData);
       return NextResponse.json(
-        { error: errorData.error?.message || 'Error al generar la imagen' },
+        { error: errorData.error?.message || errorData.error || 'Error al generar la imagen' },
         { status: response.status }
       );
     }
 
     const data = await response.json();
-    console.log('OpenAI API response:', JSON.stringify(data, null, 2));
+    console.log('OpenRouter API response:', JSON.stringify(data, null, 2));
     
-    // Intentar diferentes estructuras de respuesta
+    // Intentar diferentes estructuras de respuesta (OpenRouter sigue el formato de OpenAI)
     let imageUrl = data.data?.[0]?.url || data.url || data.image_url || data.imageUrl;
     
     // Si no hay URL, verificar si hay base64
@@ -109,7 +106,7 @@ export async function POST(request: NextRequest) {
     if (!imageUrl) {
       console.error('Estructura de respuesta inesperada:', data);
       return NextResponse.json(
-        { error: 'No se recibió URL de imagen de OpenAI. Estructura de respuesta: ' + JSON.stringify(data) },
+        { error: 'No se recibió URL de imagen de OpenRouter. Estructura de respuesta: ' + JSON.stringify(data) },
         { status: 500 }
       );
     }
@@ -132,4 +129,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

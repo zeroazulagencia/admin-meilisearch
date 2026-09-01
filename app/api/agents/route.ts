@@ -54,8 +54,8 @@ export async function GET() {
       reportsAgentNameExists = false;
     }
     
-    // Construir query base
-    let baseFields = 'id, client_id, name, description, photo, email, phone, agent_code, status, knowledge, workflows, conversation_agent_name, monthly_value_usd';
+    // Construir query base con JOIN a clients
+    let baseFields = 'a.id, a.client_id, a.name, a.description, a.photo, a.email, a.phone, a.agent_code, a.status, a.knowledge, a.workflows, a.conversation_agent_name, a.monthly_value_usd, COALESCE(c.name, \'\') as client_name';
     let queryFields = baseFields;
     
     // Agregar campos opcionales si existen
@@ -74,7 +74,7 @@ export async function GET() {
     // Intentar cargar con los campos disponibles
     let rows: any[] = [];
     try {
-      const [result] = await query<any>(`SELECT ${queryFields} FROM agents ORDER BY id`);
+      const [result] = await query<any>(`SELECT ${queryFields} FROM agents a LEFT JOIN clients c ON a.client_id = c.id ORDER BY a.id`);
       rows = result || [];
       console.log('[API AGENTS] [GET] Agentes cargados exitosamente:', rows.length);
     } catch (e: any) {
@@ -82,7 +82,7 @@ export async function GET() {
       
       // Si falla, intentar solo con campos base
       try {
-        const [result] = await query<any>(`SELECT ${baseFields} FROM agents ORDER BY id`);
+        const [result] = await query<any>(`SELECT ${baseFields} FROM agents a LEFT JOIN clients c ON a.client_id = c.id ORDER BY a.id`);
         rows = result || [];
         console.log('[API AGENTS] [GET] Agentes cargados con campos base:', rows.length);
       } catch (e2: any) {
