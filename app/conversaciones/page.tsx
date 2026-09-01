@@ -819,10 +819,6 @@ export default function Conversaciones() {
           placeholder="Todos los agentes"
           includeAllOption={true}
           allOptionLabel="Todos los agentes"
-          getDisplayText={(agent) => {
-            if (agent.id === 'all') return agent.name;
-            return `${agent.name} ${agent.conversation_agent_name ? `(${agent.conversation_agent_name})` : '(sin identificar)'}`;
-          }}
           loading={!agentsInitialized}
           className="w-full"
         />

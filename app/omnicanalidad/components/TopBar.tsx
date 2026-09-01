@@ -100,7 +100,6 @@ export default function TopBar({ selectedAgentName, onAgentChange, totalUnreadCo
             }}
             placeholder="Seleccionar agente..."
             loading={loadingAgents}
-            getDisplayText={(agent) => agent.name || agent.conversation_agent_name || 'Sin nombre'}
           />
         </div>
         {totalUnreadCount > 0 && (

@@ -24,7 +24,6 @@ interface AgentSelectorProps {
   placeholder?: string;
   includeAllOption?: boolean;
   allOptionLabel?: string;
-  getDisplayText?: (agent: Agent) => string;
   loading?: boolean;
   className?: string;
 }
@@ -94,7 +93,6 @@ export default function AgentSelector({
   placeholder = 'Seleccionar agente...',
   includeAllOption = false,
   allOptionLabel = 'Todos los agentes',
-  getDisplayText,
   loading = false,
   className = '',
 }: AgentSelectorProps) {
@@ -128,19 +126,13 @@ export default function AgentSelector({
   const allOption = includeAllOption ? { id: 'all' as const, name: allOptionLabel, photo: null, client_name: undefined, status: undefined, description: undefined } : null;
   const displayAgents = allOption ? [allOption, ...agents] : agents;
 
-  const getText = (agent: Agent): string => {
-    if (agent.id === 'all') return agent.name;
-    if (getDisplayText) return getDisplayText(agent);
-    return formatAgent(agent);
-  };
-
   const filteredAgents = useMemo(
     () =>
       query === ''
         ? displayAgents
         : displayAgents.filter(a => {
             if (a.id === 'all') return true;
-            const text = getText(a).toLowerCase();
+            const text = formatAgent(a).toLowerCase();
             const name = a.name.toLowerCase();
             const client = (a.client_name ?? '').toLowerCase();
             return (
@@ -172,7 +164,7 @@ export default function AgentSelector({
           <input
             type="text"
             placeholder={placeholder}
-            value={currentSelected && !open ? getText(currentSelected) : query}
+            value={currentSelected && !open ? formatAgent(currentSelected) : query}
             onChange={e => setQuery(e.target.value)}
             onFocus={() => setOpen(true)}
             className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5DE1E5] focus:border-[#5DE1E5] transition-shadow"
@@ -238,16 +230,14 @@ export default function AgentSelector({
                             isSelected ? 'font-semibold' : 'font-normal'
                           }`}
                         >
-                          {getText(agent)}
+                          {formatAgent(agent)}
                         </span>
-                        {!isAll && agent.description && (
-                          <span className={`block truncate text-xs mt-0.5 ${
-                            isInactive ? 'text-gray-300' : 'text-gray-400 group-hover:text-white/70'
-                          }`}>
-                            {agent.description}
-                          </span>
-                        )}
                       </div>
+                      {!isAll && isInactive && (
+                        <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500">
+                          Inactivo
+                        </span>
+                      )}
                       {isSelected && (
                         <span className={`absolute inset-y-0 right-0 flex items-center pr-3 ${
                           isInactive ? 'text-gray-300' : 'text-[#5DE1E5] group-hover:text-white'

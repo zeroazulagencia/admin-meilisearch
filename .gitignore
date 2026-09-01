@@ -51,3 +51,5 @@ database/*.dump
 public/agent-avatars/*
 !public/agent-avatars/.gitkeep
 .backups/
+.env.bak*
+cartas-pdf/generador-carta-laboral/

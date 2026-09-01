@@ -580,10 +580,6 @@ export default function Reportes() {
           placeholder="Todos los agentes"
           includeAllOption={true}
           allOptionLabel="Todos los agentes"
-          getDisplayText={(agent) => {
-            if (agent.id === 'all') return agent.name;
-            return `${agent.name} ${agent.reports_agent_name ? `(${agent.reports_agent_name})` : '(sin identificar)'}`;
-          }}
           loading={!agentsInitialized}
           className="w-full"
         />

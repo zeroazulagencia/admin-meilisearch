@@ -1614,10 +1614,6 @@ export default function AdminConocimiento() {
               }
             }}
             placeholder="Seleccionar agente..."
-            getDisplayText={(agent) => {
-              const indexes = agent.knowledge?.indexes || [];
-              return `${agent.name} (${indexes.length} índice${indexes.length !== 1 ? 's' : ''})`;
-            }}
             className="w-full"
           />
           {selectedAgent && (

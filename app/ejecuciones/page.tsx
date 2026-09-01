@@ -873,11 +873,6 @@ export default function Ejecuciones() {
             }
           }}
           placeholder="Seleccionar agente..."
-          getDisplayText={(agent) => {
-            const workflowIds = agent.workflows?.workflowIds || [];
-            const cnt = Array.isArray(workflowIds) ? workflowIds.length : 0;
-            return `${agent.name} ${cnt ? `(${cnt} flujos)` : '(sin flujos)'}`;
-          }}
           className="w-full"
         />
         {selectedAgent && (
