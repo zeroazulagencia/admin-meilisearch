@@ -20,6 +20,7 @@ interface AgentDB {
   knowledge?: any;
   workflows?: any;
   conversation_agent_name?: string;
+  client_name?: string;
 }
 
 interface Client {
@@ -28,6 +29,50 @@ interface Client {
   email?: string;
   company?: string;
 }
+
+interface Module {
+  id: number;
+  agent_id: number;
+  title: string;
+}
+
+function parseWorkflows(w: any): { count: number; ids: string[] } {
+  if (!w) return { count: 0, ids: [] };
+  try {
+    const parsed = typeof w === 'string' ? JSON.parse(w) : w;
+    if (parsed?.workflowIds && Array.isArray(parsed.workflowIds)) {
+      return { count: parsed.workflowIds.length, ids: parsed.workflowIds };
+    }
+  } catch {}
+  return { count: 0, ids: [] };
+}
+
+function parseKnowledge(k: any): { count: number; names: string[] } {
+  if (!k) return { count: 0, names: [] };
+  try {
+    const parsed = typeof k === 'string' ? JSON.parse(k) : k;
+    if (parsed?.indexes && Array.isArray(parsed.indexes)) {
+      return { count: parsed.indexes.length, names: parsed.indexes };
+    }
+  } catch {}
+  return { count: 0, names: [] };
+}
+
+// Tooltip Tailwind no nativo — ancho y no interfiere con descripción de la card
+const AgentTooltip = ({ description, children }: { description?: string | null; children: React.ReactNode }) => {
+  if (!description) return <>{children}</>;
+  return (
+    <div className="group/tooltip relative inline-flex">
+      {children}
+      <div className="pointer-events-none absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200">
+        <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 min-w-[200px] max-w-[300px] shadow-lg whitespace-normal break-words text-center">
+          {description}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function Agentes() {
   const router = useRouter();
@@ -38,84 +83,49 @@ export default function Agentes() {
   const [selectedStatus, setSelectedStatus] = useState<string>('active');
   const [searchName, setSearchName] = useState<string>('');
   const [filteredAgents, setFilteredAgents] = useState<AgentDB[]>([]);
-  
+  const [modulesByAgent, setModulesByAgent] = useState<Record<number, Module[]>>({});
+
   useEffect(() => {
-    // Cargar clientes desde MySQL
     const loadClients = async () => {
       try {
         console.log('[AGENTES] UI version:', settings?.proyecto?.version || 'unknown');
-        if (typeof window !== 'undefined') {
-          try {
-            console.log('[AGENTES] LocalStorage admin_agents exists?:', !!localStorage.getItem('admin_agents'));
-            console.log('[AGENTES] LocalStorage admin_clients exists?:', !!localStorage.getItem('admin_clients'));
-          } catch (e) {
-            console.warn('[AGENTES] Unable to read localStorage keys');
-          }
-        }
-        console.log('[AGENTES] Loading clients...');
         const res = await fetch('/api/clients');
         const data = await res.json();
-        console.log('[AGENTES] Clients response:', data);
         if (data.ok && data.clients) {
-          console.log('[AGENTES] Setting clients (count):', data.clients.length);
           setClients(data.clients);
         }
       } catch (err) {
         console.error('[AGENTES] Error cargando clientes:', err);
       }
     };
-    
     loadClients();
   }, []);
 
   useEffect(() => {
     const loadAgents = async () => {
       try {
-        console.log('[AGENTES] Loading agents from MySQL...');
         const res = await fetch('/api/agents');
         const data = await res.json();
-        console.log('[AGENTES] Agents response ok?:', data?.ok, 'count:', Array.isArray(data?.agents) ? data.agents.length : 'n/a');
         if (data.ok && data.agents) {
           let list: AgentDB[] = data.agents;
-          
-          // Aplicar filtros de permisos
+
           const permissions = getPermissions();
           const userId = getUserId();
-          console.log('[AGENTES] Permisos:', permissions, 'userId:', userId);
-          
+
           if (permissions && userId && permissions.type !== 'admin') {
-            // Si no es admin, verificar permisos
             const agentesPerms = permissions.agentes;
-            console.log('[AGENTES] Permisos de agentes:', agentesPerms);
-            
             if (agentesPerms) {
-              // Si tiene viewAll, mostrar todos los agentes
               if (agentesPerms.viewAll === true) {
-                console.log('[AGENTES] Tiene viewAll, mostrando todos los agentes');
               } else if (agentesPerms.viewOwn === true) {
-                // Si solo tiene viewOwn, filtrar solo sus agentes
-                console.log('[AGENTES] Solo tiene viewOwn, filtrando agentes del cliente:', userId);
                 list = list.filter(a => a.client_id === parseInt(userId));
-                console.log('[AGENTES] Agentes filtrados:', list.length);
               } else {
-                // No tiene permisos de ver, no mostrar nada
-                console.log('[AGENTES] No tiene permisos de ver agentes');
                 list = [];
               }
             } else {
-              // No hay permisos configurados, no mostrar nada
-              console.log('[AGENTES] No hay permisos configurados para agentes');
               list = [];
             }
-          } else if (permissions && permissions.type === 'admin') {
-            // Admin ve todos los agentes
-            console.log('[AGENTES] Usuario es admin, mostrando todos los agentes');
           }
-          
-          try {
-            const ids = list.map((a: any) => a.id);
-            console.log('[AGENTES] Agents IDs finales:', ids);
-          } catch {}
+
           setAgents(list);
         }
       } catch (err) {
@@ -127,7 +137,27 @@ export default function Agentes() {
     loadAgents();
   }, []);
 
-  // Ordenar clientes alfabéticamente
+  // Cargar módulos y agrupar por agent_id
+  useEffect(() => {
+    const loadModules = async () => {
+      try {
+        const res = await fetch('/api/modules');
+        const data = await res.json();
+        if (data.ok && data.modules) {
+          const grouped: Record<number, Module[]> = {};
+          data.modules.forEach((m: Module) => {
+            if (!grouped[m.agent_id]) grouped[m.agent_id] = [];
+            grouped[m.agent_id].push(m);
+          });
+          setModulesByAgent(grouped);
+        }
+      } catch (err) {
+        console.error('[AGENTES] Error cargando módulos:', err);
+      }
+    };
+    loadModules();
+  }, []);
+
   const sortedClients = [...clients].sort((a, b) => {
     const nameA = a.name.toLowerCase();
     const nameB = b.name.toLowerCase();
@@ -136,7 +166,6 @@ export default function Agentes() {
     return 0;
   });
 
-  // Función para aplicar filtros combinados: cliente + estado + nombre
   const applyFilters = () => {
     let result = agents;
 
@@ -156,10 +185,10 @@ export default function Agentes() {
     setFilteredAgents(result);
   };
 
-  // Efecto para aplicar filtros cuando cambia alguno de los criterios
   useEffect(() => {
     applyFilters();
   }, [selectedClientId, selectedStatus, searchName, agents]);
+
   const [showForm, setShowForm] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentDB | null>(null);
   const [formData, setFormData] = useState({
@@ -180,8 +209,6 @@ export default function Agentes() {
 
     try {
       if (editingAgent) {
-        console.log('[AGENTES] Updating agent ID:', editingAgent.id);
-        // Actualizar en MySQL
         const res = await fetch(`/api/agents/${editingAgent.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -195,8 +222,6 @@ export default function Agentes() {
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || 'Error al actualizar agente');
       } else {
-        console.log('[AGENTES] Creating agent with client_id:', formData.client_id);
-        // Crear en MySQL
         const res = await fetch('/api/agents', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -212,12 +237,9 @@ export default function Agentes() {
         if (!data.ok) throw new Error(data.error || 'Error al crear agente');
       }
 
-      // Recargar lista
-      console.log('[AGENTES] Reloading agents after save...');
       const resList = await fetch('/api/agents');
       const listData = await resList.json();
       if (listData.ok && listData.agents) {
-        console.log('[AGENTES] New agents count:', listData.agents.length);
         setAgents(listData.agents);
       }
 
@@ -278,20 +300,16 @@ export default function Agentes() {
     setFormData({ name: '', description: '', photo: '', client_id: 0 });
     setEditingAgent(null);
     setShowForm(false);
-    // Limpiar el input de archivo
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
   };
 
-
-  // Verificar permisos para mostrar/ocultar botones
   const permissions = getPermissions();
   const userId = getUserId();
   const canCreate = permissions?.type === 'admin' || permissions?.agentes?.createOwn === true || permissions?.agentes?.createAll === true;
   const canEdit = permissions?.type === 'admin' || permissions?.agentes?.editOwn === true || permissions?.agentes?.editAll === true;
   const canDelete = permissions?.type === 'admin' || permissions?.agentes?.editOwn === true || permissions?.agentes?.editAll === true;
 
-  // Función para verificar si puede ver un agente específico
   const canViewAgent = (agent: AgentDB) => {
     if (permissions?.type === 'admin') return true;
     if (permissions?.agentes?.viewAll === true) return true;
@@ -299,7 +317,6 @@ export default function Agentes() {
     return false;
   };
 
-  // Función para verificar si puede editar/eliminar un agente específico
   const canEditAgent = (agent: AgentDB) => {
     if (permissions?.type === 'admin') return true;
     if (permissions?.agentes?.editAll === true) return true;
@@ -385,7 +402,6 @@ export default function Agentes() {
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        // Validar tamaño (1 MB)
                         if (file.size > 1 * 1024 * 1024) {
                           setAlertModal({
                             isOpen: true,
@@ -395,21 +411,20 @@ export default function Agentes() {
                           });
                           return;
                         }
-                        
+
                         setUploading(true);
-                        
+
                         try {
-                          // Subir archivo
                           const uploadFormData = new FormData();
                           uploadFormData.append('file', file);
-                          
+
                           const response = await fetch('/api/upload-agent-avatar', {
                             method: 'POST',
                             body: uploadFormData
                           });
-                          
+
                           const data = await response.json();
-                          
+
                           if (response.ok) {
                             setFormData({ ...formData, photo: data.url });
                           } else {
@@ -473,105 +488,164 @@ export default function Agentes() {
           </div>
         )}
 
-        {/* Filtros: Cliente + Estado + Nombre (solo visibles para admin) */}
-        {permissions?.type === 'admin' && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                  <div className="flex flex-wrap gap-4 items-end">
-                    <div className="w-full sm:w-72">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Cliente
-                      </label>
-                      <select
-                        value={selectedClientId}
-                        onChange={(e) => setSelectedClientId(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
-                      >
-                        <option value="all">Todos los clientes</option>
-                        {sortedClients.map(client => (
-                          <option key={client.id} value={client.id}>
-                            {client.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+      {/* Filtros */}
+      {permissions?.type === 'admin' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="w-full sm:w-72">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cliente
+                </label>
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                >
+                  <option value="all">Todos los clientes</option>
+                  {sortedClients.map(client => (
+                    <option key={client.id} value={client.id}>
+                      {client.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                    <div className="w-full sm:w-56">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Estado
-                      </label>
-                      <select
-                        value={selectedStatus}
-                        onChange={(e) => setSelectedStatus(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
-                                      >
-                                        <option value="all">Todos los estados</option>
-                        <option value="active">Activo</option>
-                        <option value="inactive">Inactivo</option>
-                      </select>
-                    </div>
+              <div className="w-full sm:w-56">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estado
+                </label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                >
+                  <option value="all">Todos los estados</option>
+                  <option value="active">Activo</option>
+                  <option value="inactive">Inactivo</option>
+                </select>
+              </div>
 
-                    <div className="w-full sm:w-72">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nombre
-                      </label>
-                      <input
-                        type="text"
-                        value={searchName}
-                        onChange={(e) => setSearchName(e.target.value)}
-                        placeholder="Buscar por nombre..."
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+              <div className="w-full sm:w-72">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  placeholder="Buscar por nombre..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent"
+                />
+              </div>
+
+              {(selectedClientId !== 'all' || selectedStatus !== 'all' || searchName.trim() !== '') && (
+                <button
+                  onClick={() => {
+                    setSelectedClientId('all');
+                    setSelectedStatus('all');
+                    setSearchName('');
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+          </div>
+      )}
+
+      {/* Grid de cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        {!agentsLoading && filteredAgents.map((agent) => {
+          const isInactive = agent.status === 'inactive';
+          const workflowsInfo = parseWorkflows(agent.workflows);
+          const knowledgeInfo = parseKnowledge(agent.knowledge);
+          const agentModules = modulesByAgent[agent.id] || [];
+
+          return (
+            <div
+              key={agent.id}
+              className={`bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col ${
+                isInactive
+                  ? 'border-gray-200 opacity-60 grayscale'
+                  : 'border-gray-200'
+              }`}
+            >
+              {/* Avatar grande 56px y tooltip */}
+              <div className="w-full h-48 flex items-center justify-center bg-gray-100">
+                <AgentTooltip description={agent.description}>
+                  {agent.photo ? (
+                    <div className="relative" style={{ width: 56, height: 56, minWidth: 56, minHeight: 56 }}>
+                      <img
+                        src={agent.photo}
+                        alt={agent.name}
+                        className="w-14 h-14 rounded-full object-cover"
+                        style={{ width: 56, height: 56, minWidth: 56, minHeight: 56 }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const next = e.currentTarget.nextElementSibling;
+                          if (next) next.classList.remove('hidden');
+                        }}
                       />
                     </div>
-
-                    {(selectedClientId !== 'all' || selectedStatus !== 'all' || searchName.trim() !== '') && (
-                      <button
-                        onClick={() => {
-                          setSelectedClientId('all');
-                          setSelectedStatus('all');
-                          setSearchName('');
-                        }}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                      >
-                        Limpiar filtros
-                      </button>
-                    )}
+                  ) : null}
+                  <div className={`w-14 h-14 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center text-white text-2xl font-bold ${
+                    agent.photo ? 'hidden' : ''
+                  }`}>
+                    {agent.name.charAt(0).toUpperCase()}
                   </div>
-                </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {!agentsLoading && filteredAgents.map((agent) => (
-            <div key={agent.id} className={`bg-white rounded-xl shadow-sm border overflow-hidden ${agent.status === 'inactive' ? 'border-gray-200 opacity-60 grayscale' : 'border-gray-200'}`}>
-              <div className="w-full h-48 flex items-center justify-center bg-gray-100">
-                {agent.photo ? (
-                  <img 
-                    src={agent.photo} 
-                    alt={agent.name}
-                    className="w-32 h-32 rounded-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                    }}
-                  />
-                ) : null}
-                <div className={`w-32 h-32 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center text-white text-4xl font-bold ${agent.photo ? 'hidden' : ''}`}>
-                  {agent.name.charAt(0).toUpperCase()}
-                </div>
+                </AgentTooltip>
               </div>
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">
+
+              <div className="p-6 flex flex-col flex-1">
+                {/* Nombre crece sin truncar */}
+                <h3 className="text-lg font-semibold text-gray-900 mb-1 whitespace-normal break-words">
                   {agent.name}
-                  {agent.status === 'inactive' && (
+                  {isInactive && (
                     <span className="ml-2 inline-block align-middle text-[10px] font-semibold uppercase tracking-wide bg-gray-200 text-gray-500 rounded px-1.5 py-0.5">Inactivo</span>
                   )}
                 </h3>
+
                 <div className="mb-2">
                   <span className="text-xs font-medium text-gray-400 uppercase">Cliente:</span>
-                  <p className="text-sm font-medium truncate" style={{ color: '#5DE1E5' }}>{clients.find(c => c.id === agent.client_id)?.name || 'Sin asignar'}</p>
+                  <p className="text-sm font-medium truncate" style={{ color: '#5DE1E5' }}>
+                    {clients.find(c => c.id === agent.client_id)?.name || agent.client_name || 'Sin asignar'}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{agent.description}</p>
+
+                {/* Descripción */}
+                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{agent.description}</p>
+
+                {/* Flujos — datos reales */}
+                {workflowsInfo.count > 0 && (
+                  <div className="mb-1 text-xs text-gray-500">
+                    <span className="font-semibold text-gray-700">Flujos:</span>{' '}
+                    {workflowsInfo.count} activos
+                  </div>
+                )}
+
+                {/* Conocimiento — antes "Indices" */}
+                {knowledgeInfo.count > 0 && (
+                  <div className="mb-1 text-xs text-gray-500">
+                    <span className="font-semibold text-gray-700">Conocimiento:</span>{' '}
+                    {knowledgeInfo.count} {knowledgeInfo.count === 1 ? 'índice' : 'índices'}
+                  </div>
+                )}
+
+                {/* Módulos — nuevo */}
+                {agentModules.length > 0 && (
+                  <div className="mb-1 text-xs text-gray-500">
+                    <span className="font-semibold text-gray-700">Módulos:</span>{' '}
+                    {agentModules.length} {agentModules.length === 1 ? 'asignado' : 'asignados'}
+                  </div>
+                )}
+
+                {/* Espaciador flexible */}
+                <div className="flex-1" />
+
+                {/* Botones */}
                 {canViewAgent(agent) && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => router.push(`/agentes/${agent.id}/editar`)}
                       className={`flex-1 px-3 py-2 text-sm rounded-lg transition-all ${
@@ -595,10 +669,10 @@ export default function Agentes() {
                 )}
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
-        {/* Modal de alertas */}
       <NoticeModal
         isOpen={alertModal.isOpen}
         onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
@@ -607,7 +681,6 @@ export default function Agentes() {
         type={alertModal.type}
       />
       
-      {/* Modal de confirmación */}
       <NoticeModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
@@ -620,4 +693,3 @@ export default function Agentes() {
     </ProtectedLayout>
   );
 }
-
