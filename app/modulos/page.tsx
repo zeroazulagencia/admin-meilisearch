@@ -5,6 +5,7 @@ import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
 import settings from '@/settings.json';
 import { getPermissions } from '@/utils/permissions';
+import AgentSelector from '@/components/ui/AgentSelector';
 
 interface Agent {
   id: number;
@@ -12,6 +13,7 @@ interface Agent {
   client_id: number;
   conversation_agent_name?: string;
   photo?: string | null;
+  status?: string;
 }
 
 interface ModuleItem {
@@ -87,6 +89,8 @@ export default function ModulosPage() {
             agentsToShow = [];
           }
         }
+        // Filtrar solo agentes activos
+        agentsToShow = agentsToShow.filter((agent: Agent) => agent.status === 'active');
         setAgents(agentsToShow);
       } else {
         throw new Error(data.error || 'No se pudieron cargar los agentes');
@@ -221,31 +225,21 @@ export default function ModulosPage() {
       {isAdmin && (
         <div className="flex flex-wrap items-end gap-3 mb-6">
           <div className="w-full sm:w-72">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Agente</label>
-            <div className="relative">
-              <select
-                value={selectedAgentFilter?.id ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setSelectedAgentFilter(val === '' ? null : (sortedAgents.find(a => a.id === parseInt(val)) ?? null));
-                }}
-                className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm bg-white appearance-none"
-              >
-                <option value="">Seleccionar agente...</option>
-                {sortedAgents.map(agent => (
-                  <option key={agent.id} value={agent.id}>{agent.name}</option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
-                {selectedAgentFilter ? (
-                  <AgentAvatar photo={selectedAgentFilter.photo} name={selectedAgentFilter.name} size="sm" />
-                ) : (
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                )}
-              </div>
-            </div>
+            <AgentSelector
+              label="Seleccionar Agente"
+              agents={agents}
+              selectedAgent={selectedAgentFilter}
+              onChange={(agent) => {
+                if (agent && typeof agent !== 'string') {
+                  setSelectedAgentFilter(agent as Agent);
+                } else {
+                  setSelectedAgentFilter(null);
+                }
+              }}
+              placeholder="Seleccionar agente..."
+              loading={loadingAgents}
+              className="w-full"
+            />
           </div>
 
           <div className="w-full sm:w-48">

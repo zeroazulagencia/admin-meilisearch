@@ -1482,6 +1482,9 @@ export default function AdminConocimiento() {
             return { ...a, knowledge } as AgentDB;
           });
 
+          // Filtrar solo agentes activos
+          normalized = normalized.filter((a: AgentDB) => a.status === 'active');
+
           // Aplicar filtros de permisos
           const permissions = getPermissions();
           const userId = getUserId();
