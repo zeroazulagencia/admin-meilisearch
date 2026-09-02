@@ -541,7 +541,7 @@ export default function Agentes() {
       )}
 
       {/* Grid de cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {!agentsLoading && filteredAgents.map((agent) => {
           const isInactive = agent.status === 'inactive';
           const workflowsInfo = parseWorkflows(agent.workflows);
@@ -551,67 +551,80 @@ export default function Agentes() {
           return (
             <div
               key={agent.id}
-              className={`bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col ${
+              className={`rounded-xl p-5 transition-all group ${
                 isInactive
-                  ? 'border-gray-200 opacity-60 grayscale'
-                  : 'border-gray-200'
+                  ? 'bg-gray-50 border border-gray-200 opacity-70 grayscale-[0.3]'
+                  : 'bg-white border border-gray-200 hover:border-[#5DE1E5] hover:shadow-sm'
               }`}
             >
-              {/* Avatar grande 56px y tooltip */}
-              <div className="w-full h-48 flex items-center justify-center bg-gray-100">
+              <div className="flex items-start gap-4">
                 <AgentAvatar photo={agent.photo} name={agent.name} size={14} description={agent.description} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className={`text-sm font-semibold truncate transition-colors ${
+                      isInactive ? 'text-gray-500' : 'text-gray-900 group-hover:text-[#5DE1E5]'
+                    }`}>
+                      {agent.name.toUpperCase()}
+                    </h3>
+                    <StatusBadge status={agent.status} />
+                  </div>
+                  {agent.description && (
+                    <p className={`text-xs mt-1 line-clamp-2 ${
+                      isInactive ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      {agent.description}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="p-6 flex flex-col flex-1">
-                {/* Nombre crece sin truncar */}
-                <h3 className="text-lg font-semibold text-gray-900 mb-1 whitespace-normal break-words">
-                  {agent.name.toUpperCase()}
-                  <StatusBadge status={agent.status} className="ml-2 align-middle" />
-                </h3>
-
-                <div className="mb-2">
-                  <span className="text-xs font-medium text-gray-400 uppercase">Cliente:</span>
-                  <p className="text-sm font-medium truncate" style={{ color: '#5DE1E5' }}>
-                    {clients.find(c => c.id === agent.client_id)?.name || agent.client_name || 'Sin asignar'}
-                  </p>
-                </div>
-
-                {/* Descripción */}
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{agent.description}</p>
-
-                {/* Flujos — datos reales */}
-                {workflowsInfo.count > 0 && (
-                  <div className="mb-1 text-xs text-gray-500">
-                    <span className="font-semibold text-gray-700">Flujos:</span>{' '}
-                    {workflowsInfo.count} activos
+              {(() => {
+                const clientName = clients.find(c => c.id === agent.client_id)?.name || agent.client_name || '';
+                return clientName ? (
+                  <div className={`mt-3 pt-3 border-t ${isInactive ? 'border-gray-200' : 'border-gray-100'}`}>
+                    <div className={`flex items-center gap-2 text-xs ${isInactive ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      {clientName}
+                    </div>
                   </div>
-                )}
+                ) : null;
+              })()}
 
-                {/* Conocimiento — antes "Indices" */}
-                {knowledgeInfo.count > 0 && (
-                  <div className="mb-1 text-xs text-gray-500">
-                    <span className="font-semibold text-gray-700">Conocimiento:</span>{' '}
-                    {knowledgeInfo.count} {knowledgeInfo.count === 1 ? 'índice' : 'índices'}
-                  </div>
-                )}
+              <div className={`mt-3 flex items-center gap-3 text-xs flex-wrap ${isInactive ? 'text-gray-300' : 'text-gray-400'}`}>
+                <span className="inline-flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 21h10" />
+                  </svg>
+                  {workflowsInfo.count} flujo{workflowsInfo.count !== 1 ? 's' : ''}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {knowledgeInfo.count} índice{knowledgeInfo.count !== 1 ? 's' : ''}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  {agentModules.length} módulo{agentModules.length !== 1 ? 's' : ''}
+                </span>
+                <span className="inline-flex items-center gap-1 ml-auto">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                  </svg>
+                  #{agent.agent_code || agent.id}
+                </span>
+              </div>
 
-                {/* Módulos — nuevo */}
-                {agentModules.length > 0 && (
-                  <div className="mb-1 text-xs text-gray-500">
-                    <span className="font-semibold text-gray-700">Módulos:</span>{' '}
-                    {agentModules.length} {agentModules.length === 1 ? 'asignado' : 'asignados'}
-                  </div>
-                )}
-
-                {/* Espaciador flexible */}
-                <div className="flex-1" />
-
-                {/* Botones */}
+              <div className="mt-4 pt-3 border-t border-gray-100 flex gap-2">
                 {canViewAgent(agent) && (
-                  <div className="flex gap-2 mt-3">
+                  <>
                     <button
                       onClick={() => router.push(`/agentes/${agent.id}/editar`)}
-                      className={`flex-1 px-3 py-2 text-sm rounded-lg transition-all ${
+                      className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
                         canEditAgent(agent)
                           ? 'text-gray-900 hover:opacity-90'
                           : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
@@ -623,12 +636,12 @@ export default function Agentes() {
                     {canEditAgent(agent) && (
                       <button
                         onClick={() => handleDelete(agent.id)}
-                        className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                        className="flex-1 px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors"
                       >
                         Eliminar
                       </button>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </div>
