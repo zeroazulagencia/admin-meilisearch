@@ -101,22 +101,10 @@ export default function AgentCardModule() {
                   alignRight: true
                 }
               ]}
-            >
-              <div className="flex flex-wrap gap-1.5">
-                <button className="px-2.5 py-1 text-[11px] font-medium rounded-md bg-cyan-50 text-cyan-700 hover:bg-cyan-100 transition-colors">
-                  info
-                </button>
-                <button className="px-2.5 py-1 text-[11px] font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors">
-                  confirm
-                </button>
-                <button className="px-2.5 py-1 text-[11px] font-medium rounded-md bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors">
-                  warning
-                </button>
-                <button className="px-2.5 py-1 text-[11px] font-medium rounded-md bg-red-50 text-red-700 hover:bg-red-100 transition-colors">
-                  error
-                </button>
-              </div>
-            </AgentCard>
+              onEdit={() => {}}
+              onDelete={() => {}}
+              canEdit={isActive}
+            />
           );
         })}
       </div>

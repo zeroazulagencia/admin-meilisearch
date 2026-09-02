@@ -20,12 +20,14 @@ interface AgentCardProps {
   };
   clientName?: string;
   metrics?: AgentCardMetric[];
-  children?: ReactNode;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  /** If true shows "Editar" (teal) / "Eliminar"; if false shows "Ver Detalle" (gray) */
+  canEdit?: boolean;
 }
 
-export default function AgentCard({ agent, clientName, metrics = [], children }: AgentCardProps) {
+export default function AgentCard({ agent, clientName, metrics = [], onEdit, onDelete, canEdit }: AgentCardProps) {
   const isActive = agent.status === 'active';
-  const isInactive = agent.status === 'inactive';
 
   return (
     <div
@@ -88,10 +90,30 @@ export default function AgentCard({ agent, clientName, metrics = [], children }:
         </div>
       )}
 
-      {/* Acciones */}
-      {children && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          {children}
+      {/* Acciones — mismo markup en todas las páginas */}
+      {(onEdit || onDelete) && (
+        <div className="mt-4 pt-3 border-t border-gray-100 flex gap-2">
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                canEdit
+                  ? 'text-gray-900 hover:opacity-90'
+                  : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+              }`}
+              style={canEdit ? { backgroundColor: '#5DE1E5' } : {}}
+            >
+              {canEdit ? 'Editar' : 'Ver Detalle'}
+            </button>
+          )}
+          {canEdit && onDelete && (
+            <button
+              onClick={onDelete}
+              className="flex-1 px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Eliminar
+            </button>
+          )}
         </div>
       )}
     </div>

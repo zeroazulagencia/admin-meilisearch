@@ -579,31 +579,10 @@ export default function Agentes() {
                   alignRight: true
                 }
               ]}
-            >
-              {canViewAgent(agent) && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => router.push(`/agentes/${agent.id}/editar`)}
-                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
-                      canEditAgent(agent)
-                        ? 'text-gray-900 hover:opacity-90'
-                        : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
-                    }`}
-                    style={canEditAgent(agent) ? { backgroundColor: '#5DE1E5' } : {}}
-                  >
-                    {canEditAgent(agent) ? 'Editar' : 'Ver Detalle'}
-                  </button>
-                  {canEditAgent(agent) && (
-                    <button
-                      onClick={() => handleDelete(agent.id)}
-                      className="flex-1 px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      Eliminar
-                    </button>
-                  )}
-                </div>
-              )}
-            </AgentCard>
+              onEdit={canViewAgent(agent) ? () => router.push(`/agentes/${agent.id}/editar`) : undefined}
+              onDelete={canEditAgent(agent) ? () => handleDelete(agent.id) : undefined}
+              canEdit={canEditAgent(agent)}
+            />
           );
         })}
       </div>
