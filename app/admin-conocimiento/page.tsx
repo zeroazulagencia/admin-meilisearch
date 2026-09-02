@@ -15,6 +15,7 @@ interface AgentDB {
   name: string;
   description?: string;
   photo?: string;
+  status?: string;
   knowledge?: any;
 }
 

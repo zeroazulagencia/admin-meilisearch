@@ -29,6 +29,7 @@ interface AgentDB {
   name: string;
   description?: string;
   photo?: string;
+  status?: string;
   whatsapp_business_account_id?: string;
   whatsapp_phone_number_id?: string;
   whatsapp_access_token?: string;

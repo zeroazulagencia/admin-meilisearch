@@ -23,7 +23,7 @@ export default function TopBar({ selectedAgentName, onAgentChange, totalUnreadCo
         const response = await fetch('/api/agents');
         const data = await response.json();
         if (data.ok && data.agents) {
-          setAgents(data.agents);
+          setAgents(data.agents.filter((a: any) => a.status === 'active'));
         }
       } catch (e: any) {
         console.error('[TopBar] Error cargando agentes:', e?.message);

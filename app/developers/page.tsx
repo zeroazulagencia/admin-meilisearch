@@ -19,6 +19,7 @@ interface AgentDB {
   name: string;
   agent_code?: string;
   client_id?: number;
+  status?: string;
 }
 
 interface DeveloperDoc {

@@ -231,7 +231,7 @@ export default function ModulosPage() {
                 }}
                 className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm bg-white appearance-none"
               >
-                <option value="">Todos los agentes</option>
+                <option value="">Seleccionar agente...</option>
                 {sortedAgents.map(agent => (
                   <option key={agent.id} value={agent.id}>{agent.name}</option>
                 ))}

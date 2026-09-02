@@ -23,6 +23,7 @@ interface AgentDB {
   name: string;
   description?: string;
   photo?: string;
+  status?: string;
   conversation_agent_name?: string;
   reports_agent_name?: string;
 }
@@ -109,8 +110,8 @@ export default function Reportes() {
         if (permissions && userId && permissions.type !== 'admin' && !permissions.reportes?.viewAll) {
           list = list.filter(a => a.client_id === parseInt(userId));
         }
-        // Filtrar solo agentes que tienen reports_agent_name asociado
-        list = list.filter(a => a.reports_agent_name && a.reports_agent_name.trim() !== '');
+        // Filtrar solo agentes activos y que tienen reports_agent_name asociado
+        list = list.filter(a => a.status === 'active' && a.reports_agent_name && a.reports_agent_name.trim() !== '');
         setAllPlatformAgents(list);
       } catch (e) {
         console.error('Error cargando agentes:', e);
@@ -572,14 +573,12 @@ export default function Reportes() {
             if (typeof agent === 'string') {
               setSelectedPlatformAgent(agent);
             } else if (agent === null) {
-              setSelectedPlatformAgent('all');
+              setSelectedPlatformAgent('');
             } else {
               setSelectedPlatformAgent(agent.id.toString());
             }
           }}
-          placeholder="Todos los agentes"
-          includeAllOption={true}
-          allOptionLabel="Todos los agentes"
+          placeholder="Seleccionar agente..."
           loading={!agentsInitialized}
           className="w-full"
         />

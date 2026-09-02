@@ -24,6 +24,7 @@ interface AgentDB {
   name: string;
   description?: string;
   photo?: string;
+  status?: string;
   conversation_agent_name?: string;
   whatsapp_phone_number_id?: string;
   whatsapp_access_token?: string;
@@ -194,8 +195,8 @@ export default function Conversaciones() {
         if (permissions && userId && permissions.type !== 'admin' && !permissions.conversaciones?.viewAll) {
           list = list.filter(a => a.client_id === parseInt(userId));
         }
-        // Filtrar solo agentes que tienen conversation_agent_name asociado
-        list = list.filter(a => a.conversation_agent_name && a.conversation_agent_name.trim() !== '');
+        // Filtrar solo agentes activos y que tienen conversation_agent_name asociado
+        list = list.filter(a => a.status === 'active' && a.conversation_agent_name && a.conversation_agent_name.trim() !== '');
         setAllPlatformAgents(list);
       } catch (e) {
         console.error('Error cargando agentes:', e);
@@ -811,14 +812,12 @@ export default function Conversaciones() {
             if (typeof agent === 'string') {
               setSelectedPlatformAgent(agent);
             } else if (agent === null) {
-              setSelectedPlatformAgent('all');
+              setSelectedPlatformAgent('');
             } else {
               setSelectedPlatformAgent(agent.id.toString());
             }
           }}
-          placeholder="Todos los agentes"
-          includeAllOption={true}
-          allOptionLabel="Todos los agentes"
+          placeholder="Seleccionar agente..."
           loading={!agentsInitialized}
           className="w-full"
         />
