@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import settings from '../../settings.json';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
+import AgentAvatar from '@/components/ui/AgentAvatar';
+import StatusBadge from '@/components/ui/StatusBadge';
 import { getPermissions, getUserId } from '@/utils/permissions';
 
 interface AgentDB {
@@ -57,22 +59,6 @@ function parseKnowledge(k: any): { count: number; names: string[] } {
   } catch {}
   return { count: 0, names: [] };
 }
-
-// Tooltip Tailwind no nativo — ancho y no interfiere con descripción de la card
-const AgentTooltip = ({ description, children }: { description?: string | null; children: React.ReactNode }) => {
-  if (!description) return <>{children}</>;
-  return (
-    <div className="group/tooltip relative inline-flex">
-      {children}
-      <div className="pointer-events-none absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200">
-        <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 min-w-[200px] max-w-[300px] shadow-lg whitespace-normal break-words text-center">
-          {description}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export default function Agentes() {
   const router = useRouter();
@@ -573,37 +559,14 @@ export default function Agentes() {
             >
               {/* Avatar grande 56px y tooltip */}
               <div className="w-full h-48 flex items-center justify-center bg-gray-100">
-                <AgentTooltip description={agent.description}>
-                  {agent.photo ? (
-                    <div className="relative" style={{ width: 56, height: 56, minWidth: 56, minHeight: 56 }}>
-                      <img
-                        src={agent.photo}
-                        alt={agent.name}
-                        className="w-14 h-14 rounded-full object-cover"
-                        style={{ width: 56, height: 56, minWidth: 56, minHeight: 56 }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const next = e.currentTarget.nextElementSibling;
-                          if (next) next.classList.remove('hidden');
-                        }}
-                      />
-                    </div>
-                  ) : null}
-                  <div className={`w-14 h-14 rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center text-white text-2xl font-bold ${
-                    agent.photo ? 'hidden' : ''
-                  }`}>
-                    {agent.name.charAt(0).toUpperCase()}
-                  </div>
-                </AgentTooltip>
+                <AgentAvatar photo={agent.photo} name={agent.name} size={14} description={agent.description} />
               </div>
 
               <div className="p-6 flex flex-col flex-1">
                 {/* Nombre crece sin truncar */}
                 <h3 className="text-lg font-semibold text-gray-900 mb-1 whitespace-normal break-words">
-                  {agent.name}
-                  {isInactive && (
-                    <span className="ml-2 inline-block align-middle text-[10px] font-semibold uppercase tracking-wide bg-gray-200 text-gray-500 rounded px-1.5 py-0.5">Inactivo</span>
-                  )}
+                  {agent.name.toUpperCase()}
+                  <StatusBadge status={agent.status} className="ml-2 align-middle" />
                 </h3>
 
                 <div className="mb-2">
