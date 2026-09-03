@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import AgentSelectModule from '@/components/ui/AgentSelectModule';
 import AgentCardModule from '@/components/ui/AgentCardModule';
+import AgentModulesListModule from '@/components/ui/AgentModulesListModule';
 import ProtectedLayout from '@/components/ProtectedLayout';
 
-type ModuleId = 'agent-select' | 'agent-card' | null;
+type ModuleId = 'agent-select' | 'agent-card' | 'modules-list' | null;
 
 interface UIModule {
   id: ModuleId;
   name: string;
   description: string;
-  icon: string;
 }
 
 const modules: UIModule[] = [
@@ -19,13 +19,16 @@ const modules: UIModule[] = [
     id: 'agent-select',
     name: 'Agent Select',
     description: 'Selector de agentes con filtro activos/inactivos',
-    icon: '👤',
   },
   {
     id: 'agent-card',
     name: 'Agent Card',
     description: 'Tarjetas de agentes con info, estado y métricas',
-    icon: '🪪',
+  },
+  {
+    id: 'modules-list',
+    name: 'Módulos',
+    description: 'Listado de módulos asociados a agentes',
   },
 ];
 
@@ -48,8 +51,7 @@ export default function UIPage() {
                 onClick={() => setActiveModule(mod.id)}
                 className="bg-white border border-gray-200 rounded-xl p-5 text-left hover:border-[#5DE1E5] hover:shadow-sm transition-all group"
               >
-                <span className="text-2xl">{mod.icon}</span>
-                <h3 className="text-sm font-semibold text-gray-900 mt-2 group-hover:text-[#5DE1E5] transition-colors">
+                <h3 className="text-sm font-semibold text-gray-900 mt-0 group-hover:text-[#5DE1E5] transition-colors">
                   {mod.name}
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">{mod.description}</p>
@@ -71,6 +73,7 @@ export default function UIPage() {
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               {activeModule === 'agent-select' && <AgentSelectModule />}
               {activeModule === 'agent-card' && <AgentCardModule />}
+              {activeModule === 'modules-list' && <AgentModulesListModule />}
             </div>
           </div>
         )}

@@ -579,8 +579,8 @@ export default function Agentes() {
                   alignRight: true
                 }
               ]}
-              onEdit={canViewAgent(agent) ? () => router.push(`/agentes/${agent.id}/editar`) : undefined}
-              onDelete={canEditAgent(agent) ? () => handleDelete(agent.id) : undefined}
+              onEdit={() => canViewAgent(agent) && router.push(`/agentes/${agent.id}/editar`)}
+              onDelete={() => canEditAgent(agent) && handleDelete(agent.id)}
               canEdit={canEditAgent(agent)}
             />
           );

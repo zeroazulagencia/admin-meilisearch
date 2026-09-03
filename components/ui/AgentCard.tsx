@@ -37,31 +37,55 @@ export default function AgentCard({ agent, clientName, metrics = [], onEdit, onD
           : 'bg-gray-50 border border-gray-200 opacity-70 grayscale-[0.3]'
       }`}
     >
-      {/* Avatar + info */}
-      <div className="flex items-start gap-4">
-        <AgentAvatar photo={agent.photo} name={agent.name} size={14} description={agent.description} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3
-              className={`text-sm font-semibold truncate transition-colors ${
-                isActive ? 'text-gray-900 group-hover:text-[#5DE1E5]' : 'text-gray-500'
-              }`}
-            >
-              {agent.name.toUpperCase()}
-            </h3>
-            <StatusBadge status={agent.status} />
+      {/* Avatar + info con tooltip de ancho completo */}
+      {agent.description ? (
+        <div className="group/tooltip relative">
+          <div className="flex items-start gap-4">
+            <AgentAvatar photo={agent.photo} name={agent.name} size={14} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3
+                  className={`text-sm font-semibold truncate transition-colors ${
+                    isActive ? 'text-gray-900 group-hover:text-[#5DE1E5]' : 'text-gray-500'
+                  }`}
+                >
+                  {agent.name.toUpperCase()}
+                </h3>
+                <StatusBadge status={agent.status} />
+              </div>
+              {agent.description && (
+                <p
+                  className={`text-xs mt-1 line-clamp-2 ${
+                    isActive ? 'text-gray-500' : 'text-gray-400'
+                  }`}
+                >
+                  {agent.description}
+                </p>
+              )}
+            </div>
           </div>
-          {agent.description && (
-            <p
-              className={`text-xs mt-1 line-clamp-2 ${
-                isActive ? 'text-gray-500' : 'text-gray-400'
-              }`}
-            >
-              {agent.description}
-            </p>
-          )}
+          <div className="absolute bottom-full left-0 right-0 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-normal text-center z-50">
+            {agent.description}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-gray-900 rotate-45" />
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-start gap-4">
+          <AgentAvatar photo={agent.photo} name={agent.name} size={14} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3
+                className={`text-sm font-semibold truncate transition-colors ${
+                  isActive ? 'text-gray-900 group-hover:text-[#5DE1E5]' : 'text-gray-500'
+                }`}
+              >
+                {agent.name.toUpperCase()}
+              </h3>
+              <StatusBadge status={agent.status} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cliente */}
       {clientName && (
@@ -96,7 +120,7 @@ export default function AgentCard({ agent, clientName, metrics = [], onEdit, onD
           {onEdit && (
             <button
               onClick={onEdit}
-              className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+              className={`px-3 py-2 text-xs font-medium rounded-lg transition-all ${
                 canEdit
                   ? 'text-gray-900 hover:opacity-90'
                   : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
@@ -109,7 +133,7 @@ export default function AgentCard({ agent, clientName, metrics = [], onEdit, onD
           {canEdit && onDelete && (
             <button
               onClick={onDelete}
-              className="flex-1 px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors"
+              className="px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors"
             >
               Eliminar
             </button>

@@ -2,19 +2,6 @@
 
 import { useState } from 'react';
 
-const AgentTooltip = ({ description, children }: { description?: string | null; children: React.ReactNode }) => {
-  if (!description) return <>{children}</>;
-  return (
-    <div className="group/tooltip relative inline-flex">
-      {children}
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-normal max-w-[220px] text-center z-50">
-        {description}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-gray-900 rotate-45" />
-      </div>
-    </div>
-  );
-};
-
 interface AgentAvatarProps {
   photo?: string | null;
   name: string;
@@ -22,10 +9,10 @@ interface AgentAvatarProps {
   description?: string | null;
 }
 
-export default function AgentAvatar({ photo, name, size = 14, description }: AgentAvatarProps) {
+export default function AgentAvatar({ photo, name, size = 14 }: AgentAvatarProps) {
   const [imgError, setImgError] = useState(false);
   const px = size * 4;
-  const avatar = (
+  return (
     <div
       className="shrink-0 rounded-full overflow-hidden bg-gray-100 ring-2 ring-white"
       style={{ width: px, height: px, minWidth: px, minHeight: px }}
@@ -39,5 +26,4 @@ export default function AgentAvatar({ photo, name, size = 14, description }: Age
       )}
     </div>
   );
-  return <AgentTooltip description={description}>{avatar}</AgentTooltip>;
 }
