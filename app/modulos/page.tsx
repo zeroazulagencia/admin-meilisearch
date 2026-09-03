@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import AgentCard, { AgentCardMetric } from '@/components/ui/AgentCard';
 import ProtectedLayout from '@/components/ProtectedLayout';
 import NoticeModal from '@/components/ui/NoticeModal';
 import settings from '@/settings.json';
@@ -185,20 +186,6 @@ export default function ModulosPage() {
     }
   };
 
-  const AgentAvatar = ({ photo, name, size = 'md' }: { photo?: string | null; name: string; size?: 'sm' | 'md' | 'lg' }) => {
-    const sizeClasses = { sm: 'w-6 h-6 text-xs', md: 'w-8 h-8 text-sm', lg: 'w-10 h-10 text-sm' };
-    const [imgError, setImgError] = useState(false);
-    
-    if (photo && !imgError) {
-      return <img src={photo} alt={name} className={`${sizeClasses[size]} rounded-full object-cover flex-shrink-0`} onError={() => setImgError(true)} />;
-    }
-    return (
-      <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-[#5DE1E5] to-[#4BC5C9] flex items-center justify-center text-white font-bold flex-shrink-0`}>
-        {name.charAt(0).toUpperCase()}
-      </div>
-    );
-  };
-
   return (
     <ProtectedLayout>
       <div className="flex justify-between items-center mb-6">
@@ -283,66 +270,45 @@ export default function ModulosPage() {
             const isDisabled = module.is_active === undefined || module.is_active === null
               ? LEGACY_DISABLED.includes(module.folder_name)
               : module.is_active === 0;
+
+            const metrics: AgentCardMetric[] = [];
+            if (module.folder_name) {
+              metrics.push({
+                icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>,
+                text: module.folder_name,
+              });
+            }
+            if ([1, 6].includes(module.id) && (module.error_count || 0) > 0) {
+              metrics.push({
+                icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+                text: `${module.error_count} error${module.error_count !== 1 ? 'es' : ''}`,
+              });
+            }
+            metrics.push({
+              icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+              text: new Date(module.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }),
+              alignRight: true,
+            });
+
+            const clientName = module.agent_name + (module.client_name ? ` · ${module.client_name}` : '');
+
             return (
-              <div
+              <AgentCard
                 key={module.id}
-                onClick={() => { if (!isDisabled) window.location.href = `/modulos/${module.id}`; }}
-                className={`bg-white rounded-xl shadow-sm border p-5 transition-all cursor-pointer group ${
-                  isDisabled
-                    ? 'border-gray-200 opacity-50 grayscale hover:border-gray-300 hover:shadow-sm'
-                    : 'border-gray-200 hover:border-[#5DE1E5] hover:shadow-md'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <AgentAvatar photo={module.agent_photo} name={module.agent_name} size="lg" />
-                  <span className="text-xs text-gray-400">
-                    {new Date(module.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </span>
-                </div>
-                <h3 className={`text-base font-semibold transition-colors ${
-                  isDisabled ? 'text-gray-400' : 'text-gray-900 group-hover:text-[#4BC5C9]'
-                }`}>{module.title}</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {module.agent_name}
-                  {module.client_name ? ` - ${module.client_name}` : ''}
-                </p>
-                {module.description && (
-                  <p className={`text-xs mt-2 line-clamp-2 ${isDisabled ? 'text-gray-300' : 'text-gray-400'}`}>{module.description}</p>
-                )}
-                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                  {isDisabled ? (
-                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-500">
-                      Desactivado
-                    </span>
-                  ) : (
-                    <span className="text-xs text-gray-400 font-mono">{module.folder_name}</span>
-                  )}
-                  <div className="flex items-center gap-2">
-                    {([1, 6].includes(module.id) && (module.error_count || 0) > 0) && (
-                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                        {module.error_count} errores
-                      </span>
-                    )}
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); toggleModuleActive(module.id, !isDisabled); }}
-                        disabled={togglingModuleId === module.id}
-                        title={isDisabled ? 'Activar modulo' : 'Desactivar modulo'}
-                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                          isDisabled
-                            ? 'bg-gray-100 text-gray-600 hover:bg-[#5DE1E5] hover:text-gray-900'
-                            : 'bg-[#5DE1E5] text-gray-900 hover:bg-red-100 hover:text-red-700'
-                        }`}
-                      >
-                        {togglingModuleId === module.id ? (
-                          <span className="inline-block h-3 w-3 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#5DE1E5' }}></span>
-                        ) : isDisabled ? 'Activar' : 'Desactivar'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+                agent={{
+                  id: module.agent_id,
+                  name: module.title,
+                  photo: module.agent_photo,
+                  description: module.description,
+                  status: isDisabled ? 'inactive' : 'active',
+                }}
+                clientName={clientName}
+                metrics={metrics}
+                canEdit={true}
+                onEdit={() => { window.location.href = `/modulos/${module.id}`; }}
+                onDelete={isAdmin ? () => toggleModuleActive(module.id, !isDisabled) : undefined}
+                deleteLabel={isDisabled ? 'Activar' : 'Desactivar'}
+              />
             );
           })}
         </div>

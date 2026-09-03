@@ -22,11 +22,12 @@ interface AgentCardProps {
   metrics?: AgentCardMetric[];
   onEdit?: () => void;
   onDelete?: () => void;
+  deleteLabel?: string;
   /** If true shows "Editar" (teal) / "Eliminar"; if false shows "Ver Detalle" (gray) */
   canEdit?: boolean;
 }
 
-export default function AgentCard({ agent, clientName, metrics = [], onEdit, onDelete, canEdit }: AgentCardProps) {
+export default function AgentCard({ agent, clientName, metrics = [], onEdit, onDelete, deleteLabel = 'Eliminar', canEdit }: AgentCardProps) {
   const isActive = agent.status === 'active';
 
   return (
@@ -135,7 +136,7 @@ export default function AgentCard({ agent, clientName, metrics = [], onEdit, onD
               onClick={onDelete}
               className="px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors"
             >
-              Eliminar
+              {deleteLabel}
             </button>
           )}
         </div>
