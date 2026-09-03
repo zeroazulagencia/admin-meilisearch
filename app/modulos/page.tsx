@@ -37,7 +37,8 @@ export default function ModulosPage() {
   const [modules, setModules] = useState<ModuleItem[]>([]);
   const [loadingModules, setLoadingModules] = useState(false);
   const [loadingAgents, setLoadingAgents] = useState(false);
-  const [formData, setFormData] = useState({ agent_id: '', title: '', description: '' });
+  const [formData, setFormData] = useState({ title: '', description: '' });
+  const [createAgent, setCreateAgent] = useState<Agent | null>(null);
   const [selectedAgentFilter, setSelectedAgentFilter] = useState<Agent | null>(null);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'activos' | 'inactivos' | 'todos'>('activos');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,6 +54,12 @@ export default function ModulosPage() {
   const sortedAgents = useMemo(() => {
     return [...agents].sort((a, b) => a.name.localeCompare(b.name));
   }, [agents]);
+
+  // Solo agentes que tengan al menos un módulo (para el filtro)
+  const agentsWithModules = useMemo(() => {
+    const agentIdsWithModules = new Set(modules.map(m => m.agent_id));
+    return sortedAgents.filter(a => agentIdsWithModules.has(a.id));
+  }, [sortedAgents, modules]);
 
   const filteredModules = useMemo(() => {
     let result = modules;
@@ -133,7 +140,7 @@ export default function ModulosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.agent_id || !formData.title.trim()) {
+    if (!createAgent || !formData.title.trim()) {
       setAlertModal({ isOpen: true, title: 'Validacion', message: 'Selecciona un agente y escribe un titulo.', type: 'warning' });
       return;
     }
@@ -144,7 +151,7 @@ export default function ModulosPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          agent_id: Number(formData.agent_id),
+          agent_id: createAgent.id,
           title: formData.title.trim(),
           description: formData.description.trim() || null,
         }),
@@ -153,7 +160,8 @@ export default function ModulosPage() {
       if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo crear el modulo');
 
       setAlertModal({ isOpen: true, title: 'Exito', message: 'Modulo creado correctamente.', type: 'success' });
-      setFormData({ agent_id: '', title: '', description: '' });
+      setFormData({ title: '', description: '' });
+      setCreateAgent(null);
       setShowCreateModal(false);
       const permissions = getPermissions();
       loadModulesWithPermissions(isAdmin, permissions);
@@ -214,7 +222,7 @@ export default function ModulosPage() {
           <div className="w-full sm:w-72">
             <AgentSelector
               label="Seleccionar Agente"
-              agents={agents}
+              agents={agentsWithModules}
               selectedAgent={selectedAgentFilter}
               onChange={(agent) => {
                 if (agent && typeof agent !== 'string') {
@@ -331,21 +339,21 @@ export default function ModulosPage() {
             </div>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Agente *</label>
-                <select
-                  value={formData.agent_id}
-                  onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5DE1E5] focus:border-transparent text-sm"
-                  disabled={loadingAgents || isSubmitting}
-                  required
-                >
-                  <option value="">Selecciona un agente</option>
-                  {sortedAgents.map((agent) => (
-                    <option key={agent.id} value={agent.id}>
-                      {agent.name} {agent.conversation_agent_name ? `(${agent.conversation_agent_name})` : ''}
-                    </option>
-                  ))}
-                </select>
+                <AgentSelector
+                  label="Agente *"
+                  agents={sortedAgents}
+                  selectedAgent={createAgent}
+                  onChange={(agent) => {
+                    if (agent && typeof agent !== 'string') {
+                      setCreateAgent(agent as Agent);
+                    } else {
+                      setCreateAgent(null);
+                    }
+                  }}
+                  placeholder="Selecciona un agente..."
+                  loading={loadingAgents}
+                  className="w-full"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
