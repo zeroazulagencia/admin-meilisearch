@@ -6,6 +6,7 @@ import ProtectedLayout from '@/components/ProtectedLayout';
 import ModuleLoading from '@/components/ModuleLoading';
 
 // Static imports for known modules
+import ModClientFinder from '@/modules-custom/client-finder';
 import ModVerificadorMobilia from '@/modules-custom/verificador-mobilia';
 import ModModulo15 from '@/modules-custom/modulo-15';
 import ModPuenteShopifyMiPaquete from '@/modules-custom/puente-shopify-mi-paquete';
@@ -58,6 +59,7 @@ const MODULES_MAP: Record<string, any> = {
   'bridge-siigo': ModBridgeSiigo,
   'forocpi-exportacion-registros': ModForocpiExportacionRegistros,
   'auditoria-agentes': ModAuditoriaAgentes,
+  'client-finder': ModClientFinder,
 };
 
 interface Module {

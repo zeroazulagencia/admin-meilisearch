@@ -18,6 +18,7 @@ import {
   Squares2X2Icon,
   MapIcon,
   CodeBracketIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 import SidebarItem from './SidebarItem';
 import settings from '@/settings.json';
@@ -97,6 +98,7 @@ export default function Sidebar({ permissions, isMobileOpen, setIsMobileOpen }: 
     { href: '/roadmap', label: 'Roadmap', perm: 'roadmap', icon: <MapIcon className="w-5 h-5" /> },
     { href: '/db-manager', label: 'DB Manager', perm: 'dbManager', icon: <CircleStackIcon className="w-5 h-5" /> },
     { href: '/ui', label: 'UI', perm: 'ui', icon: <CodeBracketIcon className="w-5 h-5" /> },
+    { href: '/cronjobs', label: 'Cronjobs', perm: 'cronjobs', icon: <ClockIcon className="w-5 h-5" /> },
     // Consumo API y Developers ocultados por solicitud del admin
   ];
 
