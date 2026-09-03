@@ -1,5 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
+import { execSync } from 'child_process';
+
+/**
+ * Activa o desactiva los cronjobs del sistema asociados a un módulo.
+ * Busca líneas en el crontab que contengan /api/custom-module{moduleId}/
+ * y las comenta con #HERMES-DEACTIVATED: o las descomenta según corresponda.
+ */
+function toggleCronjobsForModule(moduleId: string, deactivate: boolean) {
+  try {
+    // Obtener crontab actual
+    let crontab = '';
+    try {
+      crontab = execSync('crontab -l 2>/dev/null', { encoding: 'utf8', timeout: 5000 });
+    } catch {
+      // No hay crontab aún
+      crontab = '';
+    }
+
+    if (!crontab.trim()) return { changed: false, reason: 'no_crontab' };
+
+    const lines = crontab.split('\n');
+    const marker = `custom-module${moduleId}/`;
+    const deactivatedPrefix = '#HERMES-DEACTIVATED:';
+    let modified = false;
+
+    const newLines = lines.map((line: string) => {
+      const trimmed = line.trim();
+
+      // Línea que ya tiene nuestro marcador de desactivación
+      if (trimmed.startsWith(deactivatedPrefix)) {
+        // Si estábamos desactivando y tiene el marcador pero NO es este módulo, dejarla
+        if (deactivate && !trimmed.includes(marker)) return line;
+        // Si estamos reactivando y coincide con este módulo, descomentar
+        if (!deactivate && trimmed.includes(marker)) {
+          modified = true;
+          const afterPrefix = trimmed.slice(deactivatedPrefix.length).trim();
+          const indent = line.match(/^\s*/)?.[0] || '';
+          return `${indent}${afterPrefix}`;
+        }
+        return line;
+      }
+
+      // Línea vacía, otro comentario (no nuestro)
+      if (!trimmed || trimmed.startsWith('#')) return line;
+
+      // Línea activa (no comentada)
+      if (deactivate && trimmed.includes(marker)) {
+        modified = true;
+        const indent = line.match(/^\s*/)?.[0] || '';
+        return `${indent}${deactivatedPrefix} ${trimmed}`;
+      }
+
+      return line;
+    });
+
+    if (modified) {
+      execSync(`crontab -`, {
+        input: newLines.join('\n') + '\n',
+        encoding: 'utf8',
+        timeout: 5000,
+      });
+      return { changed: true, action: deactivate ? 'deactivated' : 'activated' };
+    }
+
+    return { changed: false, reason: 'no_matching_lines' };
+  } catch (err: any) {
+    console.error(`[CRONJOBS] Error toggling cronjobs for module ${moduleId}:`, err);
+    return { changed: false, error: err?.message };
+  }
+}
 
 // GET - Obtener un módulo específico por ID
 export async function GET(
@@ -147,6 +217,14 @@ export async function PATCH(
       'UPDATE modules SET is_active = ? WHERE id = ?',
       [active, moduleId]
     );
+
+    // También activar/desactivar cronjobs del sistema asociados a este módulo
+    const cronResult = toggleCronjobsForModule(moduleId, active === 0);
+    if (cronResult.changed) {
+      console.log('[API MODULES] [PATCH] Cronjobs', cronResult.action, 'para módulo', moduleId);
+    } else if (cronResult.reason !== 'no_matching_lines') {
+      console.log('[API MODULES] [PATCH] Cronjobs sin cambios:', cronResult);
+    }
 
     const [rows] = await query<any>(
       `SELECT 

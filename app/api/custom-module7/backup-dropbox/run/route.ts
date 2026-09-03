@@ -5,12 +5,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConfig } from '@/utils/modulos/backup-dropbox/config';
 import { runBackup } from '@/utils/modulos/backup-dropbox/run-backup';
+import { query } from '@/utils/db';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   try {
+    // Verificar que el módulo 7 esté activo antes de ejecutar
+    const [rows] = await query<any>('SELECT is_active FROM modules WHERE id = 7');
+    const isActive = rows?.[0]?.is_active === 1;
+    if (!isActive) {
+      console.log('[MOD7-BACKUP-RUN] Módulo 7 inactivo — ejecución omitida');
+      return NextResponse.json({ ok: false, error: 'Módulo desactivado' }, { status: 403 });
+    }
     const secret = req.nextUrl.searchParams.get('cron_secret') || req.nextUrl.searchParams.get('token');
     const stored = await getConfig('cron_secret');
     if (stored && secret !== stored) {
