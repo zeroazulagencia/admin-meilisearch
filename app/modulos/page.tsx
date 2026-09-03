@@ -306,7 +306,7 @@ export default function ModulosPage() {
                 metrics={metrics}
                 canEdit={true}
                 onEdit={() => { window.location.href = `/modulos/${module.id}`; }}
-                onDelete={isAdmin ? () => toggleModuleActive(module.id, !isDisabled) : undefined}
+                onDelete={isAdmin ? () => toggleModuleActive(module.id, isDisabled) : undefined}
                 deleteLabel={isDisabled ? 'Activar' : 'Desactivar'}
               />
             );
