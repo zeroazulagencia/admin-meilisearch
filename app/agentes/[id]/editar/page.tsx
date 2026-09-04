@@ -92,13 +92,14 @@ export default function EditarAgente() {
   const [availableReportAgents, setAvailableReportAgents] = useState<string[]>([]);
   const [loadingReportAgents, setLoadingReportAgents] = useState(false);
   const [selectedReportAgent, setSelectedReportAgent] = useState<string>('');
-  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning' }>({
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title?: string; message: string; type?: 'success' | 'error' | 'info' | 'warning'; showCancel?: boolean; confirmText?: string; cancelText?: string; onConfirm?: () => void }>({
     isOpen: false,
     message: '',
     type: 'info',
   });
   const [verifyingWhatsApp, setVerifyingWhatsApp] = useState(false);
   const [refreshingData, setRefreshingData] = useState(false);
+  const [togglingStatus, setTogglingStatus] = useState(false);
   const [showTokenUpdateConfirm, setShowTokenUpdateConfirm] = useState(false);
   const [pendingTokenUpdate, setPendingTokenUpdate] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'whatsapp' | 'conocimiento' | 'modulos' | 'flujos' | 'identificadores' | 'conexiones-bd' | 'bird' | 'conversaciones'>('general');
@@ -599,6 +600,71 @@ export default function EditarAgente() {
     }
   };
 
+  const handleToggleStatus = async () => {
+      if (!currentAgent) return;
+      const newStatus = currentAgent.status === 'active' ? 'inactive' : 'active';
+      const isDeactivating = newStatus === 'inactive';
+    
+      setAlertModal({
+        isOpen: true,
+        title: isDeactivating ? 'Deshabilitar Agente' : 'Habilitar Agente',
+        message: `¿Estás seguro de ${
+          isDeactivating ? 'deshabilitar' : 'habilitar'
+        } al agente "${currentAgent.name}"?\n\nAl ${
+          isDeactivating ? 'deshabilitarlo' : 'habilitarlo'
+        } se ${
+          isDeactivating ? 'DESACTIVARÁN' : 'REACTIVARÁN'
+        } todos sus módulos y cronjobs asociados.${
+          isDeactivating ? '\n\n⚠️ Los cronjobs existentes serán comentados con #HERMES-DEACTIVATED:' : ''
+        }`,
+        type: 'warning',
+        showCancel: true,
+        confirmText: isDeactivating ? 'Sí, deshabilitar' : 'Sí, habilitar',
+        cancelText: 'Cancelar',
+        onConfirm: async () => {
+          setAlertModal(prev => ({ ...prev, isOpen: false }));
+          setTogglingStatus(true);
+          try {
+            const res = await fetch(`/api/agents/${params.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: newStatus }),
+            });
+            const data = await res.json();
+            if (data.ok) {
+              setCurrentAgent(prev => prev ? { ...prev, status: newStatus } : prev);
+              setAlertModal({
+                isOpen: true,
+                title: isDeactivating ? 'Agente deshabilitado' : 'Agente habilitado',
+                message: `El agente "${currentAgent.name}" fue ${
+                  isDeactivating ? 'deshabilitado' : 'habilitado'
+                } exitosamente.${
+                  isDeactivating ? '\n\nTodos sus módulos y cronjobs han sido desactivados.' : '\n\nTodos sus módulos y cronjobs han sido reactivados.'
+                }`,
+                type: 'success',
+              });
+            } else {
+              setAlertModal({
+                isOpen: true,
+                title: 'Error',
+                message: data.error || 'Error al cambiar el estado del agente',
+                type: 'error',
+              });
+            }
+          } catch (err: any) {
+            setAlertModal({
+              isOpen: true,
+              title: 'Error',
+              message: err.message || 'Error de conexión al cambiar estado',
+              type: 'error',
+            });
+          } finally {
+            setTogglingStatus(false);
+          }
+        },
+      });
+    };
+
   const handleToggleIndex = (indexId: string) => {
     setSelectedIndexes(prev => {
       if (prev.includes(indexId)) {
@@ -1015,6 +1081,41 @@ export default function EditarAgente() {
 
             {/* Botones de Acción */}
             <div className="flex flex-col gap-3 md:items-end flex-shrink-0">
+              {/* Estado del Agente - Toggle */}
+              {canEdit && (
+                <div className="w-full md:w-auto">
+                  <div className="flex items-center justify-between md:justify-end gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <span className="text-sm font-medium text-gray-700">Estado:</span>
+                    <button
+                      type="button"
+                      onClick={handleToggleStatus}
+                      disabled={togglingStatus}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5DE1E5] ${
+                        currentAgent?.status === 'active' ? 'bg-green-500' : 'bg-red-400'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                          currentAgent?.status === 'active' ? 'translate-x-6.5' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      currentAgent?.status === 'active'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {currentAgent?.status === 'active' ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </div>
+                  {togglingStatus && (
+                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                      <div className="animate-spin h-3 w-3 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                      {currentAgent?.status === 'active' ? 'Desactivando agente...' : 'Activando agente...'}
+                    </div>
+                  )}
+                </div>
+              )}
               {canEdit ? (
                 <button
                   type="submit"
@@ -2083,10 +2184,19 @@ export default function EditarAgente() {
         {/* Modal de alertas */}
         <NoticeModal
           isOpen={alertModal.isOpen}
-          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+          onClose={() => {
+            if (alertModal.onConfirm) {
+              // Si hay onConfirm, es un modal de confirmación, solo cerrar sin ejecutar
+            }
+            setAlertModal({ ...alertModal, isOpen: false, onConfirm: undefined });
+          }}
           title={alertModal.title}
           message={alertModal.message}
           type={alertModal.type}
+          showCancel={alertModal.showCancel}
+          confirmText={alertModal.confirmText}
+          cancelText={alertModal.cancelText}
+          onConfirm={alertModal.onConfirm}
         />
 
         {/* Modal para generar imagen con IA */}

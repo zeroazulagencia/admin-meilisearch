@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
+import { execSync } from 'child_process';
 import { encrypt, decrypt, maskSensitiveValue, isEncrypted, hashToken, isValidToken, isValidWhatsAppField } from '@/utils/encryption';
 import { validateCriticalEnvVars } from '@/utils/validate-env';
 
@@ -797,7 +798,69 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-// PATCH - Actualizar campo específico de un agente (ej: monthly_value_usd)
+/**
+ * Activa o desactiva los cronjobs del sistema asociados a un módulo.
+ * Busca líneas en el crontab que contengan /api/custom-module{moduleId}/
+ * y las comenta con #HERMES-DEACTIVATED: o las descomenta según corresponda.
+ */
+function toggleCronjobsForModule(moduleId: string, deactivate: boolean) {
+  try {
+    let crontab = '';
+    try {
+      crontab = execSync('crontab -l 2>/dev/null', { encoding: 'utf8', timeout: 5000 });
+    } catch {
+      crontab = '';
+    }
+
+    if (!crontab.trim()) return { changed: false, reason: 'no_crontab' };
+
+    const lines = crontab.split('\n');
+    const marker = `custom-module${moduleId}/`;
+    const deactivatedPrefix = '#HERMES-DEACTIVATED:';
+    let modified = false;
+
+    const newLines = lines.map((line: string) => {
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith(deactivatedPrefix)) {
+        if (deactivate && !trimmed.includes(marker)) return line;
+        if (!deactivate && trimmed.includes(marker)) {
+          modified = true;
+          const afterPrefix = trimmed.slice(deactivatedPrefix.length).trim();
+          const indent = line.match(/^\s*/)?.[0] || '';
+          return `${indent}${afterPrefix}`;
+        }
+        return line;
+      }
+
+      if (!trimmed || trimmed.startsWith('#')) return line;
+
+      if (deactivate && trimmed.includes(marker)) {
+        modified = true;
+        const indent = line.match(/^\s*/)?.[0] || '';
+        return `${indent}${deactivatedPrefix} ${trimmed}`;
+      }
+
+      return line;
+    });
+
+    if (modified) {
+      execSync(`crontab -`, {
+        input: newLines.join('\n') + '\n',
+        encoding: 'utf8',
+        timeout: 5000,
+      });
+      return { changed: true, action: deactivate ? 'deactivated' : 'activated' };
+    }
+
+    return { changed: false, reason: 'no_matching_lines' };
+  } catch (err: any) {
+    console.error(`[API AGENTS] [CRONJOBS] Error toggling cronjobs for module ${moduleId}:`, err);
+    return { changed: false, error: err?.message };
+  }
+}
+
+// PATCH - Actualizar campo específico de un agente (ej: monthly_value_usd, status)
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -806,13 +869,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // Campos permitidos para actualización parcial
     const allowedFields: Record<string, boolean> = {
       monthly_value_usd: true,
+      status: true,
     };
     
     const updateFields: string[] = [];
     const updateValues: (string | number)[] = [];
+    let statusChanged = false;
+    let newStatus: string | null = null;
     
     for (const [key, value] of Object.entries(body)) {
       if (allowedFields[key]) {
+        if (key === 'status') {
+          // Validar que sea un valor válido
+          if (value === 'active' || value === 'inactive' || value === 'pending') {
+            updateFields.push(`${key} = ?`);
+            updateValues.push(value);
+            statusChanged = true;
+            newStatus = value;
+            console.log(`[API AGENTS] [PATCH] Actualizando ${key}: ${value} para agente ${id}`);
+          } else {
+            console.warn(`[API AGENTS] [PATCH] Valor de status inválido: ${value}, ignorado`);
+          }
+          continue;
+        }
+        
         let numVal: number;
         if (value === '' || value === null || value === undefined) {
           numVal = 0;
@@ -841,6 +921,43 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       updateValues
     );
     console.log('[API AGENTS] [PATCH] Actualización exitosa para agente ID:', id);
+
+    // Si cambió el status del agente, cascade a módulos y cronjobs
+    if (statusChanged && newStatus) {
+      const deactivate = newStatus === 'inactive';
+      console.log(`[API AGENTS] [PATCH] Status cambiado a "${newStatus}", cascadeando a módulos y cronjobs...`);
+
+      // Obtener todos los módulos del agente
+      const [moduleRows] = await query<any>(
+        'SELECT id, folder_name FROM modules WHERE agent_id = ?',
+        [id]
+      );
+
+      if (moduleRows && moduleRows.length > 0) {
+        console.log(`[API AGENTS] [PATCH] Agente tiene ${moduleRows.length} módulo(s), actualizando...`);
+
+        for (const mod of moduleRows) {
+          // Actualizar is_active del módulo
+          const activeVal = deactivate ? 0 : 1;
+          await query(
+            'UPDATE modules SET is_active = ? WHERE id = ?',
+            [activeVal, mod.id]
+          );
+          console.log(`[API AGENTS] [PATCH] Módulo ${mod.id} (${mod.folder_name}): is_active → ${activeVal}`);
+
+          // Toggle cronjobs del módulo
+          const cronResult = toggleCronjobsForModule(String(mod.id), deactivate);
+          if (cronResult.changed) {
+            console.log(`[API AGENTS] [PATCH] Cronjobs ${cronResult.action} para módulo ${mod.id}`);
+          } else if (cronResult.reason !== 'no_matching_lines') {
+            console.log(`[API AGENTS] [PATCH] Cronjobs sin cambios para módulo ${mod.id}:`, cronResult);
+          }
+        }
+      } else {
+        console.log(`[API AGENTS] [PATCH] Agente no tiene módulos asociados`);
+      }
+    }
+
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     console.error('[API AGENTS] [PATCH] Error actualizando agente:', e?.message || e);
