@@ -115,36 +115,38 @@ export const meilisearchAPI = {
   },
 
   // Buscar documentos en un índice
-  async searchDocuments(uid: string, query: string, limit: number = 20, offset: number = 0, params?: any): Promise<{ hits: Document[], totalHits: number, total: number }> {
-    const page = Math.floor(offset / limit) + 1;
-    const searchParams: any = { q: query, hitsPerPage: limit, page };
-    
-    if (params) {
-      if (params.filter) searchParams.filter = params.filter;
-      if (params.sort) searchParams.sort = params.sort;
-      if (params.matchingStrategy) searchParams.matchingStrategy = params.matchingStrategy;
-      if (params.rankingScoreThreshold !== undefined) searchParams.rankingScoreThreshold = params.rankingScoreThreshold;
-      if (params.hybridEmbedder) searchParams.hybridEmbedder = params.hybridEmbedder;
-      if (params.hybridSemanticRatio !== undefined) searchParams.hybridSemanticRatio = params.hybridSemanticRatio;
-      if (params.primaryKey) searchParams.attributesToRetrieve = ['*', params.primaryKey];
-    }
-    
-    console.log('Meilisearch search params:', searchParams);
-    console.log('Full search params object:', JSON.stringify(searchParams, null, 2));
-    
-    const response = await api.get(`/indexes/${uid}/search`, {
-      params: searchParams
-    });
-    
-    // Meilisearch devuelve totalHits, pero mantenemos compatibilidad con total
-    const data = response.data;
-    console.log('Meilisearch raw response:', data);
-    return {
-      hits: data.hits || [],
-      totalHits: data.totalHits || 0,
-      total: data.totalHits || 0 // Para compatibilidad
-    };
-  },
+    async searchDocuments(uid: string, query: string, limit: number = 20, offset: number = 0, params?: any): Promise<{ hits: Document[], totalHits: number, total: number, facetDistribution?: Record<string, Record<string, number>> }> {
+      const page = Math.floor(offset / limit) + 1;
+      const searchParams: any = { q: query, hitsPerPage: limit, page };
+
+      if (params) {
+        if (params.filter) searchParams.filter = params.filter;
+        if (params.sort) searchParams.sort = params.sort;
+        if (params.matchingStrategy) searchParams.matchingStrategy = params.matchingStrategy;
+        if (params.rankingScoreThreshold !== undefined) searchParams.rankingScoreThreshold = params.rankingScoreThreshold;
+        if (params.hybridEmbedder) searchParams.hybridEmbedder = params.hybridEmbedder;
+        if (params.hybridSemanticRatio !== undefined) searchParams.hybridSemanticRatio = params.hybridSemanticRatio;
+        if (params.primaryKey) searchParams.attributesToRetrieve = ['*', params.primaryKey];
+        if (params.facets) searchParams.facets = params.facets;
+      }
+
+      console.log('Meilisearch search params:', searchParams);
+      console.log('Full search params object:', JSON.stringify(searchParams, null, 2));
+
+      const response = await api.get(`/indexes/${uid}/search`, {
+        params: searchParams
+      });
+
+      // Meilisearch devuelve totalHits, pero mantenemos compatibilidad con total
+      const data = response.data;
+      console.log('Meilisearch raw response:', data);
+      return {
+        hits: data.hits || [],
+        totalHits: data.totalHits || 0,
+        total: data.totalHits || 0, // Para compatibilidad
+        facetDistribution: data.facetDistribution || undefined,
+      };
+    },
 
   // Obtener un documento específico
   async getDocument(uid: string, documentId: string): Promise<Document> {

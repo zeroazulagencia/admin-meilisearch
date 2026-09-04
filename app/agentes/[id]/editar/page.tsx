@@ -337,26 +337,9 @@ export default function EditarAgente() {
     setLoadingReportAgents(true);
     try {
       const INDEX_UID = 'bd_reports_dworkers';
-      const uniqueAgents = new Set<string>();
-      let currentOffset = 0;
-      const batchLimit = 1000;
-      let hasMore = true;
-
-      while (hasMore) {
-        const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
-        data.results.forEach((doc: any) => {
-          if (doc.agent && typeof doc.agent === 'string') {
-            uniqueAgents.add(doc.agent);
-          }
-        });
-        if (data.results.length < batchLimit) {
-          hasMore = false;
-        } else {
-          currentOffset += batchLimit;
-        }
-      }
-      
-      const sortedAgents = Array.from(uniqueAgents).sort();
+      const result = await meilisearchAPI.searchDocuments(INDEX_UID, '', 0, 0, { facets: ['agent'] });
+      const fd = result.facetDistribution?.agent || {};
+      const sortedAgents = Object.keys(fd).sort();
       setAvailableReportAgents(sortedAgents);
     } catch (error) {
       console.error('Error loading report agents:', error);
@@ -369,27 +352,11 @@ export default function EditarAgente() {
     setLoadingConversationAgents(true);
     try {
       const INDEX_UID = 'bd_conversations_dworkers';
-      const uniqueAgents = new Set<string>();
-      let currentOffset = 0;
-      const batchLimit = 1000;
-      let hasMore = true;
-
-      while (hasMore) {
-        const data = await meilisearchAPI.getDocuments(INDEX_UID, batchLimit, currentOffset);
-        data.results.forEach((doc: any) => {
-          if (doc.agent && typeof doc.agent === 'string') {
-            uniqueAgents.add(doc.agent);
-          }
-        });
-        if (data.results.length < batchLimit) {
-          hasMore = false;
-        } else {
-          currentOffset += batchLimit;
-        }
-      }
-      
-      const sortedAgents = Array.from(uniqueAgents).sort();
+      const result = await meilisearchAPI.searchDocuments(INDEX_UID, '', 0, 0, { facets: ['agent'] });
+      const fd = result.facetDistribution?.agent || {};
+      const sortedAgents = Object.keys(fd).sort();
       setAvailableConversationAgents(sortedAgents);
+      console.log(`[CONV AGENTS] ${sortedAgents.length} agentes únicos cargados vía facets (una sola request)`);
     } catch (error) {
       console.error('Error loading conversation agents:', error);
     } finally {
