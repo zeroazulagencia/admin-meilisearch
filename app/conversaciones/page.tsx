@@ -134,17 +134,16 @@ export default function Conversaciones() {
   const [selectedPlatformAgent, setSelectedPlatformAgent] = useState<string>('all');
   const [allDocumentsForCSV, setAllDocumentsForCSV] = useState<Document[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  // Calcular fechas por defecto: primer día del mes actual hasta hoy
+  // Calcular fechas por defecto: hoy (rango de un solo día)
   const getDefaultDates = () => {
     const today = new Date();
     const year = today.getFullYear();
     const month = today.getMonth();
     const day = today.getDate();
     
-    const firstDayStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
     const todayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
-    return { firstDayStr, todayStr };
+    return { firstDayStr: todayStr, todayStr };
   };
 
   const defaultDates = getDefaultDates();
@@ -176,6 +175,10 @@ export default function Conversaciones() {
       if (agent?.conversation_agent_name) {
         setSelectedAgent(agent.conversation_agent_name);
       }
+      // Resetear rango de fecha a HOY al elegir un agente
+      const { todayStr } = getDefaultDates();
+      setDateFrom(todayStr);
+      setDateTo(todayStr);
     } else {
       setSelectedAgent('all');
       setConversationGroups([]);
