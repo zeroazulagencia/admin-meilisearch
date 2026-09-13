@@ -6,6 +6,7 @@ import ProtectedLayout from '@/components/ProtectedLayout';
 import ModuleLoading from '@/components/ModuleLoading';
 
 // Static imports for known modules
+import ModAnalizadorGapSeoGeo from '@/modules-custom/analizador-gap-seo-geo';
 import ModClientFinder from '@/modules-custom/client-finder';
 import ModVerificadorMobilia from '@/modules-custom/verificador-mobilia';
 import ModModulo15 from '@/modules-custom/modulo-15';
@@ -60,6 +61,7 @@ const MODULES_MAP: Record<string, any> = {
   'forocpi-exportacion-registros': ModForocpiExportacionRegistros,
   'auditoria-agentes': ModAuditoriaAgentes,
   'client-finder': ModClientFinder,
+  'analizador-gap-seo-geo': ModAnalizadorGapSeoGeo,
 };
 
 interface Module {

@@ -47,7 +47,7 @@ function formatDuracion(segundos: number | null): string {
 }
 
 export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
-  const [tab, setTab] = useState<'asesor' | 'historial' | 'uso' | 'config' | 'docs'>('asesor');
+  const [tab, setTab] = useState<'asesor' | 'historial' | 'uso' | 'config' | 'docs' | 'notificaciones'>('asesor');
 
   // Notificaciones
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>('default');
@@ -84,6 +84,12 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
   const [config, setConfig] = useState<Config>({ account_sid: '', api_key_sid: '', api_key_secret: '', twiml_app_sid: '' });
   const [guardandoConfig, setGuardandoConfig] = useState(false);
   const [msgConfig, setMsgConfig] = useState('');
+
+  // Notificaciones config
+  const [notifEmail, setNotifEmail] = useState('');
+  const [notifTimes, setNotifTimes] = useState<number[]>([]);
+  const [guardandoNotif, setGuardandoNotif] = useState(false);
+  const [msgNotif, setMsgNotif] = useState('');
 
   // ---- Notificaciones ----
   const initNotifications = useCallback(() => {
@@ -392,6 +398,50 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
     setGuardandoConfig(false);
   };
 
+  // ---- Notificaciones config ----
+  const cargarNotifConfig = useCallback(async () => {
+    try {
+      const res = await fetch(`${BASE}/notificaciones-config`);
+      const data = await res.json();
+      if (data.ok) {
+        setNotifEmail(data.config.notify_email);
+        const times = data.config.notify_times ? data.config.notify_times.split(',').map(Number).filter((n: number) => !isNaN(n)) : [];
+        setNotifTimes(times);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    cargarNotifConfig();
+  }, [cargarNotifConfig]);
+
+  const guardarNotifConfig = async () => {
+    setGuardandoNotif(true);
+    setMsgNotif('');
+    try {
+      if (!notifEmail.trim()) {
+        setMsgNotif('Error: El correo es requerido');
+        setGuardandoNotif(false);
+        return;
+      }
+      if (notifTimes.length === 0) {
+        setMsgNotif('Error: Selecciona al menos una hora de notificacion');
+        setGuardandoNotif(false);
+        return;
+      }
+      const res = await fetch(`${BASE}/notificaciones-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notify_email: notifEmail.trim(), notify_times: notifTimes.sort((a,b) => a-b).join(',') }),
+      });
+      const data = await res.json();
+      setMsgNotif(data.ok ? 'Guardado correctamente' : 'Error: ' + (data.error || ''));
+    } catch (e: any) {
+      setMsgNotif('Error: ' + e.message);
+    }
+    setGuardandoNotif(false);
+  };
+
   const estadoColor = (estado: string) =>
     estado === 'activa' ? 'bg-green-100 text-green-700' :
     estado === 'finalizada' ? 'bg-gray-100 text-gray-600' :
@@ -402,6 +452,7 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
     { id: 'historial', label: 'Historial' },
     { id: 'uso', label: 'Uso y Creditos' },
     { id: 'config', label: 'Credenciales' },
+    { id: 'notificaciones', label: 'Notificaciones' },
     { id: 'docs', label: 'Documentacion' },
   ] as const;
 
@@ -755,6 +806,75 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
             {msgConfig && (
               <span className={`text-sm ${msgConfig.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
                 {msgConfig}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Notificaciones */}
+      {tab === 'notificaciones' && (
+        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
+          <h2 className="text-lg font-semibold text-gray-900">Notificaciones automaticas</h2>
+          <p className="text-sm text-gray-500">
+            Configura a quien se le envia un recordatorio cuando el modulo Llamada SARA lleve
+            mucho tiempo desconectado.
+          </p>
+          <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+            Horario laboral: <strong>7:00 AM - 7:00 PM</strong>. Solo se notifica en las horas que selecciones dentro de este horario.
+          </p>
+
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Correo de notificacion</label>
+            <input
+              type="email"
+              value={notifEmail}
+              onChange={e => setNotifEmail(e.target.value)}
+              placeholder="correo@ejemplo.com, otro@ejemplo.com"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-500 mb-2">Horas de notificacion</label>
+            <p className="text-xs text-gray-400 mb-3">Selecciona las horas del dia en que quieres recibir el recordatorio:</p>
+            <div className="grid grid-cols-4 gap-2">
+              {[7,8,9,10,11,12,13,14,15,16,17,18].map(h => {
+                const selected = notifTimes.includes(h);
+                return (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setNotifTimes(prev => selected ? prev.filter(x => x !== h) : [...prev, h])}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                      selected
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
+                    }`}
+                  >
+                    {h}:00
+                  </button>
+                );
+              })}
+            </div>
+            {notifTimes.length > 0 && (
+              <p className="text-xs text-blue-600 mt-2">
+                Notificaciones programadas a las: {notifTimes.sort((a,b) => a-b).map(h => `${h}:00`).join(', ')}
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={guardarNotifConfig}
+              disabled={guardandoNotif}
+              className="px-5 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              {guardandoNotif ? 'Guardando...' : 'Guardar'}
+            </button>
+            {msgNotif && (
+              <span className={`text-sm ${msgNotif.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
+                {msgNotif}
               </span>
             )}
           </div>

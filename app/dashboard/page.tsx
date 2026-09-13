@@ -370,10 +370,12 @@ export default function Dashboard() {
         })
       });
       const result = await response.json();
-      
-      // Guardar la explicación específica para este nodo
       const newExplanations = new Map(aiExplanations);
-      newExplanations.set(nodeName, result.explanation);
+      if (!response.ok || !result.explanation) {
+        newExplanations.set(nodeName, result.error || 'Error al obtener explicación de IA');
+      } else {
+        newExplanations.set(nodeName, result.explanation);
+      }
       setAiExplanations(newExplanations);
     } catch (err) {
       console.error('[DASHBOARD] Error explaining with AI:', err);

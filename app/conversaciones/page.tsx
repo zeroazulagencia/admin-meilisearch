@@ -8,6 +8,7 @@ import AgentSelector from '@/components/ui/AgentSelector';
 import NoticeModal from '@/components/ui/NoticeModal';
 import KpiDashboard from '@/app/omnicanalidad/components/KpiDashboard';
 import DashboardConversaciones from '@/components/dashboard/DashboardConversaciones';
+import DashboardAyurautos from '@/components/dashboard/DashboardAyurautos';
 import { classifyQueryType, classifyConversation } from '@/app/omnicanalidad/utils/query-classifier';
 
 interface ConversationGroup {
@@ -1048,6 +1049,18 @@ export default function Conversaciones() {
                 />
               );
             })()}
+          </div>
+        )}
+
+        {/* Dashboard Ayurautos - Estadísticas vehiculares */}
+        {(selectedAgent.startsWith('Chatty-Ayura')) && selectedPlatformAgent !== 'all' && selectedPlatformAgent && (
+          <div className="mb-6">
+            <DashboardAyurautos
+              documents={allDocumentsForCSV}
+              agentName="Chatty-Ayurautos"
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+            />
           </div>
         )}
 
