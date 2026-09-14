@@ -33,10 +33,20 @@ const MODELS = [
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1/chat/completions';
 
+// Alias con los que los asistentes nombran al cliente cuando lo recomiendan
+// sin citar la URL: marca comercial vs. dominio. En minusculas para comparar.
+const BRAND_ALIASES = [
+  'kenworth de la montaña',
+  'kenworth de la montana',
+  'kenworthcolombia',
+  'kenworth colombia',
+];
+
 interface AiQueryResult {
   model: string;
   modelName: string;
   mentionsClient: boolean;
+  mentionsBrand: boolean;
   snippet: string;
   status: 'ok' | 'error';
   error?: string;
@@ -52,10 +62,12 @@ interface AiPresenceResult {
   summary: {
     totalQueries: number;
     totalMentions: number;
+    totalBrandMentions: number;
     modelsEvaluated: number;
     modelsOk: number;
     modelsErrored: number;
     score: number;
+    brandScore: number;
   };
 }
 
@@ -103,6 +115,7 @@ async function queryAiModel(
         model: modelId,
         modelName,
         mentionsClient: false,
+        mentionsBrand: false,
         snippet: '',
         status: 'error',
         error: `HTTP ${res.status}: ${errBody.slice(0, 200)}`,
@@ -138,10 +151,15 @@ async function queryAiModel(
       mentionsClient = !NEGATIONS.some((n) => ctx.includes(n));
     }
 
+    // Mencion de marca: el asistente nombra al cliente (por marca o dominio)
+    // aunque no enlace la URL. Es la senal comercial relevante.
+    const mentionsBrand = mentionsClient || BRAND_ALIASES.some((b) => low.includes(b));
+
     return {
       model: modelId,
       modelName,
       mentionsClient,
+      mentionsBrand,
       snippet,
       status: 'ok',
     };
@@ -150,12 +168,28 @@ async function queryAiModel(
       model: modelId,
       modelName,
       mentionsClient: false,
+      mentionsBrand: false,
       snippet: '',
       status: 'error',
       error: e?.message || 'Error de conexión',
     };
   }
 }
+
+/**
+ * Preguntas reales mas comunes de un comprador / usuario de camion en Colombia.
+ * Es el set fijo que se evalua en cada corrida (intencion comercial: compra de
+ * vehiculo nuevo, marca propia DAF, servicio tecnico, repuestos, usados y
+ * merchandising). No incluye el dominio del cliente para no forzar la mencion.
+ */
+const USER_QUESTIONS: string[] = [
+  '¿Dónde puedo comprar un camión Kenworth en Colombia?',
+  '¿Dónde compro una DAF en Colombia?',
+  '¿Dónde llevo mi camión Kenworth a servicio técnico en Colombia?',
+  '¿Dónde consigo repuestos originales Kenworth en Colombia?',
+  '¿Dónde compro un camión Kenworth usado en Colombia?',
+  '¿Dónde venden gorras o merchandising de Kenworth en Colombia?',
+];
 
 function extractQueriesFromResult(lastResultRaw: string | null): string[] {
   if (!lastResultRaw) return [];
@@ -206,31 +240,30 @@ export async function POST() {
 
     const clientDomain = extractDomain(clientUrl);
 
-    // Build queries from the analysis result or use defaults
-    let queriesToRun = extractQueriesFromResult(lastResult);
+    // Set fijo: las preguntas reales mas comunes. Si por alguna razon quedara
+    // vacio, se usa lo que haya en el analisis guardado como respaldo.
+    let queriesToRun: string[] = [...USER_QUESTIONS];
     if (queriesToRun.length === 0) {
-      queriesToRun = [
-        `¿Qué concesionarios de camiones recomiendas en Colombia?`,
-        `¿Dónde comprar camiones Kenworth en Colombia?`,
-        `¿Cuál es el mejor taller de camiones en Colombia?`,
-      ];
+      queriesToRun = extractQueriesFromResult(lastResult);
     }
 
     // Se consultan SOLO búsquedas reales de usuarios.
     // Antes se anteponía una pregunta que incluía el dominio del cliente
     // ("¿Recomiendas <dominio>?"), lo que forzaba la mención y inflaba el
     // resultado: la primera fila siempre daba 3/3 y el % quedaba artificial.
-    queriesToRun = queriesToRun.slice(0, 5);
+    queriesToRun = queriesToRun.slice(0, 6);
 
     // Query each model for each query
     const results: AiPresenceResult['queries'] = [];
     let totalMentions = 0;
+    let totalBrandMentions = 0;
 
     for (const q of queriesToRun) {
       const modelResults = await Promise.all(
         MODELS.map((m) => queryAiModel(apiKey, m.id, m.name, q, clientDomain))
       );
       totalMentions += modelResults.filter((r) => r.mentionsClient).length;
+      totalBrandMentions += modelResults.filter((r) => r.mentionsBrand).length;
       results.push({ query: q, models: modelResults });
     }
 
@@ -245,6 +278,9 @@ export async function POST() {
     // El score se calcula SOLO sobre llamadas exitosas, para no penalizar
     // al cliente por modelos que fallaron (timeout, 404, etc.).
     const score = modelsOk > 0 ? Math.round((totalMentions / modelsOk) * 100) : 0;
+    // brandScore = veces que la marca o el dominio salen en las respuestas.
+    // Es el indicador principal del tablero; el dominio citado (score) va aparte.
+    const brandScore = modelsOk > 0 ? Math.round((totalBrandMentions / modelsOk) * 100) : 0;
 
     const result: AiPresenceResult = {
       lastEvaluated: new Date().toISOString(),
@@ -253,10 +289,12 @@ export async function POST() {
       summary: {
         totalQueries,
         totalMentions,
+        totalBrandMentions,
         modelsEvaluated,
         modelsOk,
         modelsErrored,
         score,
+        brandScore,
       },
     };
 

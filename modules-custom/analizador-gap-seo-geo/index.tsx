@@ -103,6 +103,7 @@ interface AiQueryResult {
   modelName: string;
   mentionsClient: boolean;
   snippet: string;
+  mentionsBrand?: boolean;
   status: 'ok' | 'error';
   error?: string;
 }
@@ -117,6 +118,8 @@ interface AiPresenceResult {
   summary: {
     totalQueries: number;
     totalMentions: number;
+    totalBrandMentions?: number;
+    brandScore?: number;
     modelsEvaluated: number;
     modelsOk: number;
     modelsErrored: number;
@@ -843,9 +846,9 @@ function ExecutiveDashboard({
         {/* C: IA */}
         <IndicatorCard
           title="Presencia en IA"
-          value={aiPresence ? `${aiPresence.summary.totalMentions} de ${aiPresence.summary.modelsOk ?? (aiPresence.summary.totalQueries * aiPresence.summary.modelsEvaluated)}` : 'Sin medir'}
-          subtitle={aiPresence ? `${aiPresence.summary.score}% · Actualizado ${new Date(aiPresence.lastEvaluated).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${(aiPresence.summary.modelsErrored ?? 0) > 0 ? ` · ${aiPresence.summary.modelsErrored} fallos` : ''}` : 'Pendiente de evaluación'}
-          tooltip={aiPresence ? `Se preguntaron ${aiPresence.summary.totalQueries} búsquedas reales a ChatGPT, Claude y Gemini. Tu sitio apareció en ${aiPresence.summary.totalMentions} de ${aiPresence.summary.modelsOk ?? (aiPresence.summary.totalQueries * aiPresence.summary.modelsEvaluated)} respuestas. La evaluación se ejecuta con el botón 🤖 IA o automáticamente cuando corre el cron del módulo.` : 'No se han realizado consultas a asistentes de IA. Esta evaluación requiere ejecutar consultas reales en ChatGPT, Gemini y Claude.'}
+          value={aiPresence ? `${aiPresence.summary.totalBrandMentions ?? aiPresence.summary.totalMentions} de ${aiPresence.summary.modelsOk ?? (aiPresence.summary.totalQueries * aiPresence.summary.modelsEvaluated)}` : 'Sin medir'}
+          subtitle={aiPresence ? `${aiPresence.summary.brandScore ?? aiPresence.summary.score}% · Actualizado ${new Date(aiPresence.lastEvaluated).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${(aiPresence.summary.modelsErrored ?? 0) > 0 ? ` · ${aiPresence.summary.modelsErrored} fallos` : ''}` : 'Pendiente de evaluación'}
+          tooltip={aiPresence ? `Se preguntaron ${aiPresence.summary.totalQueries} búsquedas reales a ChatGPT, Claude y Gemini. Tu marca apareció en ${aiPresence.summary.totalBrandMentions ?? aiPresence.summary.totalMentions} de ${aiPresence.summary.modelsOk ?? (aiPresence.summary.totalQueries * aiPresence.summary.modelsEvaluated)} respuestas. La evaluación se ejecuta con el botón 🤖 IA o automáticamente cuando corre el cron del módulo.` : 'No se han realizado consultas a asistentes de IA. Esta evaluación requiere ejecutar consultas reales en ChatGPT, Gemini y Claude.'}
         >
           {aiPresence ? (
             <div className="space-y-2">
@@ -863,7 +866,7 @@ function ExecutiveDashboard({
               <div className="flex items-center gap-3 text-[11px] text-[#64748B]">
                 {aiPresence.queries.map((q, i) => {
                   const okModels = q.models.filter((m) => m.status !== 'error');
-                  const mentions = okModels.filter((m) => m.mentionsClient).length;
+                  const mentions = okModels.filter((m) => m.mentionsBrand ?? m.mentionsClient).length;
                   return (
                     <span key={i} className="flex items-center gap-1" title={q.query}>
                       <span className={`w-1.5 h-1.5 rounded-full inline-block ${mentions > 0 ? 'bg-[#10B981]' : 'bg-[#CBD5E1]'}`} />
