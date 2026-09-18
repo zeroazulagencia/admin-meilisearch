@@ -6,6 +6,7 @@ import ProtectedLayout from '@/components/ProtectedLayout';
 import ModuleLoading from '@/components/ModuleLoading';
 
 // Static imports for known modules
+import ModSaraV2 from '@/modules-custom/sara-v2';
 import ModAnalizadorGapSeoGeo from '@/modules-custom/analizador-gap-seo-geo';
 import ModClientFinder from '@/modules-custom/client-finder';
 import ModVerificadorMobilia from '@/modules-custom/verificador-mobilia';
@@ -62,6 +63,7 @@ const MODULES_MAP: Record<string, any> = {
   'auditoria-agentes': ModAuditoriaAgentes,
   'client-finder': ModClientFinder,
   'analizador-gap-seo-geo': ModAnalizadorGapSeoGeo,
+  'sara-v2': ModSaraV2,
 };
 
 interface Module {
