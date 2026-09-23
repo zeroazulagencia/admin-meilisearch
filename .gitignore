@@ -53,3 +53,4 @@ public/agent-avatars/*
 .backups/
 .env.bak*
 cartas-pdf/generador-carta-laboral/
+deploy/dworkers_ssh_key
