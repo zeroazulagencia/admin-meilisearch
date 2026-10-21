@@ -294,6 +294,18 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
                 <li><code>dry_run: true</code> valida sin crear el pedido.</li>
                 <li>Los pedidos de API descuentan inventario (<code>decrement_obeying_policy</code>).</li>
               </ul>
+              <p className="mt-3 text-sm text-gray-600">
+                <strong>Dónde está el secret:</strong> es un <em>secreto compartido que define ZeroAzul</em> (no lo emite Shopify).
+                Se gestiona aquí, en la pestaña <strong>Configuración</strong> (campo «Shopify Bridge Secret»), y debe ser el
+                <strong> mismo valor</strong> que usa la app <code>el-reten-shopify-app-prices</code>. Se guarda cifrado
+                (AES-256-GCM) y por seguridad esta pantalla solo muestra los primeros 5 caracteres: para firmar una petición hay que
+                leer el valor en claro del <code>.env</code> de esa app o descifrarlo. Si cambias el valor aquí, cámbialo también allí.
+              </p>
+              <p className="mt-2 text-sm text-gray-600">
+                <strong>Firma:</strong> <code>HMAC-SHA256</code> del <em>cuerpo exacto</em> en hex, no de una versión reformateada.
+                La URL debe llevar <strong>barra final</strong> (<code>{`${BASE}/orders/`}</code>); sin barra el servidor responde 308 y se pierde el POST.
+                Prueba siempre primero con <code>dry_run: true</code>.
+              </p>
             </div>
           </div>
         )}
