@@ -266,7 +266,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
               <ul className="list-disc list-inside space-y-1">
                 <li>Endpoint: <code>GET https://workers.zeroazul.com/api/custom-module30/precios-dinamicos-ubicacion-shopify/geo/</code></li>
                 <li>Resuelve la ciudad con la base <strong>GeoLite2-City</strong> local (sin API externa).</li>
-                <li>IP real: <code>CF-Connecting-IP</code> → <code>X-Forwarded-For[0]</code> → IP de conexión.</li>
+                <li>IP real: <code>X-Real-IP</code> (la fija nginx y es la única fiable) → último valor de <code>X-Forwarded-For</code>. <strong>No</strong> se usa <code>CF-Connecting-IP</code>: no hay Cloudflare delante y el cliente podría falsificarla para elegir su propia ciudad.</li>
                 <li>Respuesta: <code>{`{ fuente, ciudad, region, pais, latitud, longitud }`}</code>.</li>
                 <li>Las reglas de descuento las lee el <strong>tema de Shopify</strong> directamente del metaobjeto (Section Rendering API, sin caché). Este endpoint <strong>solo ubica</strong> al visitante: no consulta ni cruza reglas.</li>
               </ul>
@@ -283,30 +283,58 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
               <h4 className="font-semibold mb-2">Endpoints del módulo</h4>
               <ul className="list-disc list-inside space-y-1">
                 <li><strong>Config:</strong> <code>{`${BASE}/config/`}</code></li>
-                <li><strong>Crear pedido:</strong> <code>POST {`${BASE}/orders/`}</code> — autenticado</li>
                 <li><strong>Geo público (solo ubicación):</strong> <code>GET {`${BASE}/geo/`}</code></li>
+                <li><strong>Checkout público (precio dinámico):</strong> <code>POST {`${BASE}/checkout/`}</code></li>
+              </ul>
+              <p className="mt-2 text-xs text-gray-500">La antigua ruta <code>{`${BASE}/orders/`}</code> (autenticada por HMAC) fue <strong>eliminada</strong>: ya no la usa la tienda y, con el secreto, permitía crear pedidos pagados con cualquier precio.</p>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <h4 className="font-semibold text-amber-900 mb-2">Checkout público (sin secretos)</h4>
+              <p className="mb-2">
+                Lo usa el <strong>botón de pago del tema</strong>, que corre en el navegador del cliente: no lleva ningún secreto.
+                El servidor resuelve todo (ubicación, regla, precio); cualquier precio, descuento o dato que envíe el cliente se <strong>ignora</strong>.
+              </p>
+              <ul className="list-disc list-inside space-y-1">
+                <li><strong>URL:</strong> <code>POST {`${BASE}/checkout/`}</code> — <strong>con barra final</strong> (sin barra el servidor responde 308 y se pierde el POST).</li>
+                <li><strong>Entrada:</strong> <code>{`{ "items": [ { "variant_id": 123, "quantity": 2 } ], "dry_run": false }`}</code></li>
+                <li><strong>Límites:</strong> 1–50 líneas · <code>quantity</code> entero 1–20 · <code>variant_id</code> numérico · máximo 50 unidades por petición · cuerpo ≤ 16 KB. Variantes repetidas se suman y el límite se aplica al total (no se puede partir en varias líneas).</li>
+                <li><strong>Respuesta OK:</strong> <code>{`{ ok, checkout_url, draft_order_id, descuento, regla, ubicacion }`}</code></li>
+                <li><strong>Sin regla o descuento 0:</strong> <code>{`{ checkout_url: null, descuento: 0, regla: null }`}</code> y el tema sigue al checkout normal.</li>
+                <li><strong>dry_run:</strong> devuelve las líneas calculadas (<code>precio_base</code>, <code>precio_final</code>) sin crear nada.</li>
+                <li><strong>Errores:</strong> 400 entrada inválida · 404 variante inexistente o no disponible · 429 límite de peticiones · 502 fallo de Shopify (sin exponer detalles internos).</li>
+                <li><strong>CORS:</strong> solo <code>retendelcasco.com</code>, <code>www.retendelcasco.com</code> y <code>el-reten-del-casco.myshopify.com</code>. Siempre <code>Cache-Control: no-store</code>.</li>
+                <li><strong>Rate limit:</strong> 10 peticiones por minuto y por IP → 429.</li>
               </ul>
             </div>
             <div className="border rounded-lg p-4">
-              <h4 className="font-semibold mb-2">Crear pedidos en Shopify</h4>
-              <p className="mb-2">Requiere autenticación por firma <strong>HMAC-SHA256</strong> del cuerpo en el header <code>x-za-signature</code> (clave <code>shopify_bridge_secret</code>), o <code>Authorization: Bearer &lt;secret&gt;</code>.</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li><code>line_items</code> (obligatorio): <code>[{'{'} variant_id, quantity {'}'}]</code> o <code>[{'{'} title, price, quantity {'}'}]</code>.</li>
-                <li>Opcionales: <code>email</code>, <code>financial_status</code>, <code>note</code>, <code>tags</code>, <code>shipping_address</code>, <code>test</code>.</li>
-                <li><code>dry_run: true</code> valida sin crear el pedido.</li>
-                <li>Los pedidos de API descuentan inventario (<code>decrement_obeying_policy</code>).</li>
-              </ul>
-              <p className="mt-3 text-sm text-gray-600">
-                <strong>Dónde está el secret:</strong> es un <em>secreto compartido que define ZeroAzul</em> (no lo emite Shopify).
-                Se gestiona aquí, en la pestaña <strong>Configuración</strong> (campo «Shopify Bridge Secret»), y debe ser el
-                <strong> mismo valor</strong> que usa la app <code>el-reten-shopify-app-prices</code>. Se guarda cifrado
-                (AES-256-GCM) y por seguridad esta pantalla solo muestra los primeros 5 caracteres: para firmar una petición hay que
-                leer el valor en claro del <code>.env</code> de esa app o descifrarlo. Si cambias el valor aquí, cámbialo también allí.
-              </p>
+              <h4 className="font-semibold mb-2">Cómo se calcula el precio</h4>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>IP del visitante → base <strong>GeoLite2-City</strong> local (sin API externa) → ciudad y departamento.</li>
+                <li>Reglas del tema: <code>{`GET https://retendelcasco.com/?section_id=precio-dinamico-reglas&t=<ts>`}</code> — público, sin permisos, caché máxima 15 s. Se lee el JSON de <code>{`<script id="precio-dinamico-reglas">`}</code>.</li>
+                <li>Cruce (igual que el tema): primero <strong>municipio</strong> (ciudad); si no hay, <strong>departamento</strong>. Normaliza con NFD, sin tildes, minúsculas y trim.</li>
+                <li>Precio real y disponibilidad desde la Admin GraphQL (<code>read_products</code>). El precio del cliente nunca se usa.</li>
+                <li><code>{`precio_final = Math.round(precio_base * (1 - descuento/100))`}</code>, en COP sin decimales. <em>Descuento positivo baja el precio; negativo lo sube (Envigado −10 = +10 %).</em></li>
+                <li>Se crea un <strong>borrador sin completar</strong> con <code>draftOrderCreate</code> (<code>write_draft_orders</code>) usando <code>priceOverride</code> —así se mantiene el vínculo con producto e inventario—, tag <code>precio-dinamico</code> y nota con ciudad/departamento, regla e IP. No se completa ni se marca como pagado: el cliente paga en el <code>invoiceUrl</code>.</li>
+              </ol>
               <p className="mt-2 text-sm text-gray-600">
-                <strong>Firma:</strong> <code>HMAC-SHA256</code> del <em>cuerpo exacto</em> en hex, no de una versión reformateada.
-                La URL debe llevar <strong>barra final</strong> (<code>{`${BASE}/orders/`}</code>); sin barra el servidor responde 308 y se pierde el POST.
-                Prueba siempre primero con <code>dry_run: true</code>.
+                Versión de API <code>2025-04</code> (primera con <code>priceOverride</code> en <code>DraftOrderLineItemInput</code>).
+                Si no se pueden leer las reglas del tema, el endpoint responde <strong>sin descuento</strong> (el cliente paga el precio normal), igual que hace el tema.
+              </p>
+            </div>
+            <div className="border rounded-lg p-4">
+              <h4 className="font-semibold mb-2">Limpieza automática de borradores</h4>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Tarea diaria (03:00 Bogotá) que borra los borradores con tag <code>precio-dinamico</code> en estado <strong>OPEN</strong> con más de 7 días.</li>
+                <li>Evita que se acumulen checkouts abandonados. No toca los borradores completados ni pagados.</li>
+                <li>Script: <code>~/.hermes/scripts/limpiar_borradores_precio_dinamico.py</code> — cron de Hermes; solo avisa cuando borra algo.</li>
+              </ul>
+            </div>
+            <div className="border rounded-lg p-4">
+              <h4 className="font-semibold mb-2">Shopify Bridge Secret</h4>
+              <p className="text-sm text-gray-600">
+                El módulo <strong>ya no lo usa</strong> (la ruta <code>orders/</code> fue eliminada). Sigue en Configuración porque es el
+                secreto compartido con la app compañera <code>el-reten-shopify-app-prices</code>: si lo cambias aquí, cámbialo también en su <code>.env</code>.
+                Se guarda cifrado (AES-256-GCM) y la pantalla solo muestra los primeros caracteres.
               </p>
             </div>
           </div>
