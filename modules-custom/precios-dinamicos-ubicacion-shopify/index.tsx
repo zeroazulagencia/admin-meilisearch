@@ -191,7 +191,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
                 <h4 className="font-semibold text-gray-900 mb-2">Endpoint de geolocalización</h4>
                 <p className="text-sm text-gray-600 mb-2">Resuelve ciudad/región/país del visitante por IP (GeoLite2 local).</p>
                 <code className="block text-xs bg-gray-900 text-green-300 p-2 rounded overflow-auto">
-                  GET https://workers.zeroazul.com/geo/
+                  GET https://workers.zeroazul.com/api/custom-module30/precios-dinamicos-ubicacion-shopify/geo/
                 </code>
               </div>
 
@@ -264,7 +264,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-semibold text-blue-900 mb-2">Geolocalización por IP</h4>
               <ul className="list-disc list-inside space-y-1">
-                <li>Endpoint: <code>GET https://workers.zeroazul.com/geo/</code></li>
+                <li>Endpoint: <code>GET https://workers.zeroazul.com/api/custom-module30/precios-dinamicos-ubicacion-shopify/geo/</code></li>
                 <li>Resuelve la ciudad con la base <strong>GeoLite2-City</strong> local (sin API externa).</li>
                 <li>IP real: <code>CF-Connecting-IP</code> → <code>X-Forwarded-For[0]</code> → IP de conexión.</li>
               </ul>
@@ -282,7 +282,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
               <ul className="list-disc list-inside space-y-1">
                 <li><strong>Config:</strong> <code>{`${BASE}/config/`}</code></li>
                 <li><strong>Crear pedido:</strong> <code>POST {`${BASE}/orders/`}</code> — autenticado</li>
-                <li><strong>Geo público:</strong> https://workers.zeroazul.com/geo/</li>
+                <li><strong>Geo público:</strong> <code>GET {`${BASE}/geo/`}</code></li>
               </ul>
             </div>
             <div className="border rounded-lg p-4">
