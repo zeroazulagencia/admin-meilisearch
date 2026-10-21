@@ -86,10 +86,15 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
     </div>
   );
 
+  const authHeaders = (): Record<string, string> => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('admin-user-id') : null;
+    return userId ? { 'x-admin-user-id': userId } : {};
+  };
+
   const loadConfig = async () => {
     setLoadingConfig(true);
     try {
-      const res = await fetch(`${BASE}/config/`, { cache: 'no-store' });
+      const res = await fetch(`${BASE}/config/`, { cache: 'no-store', headers: { ...authHeaders() } });
       const json = await res.json();
       if (json.ok && json.config) {
         setSensitivePreview({
@@ -141,7 +146,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
 
       const res = await fetch(`${BASE}/config/`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
