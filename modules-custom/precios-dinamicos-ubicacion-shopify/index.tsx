@@ -262,12 +262,39 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
           <div className="p-4 space-y-4 text-sm text-gray-700">
             <h3 className="font-semibold text-gray-900">Documentación</h3>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-2">Geolocalización por IP</h4>
+              <h4 className="font-semibold text-blue-900 mb-2">Geolocalización por IP + regla de descuento</h4>
               <ul className="list-disc list-inside space-y-1">
                 <li>Endpoint: <code>GET https://workers.zeroazul.com/api/custom-module30/precios-dinamicos-ubicacion-shopify/geo/</code></li>
                 <li>Resuelve la ciudad con la base <strong>GeoLite2-City</strong> local (sin API externa).</li>
                 <li>IP real: <code>CF-Connecting-IP</code> → <code>X-Forwarded-For[0]</code> → IP de conexión.</li>
+                <li>Devuelve además <code>regla</code> y <code>descuento</code>, cruzando la ubicación con las reglas del metaobjeto.</li>
               </ul>
+            </div>
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h4 className="font-semibold text-purple-900 mb-2">Reglas desde el metaobjeto de Shopify</h4>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Tipo de metaobjeto: <code>municipiosxdescuento</code>, leído por <strong>Admin API GraphQL</strong>.</li>
+                <li>Requiere el permiso <code>read_metaobjects</code> en el token de la app; sin él, <code>regla</code> llega <code>null</code> y <code>descuento</code> <code>0</code>.</li>
+                <li>Solo se usan entradas <strong>ACTIVE</strong>: los borradores se ignoran.</li>
+                <li>Cruce sin mayúsculas, tildes ni espacios sobrantes: primero <strong>municipio (ciudad)</strong>, si no hay, <strong>departamento (región)</strong>.</li>
+                <li><code>descuento</code> siempre es un número: positivo baja el precio, negativo lo sube. <code>0</code> si no coincide ninguna regla.</li>
+                <li>Respuesta de ejemplo:</li>
+              </ul>
+              <pre className="mt-2 text-xs bg-gray-900 text-green-300 p-3 rounded overflow-auto">{`{
+  "fuente": "zeroazul",
+  "ciudad": "Envigado",
+  "region": "Antioquia",
+  "pais": "CO",
+  "latitud": 6.17,
+  "longitud": -75.58,
+  "regla": { "municipio": "Envigado", "descuento": -10 },
+  "descuento": -10
+}`}</pre>
+              <p className="mt-2 text-xs text-purple-900">
+                Frescura: la respuesta va sin caché HTTP (<code>Cache-Control: no-store</code>) y las reglas se cachean en el servidor
+                como máximo <strong>60 segundos</strong>. Para que un cambio se vea al instante, apunta un webhook de Shopify
+                (<code>metaobjects/update</code>, <code>create</code>, <code>delete</code>) al endpoint de invalidación.
+              </p>
             </div>
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
               <h4 className="font-semibold text-emerald-900 mb-2">Credenciales Shopify</h4>
@@ -283,6 +310,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
                 <li><strong>Config:</strong> <code>{`${BASE}/config/`}</code></li>
                 <li><strong>Crear pedido:</strong> <code>POST {`${BASE}/orders/`}</code> — autenticado</li>
                 <li><strong>Geo público:</strong> <code>GET {`${BASE}/geo/`}</code></li>
+                <li><strong>Invalidar caché de reglas:</strong> <code>POST {`${BASE}/geo/revalidate/`}</code> — autenticado (webhook Shopify o bridge secret)</li>
               </ul>
             </div>
             <div className="border rounded-lg p-4">

@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'node:path';
 import maxmind, { CityResponse, Reader } from 'maxmind';
+import { getRules, matchRule } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/geo-rules';
 
 // ============================================================
-//  Módulo 30 — Precios dinámicos por ubicación (Shopify)
+//  Módulo 30 — Precios dinámicos por ubicación (Shopify / El Retén del Casco)
 //  Endpoint público (convención de módulos):
-//    GET https://workers.zeroazul.com/api/custom-module30/precios-dinamicos-ubicacion-shopify/geo
+//    GET https://workers.zeroazul.com/api/custom-module30/precios-dinamicos-ubicacion-shopify/geo/
 //
-//  - La petición la origina el NAVEGADOR del visitante (fetch
-//    desde el snippet precio-dinamico.liquid en la tienda), por
-//    lo que la conexión entrante trae la IP real del visitante.
-//  - IP real = CF-Connecting-IP (si hay Cloudflare) →
-//    primer valor de X-Forwarded-For (nginx/proxy) → X-Real-IP →
-//    IP de la conexión directa.
-//  - Ciudad/región/país resueltos con la base LOCAL GeoLite2-City
-//    de MaxMind (sin llamadas a APIs externas en cada visita).
+//  Devuelve la ubicación REAL del visitante (GeoLite2 local + IP real) y la
+//  regla de descuento vigente para su municipio/departamento, leída de un
+//  metaobjeto de Shopify (tipo "municipiosxdescuento") vía Admin API GraphQL.
+//
+//  Reglas: ver utils/modulos/precios-dinamicos-ubicacion-shopify-30/geo-rules.ts
+//    - solo entradas ACTIVE, caché 60 s invalidable vía POST .../geo/revalidate/
+//    - si Shopify/token fallan -> regla=null y descuento=0 (no rompe el tema)
+//  Sin caché HTTP (Cache-Control: no-store) y CORS solo para los 3 orígenes.
 // ============================================================
 
 export const runtime = 'nodejs';
@@ -28,12 +29,10 @@ const ALLOWED_ORIGINS = [
 
 const MMDB_PATH = path.join(process.cwd(), 'data', 'geoip', 'GeoLite2-City.mmdb');
 
-// Singleton: la base se abre una sola vez por proceso.
 let readerPromise: Promise<Reader<CityResponse>> | null = null;
 function getReader(): Promise<Reader<CityResponse>> {
   if (!readerPromise) {
     readerPromise = maxmind.open<CityResponse>(MMDB_PATH).catch((err) => {
-      // Si falla, permitir reintento en la siguiente petición.
       readerPromise = null;
       throw err;
     });
@@ -42,19 +41,15 @@ function getReader(): Promise<Reader<CityResponse>> {
 }
 
 function realClientIp(req: NextRequest): string | null {
-  // 1) Cloudflare
   const cf = req.headers.get('cf-connecting-ip');
   if (cf) return cf.trim();
-  // 2) Primer valor de X-Forwarded-For (el cliente original)
   const xff = req.headers.get('x-forwarded-for');
   if (xff) {
     const first = xff.split(',')[0]?.trim();
     if (first) return first;
   }
-  // 3) X-Real-IP (nginx)
   const xri = req.headers.get('x-real-ip');
   if (xri) return xri.trim();
-  // 4) IP de la conexión (fallback)
   const anyReq = req as unknown as { ip?: string | null };
   return anyReq.ip ?? null;
 }
@@ -74,13 +69,11 @@ function buildHeaders(origin: string | null): Headers {
 }
 
 export async function OPTIONS(req: NextRequest) {
-  const origin = req.headers.get('origin');
-  return new NextResponse(null, { status: 204, headers: buildHeaders(origin) });
+  return new NextResponse(null, { status: 204, headers: buildHeaders(req.headers.get('origin')) });
 }
 
 export async function GET(req: NextRequest) {
-  const origin = req.headers.get('origin');
-  const headers = buildHeaders(origin);
+  const headers = buildHeaders(req.headers.get('origin'));
 
   let ciudad: string | null = null;
   let region: string | null = null;
@@ -95,10 +88,7 @@ export async function GET(req: NextRequest) {
       const r = reader.get(ip);
       if (r) {
         ciudad = r.city?.names?.es ?? r.city?.names?.en ?? null;
-        region =
-          r.subdivisions?.[0]?.names?.es ??
-          r.subdivisions?.[0]?.names?.en ??
-          null;
+        region = r.subdivisions?.[0]?.names?.es ?? r.subdivisions?.[0]?.names?.en ?? null;
         pais = r.country?.iso_code ?? null;
         latitud = r.location?.latitude ?? null;
         longitud = r.location?.longitude ?? null;
@@ -106,12 +96,22 @@ export async function GET(req: NextRequest) {
     }
   } catch (err) {
     console.error('[geo] error resolviendo ubicación:', err);
-    // Se responde igual con el formato exacto (valores null) para que el
-    // script de la tienda nunca tenga que cambiar de forma.
+  }
+
+  // Regla vigente para esa ubicación. Si no coincide nada -> regla null, descuento 0.
+  let regla: Record<string, unknown> | null = null;
+  let descuento = 0;
+  try {
+    const { rules } = await getRules();
+    const match = matchRule(rules, ciudad, region);
+    regla = match.regla;
+    descuento = match.descuento;
+  } catch (err) {
+    console.error('[geo] error cruzando reglas:', err);
   }
 
   return NextResponse.json(
-    { fuente: 'zeroazul', ciudad, region, pais, latitud, longitud },
+    { fuente: 'zeroazul', ciudad, region, pais, latitud, longitud, regla, descuento },
     { status: 200, headers }
   );
 }
