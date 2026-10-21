@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'node:path';
 import maxmind, { CityResponse, Reader } from 'maxmind';
-import { getRules, matchRule } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/geo-rules';
 
 // ============================================================
 //  Módulo 30 — Precios dinámicos por ubicación (Shopify / El Retén del Casco)
 //  Endpoint público (convención de módulos):
 //    GET https://workers.zeroazul.com/api/custom-module30/precios-dinamicos-ubicacion-shopify/geo/
 //
-//  Devuelve la ubicación REAL del visitante (GeoLite2 local + IP real) y la
-//  regla de descuento vigente para su municipio/departamento, leída de un
-//  metaobjeto de Shopify (tipo "municipiosxdescuento") vía Admin API GraphQL.
+//  Devuelve ÚNICAMENTE la ubicación real del visitante (GeoLite2 local + IP real).
+//  Las reglas de descuento las lee el tema de Shopify directamente del metaobjeto
+//  (Section Rendering API, sin caché) — este endpoint NO las consulta ni las cruza.
 //
-//  Reglas: ver utils/modulos/precios-dinamicos-ubicacion-shopify-30/geo-rules.ts
-//    - solo entradas ACTIVE, caché 60 s invalidable vía POST .../geo/revalidate/
-//    - si Shopify/token fallan -> regla=null y descuento=0 (no rompe el tema)
 //  Sin caché HTTP (Cache-Control: no-store) y CORS solo para los 3 orígenes.
 // ============================================================
 
@@ -98,20 +94,8 @@ export async function GET(req: NextRequest) {
     console.error('[geo] error resolviendo ubicación:', err);
   }
 
-  // Regla vigente para esa ubicación. Si no coincide nada -> regla null, descuento 0.
-  let regla: Record<string, unknown> | null = null;
-  let descuento = 0;
-  try {
-    const { rules } = await getRules();
-    const match = matchRule(rules, ciudad, region);
-    regla = match.regla;
-    descuento = match.descuento;
-  } catch (err) {
-    console.error('[geo] error cruzando reglas:', err);
-  }
-
   return NextResponse.json(
-    { fuente: 'zeroazul', ciudad, region, pais, latitud, longitud, regla, descuento },
+    { fuente: 'zeroazul', ciudad, region, pais, latitud, longitud },
     { status: 200, headers }
   );
 }
