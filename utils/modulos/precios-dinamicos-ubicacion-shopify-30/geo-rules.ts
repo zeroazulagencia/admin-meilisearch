@@ -120,11 +120,12 @@ export async function fetchRulesFromShopify(): Promise<RulesFetch> {
 
       const fields: Record<string, string> = {};
       for (const f of node?.fields || []) {
-        if (f?.key) fields[f.key] = f.value ?? '';
+        // keys en minúsculas: el metaobjeto puede definirlos como "Municipio" o "DESCUENTO"
+        if (f?.key) fields[String(f.key).trim().toLowerCase()] = f.value ?? '';
       }
 
       const municipio = pickField(fields, ['municipio', 'ciudad', 'city']);
-      const departamento = pickField(fields, ['departamento', 'region', 'estado', 'department']);
+      const departamento = pickField(fields, ['departamento', 'region', 'estado', 'provincia', 'department']);
       const raw = pickField(fields, ['descuento', 'discount', 'porcentaje']);
       const descuento = Number(String(raw).replace(/[^0-9,.-]/g, '').replace(',', '.'));
 
