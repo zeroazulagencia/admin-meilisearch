@@ -280,8 +280,19 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
             <div className="border rounded-lg p-4">
               <h4 className="font-semibold mb-2">Endpoints del módulo</h4>
               <ul className="list-disc list-inside space-y-1">
-                <li><strong>Config:</strong> {`${BASE}/config/`}</li>
+                <li><strong>Config:</strong> <code>{`${BASE}/config/`}</code></li>
+                <li><strong>Crear pedido:</strong> <code>POST {`${BASE}/orders/`}</code> — autenticado</li>
                 <li><strong>Geo público:</strong> https://workers.zeroazul.com/geo/</li>
+              </ul>
+            </div>
+            <div className="border rounded-lg p-4">
+              <h4 className="font-semibold mb-2">Crear pedidos en Shopify</h4>
+              <p className="mb-2">Requiere autenticación por firma <strong>HMAC-SHA256</strong> del cuerpo en el header <code>x-za-signature</code> (clave <code>shopify_bridge_secret</code>), o <code>Authorization: Bearer &lt;secret&gt;</code>.</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li><code>line_items</code> (obligatorio): <code>[{'{'} variant_id, quantity {'}'}]</code> o <code>[{'{'} title, price, quantity {'}'}]</code>.</li>
+                <li>Opcionales: <code>email</code>, <code>financial_status</code>, <code>note</code>, <code>tags</code>, <code>shipping_address</code>, <code>test</code>.</li>
+                <li><code>dry_run: true</code> valida sin crear el pedido.</li>
+                <li>Los pedidos de API descuentan inventario (<code>decrement_obeying_policy</code>).</li>
               </ul>
             </div>
           </div>
