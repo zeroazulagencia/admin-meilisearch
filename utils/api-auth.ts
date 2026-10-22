@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { query } from '@/utils/db';
 
 /**
  * Verifica auth por dos mecanismos:
@@ -85,4 +86,25 @@ export async function requireAuth(req: NextRequest): Promise<{ userId: number | 
     { ok: false, error: 'No autorizado' },
     { status: 401 }
   );
+}
+
+/**
+ * Como requireAuth, pero solo admite admins del panel (permissions.type === 'admin').
+ * El Bearer de servicio no basta (403). Retorna null si pasa, o NextResponse 401/403.
+ */
+export async function requireAdmin(request: NextRequest): Promise<NextResponse | null> {
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) return auth;
+
+  const forbidden = NextResponse.json({ ok: false, error: 'Solo administradores' }, { status: 403 });
+  if (auth.userId == null) return forbidden;
+
+  try {
+    const [rows] = await query<{ permissions: any }>('SELECT permissions FROM clients WHERE id = ? LIMIT 1', [auth.userId]);
+    const raw = rows[0]?.permissions;
+    const permissions = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
+    return permissions?.type === 'admin' ? null : forbidden;
+  } catch {
+    return forbidden;
+  }
 }

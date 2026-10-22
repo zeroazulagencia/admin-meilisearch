@@ -1,27 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/utils/api-auth';
-import { query } from '@/utils/db';
+import { requireAdmin } from '@/utils/api-auth';
 import { getAllConfig, setConfig } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/config';
 
 export const dynamic = 'force-dynamic';
-
-// La config expone tokens y secretos de Shopify: solo admins del panel (permissions.type === 'admin')
-async function requireAdmin(request: NextRequest): Promise<NextResponse | null> {
-  const auth = await requireAuth(request);
-  if (auth instanceof NextResponse) return auth;
-
-  const forbidden = NextResponse.json({ ok: false, error: 'Solo administradores' }, { status: 403 });
-  if (auth.userId == null) return forbidden;
-
-  try {
-    const [rows] = await query<{ permissions: any }>('SELECT permissions FROM clients WHERE id = ? LIMIT 1', [auth.userId]);
-    const raw = rows[0]?.permissions;
-    const permissions = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
-    return permissions?.type === 'admin' ? null : forbidden;
-  } catch {
-    return forbidden;
-  }
-}
 
 export async function GET(request: NextRequest) {
   const denied = await requireAdmin(request);

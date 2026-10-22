@@ -188,9 +188,14 @@ export default function PreciosCondicionalesNDeSantanderModule({
     return 'Todos los productos usan la base';
   }, [config.product_scope_mode]);
 
+  const authHeaders = (): Record<string, string> => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('admin-user-id') : null;
+    return userId ? { 'x-admin-user-id': userId } : {};
+  };
+
   const doConsoleLog = async () => {
     try {
-      const cfgRes = await fetch(`${BASE}/config/`, { cache: 'no-store' });
+      const cfgRes = await fetch(`${BASE}/config/`, { cache: 'no-store', headers: { ...authHeaders() } });
       const cfgJson = await cfgRes.json();
       if (!cfgJson.ok) return;
       const c = cfgJson.config;
@@ -229,7 +234,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
   const loadConfig = async () => {
     setLoadingConfig(true);
     try {
-      const res = await fetch(`${BASE}/config/`, { cache: 'no-store' });
+      const res = await fetch(`${BASE}/config/`, { cache: 'no-store', headers: { ...authHeaders() } });
       const json = await res.json();
       if (json.ok && json.config) {
         doConsoleLog();
@@ -443,7 +448,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
       };
       const res = await fetch(`${BASE}/config/`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
@@ -480,7 +485,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
       };
       const res = await fetch(`${BASE}/config/`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
@@ -516,7 +521,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
       };
       const res = await fetch(`${BASE}/config/`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
@@ -548,7 +553,7 @@ export default function PreciosCondicionalesNDeSantanderModule({
 
       const res = await fetch(`${BASE}/config/`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
