@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
+import { ponerCookieSesion } from '@/utils/session';
 
 export async function POST(req: NextRequest) {
   console.log('[LOGIN API] Inicio');
   try {
     const body = await req.json();
-    console.log('[LOGIN API] Body:', body);
     const usernameOrEmail = (body.email || body.username || '').trim();
     const clave = String(body.password || body.clave || '').trim();
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Acceso deshabilitado' }, { status: 403 });
     }
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       ok: true,
       user: {
         id: foundUser.id,
@@ -58,6 +58,8 @@ export async function POST(req: NextRequest) {
         permissions
       }
     });
+    ponerCookieSesion(res, foundUser.id);
+    return res;
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || 'Error' }, { status: 500 });
   }

@@ -453,12 +453,20 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
                 <li><strong>URL:</strong> <code>POST {`${BASE}/checkout/`}</code> — <strong>con barra final</strong> (sin barra el servidor responde 308 y se pierde el POST).</li>
                 <li><strong>Entrada:</strong> <code>{`{ "items": [ { "variant_id": 123, "quantity": 2 } ], "dry_run": false }`}</code></li>
                 <li><strong>Límites:</strong> 1–50 líneas · <code>quantity</code> entero 1–20 · <code>variant_id</code> numérico · máximo 50 unidades por petición · cuerpo ≤ 16 KB. Variantes repetidas se suman y el límite se aplica al total (no se puede partir en varias líneas).</li>
-                <li><strong>Respuesta OK:</strong> <code>{`{ ok, checkout_url, draft_order_id, descuento, regla, ubicacion }`}</code></li>
+                <li><strong>Respuesta OK:</strong> <code>{`{ ok, checkout_url, draft_order_id, estado_token, descuento, regla, ubicacion }`}</code></li>
+                <li><strong>Etiqueta por regla:</strong> el borrador lleva <code>precio-dinamico</code> y además <code>pd-municipio-&lt;slug&gt;</code> (si la regla cruzó por la ciudad, ej. <code>pd-municipio-envigado</code>) o <code>pd-departamento-&lt;slug&gt;</code> (ej. <code>pd-departamento-norte-de-santander</code>). Slug: sin tildes, minúsculas, guiones. Shopify Flow la usa para comparar la dirección de envío. El <code>dry_run</code> la devuelve en <code>etiqueta</code>.</li>
                 <li><strong>Sin regla o descuento 0:</strong> <code>{`{ checkout_url: null, descuento: 0, regla: null }`}</code> y el tema sigue al checkout normal.</li>
                 <li><strong>dry_run:</strong> devuelve las líneas calculadas (<code>precio_base</code>, <code>precio_final</code>) sin crear nada.</li>
                 <li><strong>Errores:</strong> 400 entrada inválida · 404 variante inexistente o no disponible · 429 límite de peticiones · 502 fallo de Shopify (sin exponer detalles internos).</li>
                 <li><strong>CORS:</strong> solo <code>retendelcasco.com</code>, <code>www.retendelcasco.com</code> y <code>el-reten-del-casco.myshopify.com</code>. Siempre <code>Cache-Control: no-store</code>.</li>
                 <li><strong>Rate limit:</strong> 10 peticiones por minuto y por IP → 429.</li>
+              </ul>
+              <h4 className="font-semibold text-amber-900 mt-4 mb-2">Estado del borrador (vaciar carrito tras el pago)</h4>
+              <ul className="list-disc list-inside space-y-1">
+                <li><strong>URL:</strong> <code>{`GET ${BASE}/checkout/estado/?draft_order_id=<id>&token=<estado_token>`}</code> — con barra final.</li>
+                <li><strong>Respuesta:</strong> <code>{`{ ok, draft_order_id, estado: "OPEN" | "INVOICE_SENT" | "COMPLETED", pagado }`}</code>. Si <code>pagado</code> es <code>true</code>, el tema vacía el carrito.</li>
+                <li><strong>Token:</strong> el <code>estado_token</code> que devolvió <code>checkout/</code>. Sin él → 403 (los IDs de borrador se pueden adivinar).</li>
+                <li><strong>Errores:</strong> 400 faltan parámetros · 403 token inválido · 404 borrador inexistente o sin tag <code>precio-dinamico</code> · 429 más de 60 consultas/min por IP · 502 fallo de Shopify.</li>
               </ul>
             </div>
             <div className="border rounded-lg p-4">

@@ -3,7 +3,16 @@ import { getRuntimeConfig } from '@/utils/modulos/precios-dinamicos-ubicacion-sh
 import { registrarPedido, type ResultadoPedido } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/pedidos-log';
 import { ipConfiable, ubicarIp, type Ubicacion } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/geo-ip';
 import {
+  adminGraphQL,
+  crearLimitador,
+  corsHeaders,
+  responderCors,
+  TAG_DRAFT,
+  tokenEstado,
+} from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/publico';
+import {
   cruzarRegla,
+  etiquetaRegla,
   parseReglas,
   precioUnitario,
   validarEntrada,
@@ -25,59 +34,18 @@ import {
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const SHOPIFY_API_VERSION = '2025-04'; // priceOverride en DraftOrderLineItemInput
 const REGLAS_URL = 'https://retendelcasco.com/?section_id=precio-dinamico-reglas';
 const REGLAS_TTL_MS = 15_000; // caché máxima 15 s
 const MAX_BODY_BYTES = 16 * 1024;
 const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const TAG_DRAFT = 'precio-dinamico';
 const CURRENCY = 'COP';
 
-const ALLOWED_ORIGINS = [
-  'https://retendelcasco.com',
-  'https://www.retendelcasco.com',
-  'https://el-reten-del-casco.myshopify.com',
-];
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  const h: Record<string, string> = {
-    'Cache-Control': 'no-store',
-    Vary: 'Origin',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Max-Age': '86400',
-  };
-  if (origin && ALLOWED_ORIGINS.includes(origin)) h['Access-Control-Allow-Origin'] = origin;
-  return h;
-}
-
 function responder(body: unknown, status: number, origin: string | null, extra?: Record<string, string>) {
-  return NextResponse.json(body, { status, headers: { ...corsHeaders(origin), ...(extra || {}) } });
+  return responderCors(body, status, origin, 'POST', extra);
 }
 
-// ---------- rate limit por IP (ventana deslizante, en memoria) ----------
-const accesos = new Map<string, number[]>();
-
-function excedeLimite(ip: string | null): boolean {
-  const clave = ip || 'desconocida';
-  const ahora = Date.now();
-  const previos = (accesos.get(clave) || []).filter((t) => ahora - t < RATE_LIMIT_WINDOW_MS);
-  if (previos.length >= RATE_LIMIT_MAX) {
-    accesos.set(clave, previos);
-    return true;
-  }
-  previos.push(ahora);
-  accesos.set(clave, previos);
-
-  if (accesos.size > 5000) {
-    for (const [k, v] of Array.from(accesos.entries())) {
-      const ultimo = v.length ? v[v.length - 1] : 0;
-      if (!ultimo || ahora - ultimo > RATE_LIMIT_WINDOW_MS) accesos.delete(k);
-    }
-  }
-  return false;
-}
+const excedeLimite = crearLimitador(RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
 
 // ---------- reglas del tema (Section Rendering API, público) ----------
 let cacheReglas: { at: number; reglas: ReglaPrecio[] } | null = null;
@@ -109,24 +77,6 @@ async function obtenerReglas(): Promise<ReglaPrecio[]> {
     // (el cliente paga el precio normal, igual que hace el tema ante un fallo).
     return cacheReglas ? cacheReglas.reglas : [];
   }
-}
-
-// ---------- Admin GraphQL ----------
-async function adminGraphQL(
-  domain: string,
-  token: string,
-  query: string,
-  variables: Record<string, unknown>
-): Promise<{ status: number; data: any }> {
-  const res = await fetch(`https://${domain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
-    body: JSON.stringify({ query, variables }),
-    cache: 'no-store',
-    signal: AbortSignal.timeout(15000),
-  });
-  const data = await res.json().catch(() => ({}));
-  return { status: res.status, data };
 }
 
 const QUERY_VARIANTES = `
@@ -190,7 +140,7 @@ async function leerVariantes(
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin');
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
+  return new NextResponse(null, { status: 204, headers: corsHeaders(origin, 'POST') });
 }
 
 export async function POST(request: NextRequest) {
@@ -360,6 +310,7 @@ export async function POST(request: NextRequest) {
           checkout_url: null,
           descuento,
           regla: reglaResp,
+          etiqueta: regla ? etiquetaRegla(regla, ubicacion.ciudad) : null,
           ubicacion: { ciudad: ubicacion.ciudad, region: ubicacion.region },
           lineas: lineas.map((l) => ({
             variant_id: l.variant_id,
@@ -387,7 +338,9 @@ export async function POST(request: NextRequest) {
         quantity: l.quantity,
         priceOverride: { amount: l.precio_final.toFixed(2), currencyCode: CURRENCY },
       })),
-      tags: [TAG_DRAFT],
+      // Etiqueta por regla (pd-municipio-envigado / pd-departamento-antioquia): Shopify Flow
+      // la usa para comparar la dirección de envío del pedido con la regla aplicada.
+      tags: regla ? [TAG_DRAFT, etiquetaRegla(regla, ubicacion.ciudad)] : [TAG_DRAFT],
       note: nota,
     };
 
@@ -409,11 +362,14 @@ export async function POST(request: NextRequest) {
       return fin({ ok: false, error: 'No se pudo crear el checkout' }, 502);
     }
 
+    const draftOrderId = draft.id ? Number(String(draft.id).split('/').pop()) : null;
     return fin(
       {
         ok: true,
         checkout_url: draft.invoiceUrl,
-        draft_order_id: draft.id ? Number(String(draft.id).split('/').pop()) : null,
+        draft_order_id: draftOrderId,
+        // Para consultar GET checkout/estado/ (vaciar el carrito tras el pago)
+        estado_token: draftOrderId ? tokenEstado(draftOrderId) : null,
         descuento,
         regla: reglaResp,
         ubicacion: { ciudad: ubicacion.ciudad, region: ubicacion.region },

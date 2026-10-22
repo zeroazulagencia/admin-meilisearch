@@ -110,6 +110,17 @@ export function cruzarRegla(
   return null;
 }
 
+/**
+ * Etiqueta del borrador según la regla aplicada, para que Shopify Flow compare
+ * la dirección de envío: `pd-municipio-envigado`, `pd-departamento-antioquia`.
+ * Es "municipio" si la regla cruzó por la ciudad del visitante; si no, "departamento".
+ */
+export function etiquetaRegla(regla: ReglaPrecio, ciudad: string | null): string {
+  const tipo = ciudad && normalizar(regla.nombre) === normalizar(ciudad) ? 'municipio' : 'departamento';
+  const slug = normalizar(regla.nombre).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return `pd-${tipo}-${slug || 'sin-nombre'}`;
+}
+
 /** Precio unitario en COP sin decimales. Mismo cálculo que muestra el tema. */
 export function precioUnitario(precioBase: number, descuento: number): number {
   const p = Math.round(precioBase * (1 - descuento / 100));

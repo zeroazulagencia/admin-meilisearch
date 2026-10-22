@@ -55,6 +55,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const handleLogout = useCallback(() => {
+    fetch('/api/auth/logout/', { method: 'POST' }).catch(() => {});
     clearSessionData();
     setIsAuthenticated(false);
     router.push('/');
@@ -109,6 +110,17 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       }
 
       setIsAuthenticated(true);
+
+      // La sesión real es la cookie firmada del servidor: si no existe (login anterior
+      // a la cookie, o caducada) se vuelve a pedir login.
+      fetch('/api/auth/session/', { cache: 'no-store' })
+        .then((r) => {
+          if (r.status === 401) {
+            clearSessionData();
+            setIsAuthenticated(false);
+          }
+        })
+        .catch(() => {});
 
       // Check route access
       const currentP = pathnameRef.current;

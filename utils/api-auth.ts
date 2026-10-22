@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { leerSesion } from '@/utils/session';
 import { query } from '@/utils/db';
 
 /**
  * Verifica auth por dos mecanismos:
- * 1. x-admin-user-id (admin panel, desde localStorage tras login)
+ * 1. Cookie de sesión firmada `admin_session` (admin panel, la emite el login).
+ *    La cabecera x-admin-user-id ya NO autentica: cualquiera podía fabricarla.
  * 2. Authorization: Bearer <api_token> (servicios externos, cron, agentes)
  * 
  * Retorna { userId: number | null } si pasa, o NextResponse 401 si falla.
  */
 export async function requireAuth(req: NextRequest): Promise<{ userId: number | null } | NextResponse> {
-  // --- Método 1: x-admin-user-id (admin panel) ---
-  const adminUserId = req.headers.get('x-admin-user-id');
+  // --- Método 1: cookie de sesión firmada (admin panel) ---
+  const adminUserId = leerSesion(req);
   if (adminUserId) {
     try {
       const pool = mysql.createPool({
@@ -25,7 +27,7 @@ export async function requireAuth(req: NextRequest): Promise<{ userId: number | 
       });
       const [rows]: any = await pool.query(
         'SELECT id, permissions FROM clients WHERE id = ? LIMIT 1',
-        [parseInt(adminUserId)]
+        [adminUserId]
       );
       await pool.end();
 
