@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 
-type TabId = 'inicio' | 'config' | 'documentacion';
+type TabId = 'inicio' | 'config' | 'pedidos' | 'documentacion';
 
 interface ModuleData {
   id: number;
@@ -35,6 +35,33 @@ interface SensitivePreview {
   shopify_storefront_access_token: string;
 }
 
+interface PedidoLog {
+  id: number;
+  created_at: string;
+  http_status: number;
+  resultado: 'draft_creado' | 'sin_descuento' | 'dry_run' | 'rechazado' | 'error';
+  error: string | null;
+  ip: string | null;
+  origin: string | null;
+  user_agent: string | null;
+  ciudad: string | null;
+  region: string | null;
+  regla: string | null;
+  descuento: string | number | null;
+  items: Array<{ variant_id: number; quantity: number }> | null;
+  lineas: Array<{ variant_id: number; quantity: number; titulo: string | null; precio_base: number; precio_final: number }> | null;
+  draft_order_id: number | null;
+  duracion_ms: number | null;
+}
+
+const RESULTADO_ESTILO: Record<PedidoLog['resultado'], { label: string; cls: string }> = {
+  draft_creado: { label: 'Borrador creado', cls: 'bg-emerald-100 text-emerald-800' },
+  sin_descuento: { label: 'Sin descuento', cls: 'bg-gray-100 text-gray-700' },
+  dry_run: { label: 'Dry run', cls: 'bg-blue-100 text-blue-800' },
+  rechazado: { label: 'Rechazado', cls: 'bg-amber-100 text-amber-800' },
+  error: { label: 'Error', cls: 'bg-red-100 text-red-800' },
+};
+
 const DEFAULT_CONFIG: ConfigState = {
   shopify_shop_domain: '',
   shopify_admin_access_token: '',
@@ -58,6 +85,7 @@ const DEFAULT_SENSITIVE_PREVIEW: SensitivePreview = {
 const tabs: { id: TabId; label: string }[] = [
   { id: 'inicio', label: 'Inicio' },
   { id: 'config', label: 'Configuración' },
+  { id: 'pedidos', label: 'Log de pedidos' },
   { id: 'documentacion', label: 'Documentación' },
 ];
 
@@ -69,6 +97,10 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [saveError, setSaveError] = useState('');
+  const [pedidos, setPedidos] = useState<PedidoLog[]>([]);
+  const [loadingPedidos, setLoadingPedidos] = useState(false);
+  const [pedidosError, setPedidosError] = useState('');
+  const [pedidoAbierto, setPedidoAbierto] = useState<number | null>(null);
 
   const Field = ({
     label,
@@ -126,6 +158,25 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
   useEffect(() => {
     loadConfig();
   }, []);
+
+  const loadPedidos = async () => {
+    setLoadingPedidos(true);
+    setPedidosError('');
+    try {
+      const res = await fetch(`${BASE}/pedidos-log/?limit=500`, { cache: 'no-store', headers: { ...authHeaders() } });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'No se pudo cargar el log');
+      setPedidos(Array.isArray(json.pedidos) ? json.pedidos : []);
+    } catch (e: any) {
+      setPedidosError(e?.message || 'Error cargando el log');
+    } finally {
+      setLoadingPedidos(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'pedidos') loadPedidos();
+  }, [activeTab]);
 
   /** Guarda los campos de Shopify */
   const saveShopifyTab = async () => {
@@ -263,6 +314,108 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
           </div>
         )}
 
+        {activeTab === 'pedidos' && (
+          <div className="p-4 space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h3 className="font-semibold text-gray-900">Log de pedidos</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Solicitudes a <code>POST {`${BASE}/checkout/`}</code> de los <strong>últimos 5 días</strong> (lo anterior se borra solo).
+                  No se registran las rechazadas por límite de peticiones (429).
+                </p>
+              </div>
+              <button type="button" onClick={loadPedidos} disabled={loadingPedidos} className="px-3 py-1.5 text-sm bg-gray-800 text-white rounded disabled:opacity-50">
+                {loadingPedidos ? 'Cargando…' : 'Actualizar'}
+              </button>
+            </div>
+
+            {pedidos.length > 0 && (
+              <div className="flex flex-wrap gap-2 text-xs">
+                {(Object.keys(RESULTADO_ESTILO) as PedidoLog['resultado'][]).map((r) => {
+                  const n = pedidos.filter((p) => p.resultado === r).length;
+                  return n > 0 ? (
+                    <span key={r} className={`px-2 py-1 rounded ${RESULTADO_ESTILO[r].cls}`}>{RESULTADO_ESTILO[r].label}: <b>{n}</b></span>
+                  ) : null;
+                })}
+              </div>
+            )}
+
+            {pedidosError && <div className="text-sm text-red-600">{pedidosError}</div>}
+
+            {!loadingPedidos && !pedidosError && pedidos.length === 0 && (
+              <div className="text-sm text-gray-500">Sin solicitudes en los últimos 5 días.</div>
+            )}
+
+            {pedidos.length > 0 && (
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="min-w-full text-xs">
+                  <thead className="bg-gray-50 text-gray-600 text-left">
+                    <tr>
+                      <th className="px-3 py-2">Fecha</th>
+                      <th className="px-3 py-2">Resultado</th>
+                      <th className="px-3 py-2">HTTP</th>
+                      <th className="px-3 py-2">Ubicación</th>
+                      <th className="px-3 py-2">Regla</th>
+                      <th className="px-3 py-2">Unidades</th>
+                      <th className="px-3 py-2">Borrador</th>
+                      <th className="px-3 py-2">IP</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {pedidos.map((p) => {
+                      const estilo = RESULTADO_ESTILO[p.resultado] || RESULTADO_ESTILO.error;
+                      const unidades = (p.items || []).reduce((acc, it) => acc + Number(it.quantity || 0), 0);
+                      const abierto = pedidoAbierto === p.id;
+                      return (
+                        <Fragment key={p.id}>
+                          <tr onClick={() => setPedidoAbierto(abierto ? null : p.id)} className="cursor-pointer hover:bg-gray-50">
+                            <td className="px-3 py-2 whitespace-nowrap">{new Date(p.created_at).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</td>
+                            <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded ${estilo.cls}`}>{estilo.label}</span>{p.error && <div className="text-red-600 mt-0.5">{p.error}</div>}</td>
+                            <td className="px-3 py-2">{p.http_status}</td>
+                            <td className="px-3 py-2">{[p.ciudad, p.region].filter(Boolean).join(' / ') || '—'}</td>
+                            <td className="px-3 py-2">{p.regla ? `${p.regla} (${Number(p.descuento)}%)` : '—'}</td>
+                            <td className="px-3 py-2">{unidades || '—'}</td>
+                            <td className="px-3 py-2">{p.draft_order_id ?? '—'}</td>
+                            <td className="px-3 py-2 font-mono">{p.ip || '—'}</td>
+                          </tr>
+                          {abierto && (
+                            <tr className="bg-gray-50">
+                              <td colSpan={8} className="px-3 py-3 space-y-2">
+                                {p.lineas && p.lineas.length > 0 ? (
+                                  <table className="text-xs">
+                                    <thead className="text-gray-500 text-left">
+                                      <tr><th className="pr-4">Producto</th><th className="pr-4">Variante</th><th className="pr-4">Cant.</th><th className="pr-4">Precio base</th><th>Precio final</th></tr>
+                                    </thead>
+                                    <tbody>
+                                      {p.lineas.map((l, i) => (
+                                        <tr key={i}>
+                                          <td className="pr-4">{l.titulo || '—'}</td>
+                                          <td className="pr-4 font-mono">{l.variant_id}</td>
+                                          <td className="pr-4">{l.quantity}</td>
+                                          <td className="pr-4">${Number(l.precio_base).toLocaleString('es-CO')}</td>
+                                          <td>${Number(l.precio_final).toLocaleString('es-CO')}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                ) : (
+                                  <div><span className="text-gray-500">Items recibidos:</span> <code>{JSON.stringify(p.items)}</code></div>
+                                )}
+                                <div className="text-gray-500">Origen: {p.origin || '—'} · {p.duracion_ms ?? '—'} ms</div>
+                                <div className="text-gray-500 break-all">User-Agent: {p.user_agent || '—'}</div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'documentacion' && (
           <div className="p-4 space-y-4 text-sm text-gray-700">
             <h3 className="font-semibold text-gray-900">Documentación</h3>
@@ -290,6 +443,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
                 <li><strong>Config:</strong> <code>{`${BASE}/config/`}</code></li>
                 <li><strong>Geo público (solo ubicación):</strong> <code>GET {`${BASE}/geo/`}</code></li>
                 <li><strong>Checkout público (precio dinámico):</strong> <code>POST {`${BASE}/checkout/`}</code></li>
+                <li><strong>Log de pedidos (solo admin):</strong> <code>GET {`${BASE}/pedidos-log/`}</code> — solicitudes a <code>checkout/</code> de los últimos 5 días; tabla <code>modulos_precios_dinamicos_ubicacion_shopify_30_pedidos_log</code>.</li>
               </ul>
               <p className="mt-2 text-xs text-gray-500">La antigua ruta <code>{`${BASE}/orders/`}</code> (autenticada por HMAC) fue <strong>eliminada</strong>: ya no la usa la tienda y, con el secreto, permitía crear pedidos pagados con cualquier precio.</p>
             </div>

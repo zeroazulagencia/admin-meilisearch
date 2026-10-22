@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRuntimeConfig } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/config';
+import { registrarPedido, type ResultadoPedido } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/pedidos-log';
 import { ipConfiable, ubicarIp, type Ubicacion } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/geo-ip';
 import {
   cruzarRegla,
@@ -194,16 +195,56 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin');
+  const inicio = Date.now();
+
+  // Contexto para el log de pedidos (se va llenando según avanza la solicitud)
+  const ctx: {
+    ip: string | null;
+    items?: ItemEntrada[];
+    ubicacion?: Ubicacion;
+    regla?: ReglaPrecio | null;
+    lineas?: unknown;
+  } = { ip: null };
+
+  // Responde y deja constancia en el log (retención 5 días). Los 429 no se registran
+  // para que un flood no llene la tabla.
+  const fin = (body: any, status: number, extra?: Record<string, string>) => {
+    if (status !== 429) {
+      const resultado: ResultadoPedido =
+        status >= 500 ? 'error'
+          : status >= 400 ? 'rechazado'
+            : body?.dry_run ? 'dry_run'
+              : body?.checkout_url ? 'draft_creado'
+                : 'sin_descuento';
+      void registrarPedido({
+        http_status: status,
+        resultado,
+        error: body?.ok === false ? body.error : null,
+        ip: ctx.ip,
+        origin,
+        user_agent: request.headers.get('user-agent'),
+        ciudad: ctx.ubicacion?.ciudad ?? null,
+        region: ctx.ubicacion?.region ?? null,
+        regla: ctx.regla?.nombre ?? null,
+        descuento: ctx.regla ? ctx.regla.descuento : (ctx.ubicacion ? 0 : null),
+        items: ctx.items ?? null,
+        lineas: ctx.lineas ?? null,
+        draft_order_id: body?.draft_order_id ?? null,
+        duracion_ms: Date.now() - inicio,
+      });
+    }
+    return responder(body, status, origin, extra);
+  };
 
   try {
     // --- 0) IP real (solo cabeceras que pone nuestro nginx) ---
     const ip = ipConfiable(request.headers);
+    ctx.ip = ip;
 
     if (excedeLimite(ip)) {
-      return responder(
+      return fin(
         { ok: false, error: 'Demasiadas solicitudes, intenta de nuevo en un minuto' },
         429,
-        origin,
         { 'Retry-After': '60' }
       );
     }
@@ -211,21 +252,22 @@ export async function POST(request: NextRequest) {
     // --- 1) Entrada: SOLO items[{variant_id, quantity}] ---
     const rawBody = await request.text();
     if (Buffer.byteLength(rawBody || '') > MAX_BODY_BYTES) {
-      return responder({ ok: false, error: 'Payload demasiado grande' }, 413, origin);
+      return fin({ ok: false, error: 'Payload demasiado grande' }, 413);
     }
 
     let body: any = null;
     try {
       body = JSON.parse(rawBody || '{}');
     } catch {
-      return responder({ ok: false, error: 'JSON inválido' }, 400, origin);
+      return fin({ ok: false, error: 'JSON inválido' }, 400);
     }
 
     const validacion = validarEntrada(body);
     if (!validacion.ok) {
-      return responder({ ok: false, error: validacion.error }, 400, origin);
+      return fin({ ok: false, error: validacion.error }, 400);
     }
     const items = validacion.items;
+    ctx.items = items;
     const dryRun = body?.dry_run === true;
 
     // --- 2) Config de Shopify ---
@@ -234,20 +276,22 @@ export async function POST(request: NextRequest) {
     const adminToken = String(config.shopifyAdminAccessToken || '').trim();
     if (!domain || !adminToken) {
       console.error('[checkout] Shopify sin configurar (domain/token)');
-      return responder({ ok: false, error: 'Tienda no configurada' }, 502, origin);
+      return fin({ ok: false, error: 'Tienda no configurada' }, 502);
     }
 
     // --- 3) Ubicación del visitante ---
     const ubicacion: Ubicacion = await ubicarIp(ip);
+    ctx.ubicacion = ubicacion;
 
     // --- 4) Reglas del tema + cruce (municipio primero, luego departamento) ---
     const reglas = await obtenerReglas();
     const regla = cruzarRegla(reglas, ubicacion.ciudad, ubicacion.region);
+    ctx.regla = regla;
 
     // --- 5) Sin regla o descuento 0 -> precio normal, el tema sigue su curso ---
     if (!regla || regla.descuento === 0) {
       if (!dryRun) {
-        return responder(
+        return fin(
           {
             ok: true,
             checkout_url: null,
@@ -255,8 +299,7 @@ export async function POST(request: NextRequest) {
             regla: null,
             ubicacion: { ciudad: ubicacion.ciudad, region: ubicacion.region },
           },
-          200,
-          origin
+          200
         );
       }
     }
@@ -267,7 +310,7 @@ export async function POST(request: NextRequest) {
       variantes = (await leerVariantes(domain, adminToken, items)) || new Map();
     } catch (err) {
       console.error('[checkout] fallo consultando variantes:', err);
-      return responder({ ok: false, error: 'No se pudo consultar la tienda' }, 502, origin);
+      return fin({ ok: false, error: 'No se pudo consultar la tienda' }, 502);
     }
 
     const lineas: Array<{
@@ -282,10 +325,9 @@ export async function POST(request: NextRequest) {
     for (const it of items) {
       const v = variantes.get(it.variant_id);
       if (!v || !v.disponible) {
-        return responder(
+        return fin(
           { ok: false, error: 'Variante no encontrada o no disponible', variant_id: it.variant_id },
-          404,
-          origin
+          404
         );
       }
       const descuentoAplicado = regla ? regla.descuento : 0;
@@ -300,11 +342,18 @@ export async function POST(request: NextRequest) {
     }
 
     const descuento = regla ? regla.descuento : 0;
+    ctx.lineas = lineas.map((l) => ({
+      variant_id: l.variant_id,
+      quantity: l.quantity,
+      titulo: l.titulo,
+      precio_base: l.precio_base,
+      precio_final: l.precio_final,
+    }));
     const reglaResp = regla ? { municipio: regla.nombre, descuento: regla.descuento } : null;
 
     // --- 7) dry_run: cálculo sin crear nada ---
     if (dryRun) {
-      return responder(
+      return fin(
         {
           ok: true,
           dry_run: true,
@@ -320,8 +369,7 @@ export async function POST(request: NextRequest) {
             precio_final: l.precio_final,
           })),
         },
-        200,
-        origin
+        200
       );
     }
 
@@ -346,22 +394,22 @@ export async function POST(request: NextRequest) {
     const { status, data } = await adminGraphQL(domain, adminToken, MUT_DRAFT, { input });
     if (status !== 200) {
       console.error('[checkout] draftOrderCreate HTTP', status, JSON.stringify(data).slice(0, 500));
-      return responder({ ok: false, error: 'No se pudo crear el checkout' }, 502, origin);
+      return fin({ ok: false, error: 'No se pudo crear el checkout' }, 502);
     }
 
     const errores = data?.data?.draftOrderCreate?.userErrors;
     if (Array.isArray(errores) && errores.length > 0) {
       console.error('[checkout] draftOrderCreate userErrors:', JSON.stringify(errores).slice(0, 500));
-      return responder({ ok: false, error: 'No se pudo crear el checkout' }, 502, origin);
+      return fin({ ok: false, error: 'No se pudo crear el checkout' }, 502);
     }
 
     const draft = data?.data?.draftOrderCreate?.draftOrder;
     if (!draft?.invoiceUrl) {
       console.error('[checkout] draftOrderCreate sin invoiceUrl:', JSON.stringify(data).slice(0, 500));
-      return responder({ ok: false, error: 'No se pudo crear el checkout' }, 502, origin);
+      return fin({ ok: false, error: 'No se pudo crear el checkout' }, 502);
     }
 
-    return responder(
+    return fin(
       {
         ok: true,
         checkout_url: draft.invoiceUrl,
@@ -370,12 +418,11 @@ export async function POST(request: NextRequest) {
         regla: reglaResp,
         ubicacion: { ciudad: ubicacion.ciudad, region: ubicacion.region },
       },
-      200,
-      origin
+      200
     );
   } catch (err) {
     // Sin exponer detalles internos
     console.error('[checkout] error inesperado:', err);
-    return responder({ ok: false, error: 'Error interno' }, 500, origin);
+    return fin({ ok: false, error: 'Error interno' }, 500);
   }
 }
