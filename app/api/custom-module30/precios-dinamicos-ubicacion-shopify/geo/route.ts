@@ -1,56 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ipConfiable, ubicarIp } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/geo-ip';
+import { ipConfiable } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/geo-ip';
+import { corsHeaders, crearLimitador, responderCors } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/publico';
+import { resolverUbicacion } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/ubicacion';
 
 // ============================================================
-//  Módulo 30 — /geo/  (SOLO ubicación)
+//  Módulo 30 — /geo/  ubicación del visitante + regla aplicable
 //
-//  El TEMA (Shopify) consume este endpoint para mostrar la ciudad del visitante.
-//  Las REGLAS de descuento NO viven aquí: el tema las lee del metaobjeto
-//  `municipiosxdescuento` vía Section Rendering API. No reintroducir reglas,
-//  descuentos ni llamadas a la Admin API en este endpoint.
-//
-//  La IP se resuelve con `ipConfiable()` (solo X-Real-IP / último XFF de nginx).
+//  GET /geo/?lat=<num>&lng=<num>&acc=<metros>   (coordenadas opcionales)
+//  Decide con resolverUbicacion() (gps → ip-movil → ip), la MISMA función que
+//  usa /checkout/. El tema usa `regla` tal cual: el backend es la única fuente
+//  de verdad del descuento.
 // ============================================================
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const ALLOWED_ORIGINS = [
-  'https://retendelcasco.com',
-  'https://www.retendelcasco.com',
-  'https://el-reten-del-casco.myshopify.com',
-];
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  const h: Record<string, string> = {
-    'Cache-Control': 'no-store',
-    Vary: 'Origin',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Max-Age': '86400',
-  };
-  if (origin && ALLOWED_ORIGINS.includes(origin)) h['Access-Control-Allow-Origin'] = origin;
-  return h;
-}
+const excedeLimite = crearLimitador(60, 60_000);
 
 export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, { status: 204, headers: corsHeaders(request.headers.get('origin')) });
+  return new NextResponse(null, { status: 204, headers: corsHeaders(request.headers.get('origin'), 'GET') });
 }
 
 export async function GET(request: NextRequest) {
   const origin = request.headers.get('origin');
   const ip = ipConfiable(request.headers);
-  const u = await ubicarIp(ip);
 
-  return NextResponse.json(
+  if (excedeLimite(ip)) {
+    return responderCors({ ok: false, error: 'Demasiadas solicitudes, intenta de nuevo en un minuto' }, 429, origin, 'GET', {
+      'Retry-After': '60',
+    });
+  }
+
+  const q = request.nextUrl.searchParams;
+  const u = await resolverUbicacion({
+    coordenadas: q.has('lat') || q.has('lng') ? { lat: q.get('lat'), lng: q.get('lng'), acc: q.get('acc') } : undefined,
+    ip,
+  });
+
+  return responderCors(
     {
-      fuente: 'zeroazul',
+      fuente: u.fuente,
       ciudad: u.ciudad,
       region: u.region,
       pais: u.pais,
       latitud: u.latitud,
       longitud: u.longitud,
+      regla: u.regla ? { municipio: u.regla.nombre, descuento: u.regla.descuento } : null,
+      requiere_ubicacion: u.requiere_ubicacion,
     },
-    { status: 200, headers: corsHeaders(origin) }
+    200,
+    origin,
+    'GET'
   );
 }

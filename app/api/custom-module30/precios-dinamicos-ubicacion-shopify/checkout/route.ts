@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRuntimeConfig } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/config';
 import { registrarPedido, type ResultadoPedido } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/pedidos-log';
-import { ipConfiable, ubicarIp, type Ubicacion } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/geo-ip';
+import { ipConfiable } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/geo-ip';
 import {
   adminGraphQL,
   crearLimitador,
@@ -11,22 +11,22 @@ import {
   tokenEstado,
 } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/publico';
 import {
-  cruzarRegla,
   etiquetaRegla,
-  parseReglas,
   precioUnitario,
   validarEntrada,
   type ItemEntrada,
-  type ReglaPrecio,
 } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/precio-dinamico';
+import { resolverUbicacion, type ResultadoUbicacion } from '@/utils/modulos/precios-dinamicos-ubicacion-shopify-30/ubicacion';
 
 // ============================================================
 //  Módulo 30 — Endpoint PÚBLICO de checkout con precio dinámico
 //
 //  El botón de pago corre en el NAVEGADOR del cliente, así que este endpoint
 //  NO usa secretos: el servidor resuelve TODO (ubicación, regla, precio).
-//  El cliente solo puede mandar variant_id + quantity. Cualquier precio,
-//  descuento o dato extra que envíe se IGNORA.
+//  El cliente solo manda items[{variant_id, quantity}] y, opcional, las
+//  coordenadas del navegador `ubicacion: { lat, lng, acc }`. La regla se
+//  recalcula SIEMPRE aquí con resolverUbicacion() (la misma de /geo/);
+//  cualquier precio o descuento que envíe el cliente se IGNORA.
 //
 //  POST /checkout/  (barra final obligatoria: trailingSlash -> 308 sin ella)
 // ============================================================
@@ -34,8 +34,6 @@ import {
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const REGLAS_URL = 'https://retendelcasco.com/?section_id=precio-dinamico-reglas';
-const REGLAS_TTL_MS = 15_000; // caché máxima 15 s
 const MAX_BODY_BYTES = 16 * 1024;
 const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -46,38 +44,6 @@ function responder(body: unknown, status: number, origin: string | null, extra?:
 }
 
 const excedeLimite = crearLimitador(RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
-
-// ---------- reglas del tema (Section Rendering API, público) ----------
-let cacheReglas: { at: number; reglas: ReglaPrecio[] } | null = null;
-
-async function obtenerReglas(): Promise<ReglaPrecio[]> {
-  if (cacheReglas && Date.now() - cacheReglas.at < REGLAS_TTL_MS) {
-    return cacheReglas.reglas;
-  }
-
-  try {
-    const url = `${REGLAS_URL}&t=${Date.now()}`;
-    const res = await fetch(url, {
-      cache: 'no-store',
-      headers: { Accept: 'text/html', 'Cache-Control': 'no-cache' },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status} al leer reglas`);
-
-    const html = await res.text();
-    const reglas = parseReglas(html);
-    cacheReglas = { at: Date.now(), reglas };
-    if (reglas.length === 0) {
-      console.warn('[checkout] el tema devolvió 0 reglas (¿script #precio-dinamico-reglas ausente?)');
-    }
-    return reglas;
-  } catch (err) {
-    console.error('[checkout] no se pudieron leer las reglas del tema:', err);
-    // Fail-open: si ya hubo una lectura buena, se usa; si no, se responde sin regla
-    // (el cliente paga el precio normal, igual que hace el tema ante un fallo).
-    return cacheReglas ? cacheReglas.reglas : [];
-  }
-}
 
 const QUERY_VARIANTES = `
   query($ids: [ID!]!) {
@@ -151,8 +117,7 @@ export async function POST(request: NextRequest) {
   const ctx: {
     ip: string | null;
     items?: ItemEntrada[];
-    ubicacion?: Ubicacion;
-    regla?: ReglaPrecio | null;
+    ubicacion?: ResultadoUbicacion;
     lineas?: unknown;
   } = { ip: null };
 
@@ -173,10 +138,11 @@ export async function POST(request: NextRequest) {
         ip: ctx.ip,
         origin,
         user_agent: request.headers.get('user-agent'),
+        fuente: ctx.ubicacion?.fuente ?? null,
         ciudad: ctx.ubicacion?.ciudad ?? null,
         region: ctx.ubicacion?.region ?? null,
-        regla: ctx.regla?.nombre ?? null,
-        descuento: ctx.regla ? ctx.regla.descuento : (ctx.ubicacion ? 0 : null),
+        regla: ctx.ubicacion?.regla?.nombre ?? null,
+        descuento: ctx.ubicacion?.regla ? ctx.ubicacion.regla.descuento : (ctx.ubicacion ? 0 : null),
         items: ctx.items ?? null,
         lineas: ctx.lineas ?? null,
         draft_order_id: body?.draft_order_id ?? null,
@@ -199,7 +165,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // --- 1) Entrada: SOLO items[{variant_id, quantity}] ---
+    // --- 1) Entrada: items[{variant_id, quantity}] + ubicacion opcional ---
     const rawBody = await request.text();
     if (Buffer.byteLength(rawBody || '') > MAX_BODY_BYTES) {
       return fin({ ok: false, error: 'Payload demasiado grande' }, 413);
@@ -229,16 +195,19 @@ export async function POST(request: NextRequest) {
       return fin({ ok: false, error: 'Tienda no configurada' }, 502);
     }
 
-    // --- 3) Ubicación del visitante ---
-    const ubicacion: Ubicacion = await ubicarIp(ip);
+    // --- 3+4) Ubicación (gps → ip-movil → ip) y regla, siempre en servidor ---
+    const ubicacion = await resolverUbicacion({ coordenadas: body?.ubicacion, ip });
     ctx.ubicacion = ubicacion;
+    const regla = ubicacion.regla;
+    const ubicacionResp = {
+      fuente: ubicacion.fuente,
+      ciudad: ubicacion.ciudad,
+      region: ubicacion.region,
+      requiere_ubicacion: ubicacion.requiere_ubicacion,
+    };
 
-    // --- 4) Reglas del tema + cruce (municipio primero, luego departamento) ---
-    const reglas = await obtenerReglas();
-    const regla = cruzarRegla(reglas, ubicacion.ciudad, ubicacion.region);
-    ctx.regla = regla;
-
-    // --- 5) Sin regla o descuento 0 -> precio normal, el tema sigue su curso ---
+    // --- 5) Sin regla o descuento 0 -> precio normal, el tema sigue al checkout normal ---
+    //        (ip-movil sin coordenadas cae aquí con requiere_ubicacion: true)
     if (!regla || regla.descuento === 0) {
       if (!dryRun) {
         return fin(
@@ -247,7 +216,8 @@ export async function POST(request: NextRequest) {
             checkout_url: null,
             descuento: 0,
             regla: null,
-            ubicacion: { ciudad: ubicacion.ciudad, region: ubicacion.region },
+            requiere_ubicacion: ubicacion.requiere_ubicacion,
+            ubicacion: ubicacionResp,
           },
           200
         );
@@ -301,6 +271,22 @@ export async function POST(request: NextRequest) {
     }));
     const reglaResp = regla ? { municipio: regla.nombre, descuento: regla.descuento } : null;
 
+    // Nota: Precio dinámico · <Municipio>/<Depto> · <regla X% | sin regla> · fuente <f> · GPS <lat>,<lng> (±<acc>m) · IP <ip>
+    const nota = [
+      'Precio dinámico',
+      `${ubicacion.ciudad || '-'}/${ubicacion.region || '-'}`,
+      regla ? `regla ${regla.nombre} ${regla.descuento}%` : 'sin regla',
+      `fuente ${ubicacion.fuente}`,
+      ubicacion.fuente === 'gps' ? `GPS ${ubicacion.latitud},${ubicacion.longitud} (±${Math.round(ubicacion.precision_m ?? 0)}m)` : null,
+      `IP ${ip || '-'}`,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    // Etiquetas: precio-dinamico + regla (pd-municipio-envigado / pd-departamento-antioquia,
+    // Shopify Flow la compara con la dirección de envío) + fuente de la ubicación.
+    const etiquetasBorrador = [TAG_DRAFT, ...(regla ? [etiquetaRegla(regla)] : []), `pd-fuente-${ubicacion.fuente}`];
+
     // --- 7) dry_run: cálculo sin crear nada ---
     if (dryRun) {
       return fin(
@@ -310,8 +296,10 @@ export async function POST(request: NextRequest) {
           checkout_url: null,
           descuento,
           regla: reglaResp,
-          etiqueta: regla ? etiquetaRegla(regla, ubicacion.ciudad) : null,
-          ubicacion: { ciudad: ubicacion.ciudad, region: ubicacion.region },
+          requiere_ubicacion: ubicacion.requiere_ubicacion,
+          etiquetas: etiquetasBorrador,
+          nota,
+          ubicacion: ubicacionResp,
           lineas: lineas.map((l) => ({
             variant_id: l.variant_id,
             quantity: l.quantity,
@@ -325,22 +313,13 @@ export async function POST(request: NextRequest) {
     }
 
     // --- 8) Borrador SIN completar, con priceOverride (mantiene vínculo producto+inventario) ---
-    const nota = [
-      'Precio dinámico',
-      `${ubicacion.ciudad || '-'}/${ubicacion.region || '-'}`,
-      regla ? `regla ${regla.nombre} ${regla.descuento}%` : 'sin regla',
-      `IP ${ip || '-'}`,
-    ].join(' · ');
-
     const input = {
       lineItems: lineas.map((l) => ({
         variantId: l.gid,
         quantity: l.quantity,
         priceOverride: { amount: l.precio_final.toFixed(2), currencyCode: CURRENCY },
       })),
-      // Etiqueta por regla (pd-municipio-envigado / pd-departamento-antioquia): Shopify Flow
-      // la usa para comparar la dirección de envío del pedido con la regla aplicada.
-      tags: regla ? [TAG_DRAFT, etiquetaRegla(regla, ubicacion.ciudad)] : [TAG_DRAFT],
+      tags: etiquetasBorrador,
       note: nota,
     };
 
@@ -372,7 +351,8 @@ export async function POST(request: NextRequest) {
         estado_token: draftOrderId ? tokenEstado(draftOrderId) : null,
         descuento,
         regla: reglaResp,
-        ubicacion: { ciudad: ubicacion.ciudad, region: ubicacion.region },
+        requiere_ubicacion: false,
+        ubicacion: ubicacionResp,
       },
       200
     );

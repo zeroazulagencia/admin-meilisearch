@@ -13,6 +13,7 @@ export interface EntradaPedido {
   ip?: string | null;
   origin?: string | null;
   user_agent?: string | null;
+  fuente?: string | null;
   ciudad?: string | null;
   region?: string | null;
   regla?: string | null;
@@ -39,8 +40,8 @@ export async function registrarPedido(e: EntradaPedido): Promise<void> {
   try {
     await query(
       `INSERT INTO ${TABLE}
-        (http_status, resultado, error, ip, origin, user_agent, ciudad, region, regla, descuento, items, lineas, draft_order_id, duracion_ms)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (http_status, resultado, error, ip, origin, user_agent, fuente, ciudad, region, regla, descuento, items, lineas, draft_order_id, duracion_ms)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         e.http_status,
         e.resultado,
@@ -48,6 +49,7 @@ export async function registrarPedido(e: EntradaPedido): Promise<void> {
         corto(e.ip, 64),
         corto(e.origin, 255),
         corto(e.user_agent, 255),
+        corto(e.fuente, 10),
         corto(e.ciudad, 120),
         corto(e.region, 120),
         corto(e.regla, 120),

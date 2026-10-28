@@ -44,6 +44,7 @@ interface PedidoLog {
   ip: string | null;
   origin: string | null;
   user_agent: string | null;
+  fuente: 'gps' | 'ip' | 'ip-movil' | null;
   ciudad: string | null;
   region: string | null;
   regla: string | null;
@@ -290,7 +291,10 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
                             <td className="px-3 py-2 whitespace-nowrap">{new Date(p.created_at).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</td>
                             <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded ${estilo.cls}`}>{estilo.label}</span>{p.error && <div className="text-red-600 mt-0.5">{p.error}</div>}</td>
                             <td className="px-3 py-2">{p.http_status}</td>
-                            <td className="px-3 py-2">{[p.ciudad, p.region].filter(Boolean).join(' / ') || '—'}</td>
+                            <td className="px-3 py-2">
+                              {[p.ciudad, p.region].filter(Boolean).join(' / ') || '—'}
+                              {p.fuente && <span className="ml-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{p.fuente}</span>}
+                            </td>
                             <td className="px-3 py-2">{p.regla ? `${p.regla} (${Number(p.descuento)}%)` : '—'}</td>
                             <td className="px-3 py-2">{unidades || '—'}</td>
                             <td className="px-3 py-2">{p.draft_order_id ?? '—'}</td>
@@ -400,7 +404,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                 <h4 className="font-semibold text-gray-900 mb-2">Endpoint de geolocalización</h4>
-                <p className="text-sm text-gray-600 mb-2">Resuelve ciudad/región/país del visitante por IP (GeoLite2 local).</p>
+                <p className="text-sm text-gray-600 mb-2">Municipio del visitante por GPS del navegador (polígonos DANE) o por IP, y la regla de descuento que le aplica.</p>
                 <code className="block text-xs bg-gray-900 text-green-300 p-2 rounded overflow-auto">
                   GET https://workers.zeroazul.com/api/custom-module30/precios-dinamicos-ubicacion-shopify/geo/
                 </code>
@@ -416,13 +420,15 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
             </div>
           </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-2">Geolocalización por IP (solo ubicación)</h4>
+              <h4 className="font-semibold text-blue-900 mb-2">Ubicación y regla (GPS primero, IP de respaldo)</h4>
               <ul className="list-disc list-inside space-y-1">
-                <li>Endpoint: <code>GET https://workers.zeroazul.com/api/custom-module30/precios-dinamicos-ubicacion-shopify/geo/</code></li>
-                <li>Resuelve la ciudad con la base <strong>GeoLite2-City</strong> local (sin API externa).</li>
-                <li>IP real: <code>X-Real-IP</code> (la fija nginx y es la única fiable) → último valor de <code>X-Forwarded-For</code>. <strong>No</strong> se usa <code>CF-Connecting-IP</code>: no hay Cloudflare delante y el cliente podría falsificarla para elegir su propia ciudad.</li>
-                <li>Respuesta: <code>{`{ fuente, ciudad, region, pais, latitud, longitud }`}</code>.</li>
-                <li>Las reglas de descuento las lee el <strong>tema de Shopify</strong> directamente del metaobjeto (Section Rendering API, sin caché). Este endpoint <strong>solo ubica</strong> al visitante: no consulta ni cruza reglas.</li>
+                <li>Endpoint: <code>GET {`${BASE}/geo/?lat=<num>&lng=<num>&acc=<metros>`}</code> (coordenadas opcionales).</li>
+                <li><strong>1. gps:</strong> coordenadas del navegador válidas (dentro de Colombia, <code>acc ≤ 5000</code>) → municipio por los polígonos oficiales del <strong>DANE</strong> (offline).</li>
+                <li><strong>2. ip-movil:</strong> sin coordenadas e IP de Claro (AS26611), Tigo (AS27831) o WOM (AS271773) → <strong>sin descuento</strong> y <code>requiere_ubicacion: true</code>. Las IPs móviles geolocalizan a Bogotá estén donde estén.</li>
+                <li><strong>3. ip:</strong> sin coordenadas e IP fija → <strong>GeoLite2-City</strong> local.</li>
+                <li>Respuesta: <code>{`{ fuente, ciudad, region, pais, latitud, longitud, regla: { municipio, descuento } | null, requiere_ubicacion }`}</code>.</li>
+                <li>La regla la calcula el <strong>backend</strong> (única fuente de verdad) con la misma función que usa <code>checkout/</code>. Contrato completo en <code>modules-custom/precios-dinamicos-ubicacion-shopify/README.md</code>.</li>
+                <li>IP real: <code>X-Real-IP</code> (la fija nginx) → último valor de <code>X-Forwarded-For</code>. <strong>No</strong> se usa <code>CF-Connecting-IP</code>.</li>
               </ul>
             </div>
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
@@ -437,7 +443,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
               <h4 className="font-semibold mb-2">Endpoints del módulo</h4>
               <ul className="list-disc list-inside space-y-1">
                 <li><strong>Config:</strong> <code>{`${BASE}/config/`}</code></li>
-                <li><strong>Geo público (solo ubicación):</strong> <code>GET {`${BASE}/geo/`}</code></li>
+                <li><strong>Geo público (ubicación + regla):</strong> <code>GET {`${BASE}/geo/`}</code></li>
                 <li><strong>Checkout público (precio dinámico):</strong> <code>POST {`${BASE}/checkout/`}</code></li>
                 <li><strong>Log de pedidos (solo admin):</strong> <code>GET {`${BASE}/pedidos-log/`}</code> — solicitudes a <code>checkout/</code> de los últimos 5 días; tabla <code>modulos_precios_dinamicos_ubicacion_shopify_30_pedidos_log</code>.</li>
               </ul>
@@ -451,7 +457,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
               </p>
               <ul className="list-disc list-inside space-y-1">
                 <li><strong>URL:</strong> <code>POST {`${BASE}/checkout/`}</code> — <strong>con barra final</strong> (sin barra el servidor responde 308 y se pierde el POST).</li>
-                <li><strong>Entrada:</strong> <code>{`{ "items": [ { "variant_id": 123, "quantity": 2 } ], "dry_run": false }`}</code></li>
+                <li><strong>Entrada:</strong> <code>{`{ "items": [ { "variant_id": 123, "quantity": 2 } ], "ubicacion": { "lat": 7.89, "lng": -72.5, "acc": 30 }, "dry_run": false }`}</code> — <code>ubicacion</code> opcional; la regla se recalcula siempre en el servidor.</li>
                 <li><strong>Límites:</strong> 1–50 líneas · <code>quantity</code> entero 1–20 · <code>variant_id</code> numérico · máximo 50 unidades por petición · cuerpo ≤ 16 KB. Variantes repetidas se suman y el límite se aplica al total (no se puede partir en varias líneas).</li>
                 <li><strong>Respuesta OK:</strong> <code>{`{ ok, checkout_url, draft_order_id, estado_token, descuento, regla, ubicacion }`}</code></li>
                 <li><strong>Etiqueta por regla:</strong> el borrador lleva <code>precio-dinamico</code> y además <code>pd-municipio-&lt;slug&gt;</code> (si la regla cruzó por la ciudad, ej. <code>pd-municipio-envigado</code>) o <code>pd-departamento-&lt;slug&gt;</code> (ej. <code>pd-departamento-norte-de-santander</code>). Slug: sin tildes, minúsculas, guiones. Shopify Flow la usa para comparar la dirección de envío. El <code>dry_run</code> la devuelve en <code>etiqueta</code>.</li>
@@ -472,7 +478,7 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
             <div className="border rounded-lg p-4">
               <h4 className="font-semibold mb-2">Cómo se calcula el precio</h4>
               <ol className="list-decimal list-inside space-y-1">
-                <li>IP del visitante → base <strong>GeoLite2-City</strong> local (sin API externa) → ciudad y departamento.</li>
+                <li>Ubicación con la misma decisión que <code>geo/</code>: GPS (polígonos DANE) → IP móvil (sin descuento) → IP fija (GeoLite2-City). Nota del borrador con municipio, regla, fuente, GPS e IP; etiquetas <code>precio-dinamico</code>, <code>pd-municipio-&lt;slug&gt;</code> y <code>pd-fuente-&lt;gps|ip&gt;</code>.</li>
                 <li>Reglas del tema: <code>{`GET https://retendelcasco.com/?section_id=precio-dinamico-reglas&t=<ts>`}</code> — público, sin permisos, caché máxima 15 s. Se lee el JSON de <code>{`<script id="precio-dinamico-reglas">`}</code>.</li>
                 <li>Cruce (igual que el tema): primero <strong>municipio</strong> (ciudad); si no hay, <strong>departamento</strong>. Normaliza con NFD, sin tildes, minúsculas y trim.</li>
                 <li>Precio real y disponibilidad desde la Admin GraphQL (<code>read_products</code>). El precio del cliente nunca se usa.</li>

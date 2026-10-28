@@ -86,39 +86,48 @@ export function parseReglas(html: string): ReglaPrecio[] {
   return out;
 }
 
+export type TipoRegla = 'municipio' | 'departamento';
+
+export interface ReglaAplicada extends ReglaPrecio {
+  tipo: TipoRegla;
+}
+
 /**
- * Cruce igual que el tema: PRIMERO por municipio/ciudad; si no hay match, por
- * departamento/región. (El metaobjeto guarda ambos casos bajo la misma clave
- * `municipio`, p. ej. {"municipio":"Antioquia","descuento":10}).
+ * Cruce igual que el tema: PRIMERO por municipio (cualquiera de los nombres
+ * candidatos, p. ej. "Cúcuta" y el oficial "San José de Cúcuta"); si no hay
+ * match, por departamento. (El metaobjeto guarda ambos casos bajo la misma
+ * clave `municipio`, p. ej. {"municipio":"Antioquia","descuento":10}).
  */
 export function cruzarRegla(
   reglas: ReglaPrecio[],
-  ciudad: string | null,
+  ciudades: Array<string | null | undefined>,
   region: string | null
-): ReglaPrecio | null {
-  const c = normalizar(ciudad);
-  const r = normalizar(region);
-
-  if (c) {
+): ReglaAplicada | null {
+  for (const ciudad of ciudades) {
+    const c = normalizar(ciudad);
+    if (!c) continue;
     const porCiudad = reglas.find((g) => normalizar(g.nombre) === c);
-    if (porCiudad) return porCiudad;
+    if (porCiudad) return { ...porCiudad, tipo: 'municipio' };
   }
+  const r = normalizar(region);
   if (r) {
     const porRegion = reglas.find((g) => normalizar(g.nombre) === r);
-    if (porRegion) return porRegion;
+    if (porRegion) return { ...porRegion, tipo: 'departamento' };
   }
   return null;
+}
+
+/** Slug para etiquetas: sin tildes, minúsculas, guiones. */
+export function slug(valor: string): string {
+  return normalizar(valor).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'sin-nombre';
 }
 
 /**
  * Etiqueta del borrador según la regla aplicada, para que Shopify Flow compare
  * la dirección de envío: `pd-municipio-envigado`, `pd-departamento-antioquia`.
- * Es "municipio" si la regla cruzó por la ciudad del visitante; si no, "departamento".
  */
-export function etiquetaRegla(regla: ReglaPrecio, ciudad: string | null): string {
-  const tipo = ciudad && normalizar(regla.nombre) === normalizar(ciudad) ? 'municipio' : 'departamento';
-  const slug = normalizar(regla.nombre).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  return `pd-${tipo}-${slug || 'sin-nombre'}`;
+export function etiquetaRegla(regla: ReglaAplicada): string {
+  return `pd-${regla.tipo}-${slug(regla.nombre)}`;
 }
 
 /** Precio unitario en COP sin decimales. Mismo cálculo que muestra el tema. */
