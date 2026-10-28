@@ -1,5 +1,5 @@
 import path from 'node:path';
-import maxmind, { CityResponse, Reader } from 'maxmind';
+import maxmind, { AsnResponse, CityResponse, Reader } from 'maxmind';
 
 // ============================================================
 //  Módulo 30 — Geolocalización por IP (compartido por /geo/ y /checkout/)
@@ -28,8 +28,11 @@ export interface Ubicacion {
 }
 
 const MMDB_PATH = path.join(process.cwd(), 'data', 'geoip', 'GeoLite2-City.mmdb');
+// ASN: DB-IP "IP to ASN Lite" (CC BY 4.0, formato mmdb). Ver README del módulo.
+const ASN_MMDB_PATH = path.join(process.cwd(), 'data', 'geoip', 'dbip-asn-lite.mmdb');
 
 let readerPromise: Promise<Reader<CityResponse>> | null = null;
+let asnReaderPromise: Promise<Reader<AsnResponse>> | null = null;
 
 export function getReader(): Promise<Reader<CityResponse>> {
   if (!readerPromise) {
@@ -39,6 +42,16 @@ export function getReader(): Promise<Reader<CityResponse>> {
     });
   }
   return readerPromise;
+}
+
+function getAsnReader(): Promise<Reader<AsnResponse>> {
+  if (!asnReaderPromise) {
+    asnReaderPromise = maxmind.open<AsnResponse>(ASN_MMDB_PATH).catch((err) => {
+      asnReaderPromise = null;
+      throw err;
+    });
+  }
+  return asnReaderPromise;
 }
 
 const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
@@ -96,5 +109,17 @@ export async function ubicarIp(ip: string | null): Promise<Ubicacion> {
   } catch (err) {
     console.error('[geo-ip] error resolviendo ubicación:', err);
     return vacio;
+  }
+}
+
+/** Número de ASN de la IP, o null si no se conoce. Nunca lanza. */
+export async function asnDeIp(ip: string | null): Promise<number | null> {
+  if (!ip) return null;
+  try {
+    const reader = await getAsnReader();
+    return reader.get(ip)?.autonomous_system_number ?? null;
+  } catch (err) {
+    console.error('[geo-ip] error resolviendo ASN:', err);
+    return null;
   }
 }

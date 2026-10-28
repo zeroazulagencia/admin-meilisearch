@@ -47,10 +47,18 @@ npm run build
 pm2 restart admin-meilisearch --update-env
 ```
 
-Tests:
-- No hay suite de tests configurada en este repo.
-- No existe comando oficial para ejecutar un solo test.
-- Si se agrega un runner, documentar el comando en este archivo.
+Tests (node:test + tsx, resuelve el alias `@/`):
+
+```bash
+# Toda la suite
+npm test
+
+# Un solo archivo / un solo test
+node --import tsx --test tests/mod30-ubicacion.test.ts
+node --import tsx --test --test-name-pattern="Cúcuta" tests/mod30-ubicacion.test.ts
+```
+
+Al agregar un archivo de tests, sumarlo al script `test` de `package.json`.
 
 -------------------------------------------------------------------------------
 
