@@ -4,7 +4,7 @@ import LandingShell from '@/components/LandingShell'
 export const metadata: Metadata = {
   title: 'Agente IA para Inventarios | Controla tu stock sin fricción',
   description:
-    'Automatiza el control de inventario de tu negocio con IA: monitorea stock, alerta faltantes y evita quiebres o sobre stock en tu operación.',
+    '¿Qué hace un agente de IA de inventarios? Automatiza el control de inventario de tu negocio con IA: monitorea stock, alerta faltantes y evita quiebres o sobre stock en tu operación.',
   keywords: [
     'agente ia inventarios',
     'agente de ia para inventarios',
@@ -29,7 +29,7 @@ export default function AgenteIAInventarios() {
       titleTop="Inventario al día"
       titleBottom="sin hojas de cálculo"
       subtitle="Un agente que monitorea stock, faltantes y rotación por ti."
-      intro="El descontrol de inventario duele: se pierde ventas por faltantes o se deja plata congelada en productos que no rotan. Nuestro agente de IA vigila tu stock en tiempo real, cruza movimientos, detecta faltantes y quiebres, y avisa cuándo rápido tu reposición. Tu inventario claro, sin inventarios manuales."
+      intro="¿Qué hace un agente de IA de inventarios? El descontrol de inventario duele: se pierde ventas por faltantes o se deja plata congelada en productos que no rotan. Nuestro agente de IA vigila tu stock en tiempo real, cruza movimientos, detecta faltantes y quiebres, y avisa cuándo rápido tu reposición. Tu inventario claro, sin inventarios manuales."
       beneficios={[
         {
           title: 'Monitoreo en tiempo real',

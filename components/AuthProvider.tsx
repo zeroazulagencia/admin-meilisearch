@@ -185,8 +185,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     '/conversaciones', '/consumo-api', '/clientes',
     '/agentes', '/modulos',
   ];
+  // Landings públicas: se renderizan en servidor (SEO/GEO) y no esperan a la sesión.
+  const publicPrefixes = ['/productos', '/industrias', '/agente-ia-', '/agentes-ia-atencion-cliente', '/ia-integrada-crm-erp'];
+  const isPublicLanding =
+    pathname === '/' || (!!pathname && publicPrefixes.some((r) => pathname.startsWith(r)));
   const isProtectedRoute =
-    pathname && protectedRoutes.some((r) => pathname.startsWith(r));
+    !isPublicLanding && !!pathname && protectedRoutes.some((r) => pathname.startsWith(r));
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && isProtectedRoute) {
@@ -196,7 +200,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   }, [isAuthenticated, isLoading, isProtectedRoute, router]);
 
   // ─── Render ────────────────────────────────────────────────
-  if (isLoading) {
+  if (isLoading && !isPublicLanding) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

@@ -4,7 +4,7 @@ import LandingShell from '@/components/LandingShell'
 export const metadata: Metadata = {
   title: 'Agente IA de Ventas | Automatiza tu equipo comercial con Workers',
   description:
-    'Contrata un agente de IA especializado en ventas para tu pyme: califica leads, envía mensajes, agenda reuniones y cierra más oportunidades 24/7 sin ampliar plantilla.',
+    '¿Qué hace un agente de IA de ventas? Contrata un agente de IA especializado en ventas para tu pyme: califica leads, envía mensajes, agenda reuniones y cierra más oportunidades 24/7 sin ampliar plantilla.',
   keywords: [
     'agente IA ventas',
     'agente de inteligencia artificial para ventas',
@@ -30,7 +30,7 @@ export default function AgenteIAVentas() {
       titleTop="Un agente de IA que"
       titleBottom="vende por tu equipo"
       subtitle="Automatiza la prospección y el seguimiento comercial sin aumentar tu plantilla."
-      intro="Nuestro agente de IA para ventas trabaja 24/7: identifica leads, les escribe en el momento justo, agenda reuniones y mantiene las negociaciones avanzando mientras tu equipo se concentra en cerrar. Diseñado para pymes que quieren más conversión sin contratar más personas."
+      intro="¿Qué hace un agente de IA de ventas? Nuestro agente de IA para ventas trabaja 24/7: identifica leads, les escribe en el momento justo, agenda reuniones y mantiene las negociaciones avanzando mientras tu equipo se concentra en cerrar. Diseñado para pymes que quieren más conversión sin contratar más personas."
       beneficios={[
         {
           title: 'Prospección automática',

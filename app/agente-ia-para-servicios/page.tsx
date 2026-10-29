@@ -4,7 +4,7 @@ import LandingShell from '@/components/LandingShell'
 export const metadata: Metadata = {
   title: 'Agente IA para Empresas de Servicios | Automatiza tu operación',
   description:
-    'Impulsa con IA los procesos de tu empresa de servicios: agendamiento, cotizaciones, seguimiento a clientes y soporte, con un agente que trabaja 24/7.',
+    '¿Qué hace un agente de IA para empresas de servicios? Impulsa con IA los procesos de tu empresa de servicios: agendamiento, cotizaciones, seguimiento a clientes y soporte, con un agente que trabaja 24/7.',
   keywords: [
     'agente ia para servicios',
     'agente de ia para empresas de servicios',
@@ -29,7 +29,7 @@ export default function AgenteIAParaServicios() {
       titleTop="Tu empresa de servicios"
       titleBottom="nunca para de vender"
       subtitle="Automatiza cotizaciones, agendamiento y soporte para escalar tu operación."
-      intro="Las empresas de servicios dependen de responder rápido y no perder trabajo. Nuestro agente de IA gestiona el ciclo completo por ti: agenda citas, envía cotizaciones, da seguimiento a clientes y ofrece soporte técnico. Tu operación avanza 24/7 sin que el equipo dependa de estar disponible para cada consulta."
+      intro="¿Qué hace un agente de IA para empresas de servicios? Las empresas de servicios dependen de responder rápido y no perder trabajo. Nuestro agente de IA gestiona el ciclo completo por ti: agenda citas, envía cotizaciones, da seguimiento a clientes y ofrece soporte técnico. Tu operación avanza 24/7 sin que el equipo dependa de estar disponible para cada consulta."
       beneficios={[
         {
           title: 'Agendamiento automático',

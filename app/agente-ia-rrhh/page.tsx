@@ -4,7 +4,7 @@ import LandingShell from '@/components/LandingShell'
 export const metadata: Metadata = {
   title: 'Agente IA para Recursos Humanos | Automatiza tu gestión de talento',
   description:
-    'Automatiza tareas de RRHH con un agente de IA: filtra postulantes, responde a empleados y agiliza onboarding sin perder el trato humano.',
+    '¿Qué hace un agente de IA de recursos humanos? Automatiza tareas de RRHH con un agente de IA: filtra postulantes, responde a empleados y agiliza onboarding sin perder el trato humano.',
   keywords: [
     'agente ia rrhh',
     'agente de ia recursos humanos',
@@ -29,7 +29,7 @@ export default function AgenteIARRHH() {
       titleTop="RRHH más ágil"
       titleBottom="con un agente IA"
       subtitle="Automatiza la gestión de talento y libera a tu equipo de personas para lo importante."
-      intro="RRHH repite las mismas tareas: filtrar postulantes, responder dudas internas y perseguir documentos. Nuestro agente de IA se ocupa de lo operativo: organiza candidatos, responde al momento consultas de empleados, agiliza el onboarding y deja a tu equipo de personas con más tiempo para entrevistar y cuidar cultura."
+      intro="¿Qué hace un agente de IA de recursos humanos? RRHH repite las mismas tareas: filtrar postulantes, responder dudas internas y perseguir documentos. Nuestro agente de IA se ocupa de lo operativo: organiza candidatos, responde al momento consultas de empleados, agiliza el onboarding y deja a tu equipo de personas con más tiempo para entrevistar y cuidar cultura."
       beneficios={[
         {
           title: 'Filtra postulantes por ti',

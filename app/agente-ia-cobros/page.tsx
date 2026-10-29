@@ -4,7 +4,7 @@ import LandingShell from '@/components/LandingShell'
 export const metadata: Metadata = {
   title: 'Agente IA para Cobros | Reduce tu cartera vencida automáticamente',
   description:
-    'Automatiza la gestión de cobros con un agente de IA: recuerda deudas, negocia plazos y recupera tu cartera sin fricción con los clientes.',
+    '¿Qué hace un agente de IA de cobros? Automatiza la gestión de cobros con un agente de IA: recuerda deudas, negocia plazos y recupera tu cartera sin fricción con los clientes.',
   keywords: [
     'agente ia cobros',
     'agente de ia para cobros',
@@ -29,7 +29,7 @@ export default function AgenteIACobros() {
       titleTop="Cobra más sin"
       titleBottom="dañar la relación"
       subtitle="Un agente que gestiona recordatorios y acuerdos de pago por ti."
-      intro="El cobro incomoda y, sin seguimiento, la cartera se vence. Nuestro agente de IA asume la cobranza: envía recordatorios en el momento justo, responde dudas sobre facturas, procesa pagos parciales y escala con tacto cuando un cliente realmente no puede pagar. Más liquidez, sin fricciones."
+      intro="¿Qué hace un agente de IA de cobros? El cobro incomoda y, sin seguimiento, la cartera se vence. Nuestro agente de IA asume la cobranza: envía recordatorios en el momento justo, responde dudas sobre facturas, procesa pagos parciales y escala con tacto cuando un cliente realmente no puede pagar. Más liquidez, sin fricciones."
       beneficios={[
         {
           title: 'Recordatorios en el momento justo',

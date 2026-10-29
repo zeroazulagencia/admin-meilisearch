@@ -4,7 +4,7 @@ import LandingShell from '@/components/LandingShell'
 export const metadata: Metadata = {
   title: 'Asistente Virtual IA para Atención al Cliente | Workers',
   description:
-    'Automatiza la atención al cliente con un agente de IA: responde dudas, gestiona tickets y reduce el tiempo de espera 24/7 en todos tus canales.',
+    '¿Cómo funcionan los agentes de IA para atención al cliente? Automatiza la atención al cliente con un agente de IA: responde dudas, gestiona tickets y reduce el tiempo de espera 24/7 en todos tus canales.',
   keywords: [
     'asistente virtual ia atencion cliente',
     'agente de ia atencion al cliente',
@@ -29,7 +29,7 @@ export default function AgentesAIAtencionCliente() {
       titleTop="Atiende a tus clientes"
       titleBottom="sin filas ni esperas"
       subtitle="Un asistente virtual que resuelve consultas y gestiona el soporte por ti."
-      intro="La atención al cliente define si vuelven o se van. Nuestro asistente de IA responde dudas frecuentes, da seguimiento a pedidos, canaliza quejas y deriva a una persona cuando hace falta. Tus clientes quedan atendidos al instante, y tu equipo, con menos tareas repetitivas y más tiempo para casos valiosos."
+      intro="¿Cómo funcionan los agentes de IA para atención al cliente? La atención al cliente define si vuelven o se van. Nuestro asistente de IA responde dudas frecuentes, da seguimiento a pedidos, canaliza quejas y deriva a una persona cuando hace falta. Tus clientes quedan atendidos al instante, y tu equipo, con menos tareas repetitivas y más tiempo para casos valiosos."
       beneficios={[
         {
           title: 'Disponible 24/7',

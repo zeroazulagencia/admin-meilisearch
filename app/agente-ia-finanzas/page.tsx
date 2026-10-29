@@ -4,7 +4,7 @@ import LandingShell from '@/components/LandingShell'
 export const metadata: Metadata = {
   title: 'Agente IA para Finanzas Pyme | Automatiza tu operación financiera',
   description:
-    'Automatiza tareas financieras de tu pyme con IA: conciliación, reportes, control de caja y alertas de flujo, sin perder el control.',
+    '¿Qué hace un agente de IA de finanzas? Automatiza tareas financieras de tu pyme con IA: conciliación, reportes, control de caja y alertas de flujo, sin perder el control.',
   keywords: [
     'agente ia finanzas pyme',
     'agente de ia para finanzas',
@@ -29,7 +29,7 @@ export default function AgenteIAFinanzas() {
       titleTop="Controla tus finanzas"
       titleBottom="sin tiempos muertos"
       subtitle="Un agente financiero que organiza, concilia y alerta por ti."
-      intro="Las pymes pierden horas en conciliar, clasificar gastos y armar reportes. Nuestro agente de IA para finanzas automatiza esas tareas: cruza movimientos, mantiene la caja ordenada, detecta salidas de flujo y te alerta antes de llegar como problema. Tu control financiero al día, sin crecer el equipo contable."
+      intro="¿Qué hace un agente de IA de finanzas? Las pymes pierden horas en conciliar, clasificar gastos y armar reportes. Nuestro agente de IA para finanzas automatiza esas tareas: cruza movimientos, mantiene la caja ordenada, detecta salidas de flujo y te alerta antes de llegar como problema. Tu control financiero al día, sin crecer el equipo contable."
       beneficios={[
         {
           title: 'Conciliación automática',

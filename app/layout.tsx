@@ -5,9 +5,10 @@ import Navbar from '@/components/Navbar'
 import AuthProvider from '@/components/AuthProvider'
 
 export const metadata: Metadata = {
-  title: 'Empleados digitales :: DWORKERS | Agencia de Inteligencia Artificial',
-  description: 'Empleados digitales multiagente con inteligencia artificial, automatizar interacciones y optimizar procesos empresariales. Maximiza Beneficios con agentes IA, asistentes digitales y automatización RPA.',
-  keywords: 'agentes IA, agentes ai, asistentes digitales, agencia de inteligencia artificial, multiagentes, automatización empresarial, RPA, inteligencia artificial, agentes digitales, automatización con IA',
+  metadataBase: new URL('https://workers.zeroazul.com'),
+  title: 'Workers | Agentes de IA para empresas · Polar Blue Agent',
+  description: '¿Qué es Workers? La plataforma de agentes de inteligencia artificial que se conectan a tus sistemas y operan tus procesos de ventas, atención, finanzas, inventarios y más, 24/7.',
+  keywords: 'agentes IA, agentes de inteligencia artificial, Polar Blue Agent, automatización empresarial, multiagentes, agente IA WhatsApp, IA para empresas Colombia, Zero Azul',
   alternates: {
     canonical: 'https://workers.zeroazul.com/',
   },
@@ -16,10 +17,33 @@ export const metadata: Metadata = {
     apple: '/public-img/favicon.png',
   },
   openGraph: {
-    title: 'Empleados digitales :: DWORKERS',
-    description: 'Con el poder la Inteligencia artificial y RPA ofrecemos un equipo de trabajo infinito de multiagentes, eficiente y efectivo para tareas en tu empresa.',
+    title: 'Workers | Agentes de IA para empresas',
+    description: 'Equipos de agentes de IA conectados a tus sistemas para operar tus procesos 24/7. Polar Blue Agent, Workers Insights, Workers Knowledge y Polar Torre de Control, además de Conversso, Ecco, Sintessis y Vigilantte.',
+    url: 'https://workers.zeroazul.com/',
+    siteName: 'Workers by Zero Azul',
+    locale: 'es_CO',
     type: 'website',
   },
+}
+
+const siteLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://workers.zeroazul.com/#organization',
+      name: 'Workers by Zero Azul',
+      legalName: 'Zero Azul Company S.A.S.',
+      url: 'https://workers.zeroazul.com/',
+      logo: 'https://workers.zeroazul.com/public-img/logo-dworkers.png',
+      description: 'Plataforma de agentes de inteligencia artificial que se conectan a los sistemas de la empresa y operan sus procesos.',
+      parentOrganization: { '@type': 'Organization', name: 'Zero Azul', url: 'https://zeroazul.com' },
+      areaServed: { '@type': 'Country', name: 'Colombia' },
+      sameAs: ['https://www.facebook.com/zeroazulagencia', 'https://www.instagram.com/zeroazulagencia/', 'https://www.linkedin.com/company/22294464'],
+      contactPoint: { '@type': 'ContactPoint', telephone: '+57-319-594-7797', contactType: 'sales', availableLanguage: ['Spanish'] },
+    },
+    { '@type': 'WebSite', '@id': 'https://workers.zeroazul.com/#website', url: 'https://workers.zeroazul.com/', name: 'Workers by Zero Azul', inLanguage: 'es-CO', publisher: { '@id': 'https://workers.zeroazul.com/#organization' } },
+  ],
 }
 
 export default function RootLayout({
@@ -30,6 +54,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteLd) }} />
         {/* Google Tag Manager */}
         <Script
           id="gtm"

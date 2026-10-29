@@ -4,7 +4,7 @@ import LandingShell from '@/components/LandingShell'
 export const metadata: Metadata = {
   title: 'Agente IA para WhatsApp | Ventas y atención automatizada en WhatsApp',
   description:
-    'Implementa un agente de IA en WhatsApp de tu negocio: responde a clientes, cualifica leads y vende 24/7 en el canal que tus clientes ya usan.',
+    '¿Qué hace un agente de IA en WhatsApp? Implementa un agente de IA en WhatsApp de tu negocio: responde a clientes, cualifica leads y vende 24/7 en el canal que tus clientes ya usan.',
   keywords: [
     'agente IA whatsapp',
     'agente IA whatsapp ventas',
@@ -29,7 +29,7 @@ export default function AgenteIAWhatsapp() {
       titleTop="Tu canal de WhatsApp"
       titleBottom="vende y atiende solo"
       subtitle="Automatiza conversaciones en WhatsApp para no perder ningún cliente."
-      intro="El 80% de las pymes vende por WhatsApp, pero responder a tiempo es imposible sin un equipo grande. Nuestro agente de IA gestiona el canal por ti: responde al instante, muestra clientes la información, les da seguimiento y empuja la conversación hacia la compra. Disponible 24/7, escalable y en tu tono."
+      intro="¿Qué hace un agente de IA en WhatsApp? El 80% de las pymes vende por WhatsApp, pero responder a tiempo es imposible sin un equipo grande. Nuestro agente de IA gestiona el canal por ti: responde al instante, muestra clientes la información, les da seguimiento y empuja la conversación hacia la compra. Disponible 24/7, escalable y en tu tono."
       beneficios={[
         {
           title: 'Respuesta inmediata',

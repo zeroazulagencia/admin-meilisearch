@@ -54,3 +54,9 @@ public/agent-avatars/*
 .env.bak*
 cartas-pdf/generador-carta-laboral/
 deploy/dworkers_ssh_key
+
+# Bases GeoIP del módulo 30 (binarias, licencia propia; se descargan en el servidor)
+data/geoip/
+
+# Respaldos manuales
+*.bak.*

@@ -6,6 +6,7 @@ import ProtectedLayout from '@/components/ProtectedLayout';
 import ModuleLoading from '@/components/ModuleLoading';
 
 // Static imports for known modules
+import ModPreciosDinamicosUbicacionShopify from '@/modules-custom/precios-dinamicos-ubicacion-shopify';
 import ModSaraV2 from '@/modules-custom/sara-v2';
 import ModAnalizadorGapSeoGeo from '@/modules-custom/analizador-gap-seo-geo';
 import ModClientFinder from '@/modules-custom/client-finder';
@@ -64,6 +65,7 @@ const MODULES_MAP: Record<string, any> = {
   'client-finder': ModClientFinder,
   'analizador-gap-seo-geo': ModAnalizadorGapSeoGeo,
   'sara-v2': ModSaraV2,
+  'precios-dinamicos-ubicacion-shopify': ModPreciosDinamicosUbicacionShopify,
 };
 
 interface Module {

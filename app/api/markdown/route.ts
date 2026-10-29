@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 function htmlToMarkdown(html: string): string {
   let md = html;
   md = md.replace(/<!DOCTYPE html[^>]*>/gi, '');
@@ -32,7 +34,7 @@ export async function GET() {
   const PUBLIC_URL = 'https://workers.zeroazul.com';
   
   try {
-    const res = await fetch(PUBLIC_URL + '/');
+    const res = await fetch(PUBLIC_URL + '/', { cache: 'no-store' });
     const html = await res.text();
     const markdown = htmlToMarkdown(html);
     

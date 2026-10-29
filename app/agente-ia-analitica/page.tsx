@@ -4,7 +4,7 @@ import LandingShell from '@/components/LandingShell'
 export const metadata: Metadata = {
   title: 'Agente IA para Analítica | Convierte tus datos en decisiones',
   description:
-    'Automatiza el análisis de datos de tu empresa con un agente de IA: responde preguntas, genera reportes y anticipa tendencias sin esperar al equipo técnico.',
+    '¿Qué hace un agente de IA de analítica? Automatiza el análisis de datos de tu empresa con un agente de IA: responde preguntas, genera reportes y anticipa tendencias sin esperar al equipo técnico.',
   keywords: [
     'agente ia analitica',
     'agente de ia para analítica de datos',
@@ -29,7 +29,7 @@ export default function AgenteIAAnalitica() {
       titleTop="Datos que se convierten"
       titleBottom="en decisiones"
       subtitle="Un agente que responde y reporta sobre tu información sin esperar."
-      intro="Tienes los datos, pero responder preguntas de negocio toma días. Nuestro agente de IA para analítica conecta tus fuentes y responde al momento: resuelve consultas en lenguaje natural, genera reportes automáticos, detecta tendencias y anuncia qué necesita tu atención. Información accionable, sin depender de un equipo técnico cada vez."
+      intro="¿Qué hace un agente de IA de analítica? Tienes los datos, pero responder preguntas de negocio toma días. Nuestro agente de IA para analítica conecta tus fuentes y responde al momento: resuelve consultas en lenguaje natural, genera reportes automáticos, detecta tendencias y anuncia qué necesita tu atención. Información accionable, sin depender de un equipo técnico cada vez."
       beneficios={[
         {
           title: 'Preguntas, respuestas al instante',

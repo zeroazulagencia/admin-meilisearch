@@ -4,7 +4,7 @@ import LandingShell from '@/components/LandingShell'
 export const metadata: Metadata = {
   title: 'IA Integrada a tu CRM y ERP | Workers',
   description:
-    'Integra agentes de IA a tu CRM y ERP: automatiza registro, seguimiento, reportes y flujos de negocio sin reemplazar tus sistemas.',
+    '¿Cómo se integra la IA con un CRM o ERP? Integra agentes de IA a tu CRM y ERP: automatiza registro, seguimiento, reportes y flujos de negocio sin reemplazar tus sistemas.',
   keywords: [
     'ia integrada crm erp',
     'agente ia integrado a crm',
@@ -29,7 +29,7 @@ export default function IAIntegradaCRMErp() {
       titleTop="Tu CRM y ERP"
       titleBottom="trabajan contigo"
       subtitle="Agentes de IA integrados a los sistemas que ya usas."
-      intro="Tu CRM y tu ERP ya guardan la información de tu negocio, pero alimentarlos cuesta horas y darles uso no siempre se logra. Nuestros agentes de IA se integran a estos sistemas sin reemplazarlos: registran datos, actualizan tareas, generan reportes y ejecutan procesos repetitivos. Más valor de tus herramientas, con el mismo sistema de siempre."
+      intro="¿Cómo se integra la IA con un CRM o ERP? Tu CRM y tu ERP ya guardan la información de tu negocio, pero alimentarlos cuesta horas y darles uso no siempre se logra. Nuestros agentes de IA se integran a estos sistemas sin reemplazarlos: registran datos, actualizan tareas, generan reportes y ejecutan procesos repetitivos. Más valor de tus herramientas, con el mismo sistema de siempre."
       beneficios={[
         {
           title: 'Datos siempre actualizados',
