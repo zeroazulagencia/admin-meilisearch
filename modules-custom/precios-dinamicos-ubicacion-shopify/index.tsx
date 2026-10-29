@@ -420,12 +420,12 @@ export default function ModPreciosDinamicosUbicacionShopify({ moduleData }: { mo
             </div>
           </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-2">Ubicación y regla (GPS primero, IP de respaldo)</h4>
+              <h4 className="font-semibold text-blue-900 mb-2">Ubicación y regla (descuento solo con GPS)</h4>
               <ul className="list-disc list-inside space-y-1">
                 <li>Endpoint: <code>GET {`${BASE}/geo/?lat=<num>&lng=<num>&acc=<metros>`}</code> (coordenadas opcionales).</li>
                 <li><strong>1. gps:</strong> coordenadas del navegador válidas (dentro de Colombia, <code>acc ≤ 5000</code>) → municipio por los polígonos oficiales del <strong>DANE</strong> (offline).</li>
                 <li><strong>2. ip-movil:</strong> sin coordenadas e IP de Claro (AS26611), Tigo (AS27831) o WOM (AS271773) → <strong>sin descuento</strong> y <code>requiere_ubicacion: true</code>. Las IPs móviles geolocalizan a Bogotá estén donde estén.</li>
-                <li><strong>3. ip:</strong> sin coordenadas e IP fija → <strong>GeoLite2-City</strong> local.</li>
+                <li><strong>3. ip:</strong> sin coordenadas e IP fija → ciudad por <strong>GeoLite2-City</strong> solo informativa, <strong>sin descuento</strong> y <code>requiere_ubicacion: true</code>. La IP nunca da regla.</li>
                 <li>Respuesta: <code>{`{ fuente, ciudad, region, pais, latitud, longitud, regla: { municipio, descuento } | null, requiere_ubicacion }`}</code>.</li>
                 <li>La regla la calcula el <strong>backend</strong> (única fuente de verdad) con la misma función que usa <code>checkout/</code>. Contrato completo en <code>modules-custom/precios-dinamicos-ubicacion-shopify/README.md</code>.</li>
                 <li>IP real: <code>X-Real-IP</code> (la fija nginx) → último valor de <code>X-Forwarded-For</code>. <strong>No</strong> se usa <code>CF-Connecting-IP</code>.</li>

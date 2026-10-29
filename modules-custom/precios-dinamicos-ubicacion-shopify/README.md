@@ -18,7 +18,7 @@ CORS: solo `https://retendelcasco.com`, `https://www.retendelcasco.com` y
 |---|---|---|---|---|
 | 1 | Coordenadas del navegador **válidas** | `gps` | Polígono DANE que contiene el punto | Regla del municipio; si no hay, la del departamento |
 | 2 | Sin coordenadas válidas e IP de un **ASN móvil** | `ip-movil` | `null` | **Ninguno**, `requiere_ubicacion: true` |
-| 3 | Sin coordenadas válidas e IP fija | `ip` | GeoLite2-City | Regla del municipio; si no hay, la del departamento |
+| 3 | Sin coordenadas válidas e IP fija | `ip` | GeoLite2-City (solo informativa) | **Ninguno**, `requiere_ubicacion: true`. La IP nunca da regla: Movistar (AS3816) mezcla fijo y móvil (pedido #2659, Cúcuta con regla de Bogotá) |
 
 **Coordenadas válidas**: `lat`, `lng` y `acc` numéricos; dentro de Colombia
 (lat −4,3 … 13,6 · lng −82,0 … −66,8, incluye San Andrés) y `0 <= acc <= 5000` metros.
@@ -64,7 +64,7 @@ Respuesta `200`:
   "latitud": 7.8939,
   "longitud": -72.5078,
   "regla": null,                   // o { "municipio": "Bogotá", "descuento": 10 }
-  "requiere_ubicacion": false      // true solo con fuente "ip-movil"
+  "requiere_ubicacion": false      // true siempre que no haya GPS ("ip" o "ip-movil")
 }
 ```
 
@@ -103,7 +103,7 @@ Respuesta `200`:
 }
 ```
 
-**Sin regla, descuento 0 o `ip-movil`** → no crea nada; el tema sigue al **checkout normal** (precio de lista):
+**Sin regla, descuento 0 o sin GPS (`ip`/`ip-movil`)** → no crea nada; el tema sigue al **checkout normal** (precio de lista):
 
 ```json
 {
@@ -111,7 +111,7 @@ Respuesta `200`:
   "checkout_url": null,
   "descuento": 0,
   "regla": null,
-  "requiere_ubicacion": true,      // true con ip-movil: pedir GPS y volver a llamar
+  "requiere_ubicacion": true,      // true sin GPS: pedir ubicación y volver a llamar
   "ubicacion": { "fuente": "ip-movil", "ciudad": null, "region": null, "requiere_ubicacion": true }
 }
 ```

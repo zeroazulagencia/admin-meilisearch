@@ -10,7 +10,10 @@ import { obtenerReglas } from '@/utils/modulos/precios-dinamicos-ubicacion-shopi
 //  2. Sin coordenadas e IP de un ASN MÓVIL → sin municipio ni descuento,
 //     requiere_ubicacion: true. Las IPs móviles en Colombia geolocalizan a
 //     Bogotá sin importar dónde esté la persona (caso draft #D1529).      fuente "ip-movil"
-//  3. Sin coordenadas e IP fija → GeoLite2-City.                         fuente "ip"
+//  3. Sin coordenadas e IP fija → ciudad por GeoLite2-City solo informativa,
+//     sin regla y requiere_ubicacion: true. La IP NUNCA da regla: Movistar
+//     (AS3816) mezcla fijo y móvil y un cliente en Cúcuta recibió la regla
+//     de Bogotá (pedido #2659).                                           fuente "ip"
 // ============================================================
 
 export type Fuente = 'gps' | 'ip' | 'ip-movil';
@@ -134,9 +137,8 @@ export async function resolverUbicacion(
     };
   }
 
-  // 3) IP fija
+  // 3) IP fija: ciudad solo informativa (log); el descuento exige GPS
   const u = await deps.ubicarIp(ip);
-  const reglas = await deps.reglas();
   return {
     fuente: 'ip',
     ciudad: u.ciudad,
@@ -148,7 +150,7 @@ export async function resolverUbicacion(
     precision_m: null,
     ip,
     asn,
-    regla: conDescuento(cruzarRegla(reglas, [u.ciudad], u.region)),
-    requiere_ubicacion: false,
+    regla: null,
+    requiere_ubicacion: true,
   };
 }

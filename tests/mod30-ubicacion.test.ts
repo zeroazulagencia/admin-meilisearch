@@ -123,12 +123,18 @@ test('decisión: WOM (AS271773) también es móvil', async () => {
   assert.equal(r.fuente, 'ip-movil');
 });
 
-test('decisión: sin coords e IP fija → fuente ip con la regla de su ciudad', async () => {
+test('decisión: sin coords e IP fija → fuente ip, ciudad informativa, sin regla, requiere_ubicacion', async () => {
   const r = await resolverUbicacion({ ip: '181.142.85.32' }, deps());
   assert.equal(r.fuente, 'ip');
   assert.equal(r.ciudad, 'Bogotá');
-  assert.equal(r.regla?.descuento, 10);
-  assert.equal(r.requiere_ubicacion, false);
+  assert.equal(r.regla, null);
+  assert.equal(r.requiere_ubicacion, true);
+});
+
+test('decisión: Movistar (AS3816) sin coords no recibe la regla de Bogotá (pedido #2659)', async () => {
+  const r = await resolverUbicacion({ ip: '152.202.102.54' }, deps({ asnDeIp: async () => 3816 }));
+  assert.equal(r.regla, null);
+  assert.equal(r.requiere_ubicacion, true);
 });
 
 test('decisión: coords fuera de Colombia o acc > 5000 se ignoran (paso 2 o 3)', async () => {

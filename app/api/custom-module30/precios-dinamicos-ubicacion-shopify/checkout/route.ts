@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
     };
 
     // --- 5) Sin regla o descuento 0 -> precio normal, el tema sigue al checkout normal ---
-    //        (ip-movil sin coordenadas cae aquí con requiere_ubicacion: true)
+    //        (sin coordenadas, ip o ip-movil, cae aquí con requiere_ubicacion: true)
     if (!regla || regla.descuento === 0) {
       if (!dryRun) {
         return fin(
