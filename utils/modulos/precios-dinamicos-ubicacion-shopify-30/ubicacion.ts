@@ -7,16 +7,21 @@ import { obtenerReglas } from '@/utils/modulos/precios-dinamicos-ubicacion-shopi
 //  Módulo 30 — Decisión de ubicación y regla (ÚNICA, compartida por /geo/ y /checkout/)
 //
 //  1. Coordenadas del navegador válidas → municipio por polígono DANE.   fuente "gps"
-//  2. Sin coordenadas e IP de un ASN MÓVIL → sin municipio ni descuento,
-//     requiere_ubicacion: true. Las IPs móviles en Colombia geolocalizan a
-//     Bogotá sin importar dónde esté la persona (caso draft #D1529).      fuente "ip-movil"
-//  3. Sin coordenadas e IP fija → ciudad por GeoLite2-City solo informativa,
-//     sin regla y requiere_ubicacion: true. La IP NUNCA da regla: Movistar
-//     (AS3816) mezcla fijo y móvil y un cliente en Cúcuta recibió la regla
-//     de Bogotá (pedido #2659).                                           fuente "ip"
+//  2. Sin GPS, ciudad elegida en el pop-up del tema (debe ser una de las
+//     ciudades de las reglas) → regla de esa ciudad.                       fuente "popup"
+//  3. Sin GPS ni pop-up:
+//     - IP de un ASN MÓVIL → sin municipio ni descuento. Las IPs móviles
+//       geolocalizan a Bogotá estén donde estén (draft #D1529).           fuente "ip-movil"
+//     - IP de un operador FIJO CONFIABLE (ASN_FIJOS_CONFIABLES) → regla
+//       de su ciudad por GeoLite2-City.                                    fuente "ip"
+//     - Cualquier otra IP → ciudad solo informativa, sin regla. Movistar
+//       (AS3816) mezcla fijo y móvil: Cúcuta con regla de Bogotá (#2659).  fuente "ip"
+//     En los tres casos requiere_ubicacion: true (el tema pide GPS y, si
+//     falla, muestra el pop-up).
+//  4. Nada aplica → sin regla, precio de lista.
 // ============================================================
 
-export type Fuente = 'gps' | 'ip' | 'ip-movil';
+export type Fuente = 'gps' | 'popup' | 'ip' | 'ip-movil';
 
 export interface Coordenadas {
   lat: number;
@@ -33,6 +38,15 @@ export const ASN_MOVILES: ReadonlyMap<number, string> = new Map([
   [26611, 'Comcel / Claro móvil'],
   [27831, 'Colombia Móvil / Tigo'],
   [271773, 'WOM (Partners Telecom Colombia)'],
+]);
+
+/**
+ * ASN de operadores FIJOS cuya IP sí ubica bien la ciudad. Es la única IP que
+ * da regla. Fuera: UNE/EPM (AS13489) y Telmex (AS10620) no coincidieron con el
+ * GPS en los logs de 2026-10; Movistar (AS3816) mezcla fijo y móvil.
+ */
+export const ASN_FIJOS_CONFIABLES: ReadonlyMap<number, string> = new Map([
+  [19429, 'ETB'],
 ]);
 
 // Caja aproximada de Colombia, incluido San Andrés y Providencia.
@@ -88,11 +102,11 @@ const DEPENDENCIAS_REALES: Dependencias = {
 };
 
 /**
- * Decide ubicación y regla. `coordenadas` puede venir sin validar: si no son
- * válidas se ignoran y se decide por IP.
+ * Decide ubicación y regla. `coordenadas` y `ciudad` (pop-up) pueden venir sin
+ * validar: si no son válidas se ignoran y se sigue al siguiente paso.
  */
 export async function resolverUbicacion(
-  entrada: { coordenadas?: unknown; ip: string | null },
+  entrada: { coordenadas?: unknown; ciudad?: unknown; ip: string | null },
   deps: Dependencias = DEPENDENCIAS_REALES
 ): Promise<ResultadoUbicacion> {
   const { ip } = entrada;
@@ -118,7 +132,29 @@ export async function resolverUbicacion(
     };
   }
 
-  // 2) IP móvil: la IP no dice dónde está la persona
+  // 2) Pop-up: solo cuenta si la ciudad es una de las reglas (por municipio)
+  if (typeof entrada.ciudad === 'string' && entrada.ciudad.trim()) {
+    const reglas = await deps.reglas();
+    const elegida = cruzarRegla(reglas, [entrada.ciudad], null);
+    if (elegida) {
+      return {
+        fuente: 'popup',
+        ciudad: elegida.nombre,
+        ciudadOficial: null,
+        region: null,
+        pais: 'CO',
+        latitud: null,
+        longitud: null,
+        precision_m: null,
+        ip,
+        asn: null,
+        regla: conDescuento(elegida),
+        requiere_ubicacion: false,
+      };
+    }
+  }
+
+  // 3a) IP móvil: la IP no dice dónde está la persona
   const asn = await deps.asnDeIp(ip);
   if (asn != null && ASN_MOVILES.has(asn)) {
     return {
@@ -137,8 +173,10 @@ export async function resolverUbicacion(
     };
   }
 
-  // 3) IP fija: ciudad solo informativa (log); el descuento exige GPS
+  // 3b) IP fija: regla solo si el operador es confiable; si no, ciudad informativa
   const u = await deps.ubicarIp(ip);
+  const confiable = asn != null && ASN_FIJOS_CONFIABLES.has(asn);
+  const reglas = confiable ? await deps.reglas() : [];
   return {
     fuente: 'ip',
     ciudad: u.ciudad,
@@ -150,7 +188,7 @@ export async function resolverUbicacion(
     precision_m: null,
     ip,
     asn,
-    regla: null,
+    regla: confiable ? conDescuento(cruzarRegla(reglas, [u.ciudad], u.region)) : null,
     requiere_ubicacion: true,
   };
 }

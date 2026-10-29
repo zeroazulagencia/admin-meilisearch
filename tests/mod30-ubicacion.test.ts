@@ -123,12 +123,47 @@ test('decisión: WOM (AS271773) también es móvil', async () => {
   assert.equal(r.fuente, 'ip-movil');
 });
 
-test('decisión: sin coords e IP fija → fuente ip, ciudad informativa, sin regla, requiere_ubicacion', async () => {
+test('decisión: sin coords e IP fija no confiable (UNE) → fuente ip, ciudad informativa, sin regla', async () => {
   const r = await resolverUbicacion({ ip: '181.142.85.32' }, deps());
   assert.equal(r.fuente, 'ip');
   assert.equal(r.ciudad, 'Bogotá');
   assert.equal(r.regla, null);
   assert.equal(r.requiere_ubicacion, true);
+});
+
+test('decisión: IP de operador fijo confiable (ETB AS19429) → fuente ip con la regla de su ciudad', async () => {
+  const r = await resolverUbicacion({ ip: '186.28.173.28' }, deps({ asnDeIp: async () => 19429 }));
+  assert.equal(r.fuente, 'ip');
+  assert.equal(r.regla?.descuento, 10);
+  assert.equal(r.requiere_ubicacion, true);
+});
+
+test('decisión: pop-up con ciudad de las reglas → fuente popup con su regla, sin consultar la IP', async () => {
+  const d = deps();
+  const r = await resolverUbicacion({ ciudad: 'bogota', ip: '152.202.102.54' }, d);
+  assert.equal(r.fuente, 'popup');
+  assert.equal(r.ciudad, 'Bogotá');
+  assert.deepEqual(r.regla, { nombre: 'Bogotá', descuento: 10, tipo: 'municipio' });
+  assert.equal(r.requiere_ubicacion, false);
+  assert.equal(d.llamadasIp, 0);
+});
+
+test('decisión: pop-up Cúcuta (regla del 0 %) → fuente popup, sin regla', async () => {
+  const r = await resolverUbicacion({ ciudad: 'Cúcuta', ip: null }, deps());
+  assert.equal(r.fuente, 'popup');
+  assert.equal(r.regla, null);
+});
+
+test('decisión: pop-up con ciudad fuera de las reglas se ignora', async () => {
+  const r = await resolverUbicacion({ ciudad: 'Pasto', ip: 'x' }, deps());
+  assert.equal(r.fuente, 'ip');
+  assert.equal(r.regla, null);
+});
+
+test('decisión: GPS manda sobre el pop-up', async () => {
+  const r = await resolverUbicacion({ coordenadas: { lat: 7.8939, lng: -72.5078, acc: 30 }, ciudad: 'Bogotá', ip: null }, deps());
+  assert.equal(r.fuente, 'gps');
+  assert.equal(r.regla, null);
 });
 
 test('decisión: Movistar (AS3816) sin coords no recibe la regla de Bogotá (pedido #2659)', async () => {

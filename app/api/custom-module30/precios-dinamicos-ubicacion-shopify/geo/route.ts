@@ -6,8 +6,8 @@ import { resolverUbicacion } from '@/utils/modulos/precios-dinamicos-ubicacion-s
 // ============================================================
 //  Módulo 30 — /geo/  ubicación del visitante + regla aplicable
 //
-//  GET /geo/?lat=<num>&lng=<num>&acc=<metros>   (coordenadas opcionales)
-//  Decide con resolverUbicacion() (gps → ip-movil → ip), la MISMA función que
+//  GET /geo/?lat=<num>&lng=<num>&acc=<metros>&ciudad=<pop-up>   (todo opcional)
+//  Decide con resolverUbicacion() (gps → popup → ip), la MISMA función que
 //  usa /checkout/. El tema usa `regla` tal cual: el backend es la única fuente
 //  de verdad del descuento.
 // ============================================================
@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams;
   const u = await resolverUbicacion({
     coordenadas: q.has('lat') || q.has('lng') ? { lat: q.get('lat'), lng: q.get('lng'), acc: q.get('acc') } : undefined,
+    ciudad: q.get('ciudad'),
     ip,
   });
 

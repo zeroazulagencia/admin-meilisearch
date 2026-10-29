@@ -17,12 +17,21 @@ CORS: solo `https://retendelcasco.com`, `https://www.retendelcasco.com` y
 | Paso | Condición | `fuente` | Municipio | Descuento |
 |---|---|---|---|---|
 | 1 | Coordenadas del navegador **válidas** | `gps` | Polígono DANE que contiene el punto | Regla del municipio; si no hay, la del departamento |
-| 2 | Sin coordenadas válidas e IP de un **ASN móvil** | `ip-movil` | `null` | **Ninguno**, `requiere_ubicacion: true` |
-| 3 | Sin coordenadas válidas e IP fija | `ip` | GeoLite2-City (solo informativa) | **Ninguno**, `requiere_ubicacion: true`. La IP nunca da regla: Movistar (AS3816) mezcla fijo y móvil (pedido #2659, Cúcuta con regla de Bogotá) |
+| 2 | Sin GPS y `ciudad` del **pop-up** que coincide con una regla | `popup` | La ciudad elegida | Regla de esa ciudad |
+| 3a | Sin GPS ni pop-up e IP de un **ASN móvil** | `ip-movil` | `null` | **Ninguno** |
+| 3b | Sin GPS ni pop-up e IP de un **operador fijo confiable** | `ip` | GeoLite2-City | Regla del municipio; si no hay, la del departamento |
+| 3c | Sin GPS ni pop-up y cualquier otra IP | `ip` | GeoLite2-City (solo informativa) | **Ninguno**. Movistar (AS3816) mezcla fijo y móvil (pedido #2659: Cúcuta con regla de Bogotá) |
+| 4 | Nada aplica | — | — | Precio de lista |
+
+En los pasos 3a–3c `requiere_ubicacion: true`: el tema pide el GPS y, si falla o se niega,
+muestra el pop-up con las ciudades del metaobjeto. Si el cliente cierra el pop-up, decide la IP.
+
+**Operadores fijos confiables** (constante `ASN_FIJOS_CONFIABLES`): AS19429 ETB. UNE/EPM
+(AS13489) y Telmex (AS10620) quedaron fuera porque su IP no coincidió con el GPS en los logs.
 
 **Coordenadas válidas**: `lat`, `lng` y `acc` numéricos; dentro de Colombia
 (lat −4,3 … 13,6 · lng −82,0 … −66,8, incluye San Andrés) y `0 <= acc <= 5000` metros.
-Si no cumplen se **ignoran** sin error y se decide por IP (paso 2 o 3).
+Si no cumplen se **ignoran** sin error y se sigue al paso 2.
 
 **Por qué el paso 2**: las IPs móviles en Colombia geolocalizan a Bogotá estén donde
 estén (caso draft #D1529: cliente en Cúcuta recibió la regla de Bogotá por una IP de Claro).
@@ -35,8 +44,7 @@ estén (caso draft #D1529: cliente en Cúcuta recibió la regla de Bogotá por u
 | 27831 | Colombia Móvil / Tigo |
 | 271773 | WOM (Partners Telecom Colombia) |
 
-Fuera a propósito: AS3816 Movistar (mezcla fijo y móvil) y AS13489 UNE/Tigo (mayoría
-fijo, su IP sí geolocaliza bien).
+Movistar (AS3816) no está en ninguna lista: su IP nunca da regla.
 
 **Reglas**: metaobjeto `municipiosxdescuento` del tema, leído de
 `https://retendelcasco.com/?section_id=precio-dinamico-reglas` (caché 15 s). Cruce con
@@ -51,25 +59,26 @@ El backend es la **única fuente de verdad** del descuento: el tema usa `regla` 
 ```
 GET /geo/                                   → decide por IP
 GET /geo/?lat=7.8939&lng=-72.5078&acc=30    → decide por coordenadas (si son válidas)
+GET /geo/?ciudad=Bogotá                     → ciudad elegida en el pop-up
 ```
 
 Respuesta `200`:
 
 ```json
 {
-  "fuente": "gps",                 // "gps" | "ip" | "ip-movil"
+  "fuente": "gps",                 // "gps" | "popup" | "ip" | "ip-movil"
   "ciudad": "Cúcuta",              // null si ip-movil o el punto no cae en ningún municipio
   "region": "Norte de Santander",
   "pais": "CO",
   "latitud": 7.8939,
   "longitud": -72.5078,
   "regla": null,                   // o { "municipio": "Bogotá", "descuento": 10 }
-  "requiere_ubicacion": false      // true siempre que no haya GPS ("ip" o "ip-movil")
+  "requiere_ubicacion": false      // true sin GPS ni pop-up ("ip" o "ip-movil")
 }
 ```
 
 - `regla.descuento`: positivo **baja** el precio (10 → −10 %), negativo lo **sube** (−10 → +10 %).
-- Con `requiere_ubicacion: true` el tema debe pedir la ubicación del navegador y repetir la llamada con `lat/lng/acc`.
+- Con `requiere_ubicacion: true` el tema pide la ubicación del navegador y repite con `lat/lng/acc`; si falla, muestra el pop-up y repite con `ciudad`.
 - `429` con más de 60 consultas por minuto y por IP.
 
 ---
@@ -80,6 +89,7 @@ Respuesta `200`:
 {
   "items": [{ "variant_id": 123, "quantity": 1 }],
   "ubicacion": { "lat": 7.8939, "lng": -72.5078, "acc": 30 },   // opcional
+  "ciudad": "Bogotá",                                            // opcional, pop-up
   "dry_run": false                                               // opcional
 }
 ```

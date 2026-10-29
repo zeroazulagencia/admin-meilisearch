@@ -24,7 +24,8 @@ import { resolverUbicacion, type ResultadoUbicacion } from '@/utils/modulos/prec
 //  El botón de pago corre en el NAVEGADOR del cliente, así que este endpoint
 //  NO usa secretos: el servidor resuelve TODO (ubicación, regla, precio).
 //  El cliente solo manda items[{variant_id, quantity}] y, opcional, las
-//  coordenadas del navegador `ubicacion: { lat, lng, acc }`. La regla se
+//  coordenadas del navegador `ubicacion: { lat, lng, acc }` o la ciudad del
+//  pop-up `ciudad: "<municipio>"`. La regla se
 //  recalcula SIEMPRE aquí con resolverUbicacion() (la misma de /geo/);
 //  cualquier precio o descuento que envíe el cliente se IGNORA.
 //
@@ -195,8 +196,8 @@ export async function POST(request: NextRequest) {
       return fin({ ok: false, error: 'Tienda no configurada' }, 502);
     }
 
-    // --- 3+4) Ubicación (gps → ip-movil → ip) y regla, siempre en servidor ---
-    const ubicacion = await resolverUbicacion({ coordenadas: body?.ubicacion, ip });
+    // --- 3+4) Ubicación (gps → popup → ip) y regla, siempre en servidor ---
+    const ubicacion = await resolverUbicacion({ coordenadas: body?.ubicacion, ciudad: body?.ciudad, ip });
     ctx.ubicacion = ubicacion;
     const regla = ubicacion.regla;
     const ubicacionResp = {
