@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p 8988",
     "lint": "next lint",
-    "test": "node --import tsx --test tests/mod30-ubicacion.test.ts"
+    "test": "node --import tsx --test tests/mod30-ubicacion.test.ts tests/mod31-repuestera-plan.test.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
