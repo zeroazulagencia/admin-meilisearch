@@ -1617,7 +1617,7 @@ export default function ModAnalizadorGapSeoGeo({ moduleData }: { moduleData: Mod
               <div>
                 <label className="block text-xs font-medium text-[#64748B] mb-1">IP del servidor (whitelist)</label>
                 <input type="text" value={serverIp} onChange={(e) => setServerIp(e.target.value)}
-                  placeholder="89.167.79.168"
+                  placeholder="89.167.43.73"
                   className="w-full border border-[#E2E8F0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
               </div>
             </div>

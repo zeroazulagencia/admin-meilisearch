@@ -484,7 +484,7 @@ async function checkConocimientoIntranet(baseUrl: string, timeout: number = 15, 
     const apiOk = response.status >= 200 && response.status < 400;
     let intranetError = apiOk ? null : `status_code=${response.status}`;
     if (response.status === 418) {
-      intranetError = 'Bloqueado por firewall (418). Whitelistear IP 89.167.79.168 en el hosting de Intranet';
+      intranetError = 'Bloqueado por firewall (418). Whitelistear IP 89.167.43.73 en el hosting de Intranet';
     }
     checks.push({
       label: '2) API Intranet',

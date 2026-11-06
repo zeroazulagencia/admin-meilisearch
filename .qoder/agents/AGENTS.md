@@ -179,10 +179,10 @@ const fbToken = await getConfig('facebook_access_token');
 
 ### Servidor de Produccion
 - **Proveedor:** Hetzner Cloud
-- **IP:** 89.167.79.168
+- **IP:** 89.167.43.73
 - **Dominio:** https://workers.zeroazul.com
 - **OS:** Ubuntu
-- **Acceso SSH:** `ssh root@89.167.79.168` (via SSH key ed25519)
+- **Acceso SSH:** `ssh root@89.167.43.73` (via SSH key ed25519)
 - **App path:** `/root/admin-meilisearch`
 
 ### Stack en Produccion
@@ -198,20 +198,20 @@ const fbToken = await getConfig('facebook_access_token');
 git add . && git commit -m "descripcion" && git push origin master
 
 # 2. En el servidor remoto: pull + rebuild
-ssh root@89.167.79.168
+ssh root@89.167.43.73
 cd /root/admin-meilisearch
 git pull origin master
 npm run build
 pm2 restart admin-meilisearch
 
 # 3. O en un solo comando desde local:
-ssh root@89.167.79.168 "cd /root/admin-meilisearch && git pull origin master && npm run build && pm2 restart admin-meilisearch"
+ssh root@89.167.43.73 "cd /root/admin-meilisearch && git pull origin master && npm run build && pm2 restart admin-meilisearch"
 ```
 
 ### Desarrollo Local (conexion a BD remota)
 ```bash
 # Tunel SSH para conectar a la BD de produccion
-ssh -L 3307:127.0.0.1:3306 root@89.167.79.168 -N -f
+ssh -L 3307:127.0.0.1:3306 root@89.167.43.73 -N -f
 
 # .env local usa MYSQL_PORT=3307
 ```
@@ -219,15 +219,15 @@ ssh -L 3307:127.0.0.1:3306 root@89.167.79.168 -N -f
 ### Comandos Utiles
 ```bash
 # Ver logs en produccion
-ssh root@89.167.79.168 "pm2 logs admin-meilisearch --lines 50"
+ssh root@89.167.43.73 "pm2 logs admin-meilisearch --lines 50"
 
 # Estado del proceso
-ssh root@89.167.79.168 "pm2 status"
+ssh root@89.167.43.73 "pm2 status"
 
 # Reiniciar app
-ssh root@89.167.79.168 "pm2 restart admin-meilisearch"
+ssh root@89.167.43.73 "pm2 restart admin-meilisearch"
 
 # Renovar certificado SSL (automatico, pero manual si necesario)
-ssh root@89.167.79.168 "certbot renew"
+ssh root@89.167.43.73 "certbot renew"
 ```
 
