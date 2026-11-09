@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
+import { requireAuth } from '@/utils/api-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await requireAuth(req);
+    if (auth instanceof NextResponse) return auth;
+
     const url = req.nextUrl.searchParams.get('url') ?? '';
     if (!url) {
       return NextResponse.json({ ok: false, error: 'url requerido' }, { status: 400 });
+    }
+
+    // Solo grabaciones de Twilio: las credenciales viajan en el header y no deben salir a otro host
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return NextResponse.json({ ok: false, error: 'url invalida' }, { status: 400 });
+    }
+    if (parsed.protocol !== 'https:' || parsed.hostname !== 'api.twilio.com' || !parsed.pathname.includes('/Recordings/')) {
+      return NextResponse.json({ ok: false, error: 'url no permitida' }, { status: 400 });
     }
 
     const [cfg] = await query<any>('SELECT config_key, config_value FROM modulos_sara_11_config');

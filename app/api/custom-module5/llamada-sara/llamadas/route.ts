@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
+import { requireAuth } from '@/utils/api-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await requireAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const year = req.nextUrl.searchParams.get('year');
     const month = req.nextUrl.searchParams.get('month');
 

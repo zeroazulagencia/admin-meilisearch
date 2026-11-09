@@ -1,10 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
+import { requireAuth } from '@/utils/api-auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const sesion = await requireAuth(req);
+    if (sesion instanceof NextResponse) return sesion;
     const [cfg] = await query<any>('SELECT config_key, config_value FROM modulos_sara_11_config');
     const config: Record<string, string> = Object.fromEntries(
       cfg.map((r: any) => [r.config_key, r.config_value ?? ''])

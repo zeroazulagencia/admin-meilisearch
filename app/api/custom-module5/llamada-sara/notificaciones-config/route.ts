@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
+import { requireAdmin } from '@/utils/api-auth';
 
 export const dynamic = 'force-dynamic';
 
 const KEYS = ['notify_email', 'notify_times'];
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const denied = await requireAdmin(req);
+    if (denied) return denied;
     const [rows] = await query<any>('SELECT config_key, config_value FROM modulos_sara_11_config WHERE config_key IN (?, ?)', KEYS);
     const config: Record<string, string> = Object.fromEntries(
       rows.map((r: any) => [r.config_key, r.config_value ?? ''])
@@ -25,6 +28,8 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
+    const denied = await requireAdmin(req);
+    if (denied) return denied;
     const body = await req.json().catch(() => ({}));
     for (const key of Object.keys(body)) {
       if (!KEYS.includes(key)) continue;
