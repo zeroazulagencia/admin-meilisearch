@@ -7,9 +7,9 @@ export const dynamic = 'force-dynamic';
 const KEYS = ['notify_email', 'notify_times'];
 
 export async function GET(req: NextRequest) {
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
   try {
-    const denied = await requireAdmin(req);
-    if (denied) return denied;
     const [rows] = await query<any>('SELECT config_key, config_value FROM modulos_sara_11_config WHERE config_key IN (?, ?)', KEYS);
     const config: Record<string, string> = Object.fromEntries(
       rows.map((r: any) => [r.config_key, r.config_value ?? ''])
@@ -27,9 +27,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
   try {
-    const denied = await requireAdmin(req);
-    if (denied) return denied;
     const body = await req.json().catch(() => ({}));
     for (const key of Object.keys(body)) {
       if (!KEYS.includes(key)) continue;

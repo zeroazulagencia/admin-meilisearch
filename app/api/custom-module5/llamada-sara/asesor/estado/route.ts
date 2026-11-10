@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
-import { requireAuth } from '@/utils/api-auth';
+import { requireSesion } from '@/utils/modulos/llamada-sara-5/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,21 +22,21 @@ async function limpiarEstadoStale() {
     );
     if (room) {
       await query(
-        "UPDATE modulos_sara_11_llamadas SET estado = 'finalizada', fin_llamada = NOW() WHERE room_id = ? AND estado = 'activa'",
+        "UPDATE modulos_sara_11_llamadas SET estado = 'finalizada', fin_llamada = NOW(), duracion_segundos = TIMESTAMPDIFF(SECOND, inicio_llamada, NOW()) WHERE room_id = ? AND estado = 'activa'",
         [room]
       );
     }
     await query(
-      "UPDATE modulos_sara_11_llamadas SET estado = 'finalizada', fin_llamada = NOW() WHERE estado = 'activa' AND created_at < DATE_SUB(NOW(), INTERVAL ? MINUTE)",
+      "UPDATE modulos_sara_11_llamadas SET estado = 'finalizada', fin_llamada = NOW(), duracion_segundos = TIMESTAMPDIFF(SECOND, inicio_llamada, NOW()) WHERE estado = 'activa' AND created_at < DATE_SUB(NOW(), INTERVAL ? MINUTE)",
       [STALE_MINUTES]
     );
   }
 }
 
 export async function GET(req: NextRequest) {
+  const denied = await requireSesion(req);
+  if (denied) return denied;
   try {
-    const auth = await requireAuth(req);
-    if (auth instanceof NextResponse) return auth;
     await limpiarEstadoStale();
 
     const [rows] = await query<any>(
@@ -58,9 +58,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireSesion(req);
+  if (denied) return denied;
   try {
-    const auth = await requireAuth(req);
-    if (auth instanceof NextResponse) return auth;
     const { estado } = await req.json().catch(() => ({}));
 
     if (estado === 'reset') {
@@ -70,12 +70,12 @@ export async function POST(req: NextRequest) {
       );
       if (asesor.length && asesor[0].room_activo) {
         await query(
-          "UPDATE modulos_sara_11_llamadas SET estado = 'finalizada', fin_llamada = NOW() WHERE room_id = ? AND estado = 'activa'",
+          "UPDATE modulos_sara_11_llamadas SET estado = 'finalizada', fin_llamada = NOW(), duracion_segundos = TIMESTAMPDIFF(SECOND, inicio_llamada, NOW()) WHERE room_id = ? AND estado = 'activa'",
           [asesor[0].room_activo]
         );
       }
       await query(
-        "UPDATE modulos_sara_11_llamadas SET estado = 'finalizada', fin_llamada = NOW() WHERE estado = 'activa'",
+        "UPDATE modulos_sara_11_llamadas SET estado = 'finalizada', fin_llamada = NOW(), duracion_segundos = TIMESTAMPDIFF(SECOND, inicio_llamada, NOW()) WHERE estado = 'activa'",
         []
       );
       await query(

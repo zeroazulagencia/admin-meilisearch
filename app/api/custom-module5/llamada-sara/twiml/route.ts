@@ -17,7 +17,10 @@ async function handler(req: NextRequest) {
       return xml('<Response><Say language="es-MX">Sala invalida</Say></Response>');
     }
 
-    const [rows] = await query<any>('SELECT id FROM modulos_sara_11_llamadas WHERE room_id = ?', [room]);
+    const [rows] = await query<any>(
+      "SELECT id FROM modulos_sara_11_llamadas WHERE room_id = ? AND estado = 'activa'",
+      [room]
+    );
     if (!rows.length) {
       return xml('<Response><Say language="es-MX">Sala no encontrada</Say></Response>');
     }

@@ -33,9 +33,10 @@ export async function POST(req: NextRequest) {
       ['finalizada', duracion_segundos, room_id]
     );
 
+    // Solo libera al asesor si estaba en ESTA sala.
     await query(
-      "UPDATE modulos_sara_11_asesores SET estado = 'online', room_activo = NULL WHERE asesor_id = 'admin' AND estado = 'ocupado'",
-      []
+      "UPDATE modulos_sara_11_asesores SET estado = 'online', room_activo = NULL WHERE asesor_id = 'admin' AND estado = 'ocupado' AND room_activo = ?",
+      [room_id]
     );
 
     return NextResponse.json({ ok: true, duracion_segundos });

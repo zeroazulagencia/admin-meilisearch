@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
-import { requireAuth } from '@/utils/api-auth';
+import { requireSesion } from '@/utils/modulos/llamada-sara-5/config';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  const denied = await requireSesion(req);
+  if (denied) return denied;
   try {
-    const sesion = await requireAuth(req);
-    if (sesion instanceof NextResponse) return sesion;
     const [cfg] = await query<any>('SELECT config_key, config_value FROM modulos_sara_11_config');
     const config: Record<string, string> = Object.fromEntries(
       cfg.map((r: any) => [r.config_key, r.config_value ?? ''])

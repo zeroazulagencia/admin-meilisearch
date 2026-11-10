@@ -780,7 +780,7 @@ export default function LlamadaSara({ moduleData }: { moduleData?: any }) {
             {[
               { key: 'account_sid', label: 'Account SID', placeholder: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
               { key: 'api_key_sid', label: 'API Key SID', placeholder: 'SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
-              { key: 'api_key_secret', label: 'API Key Secret', placeholder: '' },
+              { key: 'api_key_secret', label: 'API Key Secret', placeholder: 'Guardado. Escribe uno nuevo solo para cambiarlo' },
               { key: 'twiml_app_sid', label: 'TwiML App SID', placeholder: 'APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
             ].map(({ key, label, placeholder }) => (
               <div key={key}>

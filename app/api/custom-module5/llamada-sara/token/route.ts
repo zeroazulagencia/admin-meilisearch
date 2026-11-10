@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
-import { requireAuth } from '@/utils/api-auth';
 import twilio from 'twilio';
+import { requireSesion } from '@/utils/modulos/llamada-sara-5/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +12,10 @@ export async function GET(req: NextRequest) {
     const room = req.nextUrl.searchParams.get('room') ?? '';
     const role = req.nextUrl.searchParams.get('role') ?? 'cliente';
 
-    // El token de asesor solo se entrega con sesion del panel; el cliente publico sigue sin login
+    // El token de asesor solo con sesión del panel; el del cliente sigue público.
     if (role === 'asesor') {
-      const auth = await requireAuth(req);
-      if (auth instanceof NextResponse) return auth;
+      const denied = await requireSesion(req);
+      if (denied) return denied;
     }
 
     if (!ROOM_REGEX.test(room)) {

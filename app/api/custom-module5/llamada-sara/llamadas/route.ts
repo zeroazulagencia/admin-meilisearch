@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/utils/db';
-import { requireAuth } from '@/utils/api-auth';
+import { requireSesion } from '@/utils/modulos/llamada-sara-5/config';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  const denied = await requireSesion(req);
+  if (denied) return denied;
   try {
-    const auth = await requireAuth(req);
-    if (auth instanceof NextResponse) return auth;
     const year = req.nextUrl.searchParams.get('year');
     const month = req.nextUrl.searchParams.get('month');
 
